@@ -18,6 +18,7 @@
 - The current internal flow now includes a separate applicant-profile step before the deeper application journey. Preserve that separation instead of letting applicant-profile seed data accidentally mark Section 1 as complete.
 - A localhost-only auth bypass now exists for temporary verification beyond the Keypath gate. Keep it strictly local/dev-only and never let it leak into preview or production behavior.
 - Treat the app as a single persisted application unless and until a real multi-application data model is added. Do not reintroduce mock dashboard inventories or fake copy-from-application flows.
+- Treat the selected course as part of the persisted application. Reuse `applicationMeta.selectedCourse` and the shared course helpers instead of letting overview/dashboard/backend saves fall back to an implicit hard-coded course.
 - `ApplicationContext` is now a hybrid draft layer: local cache plus authenticated Supabase draft sync. Do not regress it back to browser-only persistence, and do not bypass the shared remote store when adding backend work.
 - For dashboard, overview, and other summary surfaces, prefer the shared `AppBrandHeader`, `SurfaceCard`, and `StatusPill` primitives over one-off wrappers.
 - Avoid unnecessary customization. If a button, badge, card, or accent treatment already exists in shared UI, reuse it instead of rebuilding it locally.

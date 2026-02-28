@@ -43,6 +43,9 @@ interface ApplicationContextType {
   ensureRemoteRecordId: () => Promise<string | undefined>;
   updatePersonalDetails: (details: Partial<PersonalDetails>) => void;
   updateContactDetails: (details: Partial<ContactDetails>) => void;
+  selectCourse: (
+    course: NonNullable<ApplicationData["applicationMeta"]["selectedCourse"]>,
+  ) => void;
   addTertiaryQualification: (qualification: TertiaryQualification) => void;
   updateTertiaryQualification: (
     id: string,
@@ -248,6 +251,15 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         setData((previous) => ({
           ...previous,
           contactDetails: { ...previous.contactDetails, ...details },
+        }));
+      },
+      selectCourse: (course) => {
+        setData((previous) => ({
+          ...previous,
+          applicationMeta: {
+            ...previous.applicationMeta,
+            selectedCourse: course,
+          },
         }));
       },
       addTertiaryQualification: (qualification) => {

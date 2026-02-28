@@ -21,8 +21,8 @@ import {
   hasApplicantProfile,
 } from "../lib/applicantProfiles";
 import {
-  APPLICATION_COURSE,
   formatApplicationDate,
+  getSelectedCourse,
   hasStartedApplication,
   isApplicationSubmitted,
 } from "../lib/applicationProgress";
@@ -119,6 +119,7 @@ export default function Dashboard() {
   const nextPath = getDashboardResumePath(nextSection, hasProfile);
   const started = hasStartedApplication(data);
   const submitted = isApplicationSubmitted(data);
+  const selectedCourse = getSelectedCourse(data.applicationMeta);
 
   const currentApplication = useMemo<ApplicationCardData | null>(() => {
     if (!started && !submitted) {
@@ -128,16 +129,18 @@ export default function Dashboard() {
     return {
       applicationNumber: data.applicationMeta.applicationNumber,
       id: "current-application",
-      intake: APPLICATION_COURSE.intake,
+      intake: selectedCourse.intake,
       nextStep: nextSection,
       status: submitted ? "submitted" : "in-progress",
       submittedDate: formatApplicationDate(data.applicationMeta.submittedAt),
-      title: APPLICATION_COURSE.title,
+      title: selectedCourse.title,
     };
   }, [
     data.applicationMeta.applicationNumber,
     data.applicationMeta.submittedAt,
     nextSection,
+    selectedCourse.intake,
+    selectedCourse.title,
     started,
     submitted,
   ]);
@@ -271,8 +274,9 @@ export default function Dashboard() {
             filteredApplications.map((application) => (
               <ApplicationCard
                 key={application.id}
-                application={application}
-                onEdit={() => navigate("/overview")}
+                  application={application}
+                  selectedCourse={selectedCourse}
+                  onEdit={() => navigate("/overview")}
                 onResume={() => navigate(nextPath)}
                 onViewApplication={() =>
                   navigate(application.status === "submitted" ? "/submitted" : "/review")
@@ -343,12 +347,14 @@ function StatCard({
 
 function ApplicationCard({
   application,
+  selectedCourse,
   onViewCourse,
   onEdit,
   onViewApplication,
   onResume,
 }: {
   application: ApplicationCardData;
+  selectedCourse: ReturnType<typeof getSelectedCourse>;
   onViewCourse: () => void;
   onEdit: () => void;
   onViewApplication: () => void;
@@ -360,7 +366,7 @@ function ApplicationCard({
         <img
           alt={application.title}
           className="h-40 w-full object-cover"
-          src={APPLICATION_COURSE.image}
+          src={selectedCourse.image}
         />
       </div>
 
@@ -368,9 +374,9 @@ function ApplicationCard({
         <h3 className="mb-3 text-base font-bold text-gray-900">{application.title}</h3>
 
         <div className="mb-3 space-y-1 text-sm">
-          <DetailRow label="Delivery" value={APPLICATION_COURSE.delivery} />
-          <DetailRow label="Duration" value={APPLICATION_COURSE.duration} />
-          <DetailRow label="Total Price" value={APPLICATION_COURSE.price} />
+          <DetailRow label="Delivery" value={selectedCourse.delivery} />
+          <DetailRow label="Duration" value={selectedCourse.duration} />
+          <DetailRow label="Total Price" value={selectedCourse.price} />
           <DetailRow label="Intake" value={application.intake} />
         </div>
 

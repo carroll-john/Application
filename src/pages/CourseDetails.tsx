@@ -7,8 +7,12 @@ import { ModalShell } from "../components/ModalShell";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
 import { NativeSelect } from "../components/ui/native-select";
+import { useApplication } from "../context/ApplicationContext";
 import { useAuth } from "../context/AuthContext";
-import { APPLICATION_COURSE } from "../lib/applicationProgress";
+import {
+  APPLICATION_COURSE,
+  createSelectedCourseSeed,
+} from "../lib/applicationProgress";
 import { isEligibleForMbaCourse } from "../lib/courseEligibility";
 
 type EligibilityOutcome = "success" | "fail" | null;
@@ -51,6 +55,7 @@ const eligibilityBenefits = [
 export default function CourseDetails() {
   const navigate = useNavigate();
   const { isAuthorizedCompanyUser, session } = useAuth();
+  const { selectCourse } = useApplication();
   const [showEligibility, setShowEligibility] = useState(false);
   const [eligibilityOutcome, setEligibilityOutcome] =
     useState<EligibilityOutcome>(null);
@@ -65,24 +70,32 @@ export default function CourseDetails() {
     Boolean(eligibilityForm.education) &&
     Boolean(eligibilityForm.experience);
 
+  const applicantProfilePath = `/applicant-profile?redirect=${encodeURIComponent(
+    "/overview",
+  )}&course=${encodeURIComponent(APPLICATION_COURSE.code)}`;
+
   function handleEligibleApplyNow() {
+    selectCourse(
+      createSelectedCourseSeed({
+        code: APPLICATION_COURSE.code,
+        title: APPLICATION_COURSE.title,
+        intake: APPLICATION_COURSE.intake,
+      }),
+    );
+
     if (session && isAuthorizedCompanyUser) {
-      navigate("/applicant-profile?redirect=/overview");
+      navigate(applicantProfilePath);
       return;
     }
 
-    navigate(
-      `/sign-in?redirect=${encodeURIComponent(
-        "/applicant-profile?redirect=/overview",
-      )}`,
-    );
+    navigate(`/sign-in?redirect=${encodeURIComponent(applicantProfilePath)}`);
   }
 
   return (
     <div className="min-h-screen bg-white">
       <AppBrandHeader>
         <div className="hidden rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 sm:block">
-          Southern Cross University
+          {APPLICATION_COURSE.provider}
         </div>
       </AppBrandHeader>
 

@@ -125,6 +125,11 @@ Important top-level groups:
 - Submission state is stored in `applicationMeta`:
   - `applicationNumber`
   - `submittedAt`
+- Course ownership is now stored in `applicationMeta.selectedCourse`:
+  - `code`
+  - `title`
+  - `intake`
+- Overview, dashboard, and backend draft persistence should read course details from `applicationMeta.selectedCourse` first, not from an implicit global MBA constant.
 - `markApplicationSubmitted()` in `src/context/ApplicationContext.tsx` is the canonical client entry point for submission, but production submission now calls the Supabase `submit_application` RPC first and only falls back to client-side numbering in non-Supabase/dev mode.
 - Dashboard, overview, review, and submitted pages should read from this shared state instead of inventing local application status.
 - When no application has been started yet, dashboard should show an honest empty state rather than seeded mock cards.
@@ -134,6 +139,7 @@ Important top-level groups:
   - `applications` will attach to `applicant_profiles` over time, while site access remains Keypath-only during dogfooding
 - Do not collapse applicant profile data back into the business-user auth model when building the public applicant flow.
 - The applicant-profile step currently seeds `personalDetails.firstName`, `lastName`, `preferredName`, `email`, and `phone`, but those values must not cause the rest of Section 1 to be treated as complete. Real application progression still requires title, gender, and date of birth.
+- Eligibility/apply should also seed the selected course before the applicant-profile step, and the applicant-profile route should be able to restore that selected course from the redirect query when needed.
 
 ### Document Uploads
 - Document uploads are real client-side uploads now. They are not name-only placeholders.

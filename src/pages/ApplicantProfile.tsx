@@ -1,5 +1,5 @@
 import { Mail, Phone, UserRound } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { SurfaceCard } from "../components/SurfaceCard";
@@ -11,12 +11,18 @@ import {
   deriveApplicantProfileSeed,
   hasApplicantProfile,
 } from "../lib/applicantProfiles";
+import {
+  APPLICATION_COURSE,
+  createSelectedCourseSeed,
+  getSelectedCourse,
+} from "../lib/applicationProgress";
 
 export default function ApplicantProfile() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { data, updatePersonalDetails } = useApplication();
+  const { data, updatePersonalDetails, selectCourse } = useApplication();
   const existingProfile = deriveApplicantProfileSeed(data);
+  const selectedCourse = getSelectedCourse(data.applicationMeta);
   const [formData, setFormData] = useState({
     email: existingProfile?.email ?? data.personalDetails.email,
     firstName: existingProfile?.firstName ?? data.personalDetails.firstName,
@@ -33,6 +39,31 @@ export default function ApplicantProfile() {
     () => searchParams.get("redirect") || "/overview",
     [searchParams],
   );
+  const selectedCourseCode = searchParams.get("course");
+
+  useEffect(() => {
+    if (selectedCourseCode !== APPLICATION_COURSE.code) {
+      return;
+    }
+
+    const existingSelectedCourse = data.applicationMeta.selectedCourse;
+
+    if (
+      existingSelectedCourse?.code === APPLICATION_COURSE.code &&
+      existingSelectedCourse.title === APPLICATION_COURSE.title &&
+      existingSelectedCourse.intake === APPLICATION_COURSE.intake
+    ) {
+      return;
+    }
+
+    selectCourse(
+      createSelectedCourseSeed({
+        code: APPLICATION_COURSE.code,
+        title: APPLICATION_COURSE.title,
+        intake: APPLICATION_COURSE.intake,
+      }),
+    );
+  }, [data.applicationMeta.selectedCourse, selectCourse, selectedCourseCode]);
 
   function validate() {
     const nextErrors: Partial<Record<keyof typeof formData, string>> = {};
@@ -104,6 +135,9 @@ export default function ApplicantProfile() {
                   These details seed the application and create the applicant
                   profile in the backend. The full application form can still
                   refine them later.
+                </p>
+                <p className="text-sm leading-6 text-slate-500">
+                  Current course: {selectedCourse.title}
                 </p>
               </div>
 

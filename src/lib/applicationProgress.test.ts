@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { initialApplicationData } from "./applicationData";
 import {
+  APPLICATION_COURSE,
   formatApplicationDate,
+  getSelectedCourse,
   hasStartedApplication,
   isApplicationSubmitted,
 } from "./applicationProgress";
@@ -36,5 +38,21 @@ describe("application progress helpers", () => {
 
   it("formats application dates for AU display", () => {
     expect(formatApplicationDate("2026-03-01T00:00:00.000Z")).toBe("1 Mar 2026");
+  });
+
+  it("returns the selected course from application meta when present", () => {
+    expect(
+      getSelectedCourse({
+        selectedCourse: {
+          code: "mba-online",
+          title: "Master of Business Administration (MBA) online",
+          intake: "4 Aug 2025",
+        },
+      }),
+    ).toMatchObject({
+      code: APPLICATION_COURSE.code,
+      title: "Master of Business Administration (MBA) online",
+      intake: "4 Aug 2025",
+    });
   });
 });

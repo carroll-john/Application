@@ -75,4 +75,22 @@ describe("mergeStoredApplicationData", () => {
       country: "",
     });
   });
+
+  it("preserves the selected course metadata when reloading stored application data", () => {
+    const merged = mergeStoredApplicationData({
+      applicationMeta: {
+        selectedCourse: {
+          code: "mba-online",
+          title: "Master of Business Administration (MBA) online",
+          intake: "12 May 2025",
+        },
+      },
+    });
+
+    expect(merged.applicationMeta.selectedCourse).toEqual({
+      code: "mba-online",
+      title: "Master of Business Administration (MBA) online",
+      intake: "12 May 2025",
+    });
+  });
 });

@@ -19,13 +19,14 @@ import { deriveApplicantProfileSeed } from "./applicantProfiles";
 import type { UploadedDocument } from "./documentStorage";
 import { supabase } from "./supabase";
 
-const APPLICATION_COURSE_CODE = "mba-online";
-
 interface RemoteApplicationRow {
   id: string;
   applicant_profile_id: string | null;
   application_number: string | null;
   submitted_at: string | null;
+  course_code: string | null;
+  course_title: string | null;
+  intake_label: string | null;
   personal_details: PersonalDetails | null;
   contact_details: ContactDetails | null;
   cv_document_id: string | null;
@@ -126,7 +127,7 @@ export async function loadRemoteApplication(
   const { data: applications, error } = await client
     .from("applications")
     .select(
-      "id, applicant_profile_id, application_number, submitted_at, personal_details, contact_details, cv_document_id, cv_file_name",
+      "id, applicant_profile_id, application_number, submitted_at, course_code, course_title, intake_label, personal_details, contact_details, cv_document_id, cv_file_name",
     )
     .eq("user_id", session.user.id)
     .order("updated_at", { ascending: false })
@@ -225,6 +226,14 @@ export async function loadRemoteApplication(
       applicantProfileId: application.applicant_profile_id ?? undefined,
       applicationNumber: application.application_number ?? undefined,
       submittedAt: application.submitted_at ?? undefined,
+      selectedCourse:
+        application.course_code && application.course_title && application.intake_label
+          ? {
+              code: application.course_code,
+              title: application.course_title,
+              intake: application.intake_label,
+            }
+          : undefined,
     },
     personalDetails: application.personal_details ?? initialApplicationData.personalDetails,
     contactDetails: application.contact_details ?? initialApplicationData.contactDetails,
@@ -388,9 +397,11 @@ export async function saveRemoteApplication(
     status: data.applicationMeta.submittedAt ? "submitted" : "draft",
     application_number: data.applicationMeta.applicationNumber ?? null,
     submitted_at: data.applicationMeta.submittedAt ?? null,
-    course_code: APPLICATION_COURSE_CODE,
-    course_title: APPLICATION_COURSE.title,
-    intake_label: APPLICATION_COURSE.intake,
+    course_code: data.applicationMeta.selectedCourse?.code ?? APPLICATION_COURSE.code,
+    course_title:
+      data.applicationMeta.selectedCourse?.title ?? APPLICATION_COURSE.title,
+    intake_label:
+      data.applicationMeta.selectedCourse?.intake ?? APPLICATION_COURSE.intake,
     personal_details: data.personalDetails,
     contact_details: data.contactDetails,
     cv_document_id: getRemoteDocumentId(data.cvDocument),

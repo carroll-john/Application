@@ -92,11 +92,18 @@ export interface ContactDetails {
   disabilityDetails: string;
 }
 
+export interface SelectedCourse {
+  code: string;
+  title: string;
+  intake: string;
+}
+
 export interface ApplicationMeta {
   recordId?: string;
   applicantProfileId?: string;
   applicationNumber?: string;
   submittedAt?: string;
+  selectedCourse?: SelectedCourse;
 }
 
 export interface ApplicationData {

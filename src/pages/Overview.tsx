@@ -8,7 +8,7 @@ import {
   hasApplicantProfile,
 } from "../lib/applicantProfiles";
 import {
-  APPLICATION_COURSE,
+  getSelectedCourse,
   hasStartedApplication,
   isApplicationSubmitted,
 } from "../lib/applicationProgress";
@@ -40,6 +40,7 @@ export default function Overview() {
   const hasProfile = hasApplicantProfile(data);
   const started = hasStartedApplication(data);
   const submitted = isApplicationSubmitted(data);
+  const selectedCourse = getSelectedCourse(data.applicationMeta);
   const nextPath = getOverviewActionPath(
     getNextIncompleteSection(),
     submitted,
@@ -63,10 +64,10 @@ export default function Overview() {
             <div className="h-32 w-full rounded-[28px] bg-[linear-gradient(135deg,#084E74_0%,#0b678f_100%)] sm:w-48" />
             <div className="flex-1">
               <h2 className="text-xl font-bold text-slate-900">
-                {APPLICATION_COURSE.title}
+                {selectedCourse.title}
               </h2>
               <div className="mt-4 max-w-xs rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700">
-                Desired course intake: {APPLICATION_COURSE.intake}
+                Desired course intake: {selectedCourse.intake}
               </div>
               <Button
                 className="mt-5"

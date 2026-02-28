@@ -1,14 +1,31 @@
-export const APPLICATION_COURSE = {
+import type { ApplicationMeta, SelectedCourse } from "./applicationData";
+
+export interface ApplicationCourse {
+  code: string;
+  title: string;
+  image: string;
+  provider: string;
+  delivery: string;
+  duration: string;
+  price: string;
+  studyLevel: string;
+  courseType: string;
+  intake: string;
+}
+
+export const APPLICATION_COURSE: ApplicationCourse = {
+  code: "mba-online",
   title: "Master of Business Administration (MBA) online",
   image:
     "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&auto=format&fit=crop&q=80",
+  provider: "Southern Cross University",
   delivery: "Online",
   duration: "18 months",
   price: "$37,750",
   studyLevel: "Postgraduate",
   courseType: "Master's",
   intake: "12 May 2025",
-} as const;
+};
 
 interface ApplicationProgressSnapshot {
   personalDetails: {
@@ -96,6 +113,31 @@ export function isApplicationSubmitted(data: ApplicationProgressSnapshot) {
 
 export function createApplicationNumber() {
   return `QX-${Math.floor(1000000 + Math.random() * 9000000)}`;
+}
+
+export function getSelectedCourse(meta?: ApplicationMeta): ApplicationCourse {
+  const selectedCourse = meta?.selectedCourse;
+
+  if (!selectedCourse) {
+    return APPLICATION_COURSE;
+  }
+
+  return {
+    ...APPLICATION_COURSE,
+    code: selectedCourse.code || APPLICATION_COURSE.code,
+    title: selectedCourse.title || APPLICATION_COURSE.title,
+    intake: selectedCourse.intake || APPLICATION_COURSE.intake,
+  };
+}
+
+export function createSelectedCourseSeed(
+  course: Pick<SelectedCourse, "code" | "title" | "intake">,
+): SelectedCourse {
+  return {
+    code: course.code,
+    title: course.title,
+    intake: course.intake,
+  };
 }
 
 export function formatApplicationDate(isoDate?: string) {
