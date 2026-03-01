@@ -32,6 +32,7 @@ import {
 } from "../lib/applicationRemoteStore";
 import {
   clearLocalApplicantProfile,
+  ensureApplicantProfile,
   loadApplicantProfile,
   type StoredApplicantProfile,
 } from "../lib/applicantProfileStore";
@@ -156,17 +157,23 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   const persistApplication = useCallback(
     async (
       nextData: ApplicationData,
-      options?: { forceCreate?: boolean; keepActive?: boolean },
+      options?: {
+        applicantProfileId?: string | null;
+        forceCreate?: boolean;
+        keepActive?: boolean;
+      },
     ) => {
       const mergedData = mergeStoredApplicationData(nextData);
       let persistedData = mergedData;
+      const resolvedApplicantProfileId =
+        options?.applicantProfileId ??
+        mergedData.applicationMeta.applicantProfileId ??
+        applicantProfile?.id ??
+        null;
 
       if (session && isAuthorizedCompanyUser && isConfigured) {
         const saveResult = await saveRemoteApplication(session, mergedData, {
-          applicantProfileId:
-            mergedData.applicationMeta.applicantProfileId ??
-            applicantProfile?.id ??
-            null,
+          applicantProfileId: resolvedApplicantProfileId,
           forceCreate: options?.forceCreate,
         });
 
@@ -177,7 +184,8 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
               ...mergedData.applicationMeta,
               applicantProfileId:
                 saveResult.applicantProfileId ??
-                mergedData.applicationMeta.applicantProfileId,
+                resolvedApplicantProfileId ??
+                undefined,
               applicationNumber:
                 saveResult.applicationNumber ??
                 mergedData.applicationMeta.applicationNumber,
@@ -195,8 +203,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           applicationMeta: {
             ...mergedData.applicationMeta,
             applicantProfileId:
-              mergedData.applicationMeta.applicantProfileId ??
-              applicantProfile?.id,
+              resolvedApplicantProfileId ?? undefined,
           },
         });
       }
@@ -360,6 +367,15 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
   const beginCourseApplication = useCallback(
     async (course: SelectedCourse) => {
+      const resolvedApplicantProfile =
+        session && isAuthorizedCompanyUser && isConfigured
+          ? await ensureApplicantProfile(session)
+          : applicantProfile;
+
+      if (isMountedRef.current) {
+        setApplicantProfile(resolvedApplicantProfile);
+      }
+
       const existingApplication = session && isAuthorizedCompanyUser && isConfigured
         ? applications.find(
             (application) =>
@@ -381,15 +397,18 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
       const draft = createApplicationDraft(
         course,
-        applicantProfile?.id ?? undefined,
-        applicantProfile,
+        resolvedApplicantProfile?.id ?? undefined,
+        resolvedApplicantProfile,
       );
 
-      const persisted = await persistApplication(draft, { forceCreate: true });
+      const persisted = await persistApplication(draft, {
+        applicantProfileId: resolvedApplicantProfile?.id ?? null,
+        forceCreate: true,
+      });
       return persisted;
     },
     [
-      applicantProfile?.id,
+      applicantProfile,
       applications,
       data,
       isAuthorizedCompanyUser,

@@ -31,17 +31,27 @@ export default function CourseDetails() {
   const [eligibilityOutcome, setEligibilityOutcome] =
     useState<EligibilityOutcome>(null);
   const [eligibilityReason, setEligibilityReason] = useState("");
+  const [applyError, setApplyError] = useState<string | null>(null);
   const [eligibilityForm, setEligibilityForm] = useState<EligibilityAnswers>({
     educationLevel: "",
     experienceRange: "",
     goal: "",
   });
+  const [isStartingApplication, setIsStartingApplication] = useState(false);
   const autoApplyStartedRef = useRef(false);
   const isAuthenticated = Boolean(
     isBypassedInDev || (session && isAuthorizedCompanyUser),
   );
   const shouldAutoApply =
     searchParams.get("apply") === "1" && searchParams.get("eligible") === "1";
+  const isApplyActionPending = isHydrating || isStartingApplication;
+
+  function resetEligibilityState() {
+    setApplyError(null);
+    setEligibilityOutcome(null);
+    setEligibilityReason("");
+    setShowEligibility(false);
+  }
 
   useEffect(() => {
     if (!shouldAutoApply || !isAuthenticated || isHydrating || autoApplyStartedRef.current) {
@@ -55,9 +65,20 @@ export default function CourseDetails() {
       intake: course.intakeLabel,
       provider: course.provider,
       title: course.title,
-    }).then(() => {
-      navigate("/overview", { replace: true });
-    });
+    })
+      .then(() => {
+        navigate("/overview", { replace: true });
+      })
+      .catch(() => {
+        autoApplyStartedRef.current = false;
+        setEligibilityOutcome("success");
+        setEligibilityReason(
+          `You meet the entry criteria for ${course.title}.`,
+        );
+        setApplyError(
+          "We couldn't start your application right now. Try again.",
+        );
+      });
   }, [
     beginCourseApplication,
     course.code,
@@ -75,19 +96,37 @@ export default function CourseDetails() {
     Boolean(eligibilityForm.educationLevel) &&
     Boolean(eligibilityForm.experienceRange);
 
-  function handleEligibleApplyNow() {
-    if (isAuthenticated) {
-      void beginCourseApplication({
-        code: course.code,
-        intake: course.intakeLabel,
-        provider: course.provider,
-        title: course.title,
-      }).then(() => {
-        navigate("/overview");
-      });
+  async function handleEligibleApplyNow() {
+    if (isApplyActionPending) {
       return;
     }
 
+    setApplyError(null);
+
+    if (isAuthenticated) {
+      setIsStartingApplication(true);
+
+      try {
+        await beginCourseApplication({
+          code: course.code,
+          intake: course.intakeLabel,
+          provider: course.provider,
+          title: course.title,
+        });
+        resetEligibilityState();
+        navigate("/overview");
+      } catch {
+        setApplyError(
+          "We couldn't start your application right now. Try again.",
+        );
+      } finally {
+        setIsStartingApplication(false);
+      }
+
+      return;
+    }
+
+    resetEligibilityState();
     navigate(
       `/sign-in?redirect=${encodeURIComponent(
         `/courses/${course.code}?eligible=1&apply=1`,
@@ -358,7 +397,10 @@ export default function CourseDetails() {
 
       {showEligibility && !eligibilityOutcome ? (
         <ModalShell
-          onClose={() => setShowEligibility(false)}
+          onClose={() => {
+            setApplyError(null);
+            setShowEligibility(false);
+          }}
           title="Eligibility Check"
         >
           <p className="mb-6 text-sm leading-6 text-slate-600">
@@ -401,6 +443,7 @@ export default function CourseDetails() {
             className="mt-6 w-full"
             disabled={!isEligibilityFormComplete}
             onClick={() => {
+              setApplyError(null);
               const result = evaluateCourseEligibility(course.eligibility, eligibilityForm);
               setEligibilityOutcome(result.eligible ? "success" : "fail");
               setEligibilityReason(result.reason ?? "");
@@ -414,11 +457,7 @@ export default function CourseDetails() {
       {eligibilityOutcome ? (
         <ModalShell
           maxWidthClassName="max-w-xl"
-          onClose={() => {
-            setEligibilityOutcome(null);
-            setEligibilityReason("");
-            setShowEligibility(false);
-          }}
+          onClose={resetEligibilityState}
           title={
             eligibilityOutcome === "success"
               ? "Eligible to apply"
@@ -439,25 +478,28 @@ export default function CourseDetails() {
           <p className="text-sm leading-6 text-slate-600">
             {eligibilityReason}
           </p>
+          {applyError ? (
+            <p className="mt-4 text-sm font-medium text-[var(--error-text)]">
+              {applyError}
+            </p>
+          ) : null}
           <Button
             className="mt-6 w-full"
+            disabled={eligibilityOutcome === "success" && isApplyActionPending}
             onClick={() => {
               if (eligibilityOutcome === "success") {
-                setEligibilityOutcome(null);
-                setEligibilityReason("");
-                setShowEligibility(false);
-                handleEligibleApplyNow();
+                void handleEligibleApplyNow();
                 return;
               }
 
-              setEligibilityOutcome(null);
-              setEligibilityReason("");
-              setShowEligibility(false);
+              resetEligibilityState();
             }}
           >
             {eligibilityOutcome === "success"
               ? isAuthenticated
-                ? "Start application"
+                ? isApplyActionPending
+                  ? "Preparing application..."
+                  : "Start application"
                 : "Sign in to apply"
               : "Close"}
           </Button>
