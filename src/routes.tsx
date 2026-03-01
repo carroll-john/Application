@@ -18,6 +18,9 @@ import { useLocation } from "react-router-dom";
 
 const ApplicationSubmitted = lazy(() => import("./pages/ApplicationSubmitted"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DevSentrySmoke = import.meta.env.DEV
+  ? lazy(() => import("./pages/DevSentrySmoke"))
+  : null;
 const Overview = lazy(() => import("./pages/Overview"));
 const ProfileRecommendations = lazy(
   () => import("./pages/ProfileRecommendations"),
@@ -128,6 +131,14 @@ const createAppRouter = isSentryEnabled
   : createBrowserRouter;
 
 export const router = createAppRouter([
+  ...(DevSentrySmoke
+    ? [
+        {
+          path: "/dev/sentry-smoke",
+          element: <DevSentrySmoke />,
+        },
+      ]
+    : []),
   {
     path: "/",
     element: <CourseList />,
