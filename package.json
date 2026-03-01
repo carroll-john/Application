@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "start-task": "bash ./scripts/start-task.sh",
+    "finish-task": "bash ./scripts/finish-task.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",

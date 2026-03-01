@@ -8,6 +8,11 @@
 - For short ADR-style product and architecture choices, read [docs/decisions.md](/Users/jc/Documents/New%20project/docs/decisions.md).
 
 ## Working Expectations
+- When the user explicitly says `Start new Task`, run `npm run start-task -- "<task name>"` before making changes for that new workstream.
+- Keep that task in the generated sibling worktree and `codex/<slug>` branch instead of reusing the current checkout for unrelated work.
+- The task bootstrap is intentionally strict about a dirty working tree. Do not bypass that guard unless the user clearly wants `--allow-dirty` and understands it branches from committed `HEAD` only.
+- When the user explicitly says `Finish Task`, run `npm run finish-task -- "<task name>"` from a different checkout so the target worktree can be removed safely.
+- Keep `finish-task` scoped to `codex/<slug>` task branches. Use `--force` only when the user clearly wants to discard unmerged commits or local changes in that task worktree.
 - Preserve fidelity to the Figma Make prototype unless a newer documented decision overrides it.
 - Prefer fixing shared primitives and layout systems over page-by-page patches when the same issue appears across routes.
 - Prefer extending existing shared UI primitives before introducing page-local styling or new small wrapper components.
