@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
+import { useApplication } from "../context/ApplicationContext";
 import { Input } from "../components/ui/input";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -14,6 +15,7 @@ import {
 
 export default function ApplicantProfile() {
   const navigate = useNavigate();
+  const { refreshApplicantProfile } = useApplication();
   const { companyUserDisplayName, isBypassedInDev, isConfigured, session, signOut } =
     useAuth();
   const [profileRecordId, setProfileRecordId] = useState<string | undefined>();
@@ -117,13 +119,12 @@ export default function ApplicantProfile() {
           email: trimmedEmail,
           firstName: firstName.trim(),
           lastName: lastName.trim(),
-          phone: "",
-          preferredName: "",
         },
         profileRecordId,
       );
 
       applyProfile(savedProfile);
+      await refreshApplicantProfile();
       setStatusMessage(
         "Profile updated. New applications will use these details by default.",
       );

@@ -19,6 +19,7 @@ This file stores durable product, UX, and implementation rules for the applicati
 - Do not reintroduce a second inner OTP or pseudo-auth layer for applicants.
 - Auto-provision one reusable `applicant_profiles` record for the signed-in user when no matching profile exists.
 - `/profile` is profile management, not an auth step.
+- Reusable profile fields are limited to email, first name, and last name.
 - Profile changes affect future applications by default. Existing applications keep the values they were created with.
 - After Keypath auth, users should land on the course catalog (`/`), not be bounced into profile or application routes.
 - A localhost-only auth bypass exists for local verification. It must stay dev-only and must never affect preview or production behavior.

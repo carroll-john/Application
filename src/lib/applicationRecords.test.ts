@@ -16,8 +16,6 @@ describe("application records", () => {
         firstName: "John",
         id: "profile-1",
         lastName: "Carroll",
-        phone: "0400000000",
-        preferredName: "Johnny",
       },
     );
 
@@ -33,8 +31,8 @@ describe("application records", () => {
       email: "john.carroll@keypathedu.com.au",
       firstName: "John",
       lastName: "Carroll",
-      phone: "0400000000",
-      preferredName: "Johnny",
+      phone: "",
+      preferredName: "",
     });
   });
 

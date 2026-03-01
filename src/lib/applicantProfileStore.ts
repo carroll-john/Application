@@ -8,8 +8,6 @@ export interface ApplicantProfileSeed {
   email: string;
   firstName: string;
   lastName: string;
-  preferredName: string;
-  phone: string;
 }
 
 export interface StoredApplicantProfile extends ApplicantProfileSeed {
@@ -24,8 +22,6 @@ function normalizeProfile(
     email: profile.email.trim().toLowerCase(),
     firstName: profile.firstName.trim(),
     lastName: profile.lastName.trim(),
-    preferredName: profile.preferredName.trim(),
-    phone: profile.phone.trim(),
   };
 }
 
@@ -82,8 +78,6 @@ function mapRemoteProfile(
     first_name: string | null;
     id: string;
     last_name: string | null;
-    phone: string | null;
-    preferred_name: string | null;
   },
 ): StoredApplicantProfile {
   return normalizeProfile({
@@ -91,8 +85,6 @@ function mapRemoteProfile(
     email: row.email,
     firstName: row.first_name ?? "",
     lastName: row.last_name ?? "",
-    preferredName: row.preferred_name ?? "",
-    phone: row.phone ?? "",
   });
 }
 
@@ -106,7 +98,7 @@ export async function loadApplicantProfile(
 
   const baseQuery = supabase
     .from("applicant_profiles")
-    .select("id, email, first_name, last_name, preferred_name, phone")
+    .select("id, email, first_name, last_name")
     .eq("owner_user_id", session.user.id);
 
   const query = applicantProfileId
@@ -152,8 +144,8 @@ export async function saveApplicantProfile(
     email: normalizedProfile.email,
     first_name: normalizedProfile.firstName || null,
     last_name: normalizedProfile.lastName || null,
-    preferred_name: normalizedProfile.preferredName || null,
-    phone: normalizedProfile.phone || null,
+    preferred_name: null,
+    phone: null,
   };
 
   const profileQuery = applicantProfileId
@@ -162,12 +154,12 @@ export async function saveApplicantProfile(
         .update(payload)
         .eq("id", applicantProfileId)
         .eq("owner_user_id", session.user.id)
-        .select("id, email, first_name, last_name, preferred_name, phone")
+        .select("id, email, first_name, last_name")
         .single()
     : supabase
         .from("applicant_profiles")
         .upsert(payload, { onConflict: "owner_user_id,email" })
-        .select("id, email, first_name, last_name, preferred_name, phone")
+        .select("id, email, first_name, last_name")
         .single();
 
   const { data, error } = await profileQuery;
@@ -211,7 +203,5 @@ export async function ensureApplicantProfile(
       metadata?.family_name?.trim?.() ||
       metadata?.last_name?.trim?.() ||
       "",
-    preferredName: "",
-    phone: "",
   });
 }

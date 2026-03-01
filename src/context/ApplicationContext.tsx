@@ -60,6 +60,7 @@ interface ApplicationContextType {
   isHydrating: boolean;
   markApplicationSubmitted: () => Promise<void>;
   openApplication: (applicationId: string) => Promise<void>;
+  refreshApplicantProfile: () => Promise<void>;
   refreshApplications: () => Promise<void>;
   resetApplication: () => Promise<void>;
   selectCourse: (course: SelectedCourse) => Promise<ApplicationData>;
@@ -130,6 +131,8 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     return () => {
       isMountedRef.current = false;
     };
@@ -301,7 +304,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         setIsHydrating(false);
       }
     }
-  }, [isAuthorizedCompanyUser, isConfigured, session]);
+  }, [isAuthorizedCompanyUser, isBypassedInDev, isConfigured, session]);
 
   useEffect(() => {
     void loadApplicationState();
@@ -344,6 +347,16 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   const refreshApplications = useCallback(async () => {
     await loadApplicationState();
   }, [loadApplicationState]);
+
+  const refreshApplicantProfile = useCallback(async () => {
+    const profile = await loadApplicantProfile(session ?? null);
+
+    if (!isMountedRef.current) {
+      return;
+    }
+
+    setApplicantProfile(profile);
+  }, [session]);
 
   const beginCourseApplication = useCallback(
     async (course: SelectedCourse) => {
@@ -487,6 +500,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       isHydrating,
       markApplicationSubmitted,
       openApplication,
+      refreshApplicantProfile,
       refreshApplications,
       resetApplication,
       selectCourse: beginCourseApplication,
@@ -640,6 +654,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       isHydrating,
       markApplicationSubmitted,
       openApplication,
+      refreshApplicantProfile,
       refreshApplications,
       resetApplication,
       updateData,

@@ -53,8 +53,6 @@ export function createApplicationDraft(
       email: applicantProfile?.email ?? "",
       firstName: applicantProfile?.firstName ?? "",
       lastName: applicantProfile?.lastName ?? "",
-      phone: applicantProfile?.phone ?? "",
-      preferredName: applicantProfile?.preferredName ?? "",
     },
   };
 }

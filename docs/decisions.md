@@ -9,6 +9,7 @@
 
 ### Profile is data, not auth
 - `/profile` is a reusable profile-management screen.
+- Reusable profile fields are limited to email, first name, and last name.
 - Profile data seeds future applications but does not continuously overwrite existing applications.
 
 ### Multi-application model
