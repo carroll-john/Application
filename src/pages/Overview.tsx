@@ -4,10 +4,6 @@ import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
 import {
-  getApplicantDisplayName,
-  hasApplicantProfile,
-} from "../lib/applicantProfiles";
-import {
   getSelectedCourse,
   hasStartedApplication,
   isApplicationSubmitted,
@@ -37,22 +33,15 @@ const overviewSections = [
 export default function Overview() {
   const navigate = useNavigate();
   const { data, getNextIncompleteSection } = useApplication();
-  const hasProfile = hasApplicantProfile(data);
   const started = hasStartedApplication(data);
   const submitted = isApplicationSubmitted(data);
   const selectedCourse = getSelectedCourse(data.applicationMeta);
-  const nextPath = getOverviewActionPath(
-    getNextIncompleteSection(),
-    submitted,
-    hasProfile,
-  );
-  const primaryLabel = !hasProfile
-    ? "Create Applicant Profile"
-    : submitted
-      ? "View Submitted Application"
-      : started
-        ? "Continue Application"
-        : "Start Application";
+  const nextPath = getOverviewActionPath(getNextIncompleteSection(), submitted);
+  const primaryLabel = submitted
+    ? "View Submitted Application"
+    : started
+      ? "Continue Application"
+      : "Start Application";
 
   return (
     <div className="min-h-screen bg-[#f7f7f4] pb-10">
@@ -67,7 +56,7 @@ export default function Overview() {
                 {selectedCourse.title}
               </h2>
               <div className="mt-4 max-w-xs rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700">
-                Desired course intake: {selectedCourse.intake}
+                Desired course intake: {selectedCourse.intakeLabel}
               </div>
               <Button
                 className="mt-5"
@@ -76,33 +65,6 @@ export default function Overview() {
                 {primaryLabel}
               </Button>
             </div>
-          </div>
-        </SurfaceCard>
-
-        <SurfaceCard className="mt-6 border-[#084E74]/10 bg-[#F2F8FB] p-5 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[#084E74]">
-                Applicant profile
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-                {hasProfile ? getApplicantDisplayName(data) : "Not set up yet"}
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                {hasProfile
-                  ? `Applications and supporting documents will attach to ${getApplicantDisplayName(
-                      data,
-                    )}.`
-                  : "Before starting the application, create the applicant profile you want to test. This can use any email address."}
-              </p>
-            </div>
-            <Button
-              className="sm:min-w-52"
-              variant={hasProfile ? "outline" : "soft"}
-              onClick={() => navigate("/applicant-profile?redirect=/overview")}
-            >
-              {hasProfile ? "Edit Applicant Profile" : "Create Applicant Profile"}
-            </Button>
           </div>
         </SurfaceCard>
 
@@ -144,12 +106,7 @@ export default function Overview() {
 function getOverviewActionPath(
   nextSection: string | null,
   submitted: boolean,
-  hasProfile: boolean,
 ) {
-  if (!hasProfile) {
-    return "/applicant-profile?redirect=/overview";
-  }
-
   if (submitted) {
     return "/submitted";
   }

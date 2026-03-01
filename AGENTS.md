@@ -3,6 +3,9 @@
 ## Project Memory
 - Before making product, UX, or interaction changes, read [docs/project-memory.md](/Users/jc/Documents/New%20project/docs/project-memory.md).
 - Treat that file as the durable memory for design decisions, shared component contracts, integrations, and known risks.
+- For current build focus and near-term priorities, read [docs/current-phase.md](/Users/jc/Documents/New%20project/docs/current-phase.md).
+- For Tuesday demo boundaries and acceptance criteria, read [docs/demo-scope-tuesday.md](/Users/jc/Documents/New%20project/docs/demo-scope-tuesday.md).
+- For short ADR-style product and architecture choices, read [docs/decisions.md](/Users/jc/Documents/New%20project/docs/decisions.md).
 
 ## Working Expectations
 - Preserve fidelity to the Figma Make prototype unless a newer documented decision overrides it.
@@ -15,9 +18,12 @@
 - Company-only access is enforced at the sign-in form, the session gate, and the Supabase RLS layer. Do not rely on a single client-only domain check.
 - Keep that company-domain gate on the whole site during the current dogfood phase. Do not narrow it to admin-only routes until launch preparation explicitly calls for it.
 - Treat business-user access and applicant identity as separate concerns. Use the `business_users` and `applicant_profiles` groundwork rather than assuming the signed-in Keypath employee is the long-term applicant auth model.
-- The current internal flow now includes a separate applicant-profile step before the deeper application journey. Preserve that separation instead of letting applicant-profile seed data accidentally mark Section 1 as complete.
+- The current Tuesday-demo auth model uses one real Keypath-only sign-in flow on `/sign-in`. Do not reintroduce a second inner OTP or pseudo-auth layer for applicants.
+- Auto-provision a reusable applicant profile for the signed-in user when no matching `applicant_profiles` record exists yet.
+- Use `/profile` as plain profile management, not as an auth step. It should stay limited to updating email and name, linking to the dashboard, and logging out.
+- Profile data should seed new applications, but it must not continuously overwrite existing applications once they have been created.
 - A localhost-only auth bypass now exists for temporary verification beyond the Keypath gate. Keep it strictly local/dev-only and never let it leak into preview or production behavior.
-- Treat the app as a single persisted application unless and until a real multi-application data model is added. Do not reintroduce mock dashboard inventories or fake copy-from-application flows.
+- The app now supports multiple applications per signed-in user, with one open draft per course for the Tuesday demo. Do not regress it back to a single-application model or reintroduce mock dashboard inventories or fake copy-from-application flows.
 - Treat the selected course as part of the persisted application. Reuse `applicationMeta.selectedCourse` and the shared course helpers instead of letting overview/dashboard/backend saves fall back to an implicit hard-coded course.
 - `ApplicationContext` is now a hybrid draft layer: local cache plus authenticated Supabase draft sync. Do not regress it back to browser-only persistence, and do not bypass the shared remote store when adding backend work.
 - For dashboard, overview, and other summary surfaces, prefer the shared `AppBrandHeader`, `SurfaceCard`, and `StatusPill` primitives over one-off wrappers.

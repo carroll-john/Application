@@ -95,6 +95,7 @@ export interface ContactDetails {
 export interface SelectedCourse {
   code: string;
   title: string;
+  provider: string;
   intake: string;
 }
 
@@ -102,8 +103,11 @@ export interface ApplicationMeta {
   recordId?: string;
   applicantProfileId?: string;
   applicationNumber?: string;
+  createdAt?: string;
+  status?: "draft" | "submitted";
   submittedAt?: string;
   selectedCourse?: SelectedCourse;
+  updatedAt?: string;
 }
 
 export interface ApplicationData {

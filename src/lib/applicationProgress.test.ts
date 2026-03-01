@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { initialApplicationData } from "./applicationData";
+import { getCourseByCode } from "./courseCatalog";
 import {
-  APPLICATION_COURSE,
   formatApplicationDate,
   getSelectedCourse,
   hasStartedApplication,
@@ -40,19 +40,34 @@ describe("application progress helpers", () => {
     expect(formatApplicationDate("2026-03-01T00:00:00.000Z")).toBe("1 Mar 2026");
   });
 
-  it("returns the selected course from application meta when present", () => {
+  it("returns the matching catalog course from application meta", () => {
     expect(
       getSelectedCourse({
         selectedCourse: {
           code: "mba-online",
-          title: "Master of Business Administration (MBA) online",
+          title: "Ignored fallback title",
           intake: "4 Aug 2025",
+          provider: "Ignored fallback provider",
         },
       }),
-    ).toMatchObject({
-      code: APPLICATION_COURSE.code,
-      title: "Master of Business Administration (MBA) online",
-      intake: "4 Aug 2025",
+    ).toEqual(getCourseByCode("mba-online"));
+  });
+
+  it("falls back to a synthetic course when the code is unknown", () => {
+    const course = getSelectedCourse({
+      selectedCourse: {
+        code: "custom-course",
+        intake: "1 Jan 2027",
+        provider: "Custom Provider",
+        title: "Custom Course",
+      },
+    });
+
+    expect(course).toMatchObject({
+      code: "custom-course",
+      provider: "Custom Provider",
+      title: "Custom Course",
+      intakeLabel: "1 Jan 2027",
     });
   });
 });

@@ -1,286 +1,284 @@
-import { Mail, Phone, UserRound } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Mail } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { useApplication } from "../context/ApplicationContext";
-import { Label } from "../components/ui/label";
+import { useAuth } from "../context/AuthContext";
 import {
-  deriveApplicantProfileSeed,
-  hasApplicantProfile,
-} from "../lib/applicantProfiles";
-import {
-  APPLICATION_COURSE,
-  createSelectedCourseSeed,
-  getSelectedCourse,
-} from "../lib/applicationProgress";
+  ensureApplicantProfile,
+  saveApplicantProfile,
+  type StoredApplicantProfile,
+} from "../lib/applicantProfileStore";
 
 export default function ApplicantProfile() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { data, updatePersonalDetails, selectCourse } = useApplication();
-  const existingProfile = deriveApplicantProfileSeed(data);
-  const selectedCourse = getSelectedCourse(data.applicationMeta);
-  const [formData, setFormData] = useState({
-    email: existingProfile?.email ?? data.personalDetails.email,
-    firstName: existingProfile?.firstName ?? data.personalDetails.firstName,
-    lastName: existingProfile?.lastName ?? data.personalDetails.lastName,
-    preferredName:
-      existingProfile?.preferredName ?? data.personalDetails.preferredName,
-    phone: existingProfile?.phone ?? data.personalDetails.phone,
-  });
-  const [errors, setErrors] = useState<Partial<Record<keyof typeof formData, string>>>(
-    {},
-  );
-
-  const redirectPath = useMemo(
-    () => searchParams.get("redirect") || "/overview",
-    [searchParams],
-  );
-  const selectedCourseCode = searchParams.get("course");
+  const { companyUserDisplayName, isBypassedInDev, isConfigured, session, signOut } =
+    useAuth();
+  const [profileRecordId, setProfileRecordId] = useState<string | undefined>();
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [errors, setErrors] = useState<{
+    email?: string;
+    firstName?: string;
+    form?: string;
+    lastName?: string;
+  }>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (selectedCourseCode !== APPLICATION_COURSE.code) {
-      return;
-    }
+    let isCancelled = false;
 
-    const existingSelectedCourse = data.applicationMeta.selectedCourse;
+    const hydrate = async () => {
+      try {
+        const profile = await ensureApplicantProfile(
+          isConfigured && !isBypassedInDev ? session : null,
+        );
 
-    if (
-      existingSelectedCourse?.code === APPLICATION_COURSE.code &&
-      existingSelectedCourse.title === APPLICATION_COURSE.title &&
-      existingSelectedCourse.intake === APPLICATION_COURSE.intake
-    ) {
-      return;
-    }
+        if (isCancelled) {
+          return;
+        }
 
-    selectCourse(
-      createSelectedCourseSeed({
-        code: APPLICATION_COURSE.code,
-        title: APPLICATION_COURSE.title,
-        intake: APPLICATION_COURSE.intake,
-      }),
-    );
-  }, [data.applicationMeta.selectedCourse, selectCourse, selectedCourseCode]);
+        applyProfile(profile);
+      } catch {
+        if (isCancelled) {
+          return;
+        }
 
-  function validate() {
-    const nextErrors: Partial<Record<keyof typeof formData, string>> = {};
+        setErrors({
+          form: "We couldn't load your profile right now. Try again.",
+        });
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    };
 
-    if (!formData.firstName.trim()) {
-      nextErrors.firstName = "Enter the applicant's first name.";
-    }
+    void hydrate();
 
-    if (!formData.lastName.trim()) {
-      nextErrors.lastName = "Enter the applicant's last name.";
-    }
+    return () => {
+      isCancelled = true;
+    };
+  }, [isBypassedInDev, isConfigured, session]);
 
-    const email = formData.email.trim().toLowerCase();
+  function applyProfile(profile: StoredApplicantProfile | null) {
+    const fallbackEmail = session?.user.email?.trim().toLowerCase() ?? "";
+    const fallbackFirstName =
+      session?.user.user_metadata?.given_name?.trim?.() ||
+      session?.user.user_metadata?.first_name?.trim?.() ||
+      "";
+    const fallbackLastName =
+      session?.user.user_metadata?.family_name?.trim?.() ||
+      session?.user.user_metadata?.last_name?.trim?.() ||
+      "";
 
-    if (!email) {
-      nextErrors.email = "Enter the applicant's email address.";
-    } else if (!/^\S+@\S+\.\S+$/.test(email)) {
-      nextErrors.email = "Enter a valid applicant email address.";
-    }
-
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    setProfileRecordId(profile?.id);
+    setEmail(profile?.email ?? fallbackEmail);
+    setFirstName(profile?.firstName ?? fallbackFirstName);
+    setLastName(profile?.lastName ?? fallbackLastName);
   }
 
-  function handleSave() {
-    if (!validate()) {
+  async function handleSave() {
+    const trimmedEmail = email.trim().toLowerCase();
+    const nextErrors: typeof errors = {};
+
+    if (!trimmedEmail) {
+      nextErrors.email = "Enter your email address.";
+    } else if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
+      nextErrors.email = "Enter a valid email address.";
+    }
+
+    if (!firstName.trim()) {
+      nextErrors.firstName = "Enter your first name.";
+    }
+
+    if (!lastName.trim()) {
+      nextErrors.lastName = "Enter your last name.";
+    }
+
+    if (nextErrors.email || nextErrors.firstName || nextErrors.lastName) {
+      setErrors(nextErrors);
       return;
     }
 
-    updatePersonalDetails({
-      email: formData.email.trim().toLowerCase(),
-      firstName: formData.firstName.trim(),
-      lastName: formData.lastName.trim(),
-      preferredName: formData.preferredName.trim(),
-      phone: formData.phone.trim(),
-    });
+    setErrors({});
+    setIsSubmitting(true);
+    setStatusMessage(null);
 
-    navigate(redirectPath, { replace: true });
+    try {
+      const savedProfile = await saveApplicantProfile(
+        isConfigured && !isBypassedInDev ? session : null,
+        {
+          email: trimmedEmail,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          phone: "",
+          preferredName: "",
+        },
+        profileRecordId,
+      );
+
+      applyProfile(savedProfile);
+      setStatusMessage(
+        "Profile updated. New applications will use these details by default.",
+      );
+      setIsSubmitting(false);
+    } catch {
+      setErrors({
+        form: "We couldn't update your profile right now. Try again.",
+      });
+      setIsSubmitting(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f7f7f4]">
+        <AppBrandHeader maxWidthClassName="max-w-5xl" />
+        <div className="mx-auto flex min-h-[calc(100vh-73px)] max-w-5xl items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+          <SurfaceCard className="w-full max-w-xl p-8 text-center text-slate-600">
+            Loading your profile...
+          </SurfaceCard>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f7f4] pb-10">
+    <div className="min-h-screen bg-[#f7f7f4]">
       <AppBrandHeader maxWidthClassName="max-w-5xl" />
 
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8 max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--info-border)] bg-[var(--info-bg)] px-4 py-2 text-sm font-medium text-[var(--info-text)]">
-            <UserRound className="h-4 w-4" />
-            Applicant profile
-          </div>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">
-            Set up the applicant you&apos;re testing
-          </h1>
-          <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
-            Your Keypath work login keeps site access internal. This profile is
-            the applicant record attached to the application and can use any
-            email address.
-          </p>
-        </div>
+      <div className="mx-auto flex min-h-[calc(100vh-73px)] max-w-5xl items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+        <SurfaceCard className="w-full max-w-3xl p-8 sm:p-10">
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-semibold text-slate-950">Profile</h1>
+              <p className="text-base leading-7 text-slate-600">
+                Update the reusable details you want to start new applications
+                with. Existing applications keep the details they were created
+                with.
+              </p>
+              <p className="text-sm font-medium text-slate-500">
+                Signed in as {companyUserDisplayName}
+              </p>
+            </div>
 
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <SurfaceCard className="p-6 sm:p-8">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-semibold text-slate-950">
-                  Applicant details
-                </h2>
-                <p className="text-sm leading-6 text-slate-600">
-                  These details seed the application and create the applicant
-                  profile in the backend. The full application form can still
-                  refine them later.
-                </p>
-                <p className="text-sm leading-6 text-slate-500">
-                  Current course: {selectedCourse.title}
-                </p>
-              </div>
-
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="applicant-first-name">First name *</Label>
-                  <Input
-                    id="applicant-first-name"
-                    value={formData.firstName}
-                    onChange={(event) =>
-                      setFormData((previous) => ({
-                        ...previous,
-                        firstName: event.target.value,
-                      }))
-                    }
-                  />
-                  {errors.firstName ? (
-                    <p className="text-sm font-medium text-[var(--error-text)]">
-                      {errors.firstName}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="applicant-last-name">Last name *</Label>
-                  <Input
-                    id="applicant-last-name"
-                    value={formData.lastName}
-                    onChange={(event) =>
-                      setFormData((previous) => ({
-                        ...previous,
-                        lastName: event.target.value,
-                      }))
-                    }
-                  />
-                  {errors.lastName ? (
-                    <p className="text-sm font-medium text-[var(--error-text)]">
-                      {errors.lastName}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="applicant-email">Applicant email *</Label>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      id="applicant-email"
-                      className="pl-11"
-                      inputMode="email"
-                      value={formData.email}
-                      onChange={(event) =>
-                        setFormData((previous) => ({
-                          ...previous,
-                          email: event.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                  <p className="text-sm leading-6 text-slate-500">
-                    This can be any valid applicant email domain. It does not
-                    need to be a Keypath address.
-                  </p>
-                  {errors.email ? (
-                    <p className="text-sm font-medium text-[var(--error-text)]">
-                      {errors.email}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="applicant-preferred-name">
-                    Preferred name
-                  </Label>
-                  <Input
-                    id="applicant-preferred-name"
-                    value={formData.preferredName}
-                    onChange={(event) =>
-                      setFormData((previous) => ({
-                        ...previous,
-                        preferredName: event.target.value,
-                      }))
-                    }
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="applicant-phone">Phone</Label>
-                  <div className="relative">
-                    <Phone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      id="applicant-phone"
-                      className="pl-11"
-                      inputMode="tel"
-                      value={formData.phone}
-                      onChange={(event) =>
-                        setFormData((previous) => ({
-                          ...previous,
-                          phone: event.target.value,
-                        }))
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button
-                  className="sm:min-w-48"
-                  variant="outline"
-                  onClick={() => navigate("/")}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <label
+                  className="text-sm font-medium text-slate-800"
+                  htmlFor="profile-email"
                 >
-                  Back to course
-                </Button>
-                <Button className="sm:min-w-56" onClick={handleSave}>
-                  {hasApplicantProfile(data)
-                    ? "Update Applicant Profile"
-                    : "Save and Continue"}
-                </Button>
+                  Email
+                </label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    autoComplete="email"
+                    className="h-12 pl-11 text-base"
+                    id="profile-email"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                  />
+                </div>
+                {errors.email ? (
+                  <p className="text-sm font-medium text-[var(--error-text)]">
+                    {errors.email}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  className="text-sm font-medium text-slate-800"
+                  htmlFor="profile-first-name"
+                >
+                  First name
+                </label>
+                <Input
+                  autoComplete="given-name"
+                  className="h-12 text-base"
+                  id="profile-first-name"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                />
+                {errors.firstName ? (
+                  <p className="text-sm font-medium text-[var(--error-text)]">
+                    {errors.firstName}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  className="text-sm font-medium text-slate-800"
+                  htmlFor="profile-last-name"
+                >
+                  Last name
+                </label>
+                <Input
+                  autoComplete="family-name"
+                  className="h-12 text-base"
+                  id="profile-last-name"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                />
+                {errors.lastName ? (
+                  <p className="text-sm font-medium text-[var(--error-text)]">
+                    {errors.lastName}
+                  </p>
+                ) : null}
               </div>
             </div>
-          </SurfaceCard>
 
-          <SurfaceCard className="bg-[#E4EFEE] p-6 sm:p-8">
-            <h2 className="text-xl font-semibold text-slate-950">
-              Why this exists
-            </h2>
-            <div className="mt-4 space-y-4 text-sm leading-6 text-slate-700">
-              <p>
-                During dogfooding, only Keypath employees can enter the site.
+            {errors.form ? (
+              <p className="text-sm font-medium text-[var(--error-text)]">
+                {errors.form}
               </p>
-              <p>
-                Inside the site, you still need a realistic applicant profile
-                so applications, uploads, and future course matching are tied
-                to the right person.
+            ) : null}
+            {statusMessage ? (
+              <p className="text-sm font-medium text-[var(--success-text)]">
+                {statusMessage}
               </p>
-              <p>
-                When public launch comes, this applicant profile model stays in
-                place and the outer Keypath-only gate can be removed.
-              </p>
+            ) : null}
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Button
+                className="sm:min-w-[180px]"
+                type="button"
+                variant="outline"
+                onClick={() => navigate("/dashboard")}
+              >
+                Go to dashboard
+              </Button>
+              <Button
+                className="sm:min-w-[220px]"
+                disabled={isSubmitting}
+                type="button"
+                onClick={() => void handleSave()}
+              >
+                {isSubmitting ? "Updating..." : "Update profile"}
+              </Button>
+              <Button
+                className="sm:min-w-[160px]"
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  await signOut();
+                  navigate("/", { replace: true });
+                }}
+              >
+                Log out
+              </Button>
             </div>
-          </SurfaceCard>
-        </div>
+          </div>
+        </SurfaceCard>
       </div>
     </div>
   );

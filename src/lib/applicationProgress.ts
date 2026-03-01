@@ -1,31 +1,11 @@
 import type { ApplicationMeta, SelectedCourse } from "./applicationData";
+import {
+  getCourseByCode,
+  getDefaultCourse,
+  type CourseCatalogEntry,
+} from "./courseCatalog";
 
-export interface ApplicationCourse {
-  code: string;
-  title: string;
-  image: string;
-  provider: string;
-  delivery: string;
-  duration: string;
-  price: string;
-  studyLevel: string;
-  courseType: string;
-  intake: string;
-}
-
-export const APPLICATION_COURSE: ApplicationCourse = {
-  code: "mba-online",
-  title: "Master of Business Administration (MBA) online",
-  image:
-    "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&auto=format&fit=crop&q=80",
-  provider: "Southern Cross University",
-  delivery: "Online",
-  duration: "18 months",
-  price: "$37,750",
-  studyLevel: "Postgraduate",
-  courseType: "Master's",
-  intake: "12 May 2025",
-};
+export type ApplicationCourse = CourseCatalogEntry;
 
 interface ApplicationProgressSnapshot {
   personalDetails: {
@@ -117,25 +97,36 @@ export function createApplicationNumber() {
 
 export function getSelectedCourse(meta?: ApplicationMeta): ApplicationCourse {
   const selectedCourse = meta?.selectedCourse;
+  const defaultCourse = getDefaultCourse();
+
+  if (selectedCourse?.code) {
+    const matchingCourse = getCourseByCode(selectedCourse.code);
+
+    if (matchingCourse) {
+      return matchingCourse;
+    }
+  }
 
   if (!selectedCourse) {
-    return APPLICATION_COURSE;
+    return defaultCourse;
   }
 
   return {
-    ...APPLICATION_COURSE,
-    code: selectedCourse.code || APPLICATION_COURSE.code,
-    title: selectedCourse.title || APPLICATION_COURSE.title,
-    intake: selectedCourse.intake || APPLICATION_COURSE.intake,
+    ...defaultCourse,
+    code: selectedCourse.code || defaultCourse.code,
+    title: selectedCourse.title || defaultCourse.title,
+    provider: selectedCourse.provider || defaultCourse.provider,
+    intakeLabel: selectedCourse.intake || defaultCourse.intakeLabel,
   };
 }
 
 export function createSelectedCourseSeed(
-  course: Pick<SelectedCourse, "code" | "title" | "intake">,
+  course: Pick<SelectedCourse, "code" | "title" | "provider" | "intake">,
 ): SelectedCourse {
   return {
     code: course.code,
     title: course.title,
+    provider: course.provider,
     intake: course.intake,
   };
 }

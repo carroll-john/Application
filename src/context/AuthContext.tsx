@@ -15,6 +15,7 @@ import {
   isSupabaseConfigured,
   supabase,
 } from "../lib/supabase";
+import { ensureApplicantProfile } from "../lib/applicantProfileStore";
 import { ensureBusinessUserRecord } from "../lib/businessUsers";
 
 interface AuthContextType {
@@ -116,7 +117,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    void ensureBusinessUserRecord(session).catch(() => {
+    void Promise.all([
+      ensureBusinessUserRecord(session),
+      ensureApplicantProfile(session),
+    ]).catch(() => {
       // Do not block the sign-in flow if profile provisioning fails.
     });
   }, [session]);
@@ -136,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user?.email?.split("@")[0] ||
         "Team member",
       companyDomains: allowedEmailDomains,
-      sendMagicLink: async (email, redirectPath = "/dashboard") => {
+      sendMagicLink: async (email, redirectPath = "/") => {
         if (!supabase) {
           return { error: "Supabase auth is not configured." };
         }

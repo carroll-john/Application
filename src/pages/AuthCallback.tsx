@@ -28,7 +28,7 @@ export default function AuthCallback() {
     }
 
     const params = new URLSearchParams(location.search);
-    const redirectPath = params.get("redirect") || "/dashboard";
+    const redirectPath = params.get("redirect") || "/";
     navigate(redirectPath, { replace: true });
   }, [
     isAuthorizedCompanyUser,
@@ -41,7 +41,7 @@ export default function AuthCallback() {
   ]);
 
   if (isBypassedInDev) {
-    return <Navigate replace to="/dashboard" />;
+    return <Navigate replace to="/" />;
   }
 
   return (

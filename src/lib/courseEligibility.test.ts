@@ -1,31 +1,66 @@
 import { describe, expect, it } from "vitest";
-import { isEligibleForMbaCourse } from "./courseEligibility";
+import { evaluateCourseEligibility, type CourseEligibilityConfig } from "./courseEligibility";
 
-describe("isEligibleForMbaCourse", () => {
-  it("rejects applicants with less than two years of experience and below a bachelor degree", () => {
+const mbaStyleEligibility: CourseEligibilityConfig = {
+  educationOptions: [
+    "High school",
+    "Diploma",
+    "Bachelor degree",
+    "Masters degree",
+    "Doctorate",
+  ],
+  experienceOptions: ["Less than 2 years", "2-5 years", "5+ years"],
+  goalsOptions: ["Career advancement"],
+  ineligibleCopy:
+    "This course expects either a bachelor degree or at least two years of experience.",
+  rules: [
+    {
+      type: "min_education_or_experience",
+      minEducation: "Bachelor degree",
+      minExperienceYears: 2,
+    },
+  ],
+  successCopy: "You meet the entry criteria for this course.",
+};
+
+describe("evaluateCourseEligibility", () => {
+  it("rejects applicants with high school and less than two years experience", () => {
     expect(
-      isEligibleForMbaCourse({
-        education: "High school",
-        experience: "Less than 2 years",
+      evaluateCourseEligibility(mbaStyleEligibility, {
+        educationLevel: "High school",
+        experienceRange: "Less than 2 years",
+        goal: "Career advancement",
       }),
-    ).toBe(false);
+    ).toEqual({
+      eligible: false,
+      reason:
+        "This course expects either a bachelor degree or at least two years of experience.",
+    });
   });
 
-  it("accepts applicants with a bachelor degree even with low experience", () => {
+  it("accepts applicants with a bachelor degree and low experience", () => {
     expect(
-      isEligibleForMbaCourse({
-        education: "Bachelor degree",
-        experience: "Less than 2 years",
+      evaluateCourseEligibility(mbaStyleEligibility, {
+        educationLevel: "Bachelor degree",
+        experienceRange: "Less than 2 years",
+        goal: "Career advancement",
       }),
-    ).toBe(true);
+    ).toEqual({
+      eligible: true,
+      reason: "You meet the entry criteria for this course.",
+    });
   });
 
-  it("accepts applicants with enough experience even without a bachelor degree", () => {
+  it("accepts applicants with high school and at least two years experience", () => {
     expect(
-      isEligibleForMbaCourse({
-        education: "Diploma",
-        experience: "2-5 years",
+      evaluateCourseEligibility(mbaStyleEligibility, {
+        educationLevel: "High school",
+        experienceRange: "2-5 years",
+        goal: "Career advancement",
       }),
-    ).toBe(true);
+    ).toEqual({
+      eligible: true,
+      reason: "You meet the entry criteria for this course.",
+    });
   });
 });

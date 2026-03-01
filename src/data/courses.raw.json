@@ -1,0 +1,1975 @@
+{
+  "courses": [
+    {
+      "course_name": "Master of Business Administration (MBA)",
+      "provider_name": "University of Southern Queensland (UniSQ)",
+      "subject_area": "Business and Management",
+      "course_description": "Designed to advance your career while delivering value and innovation to your organisation. Benefit from interdisciplinary MBA courses developed by UniSQ's team of lecturers, graphic designers, teaching experts and industry advisors – designed to equip you with an outcome-focused MBA degree that gives you the knowledge and skills to confidently execute strategic decisions. Gain relevant skills through assignments that focus on specific problems, real-life projects, opportunities for collaboration, and no exams. Engage in a digital learning journey guided by lecturers who have real industry expertise, coaching calls, podcasts, readings, concepts, and practical problem-solving experience. Two capstone courses allow you to apply your research and analytical skills to explore mega-trends, technological advances and paradigm shifts.",
+      "intake_start_dates": [
+        {
+          "value": "Trimester 1, 2026: Monday 16 February"
+        },
+        {
+          "value": "Trimester 2, 2026: Monday 1 June"
+        },
+        {
+          "value": "Trimester 3, 2026: Monday 14 September"
+        }
+      ],
+      "tuition_fees": "Domestic (Commonwealth supported): AUD 17,392 (Estimated 2026 indicative annual fee based on 8 units). Student Services and Amenities Fee (SSAF) may be required.",
+      "fee_help_eligibility": "HECS-HELP is a government loan scheme that allows you to defer payment until your income reaches a certain threshold. You may be eligible for FEE-HELP.",
+      "course_duration": "1.5 years full-time or part-time equivalent",
+      "entry_requirements": "Academic: Completion of an Australian university 3-year bachelor degree (AQF Level 7 or recognised equivalent) with a GPA of at least 4.0 out of 7.0, and a minimum of 3 years' full-time relevant professional work experience, post degree, at a management or supervisory level. English language: IELTS (Academic) - Minimum overall score of 6.5 and a minimum score of 6.0 in each of the four components (listening, reading, writing, and speaking).",
+      "recognition_of_prior_learning": "You may be eligible for recognition of prior learning if you have previous studies or relevant work experience. With three or more years of professional work experience, you may be eligible to receive credit for at least four units of study and complete your degree sooner.",
+      "core_subjects_modules": [
+        {
+          "value": "MBA8001 - Leveraging Your Leadership Identity"
+        },
+        {
+          "value": "MBA8002 - Making Decisions Strategically"
+        },
+        {
+          "value": "MBA8003 - Analysing Business Data"
+        },
+        {
+          "value": "MBA8004 - Leading a High-Performance Culture"
+        },
+        {
+          "value": "MBA8005 - Shaping Organisational Policy"
+        },
+        {
+          "value": "MBA8006 - Balancing Drivers of Business Performance"
+        },
+        {
+          "value": "MBA8007 - Designing Systems for Impact"
+        },
+        {
+          "value": "MBA8008 - Communicating Strategically"
+        },
+        {
+          "value": "MBA8009 - Mobilising Your People"
+        },
+        {
+          "value": "MBA8010 - Leading Through a Crisis"
+        },
+        {
+          "value": "MBA8011 - Driving Growth and Innovation"
+        },
+        {
+          "value": "MBA8012 - Dreaming Big (Capstone)"
+        }
+      ],
+      "outcomes": "Expand your strategic thinking capabilities and become ready to transition into senior and executive roles regardless of industry. Graduates apply for jobs as a: chief executive officer (CEO), chief operating officer (COO), chief technology officer (CTO), chief information officer (CIO), chief marketing officer (CMO), chief financial officer (CFO), or Senior executive. Rated 5/5 stars for postgraduates in full-time employment in Business and Management."
+    },
+    {
+      "course_name": "Master of Business Administration - (MBA) online",
+      "provider_name": "Southern Cross University (SCU Online)",
+      "subject_area": "Business and Management",
+      "course_description": "With an online Master of Business Administration, you'll develop both the business know-how and the practical skills to advance your career or build your own business. You'll examine contemporary management and develop solutions to complex commercial situations all through the prism of the fast-paced, ever-evolving global digital economy. The course is designed to enable you to get the most out of the program while fitting study seamlessly around work, family, and other priorities. It is 100% online. You study broadly across a comprehensive suite of business disciplines, and take one of four specialisations to gain the deep knowledge you need to enhance your professional expertise. You'll undertake a practical research project in your workplace to reinforce your learning and to apply that learning in a real business environment.",
+      "intake_start_dates": [
+        {
+          "value": "Summer Term"
+        },
+        {
+          "value": "Term 1"
+        },
+        {
+          "value": "Term 2"
+        },
+        {
+          "value": "Term 3"
+        },
+        {
+          "value": "Term 4"
+        },
+        {
+          "value": "Term 5"
+        }
+      ],
+      "course_duration": "2.7 years part-time",
+      "entry_requirements": "A 3-year Bachelor degree from any Australian university, or equivalent. Language requirements: IELTS Overall Score 6.5.",
+      "recognition_of_prior_learning": "If you have a relevant undergraduate degree or work experience, you could receive these as advanced standing and complete the course in two-years while studying part-time.",
+      "core_subjects_modules": [
+        {
+          "value": "MGMT5003 Organisational Behaviour (Online)"
+        },
+        {
+          "value": "STAT5002 Business Analytics (Online)"
+        },
+        {
+          "value": "ACCT5003 Accounting for Managers (Online)"
+        },
+        {
+          "value": "BUSN5005 Management Communication (Online)"
+        },
+        {
+          "value": "MGMT6003 The Positive Leader (Online)"
+        },
+        {
+          "value": "PROJ5002 Project Management Principles"
+        },
+        {
+          "value": "MRKT6004 Digital Marketing (Online)"
+        },
+        {
+          "value": "BUSN6002 Global Business (Online)"
+        },
+        {
+          "value": "ACCT6013 Corporate Governance for Managers (Online)"
+        },
+        {
+          "value": "ACCT6016 Finance for Managers (Online)"
+        },
+        {
+          "value": "BUSN6008 Strategy and Case Analysis (Online)"
+        },
+        {
+          "value": "BUSN6009 Managing Information Systems (Online)"
+        },
+        {
+          "value": "BUSN7001 Industry Research Project: Part A"
+        },
+        {
+          "value": "BUSN7002 Industry Research Project: Part B"
+        }
+      ],
+      "outcomes": "The course is intended to help students advance your career or build your own business. Along with specialist industry capabilities, you'll develop the soft skills employers crave and businesses need: leadership, problem solving and communication. Graduate attributes include intellectual rigour, creativity, ethical practice, knowledge of a discipline, lifelong learning, communication and social skills, and cultural competence."
+    },
+    {
+      "course_name": "Master of Business Administration",
+      "provider_name": "La Trobe University",
+      "subject_area": "Business and commerce",
+      "course_description": "Gain the skills and knowledge to balance economic and sustainability outcomes with an MBA built on the Principles for Responsible Management Education (PRME). Co-designed and delivered with industry partners Mercer and Victorian Equal Opportunity and Human Rights Commission. It is tailored to working professionals, allowing students to advance their careers without pausing their current jobs. The course is built on evidence-based coursework and emphasizes responsible leadership, corporate governance, and innovation.",
+      "intake_start_dates": [
+        {
+          "value": "LTU Term 2 (March 2026)"
+        },
+        {
+          "value": "LTU Term 3 (May 2026)"
+        },
+        {
+          "value": "LTU Term 4 (July 2026)"
+        },
+        {
+          "value": "LTU Term 5 (September 2026)"
+        },
+        {
+          "value": "LTU Term 6 (November 2026)"
+        }
+      ],
+      "tuition_fees": "Domestic students: Estimated fees of $40,000 per 120 credit points (2026). Note: 120 credit points represents full-time study for one year. International: 2026 information will be available after 1 August 2025. Additional costs: Students must pay all costs related to international study tours, including travel, meals, and accommodation.",
+      "fee_help_eligibility": "If you are a domestic student in a full fee-paying place, you may be able to defer all or part of your tuition fees using a FEE-HELP loan from the Australian Government. You only start repaying once your income exceeds the compulsory repayment threshold.",
+      "course_duration": "1.5 years full-time or part-time equivalent",
+      "entry_requirements": "Academic: Successful completion of an Australian bachelor degree (or equivalent). Experience: Three years relevant managerial experience. WAM: Weighted Average Mark (WAM) 60%. Professional Entry: Applicants with more than eight years relevant managerial experience but without an undergraduate degree may be considered for professional entry.",
+      "recognition_of_prior_learning": "Credit for previous study (advanced standing) is the recognition of prior study or learning that can be counted towards a qualification. This can reduce the number of subjects required to complete your course. The amount of credit received depends on the level and relevance of your previous study and the number of subjects completed.",
+      "core_subjects_modules": [
+        {
+          "value": "LTU0AIM: Academic Integrity Module (0 credit points)"
+        },
+        {
+          "value": "BUA5FMA: Accounting for Managers (15 credit points)"
+        },
+        {
+          "value": "BUS5AP: Analytics and AI in Industry (15 credit points)"
+        },
+        {
+          "value": "BUA5PSD: Critical Skills for Success (15 credit points)"
+        },
+        {
+          "value": "BUA5MFN: Financial Management (15 credit points)"
+        },
+        {
+          "value": "BUA5MGT: Managing People and Organisations (15 credit points)"
+        },
+        {
+          "value": "BUA5MKG: Marketing for Managers (15 credit points)"
+        },
+        {
+          "value": "BUA5SM: Design Thinking for Managers (15 credit points)"
+        },
+        {
+          "value": "BUA5RL: Responsible Leadership (15 credit points)"
+        }
+      ],
+      "outcomes": "Potential roles include: General manager: Lead the daily operations of a business function, department or stand-alone business site. Chief operating officer (COO): Take responsibility for organisational growth. Increase efficiencies by developing superior procedures and skilfully managing stakeholders. Chief financial officer (CFO): Create business development strategies that improve profitability, and ensure accounting and auditing meet regulatory requirements. Board director: Prepare for directorship roles in both profit and non-profit organisations. Business and management consultant: Help businesses identify ways to improve their operations. Lead projects and manage stakeholders to deliver more efficient and effective business outcomes."
+    },
+    {
+      "course_name": "Master of Business Administration (Digital)",
+      "provider_name": "Monash University (Monash Online / Monash Business School)",
+      "subject_area": "Business / Business Administration",
+      "course_description": "The MBA (Digital) is a 100% online degree designed for innovators and future leaders to address the challenges of digital disruption and transformation. The course name reflects its distinct content focused on digital intelligence skills rather than just the delivery method. It equips students with practical skills, a robust network, and a future-focused mindset to lead organisations through change in a dynamic, digitally driven world. The program bridges theory and practice and is aligned with Monash's IMPACT 2030.",
+      "intake_start_dates": [
+        {
+          "value": "January"
+        },
+        {
+          "value": "March"
+        },
+        {
+          "value": "May"
+        },
+        {
+          "value": "July"
+        },
+        {
+          "value": "August"
+        },
+        {
+          "value": "October"
+        }
+      ],
+      "tuition_fees": "Domestic Fees: Estimated cost of $5,525.00 per unit. Approximate total cost of $66,300 for the degree (12 units). Unit fees are subject to change annually. (Please reference the 2026 fees). Scholarships: Over 360 types of scholarships valued at up to $280,000 are available. Monash graduates receive a 10% discount for 2025 and 2026 commencements.",
+      "fee_help_eligibility": "You may be eligible for a FEE-HELP loan, so you don't have to pay your fees upfront. And you'll only need to begin repaying the loan when your income reaches a certain level.",
+      "course_duration": "2 years part-time",
+      "entry_requirements": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role. Requires a detailed CV. Entry Level 2: Completion of a Monash University Graduate Certificate of Business Administration (Digital) with at least a credit average of 60%. Additional: Application Interview with the Course Director and English Language Requirements.",
+      "core_subjects_modules": [
+        {
+          "value": "Part A: Operational Knowledge Units"
+        },
+        {
+          "value": "Consumer, brands and marketing management"
+        },
+        {
+          "value": "Control, performance and accounting management"
+        },
+        {
+          "value": "Operations, logistics and supply chain management"
+        },
+        {
+          "value": "Value, risk and financial management"
+        },
+        {
+          "value": "People, culture and change management"
+        },
+        {
+          "value": "Governance, Continuity and Crisis Management"
+        },
+        {
+          "value": "Part B: Organisational Skills"
+        },
+        {
+          "value": "Strategic management of contemporary organisations"
+        },
+        {
+          "value": "Leadership for sustainable development"
+        },
+        {
+          "value": "Innovation and change for digital transformation"
+        },
+        {
+          "value": "Part C: Professional Advancement (Must complete at least one)"
+        },
+        {
+          "value": "Currency and lifelong learning"
+        },
+        {
+          "value": "Direction, purpose and career advancement"
+        },
+        {
+          "value": "Connection, communication and community"
+        }
+      ],
+      "outcomes": "Chief Executive Officer (Typical salary $225,000); Chief Operating Officer (Typical salary $225,000); Chief Financial Officer (Typical salary $225,000); Chief Information Officer (Typical salary $150,000); General Manager (Typical salary $150,000); Project Manager (Typical salary $145,000)"
+    },
+    {
+      "course_name": "Master of Digital Health",
+      "provider_name": "La Trobe University",
+      "subject_area": "Health and Information Technology",
+      "course_description": "Gain an in-demand skill set to design, implement and manage digital health solutions that meet the evolving healthcare needs of individuals and communities with La Trobe's Master of Digital Health. Advance your knowledge in new and emerging areas of digital health, including health analytics, virtual care, the Internet of Medical Things (IoMT), websites, apps and social media. Explore these technologies and their applications by examining benefits, risks and their ethical and legal implications. Tailor your degree to your career goals with a range of practical specialisations and electives, from data analytics, cybersecurity and artificial intelligence (AI) to management, strategy, policy and opportunities to apply your learning by working on real-world digital health solutions with industry.",
+      "intake_start_dates": [
+        {
+          "value": "LTU Term 2 (March 2026)"
+        },
+        {
+          "value": "LTU Term 3 (May 2026)"
+        },
+        {
+          "value": "LTU Term 4 (July 2026)"
+        },
+        {
+          "value": "LTU Term 5 (September 2026)"
+        },
+        {
+          "value": "LTU Term 6 (November 2026)"
+        }
+      ],
+      "tuition_fees": "Domestic estimated fees (2026) are $30,600 per 120 credit points. Commonwealth Supported Places (CSP) may be available with an Indicative CSP price $9,537 per 120 credit points.",
+      "fee_help_eligibility": "If you are a domestic student in a full fee-paying place, you may be able to defer all or part of your tuition fees using a FEE-HELP loan from the Australian Government. You only start repaying once your income exceeds the compulsory repayment threshold.",
+      "course_duration": "2 years full-time or part-time equivalent",
+      "entry_requirements": "Successful completion of an Australian bachelor degree (or equivalent). WAM - Weighted Average Mark (WAM) 65% or above. Selection criteria notes that The University will access your official transcript upon application and Meeting minimum prerequisites does not guarantee an offer of a place.",
+      "recognition_of_prior_learning": "Credit for previous study (advanced standing) is the recognition of prior study or learning that can be counted towards a qualification. This can reduce the number of subjects required to complete your course. The amount of credit received depends on the level and relevance of your previous study and the number of subjects completed.",
+      "core_subjects_modules": [
+        {
+          "value": "ACADEMIC INTEGRITY MODULE (LTU0AIM)"
+        },
+        {
+          "value": "BIG DATA AND HEALTH ANALYTICS (DIG5BDM)"
+        },
+        {
+          "value": "COMMUNICATING DIGITAL HEALTH (DIG5CDM)"
+        },
+        {
+          "value": "DIGITAL HEALTH DESIGN AND IMPLEMENTATION (DIG5002)"
+        },
+        {
+          "value": "EPIDEMIOLOGY AND BIOSTATISTICS (PHE5EPB)"
+        },
+        {
+          "value": "STRATEGIC DIGITAL TRANSFORMATION OF HEALTH (DIG5001)"
+        },
+        {
+          "value": "SYSTEMS THINKING AND LEADERSHIP (PHE5STL)"
+        },
+        {
+          "value": "TRENDS IN DIGITAL HEALTH (DIG5CTD)"
+        },
+        {
+          "value": "VIRTUAL CARE AND THE INTERNET OF MEDICAL THINGS (DIG5VTH)"
+        }
+      ],
+      "outcomes": "After graduation, you could work across a wide range of commercial and public sector organisations. Specific roles include: digital health analyst or consultant; digital health project manager, coordinator or officer; health data analyst; clinical transformation consultant; telemedicine manager; health informatics director; digital health entrepreneur; digital health researcher. Intended learning outcomes include the ability to Apply advanced analytical and problem-solving skills to complex issues in evidence-based digital health practice and Critically analyse digital health trends to address current and emerging needs within the healthcare ecosystem and community."
+    },
+    {
+      "course_name": "Master of Business Administration (MBA)",
+      "provider_name": "UTS Online (University of Technology Sydney)",
+      "subject_area": "Business, Innovation, Technology, and Leadership",
+      "course_description": "The UTS Online Master of Business Administration prepares tomorrow's leaders with the commercial understanding, technological confidence and business acumen needed to ethically innovate and enable a sustainable future for their field. Delivered by the UTS Association to Advance Collegiate Schools of Business accredited Business School, this 100% online and part-time course allows you to study when it suits you. Tailor your MBA by selecting from a range of specialisations, or mix and match electives relevant to your field, all built on UTS's strong foundation in technology-driven learning and practice.",
+      "intake_start_dates": [
+        {
+          "value": "Jan 2026"
+        },
+        {
+          "value": "Mar 2026"
+        },
+        {
+          "value": "May 2026"
+        },
+        {
+          "value": "Jul 2026"
+        },
+        {
+          "value": "Aug 2026"
+        },
+        {
+          "value": "Oct 2026"
+        }
+      ],
+      "fee_help_eligibility": "FEE-HELP is available for eligible students. This government-supported loan scheme is designed to help eligible full-fee paying students pay their tuition fees.",
+      "course_duration": "24 months (part-time). Can be completed in as little as two years.",
+      "entry_requirements": "Currently only accepting applications from Australian citizens or permanent residents. Applicants must have one of the following: 1. Completed Australian graduate certificate or higher qualification, or overseas equivalent, with more than 75% of all subjects completed at pass level. 2. Completed Australian bachelor's degree, or overseas equivalent, with a minimum GPA of 5.25/7 and more than 90% of all subjects completed at pass level. 3. Completed Australian bachelor's degree, or overseas equivalent, with more than 75% of all subjects completed at pass level and one of the following: A minimum of 4 years' full-time or equivalent part-time, relevant professional experience OR GMAT overall minimum score of 550. English requirements: Academic IELTS 6.5 overall with writing 6.0; or TOEFL iBT 79-93 with writing 21; or PTE 58-64 with writing 50.",
+      "recognition_of_prior_learning": "Your previous studies or employment experience can be acknowledged as credit towards your online postgraduate studies, provided that it meets the relevant course requirements. UTS doesn't determine recognition of prior learning until an offer of enrolment is accepted.",
+      "core_subjects_modules": [
+        {
+          "value": "Leading People and Change"
+        },
+        {
+          "value": "Marketing in the Age of Technology"
+        },
+        {
+          "value": "Accounting for Decision Makers"
+        },
+        {
+          "value": "Managerial Economics"
+        },
+        {
+          "value": "Data Driven Decision-Making"
+        },
+        {
+          "value": "Financial Fundamentals"
+        },
+        {
+          "value": "Governance and Sustainability"
+        },
+        {
+          "value": "Strategy and Negotiation (Capstone Project)"
+        }
+      ],
+      "outcomes": "Graduates can explore a wide range of career opportunities, including roles such as Business Consultant, Operations Manager, Project Manager, Team Leader, Business Development Manager, and General Manager. Graduates are also well positioned for emerging roles that prioritise sustainable, ethical and future-focused business practice, such as positions contributing to organisational transformation, innovation-led initiatives, and cross-functional change projects."
+    },
+    {
+      "course_name": "Master of Business Management with discipline studies in Public Health",
+      "provider_name": "Monash University (Monash Online / Monash Business School)",
+      "subject_area": "Business Management and Public Health",
+      "course_description": "The Master of Business Management will prepare you to become an effective leader in an increasingly agile business environment, and will equip you with the skills needed to step into a management position in your field. With discipline studies in Public Health, you will deepen your understanding of the challenges facing the sector and emerging healthcare innovations. You will gain valuable insight into the public health sector from a business management perspective, as you evaluate existing health systems and policies, leadership and management strategies, and health promotion and planning initiatives.",
+      "intake_start_dates": [
+        {
+          "value": "January"
+        },
+        {
+          "value": "March"
+        },
+        {
+          "value": "May"
+        },
+        {
+          "value": "July"
+        },
+        {
+          "value": "August"
+        },
+        {
+          "value": "October"
+        }
+      ],
+      "tuition_fees": "Est. $4,750.00 per unit. Total units: 12. These are the estimated domestic fees. Unit fees are subject to change annually. (Please reference the 2026 fees).",
+      "fee_help_eligibility": "Eligible students may apply for FEE-HELP.",
+      "course_duration": "2 years part-time",
+      "entry_requirements": "Entry level 1 (72 points/2 years): An Australian bachelor's degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average; or An Australian bachelor's degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience. If applying on the basis of work experience then must provide a detailed curriculum vitae. Entry level 2 (48 points/1.4 years): A Monash University Graduate Certificate of Business Management with at least a credit (60%) average or A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average. English requirements: Applicants must also meet the English language requirements.",
+      "recognition_of_prior_learning": "Depending upon prior qualifications, you may receive credit for Part A or Part B or both. Note: If you are eligible for credit for prior studies, you may elect not to receive the credit.",
+      "core_subjects_modules": [
+        {
+          "value": "Part A. Core studies: Leadership for organisational advancement"
+        },
+        {
+          "value": "Strategic management for agile organisations"
+        },
+        {
+          "value": "Innovation and new value creation"
+        },
+        {
+          "value": "Financial management and resource utilisation"
+        },
+        {
+          "value": "Part B. Discipline studies: Health systems and policy"
+        },
+        {
+          "value": "Biostatistics: Concepts and applications"
+        },
+        {
+          "value": "Foundations of health promotion"
+        },
+        {
+          "value": "Occupational health and safety"
+        },
+        {
+          "value": "Foundations of public health"
+        },
+        {
+          "value": "Managing digital health"
+        },
+        {
+          "value": "Part C. Application studies: Business transformation"
+        },
+        {
+          "value": "Industry challenge"
+        },
+        {
+          "value": "Global challenge"
+        },
+        {
+          "value": "Professional development"
+        }
+      ],
+      "outcomes": "Business Manager: Be the leader at the core of any business or industry... Ensuring that all administrative, management and finance objectives are in good order. (Typical salary $115,000). Health Manager: Skilled Health Managers are in demand and well-paid, especially those who can lead businesses into the digital space. (Typical salary $110,000). Business Administrator: With a high demand for skilled professionals in the corporate world. (Typical salary $103,000). Policy Advisor: With a shifting policy landscape, skilled Policy Advisors are sought-after. (Typical salary $110,000)."
+    },
+    {
+      "course_name": "Master of Health Management",
+      "provider_name": "Deakin University",
+      "subject_area": "Health and Human Services Management",
+      "course_description": "Build your leadership, managerial and analytical skills to influence positive change in healthcare and open the door to senior roles within the sector. You will build valuable skills in leadership, resourcing and program management, enabling you to improve healthcare delivery and contribute to healthier communities. You will not only learn how to apply business and management skills to a health context, but also how to take a patient and community focussed approach to healthcare. Gain a practical understanding of the dynamic realities of health management and develop core skills in: leadership and strategic planning, health needs assessment and evaluation, healthcare planning and monitoring, resource and project management, communication and negotiation.",
+      "intake_start_dates": [
+        {
+          "value": "Trimester 1: March"
+        },
+        {
+          "value": "Trimester 2: July"
+        },
+        {
+          "value": "Trimester 3: November"
+        }
+      ],
+      "tuition_fees": "Domestic (Full-fee paying place): $30,600 for 1 yr full-time (Estimated tuition fee provided as a guide only).",
+      "fee_help_eligibility": "You may be eligible for a HELP loan including FEE-HELP or HECS-HELP depending on your course, type of fee place, and your citizenship or residency status.",
+      "course_duration": "1 to 2 years full-time or part-time equivalent, depending on Recognition of prior learning",
+      "entry_requirements": "1.5 years full-time (12 credit points): Completion of a bachelor's degree or equivalent in a related discipline (e.g., Nursing, Allied Health) and at least two years full-time (or part-time equivalent) of relevant work experience (e.g., Health professional, medical administrator). 2 years full-time (16 credit points): Completion of a bachelor's degree in any discipline. English language proficiency: Bachelor degree from a recognised English-speaking country OR IELTS overall score of 6.5 (with no band score less than 6.0) OR other approved evidence.",
+      "recognition_of_prior_learning": "Recognition of prior learning will be considered on a case-by-case basis. The number of credit points required may vary, depending on your entry point or how much credit you receive as recognition of prior learning (RPL) based on your professional experience and previous qualifications.",
+      "core_subjects_modules": [
+        {
+          "value": "DAI001 Academic Integrity and Respect at Deakin (0 credit points)"
+        },
+        {
+          "value": "HME704 Fundamentals of Digital Health"
+        },
+        {
+          "value": "HME711 Health Law and Ethics"
+        },
+        {
+          "value": "HME712 Healthcare Operations"
+        },
+        {
+          "value": "HSH701 Principles and Practice of Public Health"
+        },
+        {
+          "value": "HSH717 Health Economics 1"
+        },
+        {
+          "value": "HSH719 Economic Evaluation 1"
+        },
+        {
+          "value": "HSH725 Research Literacy"
+        },
+        {
+          "value": "HSH753 Research Methods in Health and Social Development"
+        },
+        {
+          "value": "HSH762 Resource Allocation and Priority Setting"
+        },
+        {
+          "value": "MAA702 Accounts, Accountability and Governance"
+        },
+        {
+          "value": "MMM710 Emerging Issues in International Operations"
+        },
+        {
+          "value": "MPM722 Human Resource Management"
+        },
+        {
+          "value": "MPM780 Foundations in Leadership"
+        }
+      ],
+      "outcomes": "Prepares students for management and leadership roles across areas including: public health departments, hospital management, nursing home management, clinic management, medical practices, mental health organisations, community health centres, rehabilitation centres, skilled nursing facilities, healthcare associations, welfare and human service delivery organisations, policy roles within government, and major healthcare infrastructure projects. Recent graduates have worked in international agencies, divisions of general practice, and health administration departments. Professional recognition is provided by the Australasian College of Health Service Management (ACHSM)."
+    },
+    {
+      "course_name": "Graduate Certificate in Digital Health Management",
+      "provider_name": "Flinders University",
+      "subject_area": "Healthcare Management / Digital Health",
+      "course_description": "This course will provide you with the skills to introduce and manage digital strategies in health care organisations. If you have health leadership, career growth or digital upskilling goals, a Flinders Graduate Certificate in Digital Health Management is for you. You'll gain tech-first skills in leadership and management in a health context and learn how to assess and implement virtual care models and emerging digital health technologies, with a curriculum co-created with industry.",
+      "intake_start_dates": [
+        {
+          "value": "March"
+        },
+        {
+          "value": "July"
+        }
+      ],
+      "tuition_fees": "Domestic: $10,750 (Annual indicative fees 2026 - Full fee paying). This postgraduate course is not available to International students.",
+      "course_duration": "1 year (The course is offered in person in the Adelaide CBD with an average of 8 hours a week, part-time.)",
+      "entry_requirements": "Applicants must normally hold a bachelor degree or equivalent qualification and must also have no less than two years postgraduate work experience in the health or aged care sector.",
+      "core_subjects_modules": [
+        {
+          "value": "Digital Health (Managing digital health, technologies and tools, AI, IoT, digital safety and cybersecurity)"
+        },
+        {
+          "value": "Virtual Health, Innovation and Co-Design (Virtual hospitals, virtual assessments, managing virtual models of care)"
+        },
+        {
+          "value": "Health Informatics (Management of information electronically, informatics tools in primary, secondary, and tertiary care)"
+        },
+        {
+          "value": "Strategic Management (Strategic thinking, corporate governance, and transformational change strategies)"
+        }
+      ],
+      "outcomes": "Potential occupations include: digital health clinical specialist, digital health consultant, digital health director, digital health project manager, digital health product support lead. Potential employers include: public and private hospitals, healthcare technology companies, aged care organisations, community health organisations, private medical practices, for purpose sector. Provides a pathway into the Master of Health Administration."
+    },
+    {
+      "course_name": "Master of Information Technology",
+      "provider_name": "La Trobe University",
+      "subject_area": "Information Technology (specialisations in Artificial Intelligence, Cybersecurity, and Cloud Analytics)",
+      "course_description": "A 100% online degree designed to build technical expertise and industry-standard IT skills. The program is flexible, allowing students from any academic or professional background to specialise in booming areas. It includes hands-on experience, access to on-campus Cisco labs (24/7), and opportunities for industry-based, project-based, or research-based learning. The course is accredited by the Australian Computer Society (ACS).",
+      "intake_start_dates": [
+        {
+          "value": "Part-time schedule of one subject every seven weeks"
+        }
+      ],
+      "tuition_fees": "Cost per subject: $4,150. Total tuition fees: Tuition fees range from $47,400–$63,200 (based on 12-16 subjects).",
+      "fee_help_eligibility": "La Trobe online courses are eligible for FEE-HELP for domestic students.",
+      "course_duration": "18–24 months depending on recognition of prior learning. An 18-month course duration applies to students who have completed a cognate bachelor's degree. Offered part-time with one subject every seven weeks.",
+      "entry_requirements": "Successful completion of an Australian bachelor degree (or equivalent) and transcripts from all prior universities. No cognate degree is required for the 24-month pathway.",
+      "recognition_of_prior_learning": "Duration is 18–24 months depending on recognition of prior learning. Students with a cognate bachelor's degree can complete the course in 18 months (12 subjects instead of 16).",
+      "core_subjects_modules": [
+        {
+          "value": "CSE4001 Network Engineering Fundamentals"
+        },
+        {
+          "value": "CSE4002 Artificial Intelligence Fundamentals"
+        },
+        {
+          "value": "CSE4004 Cybersecurity Fundamentals"
+        },
+        {
+          "value": "CSE4IP Introduction to Programming"
+        },
+        {
+          "value": "Machine Learning"
+        },
+        {
+          "value": "Deep Learning"
+        },
+        {
+          "value": "Natural Language Processing"
+        },
+        {
+          "value": "Computer Vision and Image Retrieval"
+        },
+        {
+          "value": "Cyber Risk Management and Compliance"
+        },
+        {
+          "value": "Penetration Testing Principles"
+        },
+        {
+          "value": "Cybersecurity Governance"
+        },
+        {
+          "value": "Inside the Mind of a Hacker"
+        },
+        {
+          "value": "Big data management on the cloud"
+        },
+        {
+          "value": "Data exploration and analysis"
+        },
+        {
+          "value": "Data mining"
+        },
+        {
+          "value": "Cloud-base web application"
+        },
+        {
+          "value": "Mobile app development"
+        },
+        {
+          "value": "Logic and data structures"
+        },
+        {
+          "value": "Computer architecture"
+        },
+        {
+          "value": "Software engineering"
+        },
+        {
+          "value": "Full-stack web development"
+        }
+      ],
+      "outcomes": "Prepare for roles such as AI architect, data scientist, software engineer, security architect, cyber intelligence analyst, data/business/health analyst, bioinformatician, or machine learning engineer. Skills gained include database management, networks, programming (Java), intelligent systems, and internet computing. The text notes a forecast need for 122,100 professionals with post-graduate technology degrees in Australia by 2026."
+    },
+    {
+      "course_name": "Master of Health Management and Policy (Global)",
+      "provider_name": "University of Newcastle",
+      "subject_area": "Business and Economics; Health Management and Policy",
+      "course_description": "This program responds to the growing transformations of global healthcare sectors. It will foster new skills for those already employed within the health sector, and prepare those yet to enter. Learn directly from international leaders and industry experts. Gain knowledge and strategies to design, pitch and implement evidence-based solutions. Bring about transformative systems and organisational change through leadership and management roles. Developed by industry leaders, this program places you at the forefront of the unprecedented transformation in healthcare. It will give you the skills to govern and lead change among national and international stakeholders to improve healthcare outcomes.",
+      "intake_start_dates": [
+        {
+          "value": "Trimester 1: 27 Jan 2026"
+        },
+        {
+          "value": "Trimester 2: 11 May 2026"
+        },
+        {
+          "value": "Trimester 3: 17 Aug 2026"
+        }
+      ],
+      "tuition_fees": "Indicative fee AUD 44,575. Indicative annual fees are based on a full year full time load (80 units). This applies to both Domestic and International students for this program.",
+      "course_duration": "2 years full-time, up to 6 years part-time",
+      "entry_requirements": "Applicants must demonstrate that they meet the University of Newcastle's English Language Proficiency requirements. English proficiency requirements: IELTS overall minimum - 6.5; IELTS section minimum - 6.0.",
+      "core_subjects_modules": [
+        {
+          "value": "GSBS6003 Globalisation and Digitalisation"
+        },
+        {
+          "value": "GSBS6004 Organisational Behaviour and Design"
+        },
+        {
+          "value": "GSBS6380 Health Economics and Finance"
+        },
+        {
+          "value": "GSBS6381 Health Plan Design and Payments: Theory and Practice"
+        },
+        {
+          "value": "GSBS6382 Applied Economic Evaluation in Healthcare"
+        },
+        {
+          "value": "GSBS6383 Health Systems, Policy and Governance"
+        },
+        {
+          "value": "GSBS6384 Strategic Health Leadership and Management"
+        },
+        {
+          "value": "GSBS6385 Financial Management and Decision Making in Healthcare"
+        }
+      ],
+      "outcomes": "Chief Health Policy Officer, Health Policy/Systems Analyst, Health and Outcome Research Analyst, Market Access and Government Affairs, Health Program and Services Manager/Director, Health Policy/Services Researcher, Health Economist."
+    },
+    {
+      "course_name": "Master of Information Technology",
+      "provider_name": "University of Southern Queensland (UniSQ)",
+      "subject_area": "Information Technology",
+      "course_description": "Gain the advanced technical and analytical expertise required to work as a professional in a range of diverse careers. Designed for students from any discipline, UniSQ's Master of Information Technology expands your current knowledge to meet the digital needs of your chosen profession or industry. Gain an industry recognised qualification – this degree is accredited by the Australian Computer Society (ACS) and, through the Seoul Accord, is recognised in other countries.",
+      "intake_start_dates": [
+        {
+          "value": "Trimester 1, 2026: Monday 16 February"
+        },
+        {
+          "value": "Trimester 2, 2026: Monday 1 June"
+        },
+        {
+          "value": "Trimester 3, 2026: Monday 14 September"
+        }
+      ],
+      "tuition_fees": "Domestic (Commonwealth supported): AUD 9,536 (Estimated 2026 indicative annual fee based on 8 units per year).",
+      "fee_help_eligibility": "HECS-HELP is a government loan scheme that allows you to defer payment until your income reaches a certain threshold. Find out if you are eligible for HECS-HELP.",
+      "course_duration": "2 years (or part-time equivalent)",
+      "entry_requirements": "Completion of an Australian university 3-year bachelor degree, or equivalent, in any area or a minimum of 5 years' professional work experience equivalent to a qualification at AQF Level 7 (bachelor). English language requirements: IELTS (Academic) - Minimum overall score of 6.0 and a minimum score of 5.5 in each of the four components - listening, reading, writing, and speaking.",
+      "recognition_of_prior_learning": "You may be eligible for recognition of prior learning if you have previous studies or relevant work experience. This could reduce the number of courses you need to study to complete your degree.",
+      "core_subjects_modules": [
+        {
+          "value": "Core Courses: CSC5020 - Foundations of Programming"
+        },
+        {
+          "value": "CIS5310 - IS/ICT Project Management"
+        },
+        {
+          "value": "CIS5102 - Navigating the Digital Revolution"
+        },
+        {
+          "value": "CIS5209 - Systems Analysis and Design for IT Professionals"
+        },
+        {
+          "value": "Advanced Specialisation (8 Units): Students select one specialisation from Software Development, Network Engineering, or Computing Technology"
+        },
+        {
+          "value": "Student Selectives (4 Units): Students select either MSC6100 - Coursework Masters Research Project (4 Units) or four Postgraduate Elective Courses (5000 or 6000 Level)"
+        }
+      ],
+      "outcomes": "Your career options could include web and mobile app development, cloud computing, network security, eHealth, GPS technology and more. Graduates enjoy successful careers including: computer engineer, computer programmer, computer systems engineer, cyber security analyst, database administrator, network administrator, software developer, and web developer."
+    },
+    {
+      "course_name": "Master of Information Technology (MIT)",
+      "provider_name": "University of Newcastle",
+      "subject_area": "Information Technology, communications, management, business and entrepreneurship",
+      "course_description": "The Master of Information Technology (MIT) is a broad, flexible and technical degree. It offers exciting and diverse career opportunities and challenges. This program provides foundation IT skills for entrants with limited IT experience. It is also suited to experienced IT professionals wanting to enhance their skills. Enhance and apply your current skills within emerging technology driven growth areas. These areas include IT, communications, management, business and entrepreneurship. Broaden your career opportunities by developing advanced research and analytical skills.",
+      "intake_start_dates": [
+        {
+          "value": "Trimester 1: 27 Jan 2026"
+        },
+        {
+          "value": "Trimester 2: 11 May 2026"
+        },
+        {
+          "value": "Trimester 3: 17 Aug 2026"
+        }
+      ],
+      "tuition_fees": "Indicative fee AUD 47,600. Indicative annual fees are based on a full year full time load (80 units). This fee is listed for both Domestic and International student types.",
+      "course_duration": "2 years full-time, up to 6 years part-time",
+      "entry_requirements": "Applicants must demonstrate that they meet the University of Newcastle's English Language Proficiency requirements. For International students: IELTS overall minimum - 6.5, IELTS section minimum - 6.0. General admission is based on being a Domestic or International student, with specific criteria detailed in the program handbook.",
+      "recognition_of_prior_learning": "Students who are eligible for credit or recognition of prior learning will take less courses.",
+      "core_subjects_modules": [
+        {
+          "value": "Core Courses: INFO6001 Database Management 1"
+        },
+        {
+          "value": "INFO6030 Systems Analysis and Design"
+        },
+        {
+          "value": "INFT6004 Introduction to Programming"
+        },
+        {
+          "value": "INFT6160 Cybersecurity Fundamentals"
+        },
+        {
+          "value": "INFT6304 ICT Project Planning and Management"
+        },
+        {
+          "value": "INFT6800 Professional Practice in IT"
+        },
+        {
+          "value": "Project Core Courses (Choose one): COMP6900 Computing Project"
+        },
+        {
+          "value": "INFT6900 Information Technology Project"
+        }
+      ],
+      "outcomes": "Graduates may qualify for the following roles within the industry: Business Analyst, Database Developer, Project Manager, Systems Analyst, Web Developer, Software Developer. Other areas include electronic commerce, information systems, games development, technology management, health informatics or business systems and management. Graduates will be capable of approaching complex problems with a level head and have the confidence to manage IT projects effectively and professionally."
+    },
+    {
+      "course_name": "Master of Information Technology",
+      "provider_name": "CQUniversity Australia",
+      "subject_area": "Information Technology",
+      "course_description": "CQUniversity's Master of Information Technology is an ideal course to advance your career or move into the rapidly growing field of information technology (IT). Accredited by the Australian Computer Society and designed to meet the needs of industry, this course offers specialty majors in mobile application development, software design and development, and networks and information security. During the course, you will study a common first term made up of four units covering project management, introductory programming, ICT services management and information systems analysis and design. Minors cover new technologies such as blockchain, neural networks, machine learning, internet-of-things, sustainable practices with IT, and big data. Cement your skills alongside industry with the option of completing a 12-week internship in the final term of study or capstone project.",
+      "intake_start_dates": [
+        {
+          "value": "Term 1, 2026"
+        },
+        {
+          "value": "Term 2, 2026"
+        },
+        {
+          "value": "Term 3, 2026"
+        }
+      ],
+      "tuition_fees": "First-year fee: $28,927.5 (2025 Indicative) (FFP). The Indicative First-Year Fee for a Full Fee Paying (FFP) Place is the approximate cost of enrolling in this course for one full-time academic year (this is usually eight units studied over two terms) and should be used as a guide only.",
+      "fee_help_eligibility": "You may be eligible for FEE-HELP, an Australian Government loan scheme that helps eligible students pay their tuition fees. Provided you meet the FEE-HELP eligibility criteria, you can choose to use FEE-HELP to cover all or part of your tuition fees.",
+      "course_duration": "2 years full-time, 4 years part-time",
+      "entry_requirements": "To be eligible, applicants must meet specific Entry Requirements and English Language Proficiency (ELP) Requirements. Students must also meet Inherent Requirements, Security Requirements, and Health Requirements throughout their studies.",
+      "recognition_of_prior_learning": "If you have completed prior study relevant to units within this course, you may be eligible for credit for your past studies.",
+      "core_subjects_modules": [
+        {
+          "value": "Introduction to Programming (COIT20245)"
+        },
+        {
+          "value": "Cyber Security and Networking (COIT20246)"
+        },
+        {
+          "value": "Information Systems Analysis and Design (COIT20248)"
+        },
+        {
+          "value": "Professional Skills and Ethics in Information and Communications Technology (COIT20249)"
+        },
+        {
+          "value": "Database Design and Development (COIT20247)"
+        },
+        {
+          "value": "Project Management Concepts (PPMP20007)"
+        },
+        {
+          "value": "Responsive Web Design (COIT20268)"
+        },
+        {
+          "value": "Mobile Web App Development (COIT20269)"
+        },
+        {
+          "value": "Introduction to Artificial Intelligence (COIT20277)"
+        },
+        {
+          "value": "Neural Networks and Deep Learning (COIT29225)"
+        },
+        {
+          "value": "Evolutionary Computation (COIT29224)"
+        },
+        {
+          "value": "Cloud Computing and Internet of Things for Smarter Applications (COIT20260)"
+        },
+        {
+          "value": "Introduction to the Internet of Things (COIT29226)"
+        },
+        {
+          "value": "Capstone/Internship units: Mobile App Development Project (COIT20272), Software Design and Development Project (COIT20273), Networks and Information Security Project (COIT20265), or Postgraduate ICT Internship (COIT20276)"
+        }
+      ],
+      "outcomes": "analyst programmer, computer network systems engineer, database administrator, developer programmer, ICT architect, ICT consultant, ICT customer support officer, ICT security specialist, ICT support engineer, ICT support technician, ICT systems test engineer, network administrator, project manager, software and apps programmer, software engineer, systems administrator, web developer."
+    },
+    {
+      "course_name": "Master of Information Technology",
+      "provider_name": "Southern Cross University",
+      "subject_area": "Information and Communication Technology (ICT)",
+      "course_description": "The course is designed to adapt to industry trends, with a practicality perspective, and focus on cutting-edge technologies. It will provide you with a comprehensive technical skillset as well as the necessary communication skills and critical thinking abilities to help advance your career in ICT. It will deepen your understanding of a contemporary technology of your choice, Artificial Intelligence or Cybersecurity, while providing you with a solid foundation in programming, computer networks, cloud computing, database, and project management. Your career development will be further enhanced by globally recognised Microsoft certifications integrated into this course and an opportunity to either complete a research project or engage in industry-based learning.",
+      "intake_start_dates": [
+        {
+          "value": "Domestic Online: March (Term 1), July (Term 3)"
+        },
+        {
+          "value": "International Online: March (Term 1), June (Term 3)"
+        }
+      ],
+      "tuition_fees": "Domestic: Fee paying (Specific total amount not listed). International: $26,000 annual fee ($3,250 per unit). Annual tuition fee is based on completing 8 units per year. Students are required to pay OSHC for the duration of their visa in advance. Non-tuition fee covers textbooks, stationery and excursions. Student Services and Amenities Fee (SSAF) is charged per unit based on credit point value.",
+      "fee_help_eligibility": "A full fee-paying place is where you pay the full (unsubsidised) tuition fee for your course. Eligible students can defer the payment of their tuition fees through the FEE-HELP scheme (including employer-reserved places for The Hotel School courses).",
+      "course_duration": "2 years full-time; 4 years part-time",
+      "entry_requirements": "Language requirements: IELTS Overall Score 6.5 (Listening: minimum 6.0, Speaking: minimum 6.0, Reading: minimum 6.0, Writing: minimum 6.0). Academic requirements: Not applicable for ATAR. Full requirements refer to University's Rules Relating to Awards. Advanced standing may apply to students who have completed relevant undergraduate and postgraduate studies.",
+      "recognition_of_prior_learning": "Credit for Prior Learning, also referred to as Advanced Standing or Recognition for Prior Learning (RPL), is the process of looking at your prior study and/or experience to assess if you can be awarded academic credit or gain entry to a course on the basis of your existing knowledge and skills.",
+      "core_subjects_modules": [
+        {
+          "value": "COMP5004: Professional Practices in Information Technology"
+        },
+        {
+          "value": "COMP5006: Computer Networking and Cloud Computing"
+        },
+        {
+          "value": "COMP5002: Programming Concepts"
+        },
+        {
+          "value": "COMP5003: Cybersecurity Governance and Risk Management"
+        },
+        {
+          "value": "COMP5005: Database Design and Management"
+        },
+        {
+          "value": "COMP6010: Artificial Intelligence and Machine Learning Essentials"
+        },
+        {
+          "value": "COMP6014: Artificial Intelligence Application Development"
+        },
+        {
+          "value": "COMP6012: Managing Information Technology Projects"
+        },
+        {
+          "value": "COMP6016: Information Technology Masters Project"
+        }
+      ],
+      "outcomes": "Graduates of the course can look forward to an exciting career across a wide range of industries and across government, private sector and not-for-profit organisations in roles such as cybersecurity analyst, AI and Machine Learning engineer, software developer, network engineer, data analyst, IT consultant, IT trainer or educator, and technical support professional."
+    },
+    {
+      "course_name": "Master of Data Science",
+      "provider_name": "UNSW Online (University of New South Wales)",
+      "subject_area": "Data Science, Engineering and Technology, Mathematics",
+      "course_description": "The Master of Data Science from UNSW Online is designed for professionals ready to lead in this fast-evolving field. You'll gain advanced skills in statistical inference, programming and machine learning, while mastering techniques to extract insights and solve real-world problems. Delivered 100% online, the program combines hands-on, code-first learning with fluency in industry-standard tools like Python, R and Tableau. With a capstone project solving a real-world problem for an actual company, you'll graduate ready to make an immediate impact and excel in diverse roles across industries.",
+      "intake_start_dates": [
+        {
+          "value": "January"
+        },
+        {
+          "value": "March"
+        },
+        {
+          "value": "May"
+        },
+        {
+          "value": "July"
+        },
+        {
+          "value": "August"
+        },
+        {
+          "value": "October"
+        }
+      ],
+      "tuition_fees": "Indicative 2026 fee per course: $5,130. Indicative 2026 total program fees: $61,500. Your student fees are calculated based on the courses you take and your residency type.",
+      "fee_help_eligibility": "Eligible domestic students can apply for FEE-HELP, a government loan to cover all or part of your tuition fees for fee-paying places. You can apply for FEE-HELP as part of your acceptance to UNSW Online.",
+      "course_duration": "2 years, part time",
+      "entry_requirements": "To be eligible, you must have either: 1. Completed the online Graduate Diploma in Data Science (5646) with a weighted average mark (WAM) of 65 or higher; OR 2. Completed an undergraduate degree in data science or cognate discipline (e.g., computer science, economics, mathematics, statistics) AND have sufficient data science background as indicated by an average mark of 65 or above (FAQ section notes 70 or above) across a minimum of three Level III courses in mathematics and/or statistics and/or computer science and/or econometrics. English language: Must provide evidence of English proficiency via tests, university courses, prior study in English, or other qualifications/waivers.",
+      "recognition_of_prior_learning": "Advanced standing or exemption can be granted where core courses were completed in a prior program. Courses successfully completed within the past seven years can be used for credit transfer. Master of Data Science students can claim up to 4 courses (24 units of credit) of RPL advanced standing for core courses. In addition, if students have completed postgraduate studies, they can claim a further 2 courses (12 units of credit) of RPL advanced standing for elective courses.",
+      "core_subjects_modules": [
+        {
+          "value": "Foundations of Data Science"
+        },
+        {
+          "value": "Principles of Programming"
+        },
+        {
+          "value": "Statistical Inference for Data Scientists"
+        },
+        {
+          "value": "Regression Analysis for Data Scientists"
+        },
+        {
+          "value": "Data Mining and Machine Learning"
+        },
+        {
+          "value": "Data Science Project (Capstone)"
+        }
+      ],
+      "outcomes": "Roles may include: Data Scientist, Research Scientist, Machine Learning Engineer, Chief Data Officer (CDO), Data Engineer, Data Analyst, Data Warehouse Architect, Business Intelligence Analyst, Quantitative Analyst, Investigations & Data Journalism."
+    },
+    {
+      "course_name": "Master of Data Science",
+      "provider_name": "University of Southern Queensland (UniSQ)",
+      "subject_area": "Information Technology / Data Science",
+      "course_description": "Be at the forefront of a data-driven world with UniSQ's Master of Data Science. Graduate with the skills you need to help organisations to extract new insights from raw data – insights which inform the development of new products, improved services and new businesses. Work independently and collaboratively to apply key ICT and data science technologies and programming skills to interpret major theories and critically investigate and solve contemporary core issues in a global market. Tailor your degree to your career aspirations and study a general Enterprise Data Science stream or focus your learning with one of two specialisations – artificial intelligence and machine learning, or data analytics. Choose from two different pathways of research in your masters degree – the research project track (develop a thesis in an independent project) or the research training track (gain specialised skills to prepare for a professional career).",
+      "intake_start_dates": [
+        {
+          "value": "Trimester 1, 2026: Monday 16 February 2026"
+        },
+        {
+          "value": "Trimester 2, 2026: Monday 1 June 2026"
+        },
+        {
+          "value": "Trimester 3, 2026: Monday 14 September 2026"
+        }
+      ],
+      "tuition_fees": "Domestic (Commonwealth supported): AUD 9,536 (Estimated 2026 annual fee based on the current average rate for the first year of study/8 units).",
+      "fee_help_eligibility": "HECS-HELP is a government loan scheme that allows you to defer payment until your income reaches a certain threshold. Find out if you are eligible for HECS-HELP.",
+      "course_duration": "2 years (or part-time equivalent)",
+      "entry_requirements": "Completion of an Australian university 3-year bachelor degree, or equivalent, in any area or a minimum of 5 years' professional work experience equivalent to an AQF Level 7 qualification (bachelor). English language requirements: IELTS (Academic) - Minimum overall score of 6.0 and a minimum score of 5.5 in each of the four components - listening, reading, writing, and speaking.",
+      "recognition_of_prior_learning": "You may be eligible for recognition of prior learning if you have previous studies or relevant work experience. This could reduce the number of courses you need to study to complete your degree.",
+      "core_subjects_modules": [
+        {
+          "value": "CSC6002 - Big Data Management"
+        },
+        {
+          "value": "CSC6003 - Machine Learning"
+        },
+        {
+          "value": "CSC6004 - Data Mining"
+        },
+        {
+          "value": "CSC5020 - Foundations of Programming"
+        },
+        {
+          "value": "CIS5310 - IS/ICT Project Management"
+        },
+        {
+          "value": "STA6100 - Multivariate Analysis for High-Dimensional Data"
+        },
+        {
+          "value": "CSC6200 - Advanced ICT Professional Project"
+        },
+        {
+          "value": "STA6200 - Statistics for Quantitative Researchers"
+        }
+      ],
+      "outcomes": "Advance your profession into any big-data, artificial intelligence or machine learning field. As a graduate, you will become an efficient data scientist, utilising predictive analytics, big data management, big data analysis and modelling, artificial intelligence and machine learning to produce insights that make important, real-life decisions. Potential job opportunities include: business manager, data analyst, computer programmer, database administrator, data engineer, data scientist, and IT manager. Typical salary of a Data Scientist in Australia is over AUS 100,000."
+    },
+    {
+      "course_name": "Master of Data Analytics (Online)",
+      "provider_name": "The University of Sydney",
+      "subject_area": "Data Analytics",
+      "course_description": "Explore a multidisciplinary master's program that teaches leading concepts and approaches in the field of data analytics. Build a sharp skill set for collecting and visualising data, communicating data insights and developing creative solutions for organisations. The curriculum covers a multitude of qualitative and quantitative data research methods and their applications across industries, including business, health care, architecture, and political science.",
+      "intake_start_dates": [
+        {
+          "value": "4 course start dates per year"
+        }
+      ],
+      "tuition_fees": "The domestic tuition range for the data analytics programs is AU$20,050 – AU$60,150.",
+      "fee_help_eligibility": "Australian government education loans (for domestic students) available. Reach out to your Enrolment Specialist to learn more.",
+      "course_duration": "18 months (standard) or 36 months part time. Graduate certificate can be completed in as little as 6 months and the graduate diploma in as little as 12 months.",
+      "entry_requirements": "To be eligible for admission, you are required to have: a three-year Australian bachelor's degree in a cognate discipline with a minimum credit average (65 percent), or the University of Sydney Graduate Diploma in Data Analytics with a minimum credit average (65 percent), or a qualification deemed to be equivalent, or completed 24 credit points of the University of Sydney Graduate Diploma in Data Analytics or Graduate Certificate in Data Analytics with a minimum credit average (65 percent). The 24 credit points must include 12 credit points of Data Analytics Core units and 12 credit points of Data Analytics specialist elective units. Cognate disciplines include any major from a Science, Engineering, Commerce, or Economics degree, or other disciplines that are deemed cognate by the program directors.",
+      "recognition_of_prior_learning": "If you have the equivalent of an Australian AQF Level 8 degree or above in a cognate discipline, you may be eligible for a Reduced Volume of Learning (RVL) of up to 24 credit points or 0.5 years/one semester.",
+      "core_subjects_modules": [
+        {
+          "value": "Ethics of data retrieval"
+        },
+        {
+          "value": "Muddling complex data structure"
+        },
+        {
+          "value": "Governance of data"
+        },
+        {
+          "value": "Data consulting capstone project"
+        }
+      ],
+      "outcomes": "Analytics and insights manager; Data strategy manager; Data analyst; Business intelligence analyst; Data visualisation specialist."
+    },
+    {
+      "course_name": "Master of Data Science",
+      "provider_name": "Deakin University",
+      "subject_area": "Data Science, Information Technology, Artificial Intelligence, and Machine Learning",
+      "course_description": "Become a data specialist capable of using data to form insights, support decision making and create a competitive advantage the business world. The Master of Data Science teaches you to identify and evaluate data from a wide range of sources, preparing you to use it effectively for analysis. You will learn methods to manage, organise and manipulate data within regulatory, ethical and security constraints. Develop specialised skills in categorising and transferring raw data into meaningful information for the benefit of prediction and robust decision-making. This course focuses on developing skills in data science, data modelling and design, machine learning, programming and software development.",
+      "intake_start_dates": [
+        {
+          "value": "Trimester 1 - March"
+        },
+        {
+          "value": "Trimester 2 - July"
+        },
+        {
+          "value": "Trimester 3 - November"
+        }
+      ],
+      "tuition_fees": "Domestic: $34,400 for 1 yr full-time (Estimated tuition fee - full-fee paying place).",
+      "fee_help_eligibility": "You may be eligible for a HELP loan – including FEE-HELP or HECS-HELP – depending on your course, type of fee place, and your citizenship or residency status.",
+      "course_duration": "2 years full-time or part-time equivalent",
+      "entry_requirements": "16-credit point entry: completion of a bachelor degree or higher in any discipline. 12-credit point entry: completion of a bachelor degree or higher in a related discipline or completion of a bachelor degree or higher in any discipline and at least two years relevant work experience. 8-credit point entry: completion of a graduate certificate or graduate diploma in a related discipline; completion of a bachelor honours degree in a related discipline; or completion of a bachelor degree in a related discipline and at least two years of relevant work experience. English proficiency: IELTS overall score of 6.5 (with no band score less than 6.0) or equivalent.",
+      "recognition_of_prior_learning": "The University aims to provide students with as much credit as possible for approved prior study or informal learning. Recognition of prior learning may be granted for relevant postgraduate studies, in accordance with standard University procedures. Admission credit will be considered on a case-by-case basis and may be granted to applicants based on prior studies and/or equivalent industry experience.",
+      "core_subjects_modules": [
+        {
+          "value": "DAI001 Academic Integrity and Respect at Deakin (0-credit-point compulsory unit)"
+        },
+        {
+          "value": "SIT771 Object-Oriented Development"
+        },
+        {
+          "value": "SIT772 Database Fundamentals"
+        },
+        {
+          "value": "SIT773 Software Requirements Analysis and Modelling"
+        },
+        {
+          "value": "SIT774 Web Technologies and Development"
+        },
+        {
+          "value": "SIT718 Real World Analytics"
+        },
+        {
+          "value": "SIT731 Data Wrangling"
+        },
+        {
+          "value": "SIT787 Mathematics for Artificial Intelligence"
+        },
+        {
+          "value": "SIT720 Machine Learning"
+        },
+        {
+          "value": "SIT741 Statistical Data Analysis"
+        },
+        {
+          "value": "SIT742 Modern Data Science"
+        },
+        {
+          "value": "SIT743 Bayesian Learning and Graphical Models"
+        },
+        {
+          "value": "SIT744 Deep Learning"
+        },
+        {
+          "value": "SIT753 Professional Practice in Information Technology"
+        },
+        {
+          "value": "SIT764 Team Project (A) - Project Management and Practices"
+        },
+        {
+          "value": "SIT782 Team Project (B) - Execution and Delivery"
+        },
+        {
+          "value": "Plus 1 level 7 SIT or MIS-coded elective unit"
+        }
+      ],
+      "outcomes": "Graduates of this course may find a career as data analyst, data scientist, analytics programmer, analytics manager, analytics consultant, business analyst, management advisor, management analyst, business advisors and strategist, marketing manager, market research analyst or marketing specialist. The course is professionally accredited with the Australian Computer Society (ACS)."
+    },
+    {
+      "course_name": "Master of Data Science",
+      "provider_name": "La Trobe University",
+      "subject_area": "Information Technology / Data Science",
+      "course_description": "Designed in collaboration with industry partners, this degree gives you the knowledge, skills and hands-on experience to transition from university to the workplace. Build fundamental skills in programming, databases, probability, statistics, data exploration and analysis. Master the management of large-scale IT projects and use powerful tools for advanced analysis and problem solving. Understand database fundamentals, programming languages such as Java and Python, and cloud-based services offered by Amazon, Google, IBM and Microsoft. Choose from seven specialisations and explore electives in complementary disciplines like business, cybersecurity, artificial intelligence (AI) and health.",
+      "intake_start_dates": [
+        {
+          "value": "Semester 1 (March 2026)"
+        },
+        {
+          "value": "Semester 2 (July 2026)"
+        },
+        {
+          "value": "Summer (November 2026)"
+        }
+      ],
+      "tuition_fees": "Domestic: $34,800 per 120 credit points. Commonwealth Supported Places (CSP): Indicative CSP price $7,711 per 120 credit points.",
+      "fee_help_eligibility": "If you are a domestic student in a full fee-paying place, you may be able to defer all or part of your tuition fees using a FEE-HELP loan from the Australian Government. You only start repaying once your income exceeds the compulsory repayment threshold.",
+      "course_duration": "2 years full-time or part-time equivalent",
+      "entry_requirements": "Completion of an Australian bachelor degree or equivalent in any discipline; OR completion of the Postgraduate Qualifying Program (PPN001).",
+      "recognition_of_prior_learning": "Youll need to include evidence of prior learning in your application to be considered for credit or advanced standing. This can reduce the number of subjects required to complete your course. The amount of credit received depends on the level and relevance of your previous study and the number of subjects completed. If you completed a pathway course with La Trobe, you may be eligible to transfer directly into the second semester.",
+      "core_subjects_modules": [
+        {
+          "value": "LTU0AIM Academic Integrity Module"
+        },
+        {
+          "value": "CSE5DEV Data Exploration and Analysis"
+        },
+        {
+          "value": "CSE4DBF Database Fundamentals"
+        },
+        {
+          "value": "CSE4IP Introduction to Programming"
+        },
+        {
+          "value": "MAT4MDS Mathematics for Data Science"
+        },
+        {
+          "value": "STM4PSD Probability and Statistics for Data Science"
+        },
+        {
+          "value": "CSE5BDC Big Data Management on the Cloud"
+        },
+        {
+          "value": "CSE5003 Professional Practices and Entrepreneurship in Information Technology"
+        },
+        {
+          "value": "Core Choice Pathways: Statistics thesis; Computer science thesis; Computer science industry project; Statistics industry based learning; Computer science industry based learning"
+        }
+      ],
+      "outcomes": "Graduates can pursue roles such as Data scientist, Business analyst, Health analyst, Bioinformatician, and Machine learning engineer. Outcomes include the ability to evaluate, communicate and interpret information; critically analyse and solve complex problems; and use advanced computing techniques and mathematical/statistical approaches to solve complex scientific problems."
+    },
+    {
+      "course_name": "Graduate Certificate in Digital Health",
+      "provider_name": "Australian College of Nursing (ACN)",
+      "subject_area": "Nursing / Digital Health",
+      "course_description": "The course is designed to meet the educational needs of registered nurses who are working in the diverse digital health environment and wish to extend their skills. The course aims to provide nurses with knowledge and understanding of all aspects of digital health within a professional legal, moral and ethical framework that reflects current best practice. Students are provided with the opportunity to reflect on and critique their experiences considering current literature and research. The course also aims to develop knowledge, skills and attitudes relevant to clinical leadership.",
+      "intake_start_dates": [
+        {
+          "value": "Term 1: Commences 19 January 2026"
+        },
+        {
+          "value": "Term 2: Commences 13 April 2026"
+        },
+        {
+          "value": "Term 3: Commences 6 July 2026"
+        },
+        {
+          "value": "Term 4: Commences 28 September 2026"
+        }
+      ],
+      "tuition_fees": "2026 Member price (10% discount): $2,806.20 per unit. 2026 Non-member price: $3,118.00 per unit. Total course cost (4 units): $11,224.80 (Member) or $12,472.00 (Non-member). Fees are subject to change without notice. ACN offers a flexible payment option allowing students to pay their fees on a term-by-term basis.",
+      "fee_help_eligibility": "FEE-HELP is also available for eligible students. Commonwealth Supported Places are not offered for Graduate Certificate courses. However, FEE-HELP is available for eligible applicants.",
+      "course_duration": "1 Year Part-time",
+      "entry_requirements": "All applicants seeking admission are required to: hold a Bachelor of Nursing or registered nurse equivalent qualification; hold current registration with the Australian Health Practitioner Regulation Agency (AHPRA); or the equivalent registering authority in your country of origin; meet the Nursing and Midwifery Board of Australia English language skills registration standard (nursing and midwifery); have a minimum of one year of postgraduate experience; and be currently employed in the clinical area of specialisation. Please note: this course is not available to direct entry midwives.",
+      "core_subjects_modules": [
+        {
+          "value": "Advancing Professional Practice (340)"
+        },
+        {
+          "value": "Understanding Data in Health Care (321)"
+        },
+        {
+          "value": "Principles of Healthcare Digitalisation (322)"
+        },
+        {
+          "value": "Digital Healthcare Governance (325)"
+        }
+      ],
+      "outcomes": "Upon completion of this course, many leadership roles are available in digital health, including senior nurse informaticians and many management positions in healthcare. Graduate attributes include the ability to Demonstrate enhanced professional, social and ethical understanding in a specialist area of practice, Apply complex problem solving and information literacy skills, and independently and collaboratively lead and educate others."
+    },
+    {
+      "course_name": "Master of Clinical Nursing (ACU Online)",
+      "provider_name": "Australian Catholic University (ACU)",
+      "subject_area": "Clinical Nursing",
+      "course_description": "The Master of Clinical Nursing is designed to expand your knowledge and skills in clinical nursing and practice. ACU Online offers the Master of Clinical Nursing with exit points at the Graduate Certificate level and the Graduate Diploma level. Students can choose a Research Stream, which offers students the opportunity to engage in independent academic research within the healthcare field, or a Project Stream, which allows students to apply advanced knowledge and skills to address a healthcare challenge within their workplace. Specialisations include correctional health, gerontological nursing, medical, renal, surgical, neuroscience, cardiac care, intensive care, and perioperative.",
+      "intake_start_dates": [
+        {
+          "value": "ACU Term 3: Commencing on 20 July"
+        },
+        {
+          "value": "ACU Term 4"
+        }
+      ],
+      "tuition_fees": "Domestic: $6918 CSP (Average first year fee based on Commonwealth Supported Places). Domestic Graduate Rebate: A 10% rebate on fees will be offered to domestic ACU graduates (from any faculty) enrolling in full fee-paying postgraduate studies in the Faculty of Health Sciences.",
+      "course_duration": "1.5 years full-time or equivalent part-time",
+      "entry_requirements": "To be eligible for admission to the Master of Clinical Nursing, an applicant must: a) have completed a Bachelor of Nursing degree or equivalent; AND b) hold current registration with the Australian Health Practitioner Regulation Agency (Ahpra). An applicant must also comply with the Admission to Coursework Programs Policy.",
+      "recognition_of_prior_learning": "If your prior study or relevant work experience has provided you with knowledge, skills or experience aligned with the learning outcomes of units in your new course, you may be eligible to gain credit for study or have your prior learning recognised. This means you may be able to complete your ACU course in a shorter timeframe.",
+      "core_subjects_modules": [
+        {
+          "value": "NRSG524: Advanced Pathophysiology for Specialty Nursing Practice"
+        },
+        {
+          "value": "NRSG525: Evidence-based, Person-centred Family Care in Specialty Nursing Practice"
+        },
+        {
+          "value": "HLSC604: Quality and Safety in Health Care"
+        },
+        {
+          "value": "HLSC640: Interpreting Health Research"
+        },
+        {
+          "value": "PHIL623: Healthcare Ethics: Principles in Practice"
+        },
+        {
+          "value": "Clinical Nursing Unit 1"
+        },
+        {
+          "value": "Clinical Nursing Unit 2"
+        },
+        {
+          "value": "HLSC605: Leadership in Health Care (Project Stream)"
+        },
+        {
+          "value": "HLSC617: Independent Project (20 cp - Project Stream)"
+        },
+        {
+          "value": "HLSC646: Qualitative Research Methods OR HLSC642: Biostatistics for Health Sciences (Research Stream)"
+        },
+        {
+          "value": "HLSC623: Research Dissertation Part A (20 cp - Research Stream)"
+        },
+        {
+          "value": "HLSC624: Research Dissertation Part B (20 cp - Research Stream)"
+        },
+        {
+          "value": "Elective Units"
+        }
+      ],
+      "outcomes": "Graduates may seek employment in clinical nursing in government and private health care facilities depending on your choice of specialisation: Clinical Nurse Specialist; Nursing Education; Clinical Leadership and management roles within the specialty area; Leadership and management roles within healthcare services; Community nursing opportunities; Pathways to further study and research. Specific outcomes based on specialisations include: working with prisoners, specialist clinical care in gerontological settings, dialysis centres, transplant units, cardiac rehabilitation, and intensive care or perioperative specialists."
+    },
+    {
+      "course_name": "Master of Public Health",
+      "provider_name": "University of Melbourne",
+      "subject_area": "Public Health (Specialist streams in General Public Health, Health Leadership, and Health Economics)",
+      "course_description": "A transformational qualification designed to equip health professionals to drive system transformation, develop innovative solutions and influence health policy. The course is built on cutting-edge research and insights from top academics and clinical experts, offering a rigorous foundation in public health theory and practice through up to six multidisciplinary subjects. It is delivered online and allows students to balance study with work and personal commitments.",
+      "intake_start_dates": [
+        {
+          "value": "January"
+        },
+        {
+          "value": "March"
+        },
+        {
+          "value": "May"
+        },
+        {
+          "value": "July"
+        },
+        {
+          "value": "August"
+        },
+        {
+          "value": "October"
+        }
+      ],
+      "tuition_fees": "Domestic: $4,500 per 12.5 credit point subject. (Total course is 150 credit points, which equals 12 subjects). Fees are subject to annual review, with new rates effective from the beginning of each calendar year. This course is only available to domestic students in Australia.",
+      "fee_help_eligibility": "FEE-HELP is available. It is described as a loan that can cover all or part of tuition fees. The Australian Government pays the amount of the loan directly to the University, which is repaid once the student is in the workforce and earning at a specified level.",
+      "course_duration": "24 months part time",
+      "entry_requirements": "1. Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.) OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health) OR A masters degree (by research or coursework) or PhD in health or public health. 2. English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
+      "core_subjects_modules": [
+        {
+          "value": "Standard Core Subjects: Foundations of Public Health"
+        },
+        {
+          "value": "Epidemiology 1"
+        },
+        {
+          "value": "Biostatistics"
+        },
+        {
+          "value": "Applied Program Development"
+        },
+        {
+          "value": "Qualitative Research in Public Health"
+        },
+        {
+          "value": "Public Health Leadership and Policy"
+        },
+        {
+          "value": "Public Health Project (25CP)"
+        },
+        {
+          "value": "Stream-Specific: Health Leadership Stream: Health System Transformation, Comparative Health Systems"
+        },
+        {
+          "value": "Health Economics Stream: Health Economics 1, Introduction to Economic Evaluation"
+        },
+        {
+          "value": "Electives: Practice of Public Health Leadership, Health System Transformation, Health Economics 1, Introduction to Economic Evaluation, Comparative Health Systems, Health Program Evaluation 1, Regression Methods in Health Research, Advancing Health Equity, Health Policy"
+        }
+      ],
+      "outcomes": "Health Education and Development Leader, Nursing Director/Team Lead, Health Director, Public Health Researcher, NGO Manager, Policy Adviser, Government Adviser, Industry/Professional Association Adviser."
+    },
+    {
+      "course_name": "Master of Public Health",
+      "provider_name": "Monash University (Monash Online)",
+      "subject_area": "Health / Public Health",
+      "course_description": "The Master of Public Health is a graduate degree in the broad domain of public health, consisting of 12 units encompassing all aspects of the field. In this comprehensive course, you'll dive into public health, epidemiology, biostatistics, global health, health promotion, chronic and infectious disease, and health policy in the public context. You'll graduate with a sought-after qualification that's focused on the key qualitative, analytical, and communication skills needed to drive innovation in the delivery of public health care.",
+      "intake_start_dates": [
+        {
+          "value": "January"
+        },
+        {
+          "value": "March"
+        },
+        {
+          "value": "May"
+        },
+        {
+          "value": "July"
+        },
+        {
+          "value": "August"
+        },
+        {
+          "value": "October"
+        }
+      ],
+      "tuition_fees": "Est. $4,387.50 per unit (Domestic). For International: The Master of Public Health is not currently accepting international applications.",
+      "fee_help_eligibility": "Eligible students may apply for FEE-HELP.",
+      "course_duration": "2 years part-time (Accelerated 100% Online)",
+      "entry_requirements": "An Australian bachelor degree (or equivalent) in a relevant discipline with at least a Weighted Average Mark (WAM) of 60% and a minimum of two years of relevant work experience. Relevant work experience includes in the health industry (eg. Government, policy, provider eg. hospital, clinic), non government organisation (NGO), academic or research institution, consulting, pharmaceutical company etc. Applicants require a curriculum vitae (CV), relevant work experience or a statement from employer to substantiate period of employment. Applicants must also meet English language requirements.",
+      "core_subjects_modules": [
+        {
+          "value": "Health systems and policy"
+        },
+        {
+          "value": "Biostatistics: Concepts and applications"
+        },
+        {
+          "value": "Epidemiology of infectious diseases"
+        },
+        {
+          "value": "Leading and managing in public health and healthcare"
+        },
+        {
+          "value": "Epidemiology: Concepts and applications"
+        },
+        {
+          "value": "Occupational health and safety"
+        },
+        {
+          "value": "Introduction to environmental and planetary health"
+        },
+        {
+          "value": "Foundations of public health"
+        },
+        {
+          "value": "Epidemiology of chronic disease"
+        },
+        {
+          "value": "Foundations of health promotion"
+        },
+        {
+          "value": "Research methods in healthcare"
+        },
+        {
+          "value": "Managing digital health"
+        }
+      ],
+      "outcomes": "Health Promotion Officer: Help people achieve better health... by building healthy public policies, creating supportive environments, strengthening communities, and shifting focuses from treating illness to preventing it. Policy Officer: Provide analysis and advice on health policy issues both internal and external. Develop policy relating to the rules and principles of health issues... Commission research, write briefs, give presentation to stakeholders. Health Manager: Lead businesses into the digital space... effectively lead health care teams while making informed and ethical decisions. Epidemiologist: Investigate patterns and causes of disease and other health-related events."
+    },
+    {
+      "course_name": "Master of Business Management with discipline studies in Project Management",
+      "provider_name": "Monash University (Monash Online / Monash Business School)",
+      "subject_area": "Business Management and Project Management",
+      "course_description": "The Master of Business Management will prepare you to become an effective leader in an increasingly agile business environment, and will help you gain a firm grounding in the fundamentals of project management. Explore the theory that underpins the successful management of projects, programs, portfolios and business strategy, and apply it as you lead project and program endeavours, grounded in project management methodologies. You will gain practical expertise across all project management life-cycle phases, equipping you with industry-aligned skills that are directly applicable to the workplace.",
+      "intake_start_dates": [
+        {
+          "value": "January"
+        },
+        {
+          "value": "March"
+        },
+        {
+          "value": "May"
+        },
+        {
+          "value": "July"
+        },
+        {
+          "value": "August"
+        },
+        {
+          "value": "October"
+        }
+      ],
+      "tuition_fees": "Est. $4,750.00 per unit. These are the estimated domestic fees. Unit fees are subject to change annually. Please reference the 2026 fees.",
+      "fee_help_eligibility": "Eligible students may apply for FEE-HELP.",
+      "course_duration": "2 years part-time (Entry level 1) or 1.4 years part-time (Entry level 2)",
+      "entry_requirements": "Entry level 1 (72 points): An Australian bachelor degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average; or An Australian bachelor degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience. Applicants using work experience must provide a detailed curriculum vitae. Entry level 2 (48 points): A Monash University Graduate Certificate of Business Management with at least a credit (60%) average or A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average. English requirements: Applicants must also meet the English language requirements.",
+      "recognition_of_prior_learning": "All students complete Part C. Depending upon prior qualifications, you may receive credit for Part A or Part B or both. Note: If you are eligible for credit for prior studies, you may elect not to receive the credit.",
+      "core_subjects_modules": [
+        {
+          "value": "Part A. Core studies: Leadership for organisational advancement"
+        },
+        {
+          "value": "Strategic management for agile organisations"
+        },
+        {
+          "value": "Innovation and new value creation"
+        },
+        {
+          "value": "Financial management and resource utilisation"
+        },
+        {
+          "value": "Part B. Discipline studies: The organisational context of project development"
+        },
+        {
+          "value": "The dynamic context of project delivery"
+        },
+        {
+          "value": "The planning approach to project management"
+        },
+        {
+          "value": "The learning approach to project management"
+        },
+        {
+          "value": "Part C. Application studies: Business transformation"
+        },
+        {
+          "value": "Industry challenge"
+        },
+        {
+          "value": "Global challenge"
+        },
+        {
+          "value": "Professional development"
+        }
+      ],
+      "outcomes": "Business Manager: Lead administrative, management and finance objectives ($115,000 typical salary). Project Manager: Lead project planning, coordinate teams, and oversee budgets, timelines, and deliverables ($145,000 typical salary). Growth Manager: Strategic role focused on driving business expansion and revenue growth ($120,000 typical salary)."
+    },
+    {
+      "course_name": "Master of Public Health",
+      "provider_name": "UTS Online (University of Technology Sydney)",
+      "subject_area": "Health / Public Health",
+      "course_description": "The UTS Online Master of Public Health is designed for professionals who are passionate about creating positive change for population and community health, and are looking to advance their skills to gain a global perspective in public health. Students will develop specialist knowledge and skills that span health data, education and promotion, and graduate ready to develop public health programs at a local, national or global level. Delivered 100% online, this course enables you to work full-time while developing a comprehensive understanding of public health theory and research to inform best practice standards in the evolving global environment.",
+      "intake_start_dates": [
+        {
+          "value": "Jan 2026"
+        },
+        {
+          "value": "Mar 2026"
+        },
+        {
+          "value": "May 2026"
+        },
+        {
+          "value": "Jul 2026"
+        },
+        {
+          "value": "Aug 2026"
+        },
+        {
+          "value": "Oct 2026"
+        }
+      ],
+      "fee_help_eligibility": "To assist with all or some of your tuition fees, FEE-HELP is available for eligible students. This government-supported loan scheme is designed to help eligible full-fee paying students pay their tuition fees.",
+      "course_duration": "24 months (based on 12 subjects)",
+      "entry_requirements": "Applicants must have a completed Australian Bachelor's degree or higher qualification, or overseas equivalent. Currently, this course is only accepting applications from Australian citizens or permanent residents. English proficiency requirement for local applicants with international qualifications: Academic IELTS: 6.5 overall with a writing score of 6.0; or TOEFL: paper-based: 550-583 overall with TWE of 4.5, internet-based: 79-93 overall with a writing score of 21; or AE5: Pass; or PTE: 58-64 with a writing score of 50; or C1A/C2P: 176-184 with a writing score of 169.",
+      "recognition_of_prior_learning": "Your previous studies or employment experience can be acknowledged as credit towards your online postgraduate studies, provided that it meets the relevant course requirements. UTS doesn't determine recognition of prior learning until an offer of enrolment is accepted.",
+      "core_subjects_modules": [
+        {
+          "value": "Foundations in Public Health + Indigenous Public Health"
+        },
+        {
+          "value": "Global Health Systems + Planetary Health"
+        },
+        {
+          "value": "Social Perspectives in Public Health"
+        },
+        {
+          "value": "Fundamentals of Epidemiology"
+        },
+        {
+          "value": "Non-communicable Disease"
+        },
+        {
+          "value": "Communicable Disease"
+        },
+        {
+          "value": "Fundamentals of Biostatistics + Fundamentals of Qualitative Research"
+        },
+        {
+          "value": "Health Promotion"
+        }
+      ],
+      "outcomes": "Graduates can pursue roles such as Public Health Officer, Health Policy Advisor, Epidemiologist, Health Program Manager, Community Health Coordinator, Global Health Specialist, Health Promotion Officer, NGO Manager, Public Health Researcher, Infection Preventionist, Disease Preparedness Researcher, and Medical Writer. Graduates are prepared to address complex public health challenges, improve population health outcomes, and lead in diverse health environments."
+    },
+    {
+      "course_name": "Graduate Certificate in Public Health",
+      "provider_name": "Flinders University",
+      "subject_area": "Public Health",
+      "course_description": "Tackle health inequality and drive change in real-world public health practice. Study the Graduate Certificate in Public Health at Flinders to gain practical skills and foundational knowledge in public health. Designed for newcomers and health professionals seeking to upskill, the course covers equity, prevention, health promotion, epidemiology, and social determinants of health, and provides a pathway to the Master of Public Health. It is designed for busy professionals and is 100% online, with flexible delivery and no set class times.",
+      "intake_start_dates": [
+        {
+          "value": "March (Semester 1 teaching commences 2 March 2026)"
+        },
+        {
+          "value": "July"
+        }
+      ],
+      "tuition_fees": "Domestic 2026: $4,767 (CSP - Commonwealth Supported Place); Domestic 2026: $15,100 (FFP - Full-Fee-Paying). This course is not available to international students. Government subsidies enable Flinders to offer Domestic applicants a reduction of up to 80% off full course fees through Commonwealth Supported Places.",
+      "fee_help_eligibility": "Yes, government-supported HECS-HELP and FEE-HELP loan area available to help eligible students pay for their higher education tuition fees. HECS-HELP is for students enrolled in a Commonwealth Supported Place (CSP) to cover their student contribution amount. FEE-HELP is for eligible domestic fee-paying students to cover their full tuition fees.",
+      "course_duration": "0.5 years full-time (or part-time equivalent)",
+      "entry_requirements": "Applicants must normally hold a degree or equivalent qualification from an approved tertiary institution and have their candidature approved by the Dean (Education). Applicants who do not hold a bachelor's degree but have relevant professional experience in the sector should provide employment experience information in their application. Also summarized as: Bachelor's degree or equivalent or 2+ years professional work experience.",
+      "core_subjects_modules": [
+        {
+          "value": "Select two topics from: Qualitative Research Methods, Social Determinants of Health and Wellbeing, First Nations Health and Wellbeing, Health Promotion in Public Health, Epidemiological Research Methods, Biostatistics"
+        },
+        {
+          "value": "Select a further two topics from: Digital Health for Practitioners, Qualitative Research Methods, Social Determinants of Health and Wellbeing, First Nations Health and Wellbeing, Health Promotion in Public Health, Leadership and the New Public Health, Professional Practice in Public Health, Economic Evidence for Health Care Decision Making, Critical Perspectives on Global Health and Development, Epidemiological Research Methods, Biostatistics, Advanced Biostatistics, AI for Medicine and Public Health, Advanced Epidemiology, Evaluation in Public Health and Program Planning"
+        }
+      ],
+      "outcomes": "Graduates are well-positioned for careers in public health policy, management, and practice. Potential occupations include: Public Health Officer (expected salary $90,000), Health Promotion Officer ($85,000), Policy and Research Assistant ($80,000), and Health Information Officer ($78,000). Potential employers include State and local government health departments, public hospitals, community health services, research organisations, NGOs (e.g., Cancer Council, Red Cross), and Primary Health Networks."
+    },
+    {
+      "course_name": "Master of Cybersecurity",
+      "provider_name": "La Trobe University",
+      "subject_area": "Information technology; Cybersecurity",
+      "course_description": "Get the ethical hacking and defence strategies you need for an in-demand career with La Trobe's Master of Cybersecurity. Build fundamental skills in system design, implementation, testing and documentation. Develop technical expertise in pen testing, blockchain and cyber forensics. Complement your cybersecurity expertise with transferable skills in entrepreneurship, professional practice and project management. By studying La Trobe's Master of Cybersecurity, you will: master ethical hacking and defence techniques to evaluate the security of network configurations and how to defend network-based threats; learn a procedural language that identifies and analyses common coding practices that avoid security vulnerabilities; explore the psychology of hacking and cybercrime, its legal and ethical frameworks and approaches to governance and risk management; supplement your skills with certifications through our partnership with Microsoft and get hands-on experience in our on-campus Cisco labs.",
+      "intake_start_dates": [
+        {
+          "value": "Semester 1 (March 2026)"
+        },
+        {
+          "value": "Semester 2 (July 2026)"
+        },
+        {
+          "value": "Summer (November 2026)"
+        }
+      ],
+      "tuition_fees": "Domestic students: $34,800 per 120 credit points (120 credit points represents full-time study for one year). Commonwealth Supported Places (CSP) may be available with an indicative CSP price of $10,270 per 120 credit points.",
+      "fee_help_eligibility": "If you are a domestic student in a full fee-paying place, you may be able to defer all or part of your tuition fees using a FEE-HELP loan from the Australian Government. You only start repaying once your income exceeds the compulsory repayment threshold.",
+      "course_duration": "2 years full-time or part-time equivalent",
+      "entry_requirements": "240 credit point pathway (2 years): Successful completion of an Australian bachelor degree (or equivalent) OR Completion of the Postgraduate Qualifying Program. 180 credit point pathway – Cognate Entry (18 months): Successful completion of an Australian bachelor degree (or equivalent) in computer science, information technology, or information systems.",
+      "recognition_of_prior_learning": "Credit for previous study (advanced standing) is the recognition of prior study or learning that can be counted towards a qualification. This can reduce the number of subjects required to complete your course. The amount of credit received depends on the level and relevance of your previous study and the number of subjects completed. Once you've enrolled in your course, you can apply for advanced standing by lodging an advanced standing application form.",
+      "core_subjects_modules": [
+        {
+          "value": "LTU0AIM Academic Integrity Module"
+        },
+        {
+          "value": "CSE5CRM Cyber Risk Management and Compliance"
+        },
+        {
+          "value": "CSE4004 Cyber Security Principles"
+        },
+        {
+          "value": "CSE4DBF Database Fundamentals"
+        },
+        {
+          "value": "CSE4IFU Information Technology Fundamentals"
+        },
+        {
+          "value": "CSE5010 Inside the Mind of a Hacker"
+        },
+        {
+          "value": "CSE4IP Introduction to Programming"
+        },
+        {
+          "value": "CSE4001 Network Engineering Fundamentals"
+        },
+        {
+          "value": "CSE5003 Professional Practices and Entrepreneurship in Information Technology"
+        },
+        {
+          "value": "CSE5CFN Computer Forensics"
+        },
+        {
+          "value": "CSE5CSG Cybersecurity Governance"
+        },
+        {
+          "value": "CSE5PEN Penetration Testing Principles"
+        },
+        {
+          "value": "CSE5PM Project Management"
+        }
+      ],
+      "outcomes": "Prepare for a rewarding career in the public or private sector, including technology, communications, education, finance, government, defence, healthcare, and energy and resources. Possible roles include: ethical hacker, cryptographer or cryptanalyst, security architect, cyber intelligence analyst, compliance assurance manager, cybersecurity consultant, cybersecurity policy adviser, cyber risk manager, software developer, and research analyst. Intended learning outcomes include applying advanced cross-disciplinary knowledge in cybersecurity threat, risk, control and mitigation, and synthesizing theories addressing the mindsets and motivations of cyber-criminals."
+    },
+    {
+      "course_name": "Master of Cyber Security",
+      "provider_name": "Deakin University",
+      "subject_area": "Information Technology / Cyber Security",
+      "course_description": "Deakin's Master of Cyber Security equips you with the specialised skills to investigate and combat cybercrime, preparing you for a successful career in cyber security anywhere in the world. Throughout the Master of Cyber Security, you will learn how to detect, analyse and confront cyber security challenges. You will focus on a range of studies and gain knowledge about system security and digital forensics, analytics, organisational security, and human aspects of cyber security. The course focuses on developing skills in programming and software development, information security, penetration testing, threat intelligence and vulnerability assessment.",
+      "intake_start_dates": [
+        {
+          "value": "Trimester 1: March 2026"
+        },
+        {
+          "value": "Trimester 2: July 2026"
+        },
+        {
+          "value": "Trimester 3: November 2026"
+        }
+      ],
+      "tuition_fees": "Domestic: Estimated tuition fee of $34,400 for 1 year full-time (based on 8 credit points).",
+      "fee_help_eligibility": "You may be eligible for a HELP loan – including FEE-HELP or HECS-HELP – depending on your course, type of fee place, and your citizenship or residency status. There is also a 10% Deakin alumni discount for postgraduate award courses.",
+      "course_duration": "2 years full-time or part-time equivalent. Duration may be reduced (to 1 or 1.5 years) depending on professional experience and previous qualifications.",
+      "entry_requirements": "16-credit point entry: Completion of a bachelor degree or higher in any discipline. 12-credit point entry: Completion of a bachelor degree or higher in a related discipline (e.g., IT); or a bachelor degree in any discipline plus at least two years' relevant work experience. 8-credit point entry: Completion of a graduate certificate/diploma or bachelor honours degree in a related discipline; or a bachelor degree in a related discipline plus at least two years' relevant work experience. English Language: IELTS overall score of 6.5 (no band less than 6.0) or bachelor degree from a recognised English-speaking country.",
+      "recognition_of_prior_learning": "The University aims to provide students with as much credit as possible for approved prior study or informal learning. Depending on professional experience and previous qualifications, students may be eligible for 4 or 8 credit points of RPL. Admission credit is considered on a case-by-case basis.",
+      "core_subjects_modules": [
+        {
+          "value": "DAI001 Academic Integrity and Respect at Deakin (0-credit-point compulsory)"
+        },
+        {
+          "value": "SIT771 Object-Oriented Development"
+        },
+        {
+          "value": "SIT772 Database Fundamentals"
+        },
+        {
+          "value": "SIT773 Software Requirements Analysis and Modelling"
+        },
+        {
+          "value": "SIT774 Web Technologies and Development"
+        },
+        {
+          "value": "SIT736 Identity, Access Management and Physical Security"
+        },
+        {
+          "value": "SIT719 Analytics for Security and Privacy"
+        },
+        {
+          "value": "SIT763 Cyber Security Management"
+        },
+        {
+          "value": "SIT716 Computer Networks and Security"
+        },
+        {
+          "value": "SIT735 Application and Communication Protocol Security"
+        },
+        {
+          "value": "SIT703 Computer Forensics and Investigations"
+        },
+        {
+          "value": "SIT704 Ethical Hacking"
+        },
+        {
+          "value": "SIT738 Secure Coding"
+        },
+        {
+          "value": "SIT753 Professional Practice in Information Technology"
+        },
+        {
+          "value": "SIT764 Team Project (A) - Project Management and Practices"
+        },
+        {
+          "value": "SIT782 Team Project (B) - Execution and Delivery"
+        },
+        {
+          "value": "1 level 7 SIT or MIS-coded elective unit"
+        }
+      ],
+      "outcomes": "Graduates may work as a business continuity or IT security engineer, cyber security specialist, cyber security manager, DevSecOps developer, information security auditor, infrastructure specialist, incident response analyst, operations support analyst, penetration tester, security analyst, security architect, security consultant, security operations centre (SOC) analyst, security operations manager, security system developer or programmer, or security system manager. Experience may lead to roles such as chief security officer."
+    },
+    {
+      "course_name": "Master of Cyber Security",
+      "provider_name": "Charles Sturt University (in partnership with IT Masters)",
+      "subject_area": "Information Technology / Cyber Security",
+      "course_description": "If you're an IT or computing professional, the Master of Cyber Security from Charles Sturt University will give you advanced cyber security skills and knowledge, allowing you to move into specialised cyber security roles. This cyber security course has a strong technical focus and you'll cover contemporary topics in cyber security, such as digital forensics, hacking countermeasures and cyberwarfare and terrorism.",
+      "intake_start_dates": [
+        {
+          "value": "Session 1: March 1, 2026"
+        },
+        {
+          "value": "Term 2: May 24, 2026"
+        },
+        {
+          "value": "Session 2: July 12, 2026"
+        },
+        {
+          "value": "Term 3: August 30, 2026"
+        },
+        {
+          "value": "Session 3: November 15, 2026"
+        }
+      ],
+      "tuition_fees": "Domestic online fee paying postgraduate: Full-time - $33,680.00 pa; Part-time - $16,840.00 pa. Commonwealth supported place (CSP): $TBA. International Student Fees: $TBA. Alumni receive a 10% discount on tuition fees.",
+      "fee_help_eligibility": "Eligible students still have the option to defer their fees through FEE-HELP. Payment options include getting help to cover the cost of your tuition fees via a FEE-HELP loan through the Australian Government (if eligible).",
+      "course_duration": "Minimum time - 1.5 year(s); Maximum time - 3 year(s)",
+      "entry_requirements": "Bachelor degree in a related area from a recognised tertiary institution OR Graduate Certificate in a related area. Standard English Language Proficiency (ELP) requirements apply.",
+      "recognition_of_prior_learning": "You may be eligible for up to six subjects credit for prior study if you've completed a recognised postgraduate qualification or relevant Industry certifications within the last 10 years. If you've completed relevant tertiary study, or work experience related to your course, you could receive credit towards your degree.",
+      "core_subjects_modules": [
+        {
+          "value": "Core subjects (72 Credit Points): ITC506 Applied IT Ethics"
+        },
+        {
+          "value": "ITC590 Cyber Threat Intelligence"
+        },
+        {
+          "value": "ITC595 Information Security"
+        },
+        {
+          "value": "ITC597 Digital Forensics"
+        },
+        {
+          "value": "ITE514 Professional Systems Security"
+        },
+        {
+          "value": "ITE516 Hacking Countermeasures"
+        },
+        {
+          "value": "ITE534 Cyberwarfare and Terrorism"
+        },
+        {
+          "value": "ITI581 Cyber Security Fundamentals"
+        },
+        {
+          "value": "ITC571 Emerging Technologies and Innovation (Capstone subject)"
+        },
+        {
+          "value": "Restricted electives (24 Credit Points): Group A (Select one): ITC561 Cloud Computing, ITC568 Cloud Privacy and Security, ITC593 Network Security and Cryptography, ITC596 IT Risk Management"
+        },
+        {
+          "value": "Group B (Select two): ITE512 Incident Response, ITE513 Forensic Investigation, ITE531 Architecting Cloud Solutions, ITE533 Cyber Security Management, ITE535 Pen Testing, MGI521 Professional Communications"
+        }
+      ],
+      "outcomes": "Cyber security jobs are incredibly varied. Work in law enforcement to investigate and analyse key evidence to address and reduce crimes associated with cyber security. Alternatively, design and deliver cyber security management systems while building mobility and accessibility through secure cloud-based technology for your organisation. Use emerging technologies and information to enhance network security and secure the operations of your business. Or work as a pivotal team member in countering cyber warfare and terrorism. Our grads earn a median salary of $118,500."
+    },
+    {
+      "course_name": "Master of Human Resource Management",
+      "provider_name": "Monash Online (Monash University)",
+      "subject_area": "Business / Human Resource Management",
+      "course_description": "The Master of Human Resource Management equips you to shape workplace culture, help create sustainable workforces through effective management practices, and navigate complex ethical challenges with confidence. This forward-thinking degree focuses on sustaining workforces through human resource and other management practices. It is a future-focused qualification that addresses the core functions of HR management and provides an evidence-based exploration of HRs updated role in the new normal and future of work.",
+      "intake_start_dates": [
+        {
+          "value": "January"
+        },
+        {
+          "value": "March"
+        },
+        {
+          "value": "May"
+        },
+        {
+          "value": "July"
+        },
+        {
+          "value": "August"
+        },
+        {
+          "value": "October"
+        }
+      ],
+      "tuition_fees": "Est. $4,750.00 per unit. For the full 12-unit course, the estimated total is $57,000.00. These are the estimated domestic fees. Unit fees are subject to change annually. (Please reference the 2026 fees). Monash alumni may receive 10% off for courses commencing in 2025 and 2026.",
+      "fee_help_eligibility": "Eligible students may apply for FEE-HELP.",
+      "course_duration": "2 years part-time (Entry level 1 - 72 points) or 1.4 years part-time (Entry level 2 - 48 points)",
+      "entry_requirements": "Entry level 1 (72 points): An Australian bachelors degree, or an equivalent qualification, with at least a credit (60%) average, or an equivalent Grade Point Average, plus two years relevant work experience. Applicants must provide a detailed curriculum vitae. Entry level 2 (48 points): A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average. English Requirements: Applicants must meet the English language requirements.",
+      "core_subjects_modules": [
+        {
+          "value": "Part A. Advanced preparatory studies: Diversity and inclusion"
+        },
+        {
+          "value": "People and change"
+        },
+        {
+          "value": "Ethics and legal issues in human resource management"
+        },
+        {
+          "value": "Sustainability and performance in human resource management"
+        },
+        {
+          "value": "Part B. Core studies: Engagement and talent management"
+        },
+        {
+          "value": "Mental health and wellbeing in the workplace"
+        },
+        {
+          "value": "Workforce and employment analytics"
+        },
+        {
+          "value": "Part C (i) Application studies: Professional development"
+        },
+        {
+          "value": "Part C (ii) Application studies (complete one or both): Industry challenge"
+        },
+        {
+          "value": "Global challenge"
+        },
+        {
+          "value": "Electives: You must complete either two or three elective units, depending on whether one or both industry project units listed above were chosen"
+        }
+      ],
+      "outcomes": "HR Advisor: $95,000 typical salary. Handles recruitment, staff issues, performance, and training. HR Consultant: $103,000 typical salary. Provides advice to management, coordinates workplace health and safety, and leads wellbeing initiatives. Organisational Change Manager: $140,000 typical salary. Implements changes to processes, systems, and technology; conducts performance assessments. Human Resources Manager: $130,000 typical salary. Oversees recruitment, employee relations, and organizational development."
+    },
+    {
+      "course_name": "Master of Human Resource Management (with specialisations)",
+      "provider_name": "Charles Sturt University",
+      "subject_area": "Human Resource Management",
+      "course_description": "Shift your thinking and add value to your organisation with the Master of Human Resource Management (with specialisations) from Charles Sturt University. If you're an HR practitioner wishing to accelerate your career in a highly competitive marketplace, this online degree will allow you to sharpen your strategic, analytical and practice-based skills. This course provides the breadth and depth of HR knowledge that contemporary professionals require, presenting the latest in HR management best practice to deliver benefits for individuals and organisations. Gain skills to progress your career and become an asset to your workplace as you apply your advanced knowledge and capabilities.",
+      "intake_start_dates": [
+        {
+          "value": "Session 1: March 1, 2026"
+        },
+        {
+          "value": "Session 2: July 12, 2026"
+        }
+      ],
+      "tuition_fees": "Domestic online fee paying postgraduate: Full-time - $33,680.00 pa; Part-time - $16,840.00 pa. International fees: TBA (The page notes Fees are indicative only, based on full-time study).",
+      "fee_help_eligibility": "Eligible students have the option to defer their fees through FEE-HELP. Payment options include getting help to cover the cost of tuition fees via a FEE-HELP loan through the Australian Government (if eligible). For Commonwealth supported places, eligible students may defer their student contribution via a HECS-HELP loan.",
+      "course_duration": "Minimum time - 1.5 year(s); Maximum time - 3 year(s)",
+      "entry_requirements": "An undergraduate degree from a recognised Australian tertiary institution (or equivalent). Applicants without a tertiary qualification may be admitted to the Graduate Certificate in Human Resource Management on the basis of prior post secondary study, professional attainment and/or work experience. Standard English Language Proficiency (ELP) requirements apply.",
+      "recognition_of_prior_learning": "If you've completed relevant tertiary study, or work experience related to your course, you could receive credit towards your degree. Which would mean completing your qualification quicker.",
+      "core_subjects_modules": [
+        {
+          "value": "HRM502: Human Resource Management"
+        },
+        {
+          "value": "HRM528: Strategic Human Resource Management"
+        },
+        {
+          "value": "HRM550: Evaluating Human Resources"
+        },
+        {
+          "value": "INR517: Legal Frameworks of Employment Relations"
+        },
+        {
+          "value": "HRM514: Cross Cultural and International HRM"
+        },
+        {
+          "value": "HRM534: Contemporary Issues in HRM"
+        },
+        {
+          "value": "HRM563: Organisational Development and Workforce Capabilities"
+        },
+        {
+          "value": "MGT540: Facilitating Change"
+        }
+      ],
+      "outcomes": "Our graduates have moved into positions as diverse as human resource director, industrial relations manager, change manager, workforce consultant and organisational development manager. Your degree also prepares you to rise to the next level of management by helping you develop knowledge and skills to identify and solve complex problems, pursue a strategic approach to HR management practice, and implement effective solutions to achieve business goals. The 2025/26 Good Universities Guide ranks the university 5-stars for business postgraduate salaries with a median graduate salary of $127,100."
+    },
+    {
+      "course_name": "Master of Human Resource Management",
+      "provider_name": "Deakin University",
+      "subject_area": "Business / Human Resource Management",
+      "course_description": "Deakin's Master of Human Resource Management will help you develop up-to-date skills to implement contemporary HR strategies that are highly impactful at both the individual and organisational level. Whether you're working directly in human resource management (HRM) or in general management with responsibilities in human resources development and management, extend your skills and knowledge with this formal qualification. Accredited by the Australian Human Resources Institute, this specialised course is designed to provide enhanced qualifications for graduates in business, government and industry. Undertake units that are highly relevant to industry, including employment relations, human resource strategy, leadership and management development.",
+      "intake_start_dates": [
+        {
+          "value": "Trimester 1 - March"
+        },
+        {
+          "value": "Trimester 2 - July"
+        }
+      ],
+      "tuition_fees": "Domestic: $34,200 for 1 yr full-time - Full-fee paying place. The 'Estimated tuition fee' is provided as a guide only and represents the typical first-year tuition fees for students enrolled in this course.",
+      "fee_help_eligibility": "You may be eligible for a HELP loan – including FEE-HELP or HECS-HELP – depending on your course, type of fee place, and your citizenship or residency status.",
+      "course_duration": "1.5 years. Can be reduced (fast tracked) to 1 year duration based on previous qualifications and professional experience.",
+      "entry_requirements": "To be considered for admission you will need to meet at least one of the following criteria: Completion of a bachelor degree or higher in any discipline and at least two years' relevant work experience (or part-time equivalent); OR completion of a graduate certificate or higher in a related discipline and at least two years' relevant work experience (or part-time equivalent). Relevant work experience includes at least two years in a managerial role with people management responsibilities or in a human resource professional role. English language proficiency: IELTS overall score of 6.5 (no band score less than 6.0) or equivalent.",
+      "recognition_of_prior_learning": "The University aims to provide students with as much credit as possible for approved prior study or informal learning. Students are required to complete a minimum of one-third of the course at Deakin (4 credit points). Recognition of prior learning may be granted to students who have completed appropriate postgraduate studies in a related discipline. Recognition of prior learning cannot be granted on the basis of relevant work experience alone as this is a requirement of entry. Applicants who have completed the AHRI Practising Certification Program (2016-current) may be eligible for up to 4 credit points of RPL.",
+      "core_subjects_modules": [
+        {
+          "value": "DAI001 Academic Integrity and Respect at Deakin (0-credit-point compulsory unit)"
+        },
+        {
+          "value": "MMH701 Human Resource Strategy"
+        },
+        {
+          "value": "MMH702 Strategic Staffing"
+        },
+        {
+          "value": "MMH703 Workforce Capability"
+        },
+        {
+          "value": "MMH707 Managed Change"
+        },
+        {
+          "value": "MMH709 Workplace Relations"
+        },
+        {
+          "value": "MBA702 Financial Decision Making"
+        },
+        {
+          "value": "MIS714 People Analytics"
+        },
+        {
+          "value": "MMH711 The New World of Work (Capstone)"
+        }
+      ],
+      "outcomes": "Graduates are equipped for advanced and strategic roles including: human resource manager, People and culture director, human resource business partner, talent acquisition manager, learning and development manager, diversity and inclusion manager, employee relations specialist, human resource data analyst, and organisational development consultant."
+    },
+    {
+      "course_name": "Master of Business (Marketing)",
+      "provider_name": "Deakin University",
+      "subject_area": "Business and Marketing",
+      "course_description": "Gain in-demand, contemporary marketing knowledge and develop the sharp communication and critical thinking skills that employers are looking for. Experience hands-on practical learning across martech, digital and social media marketing, marketing analytics and sustainability for business, allowing you to develop contemporary marketing knowledge that will set you apart in the industry. Learn how to develop, implement and evaluate effective marketing strategies and put your skills into practice with industry relevant learning opportunities. Throughout your degree, you will gain practical experience through case studies and client-based projects and graduate with the confidence and skills to thrive.",
+      "intake_start_dates": [
+        {
+          "value": "Trimester 1 - March"
+        },
+        {
+          "value": "Trimester 2 - July"
+        },
+        {
+          "value": "Trimester 3 - November"
+        }
+      ],
+      "tuition_fees": "Domestic: Estimated tuition fee - full-fee paying place: $34,200 for 1 yr full-time.",
+      "fee_help_eligibility": "You may be eligible for a HELP loan – including FEE-HELP or HECS-HELP – depending on your course, type of fee place, and your citizenship or residency status.",
+      "course_duration": "2 years, 1.5 years, or 1 year duration depending on previous qualifications and professional experience",
+      "entry_requirements": "1 year (8 credit points): Bachelor honours (AQF8) degree in a related discipline; bachelor degree in a related discipline, plus two years relevant work experience; graduate certificate or graduate diploma in a related discipline; or evidence of academic capability judged to be equivalent. 1.5 years (12 credit points): Bachelor degree or higher in a related discipline; bachelor degree in any discipline, plus two years relevant work experience; or evidence of academic capability judged to be equivalent. 2 years (16 credit points): Bachelor degree or other qualification at a higher AQF level in any discipline; or evidence of academic capability judged to be equivalent. English language proficiency: IELTS overall score of 6.5 (with no band score less than 6.0) or equivalent; or a bachelor degree from a recognised English-speaking country.",
+      "recognition_of_prior_learning": "The University aims to provide students with as much credit as possible for approved prior study or informal learning. You can refer to the recognition of prior learning (RPL) system which outlines the credit that may be granted towards a Deakin University degree and how to apply for credit.",
+      "core_subjects_modules": [
+        {
+          "value": "DAI001 Academic Integrity and Respect at Deakin (0-credit-point compulsory unit)"
+        },
+        {
+          "value": "MAA702 Accounts, Accountability and Governance"
+        },
+        {
+          "value": "MIS770 Foundation Skills in Data Analysis"
+        },
+        {
+          "value": "MPP710 Environmental Sustainability for Business"
+        },
+        {
+          "value": "MIS776 Design Thinking for Innovation"
+        },
+        {
+          "value": "MMT732 or MMK732 Marketing Management"
+        },
+        {
+          "value": "MMK713 Consumer Behaviour"
+        },
+        {
+          "value": "MMK710 Fundamentals of MarTech"
+        },
+        {
+          "value": "MMK737 Digital and Social Media Marketing"
+        },
+        {
+          "value": "MIS784 Marketing Analytics"
+        },
+        {
+          "value": "MMK701 Research Design and Analysis"
+        },
+        {
+          "value": "MMK733 Applied Strategic Marketing Capstone"
+        },
+        {
+          "value": "Students also complete 1 credit point from: MMK739 Strategic Brand Management or MMK751 Services Marketing"
+        }
+      ],
+      "outcomes": "Graduates will be qualified to work across traditional marketing, non-traditional marketing, or agency work. Potential roles include: brand manager, content developer and manager, digital marketing manager, director of marketing, marketing manager, marketing officer, market research manager, marketing specialist, social media manager, and marketing analyst."
+    }
+  ]
+}

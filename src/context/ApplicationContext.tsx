@@ -1,459 +1,649 @@
 import {
   createContext,
-  useEffect,
+  useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
-import { useAuth } from "./AuthContext";
 import {
-  clearStoredDocuments,
-  deleteStoredDocument,
-  type UploadedDocument,
-} from "../lib/documentStorage";
-import { createApplicationNumber } from "../lib/applicationProgress";
-import { hasStartedApplication } from "../lib/applicationProgress";
-import { getNextIncompleteSection as getNextIncompleteApplicationSection } from "../lib/applicationNextStep";
+  clearLocalApplications,
+  createApplicationDraft,
+  findLocalApplicationById,
+  findLocalOpenApplicationForCourse,
+  loadLocalActiveApplicationId,
+  loadLocalApplications,
+  saveLocalActiveApplicationId,
+  summarizeApplication,
+  upsertLocalApplication,
+  type ApplicationSummary,
+} from "../lib/applicationRecords";
 import {
-  clearLocalApplicationData,
-  initialApplicationData,
-  loadLocalApplicationData,
-  mergeRemoteApplicationWithLocalDocuments,
-  type ApplicationData,
-  type ContactDetails,
-  type EmploymentExperience,
-  type LanguageTest,
-  type PersonalDetails,
-  type ProfessionalAccreditation,
-  type SecondaryQualification,
-  type TertiaryQualification,
-  saveLocalApplicationData,
-} from "../lib/applicationData";
+  getNextIncompleteSection as getNextIncompleteSectionForApplication,
+} from "../lib/applicationNextStep";
 import {
   deleteRemoteApplication,
-  loadRemoteApplication,
+  listRemoteApplications,
+  loadRemoteApplicationById,
   saveRemoteApplication,
   submitRemoteApplication,
 } from "../lib/applicationRemoteStore";
+import {
+  clearLocalApplicantProfile,
+  loadApplicantProfile,
+  type StoredApplicantProfile,
+} from "../lib/applicantProfileStore";
+import type {
+  ApplicationData,
+  ContactDetails,
+  EmploymentExperience,
+  LanguageTest,
+  PersonalDetails,
+  ProfessionalAccreditation,
+  SecondaryQualification,
+  SelectedCourse,
+  TertiaryQualification,
+} from "../lib/applicationData";
+import { initialApplicationData, mergeStoredApplicationData } from "../lib/applicationData";
+import { useAuth } from "./AuthContext";
 
 interface ApplicationContextType {
+  activeApplicationId: string | null;
+  applicantProfile: StoredApplicantProfile | null;
+  applications: ApplicationSummary[];
   data: ApplicationData;
-  ensureRemoteRecordId: () => Promise<string | undefined>;
-  updatePersonalDetails: (details: Partial<PersonalDetails>) => void;
-  updateContactDetails: (details: Partial<ContactDetails>) => void;
-  selectCourse: (
-    course: NonNullable<ApplicationData["applicationMeta"]["selectedCourse"]>,
-  ) => void;
-  addTertiaryQualification: (qualification: TertiaryQualification) => void;
-  updateTertiaryQualification: (
-    id: string,
-    qualification: TertiaryQualification,
-  ) => void;
-  removeTertiaryQualification: (id: string) => void;
-  addEmploymentExperience: (experience: EmploymentExperience) => void;
+  beginCourseApplication: (course: SelectedCourse) => Promise<ApplicationData>;
+  ensureRemoteRecordId: () => Promise<string>;
+  getNextIncompleteSection: (application?: ApplicationData) => string | null;
+  isHydrating: boolean;
+  markApplicationSubmitted: () => Promise<void>;
+  openApplication: (applicationId: string) => Promise<void>;
+  refreshApplications: () => Promise<void>;
+  resetApplication: () => Promise<void>;
+  selectCourse: (course: SelectedCourse) => Promise<ApplicationData>;
+  updateContactDetails: (updates: Partial<ContactDetails>) => Promise<void>;
+  updatePersonalDetails: (updates: Partial<PersonalDetails>) => Promise<void>;
+  uploadCV: (document: NonNullable<ApplicationData["cvDocument"]>) => Promise<void>;
+  removeCV: () => Promise<void>;
+  addEmploymentExperience: (experience: EmploymentExperience) => Promise<void>;
   updateEmploymentExperience: (
     id: string,
     experience: EmploymentExperience,
-  ) => void;
-  removeEmploymentExperience: (id: string) => void;
+  ) => Promise<void>;
+  removeEmploymentExperience: (id: string) => Promise<void>;
+  addLanguageTest: (test: LanguageTest) => Promise<void>;
+  updateLanguageTest: (id: string, test: LanguageTest) => Promise<void>;
+  removeLanguageTest: (id: string) => Promise<void>;
   addProfessionalAccreditation: (
     accreditation: ProfessionalAccreditation,
-  ) => void;
+  ) => Promise<void>;
   updateProfessionalAccreditation: (
     id: string,
     accreditation: ProfessionalAccreditation,
-  ) => void;
-  removeProfessionalAccreditation: (id: string) => void;
-  addSecondaryQualification: (qualification: SecondaryQualification) => void;
+  ) => Promise<void>;
+  removeProfessionalAccreditation: (id: string) => Promise<void>;
+  addSecondaryQualification: (
+    qualification: SecondaryQualification,
+  ) => Promise<void>;
   updateSecondaryQualification: (
     id: string,
     qualification: SecondaryQualification,
-  ) => void;
-  removeSecondaryQualification: (id: string) => void;
-  addLanguageTest: (test: LanguageTest) => void;
-  updateLanguageTest: (id: string, test: LanguageTest) => void;
-  removeLanguageTest: (id: string) => void;
-  uploadCV: (document: UploadedDocument) => void;
-  removeCV: () => void;
-  markApplicationSubmitted: () => Promise<void>;
-  resetApplication: () => void;
-  getNextIncompleteSection: () => string | null;
+  ) => Promise<void>;
+  removeSecondaryQualification: (id: string) => Promise<void>;
+  addTertiaryQualification: (qualification: TertiaryQualification) => Promise<void>;
+  updateTertiaryQualification: (
+    id: string,
+    qualification: TertiaryQualification,
+  ) => Promise<void>;
+  removeTertiaryQualification: (id: string) => Promise<void>;
 }
 
 const ApplicationContext = createContext<ApplicationContextType | undefined>(
   undefined,
 );
 
+function replaceItemById<T extends { id: string }>(
+  items: T[],
+  id: string,
+  nextItem: T,
+) {
+  return items.map((item) => (item.id === id ? nextItem : item));
+}
+
 export function ApplicationProvider({ children }: { children: ReactNode }) {
-  const { isBypassedInDev, isConfigured, session } = useAuth();
-  const [data, setData] = useState<ApplicationData>(loadLocalApplicationData);
-  const [hasHydratedRemote, setHasHydratedRemote] = useState(
-    !(session && isConfigured && !isBypassedInDev),
+  const {
+    isAuthorizedCompanyUser,
+    isBypassedInDev,
+    isConfigured,
+    session,
+  } = useAuth();
+  const [data, setData] = useState<ApplicationData>(initialApplicationData);
+  const [applications, setApplications] = useState<ApplicationSummary[]>([]);
+  const [activeApplicationId, setActiveApplicationId] = useState<string | null>(
+    null,
   );
-  const saveSequenceRef = useRef(0);
+  const [applicantProfile, setApplicantProfile] =
+    useState<StoredApplicantProfile | null>(null);
+  const [isHydrating, setIsHydrating] = useState(true);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    saveLocalApplicationData(data);
-  }, [data]);
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-  useEffect(() => {
-    const canUseRemote = Boolean(session && isConfigured && !isBypassedInDev);
+  const upsertSummary = useCallback((application: ApplicationData) => {
+    const summary = summarizeApplication(application);
 
-    if (!canUseRemote || !session) {
-      setHasHydratedRemote(true);
+    if (!summary) {
       return;
     }
 
-    let isCancelled = false;
+    setApplications((previous) => {
+      const next = previous.filter((item) => item.id !== summary.id);
+      return [summary, ...next].sort((left, right) =>
+        right.updatedAt.localeCompare(left.updatedAt),
+      );
+    });
+  }, []);
 
-    const hydrate = async () => {
-      setHasHydratedRemote(false);
-      const localData = loadLocalApplicationData();
+  const persistApplication = useCallback(
+    async (
+      nextData: ApplicationData,
+      options?: { forceCreate?: boolean; keepActive?: boolean },
+    ) => {
+      const mergedData = mergeStoredApplicationData(nextData);
+      let persistedData = mergedData;
 
-      try {
-        const remoteData = await loadRemoteApplication(session);
-
-        if (isCancelled) {
-          return;
-        }
-
-        if (remoteData) {
-          const mergedData = mergeRemoteApplicationWithLocalDocuments(
-            localData,
-            remoteData,
-          );
-          setData(mergedData);
-          saveLocalApplicationData(mergedData);
-          setHasHydratedRemote(true);
-          return;
-        }
-
-        if (hasStartedApplication(localData)) {
-          const saveResult = await saveRemoteApplication(session, localData);
-
-          if (isCancelled) {
-            return;
-          }
-
-          if (
-            saveResult &&
-            (localData.applicationMeta.recordId !== saveResult.applicationId ||
-              (localData.applicationMeta.applicantProfileId ?? null) !==
-                saveResult.applicantProfileId)
-          ) {
-            const nextData = {
-              ...localData,
-              applicationMeta: {
-                ...localData.applicationMeta,
-                recordId: saveResult.applicationId,
-                applicantProfileId: saveResult.applicantProfileId ?? undefined,
-              },
-            };
-            setData(nextData);
-            saveLocalApplicationData(nextData);
-          }
-        }
-      } catch {
-        // Keep local draft state active if remote hydration fails.
-      } finally {
-        if (!isCancelled) {
-          setHasHydratedRemote(true);
-        }
-      }
-    };
-
-    void hydrate();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [isBypassedInDev, isConfigured, session]);
-
-  useEffect(() => {
-    const canUseRemote = Boolean(session && isConfigured && !isBypassedInDev);
-
-    if (!canUseRemote || !session || !hasHydratedRemote) {
-      return;
-    }
-
-    const saveSequence = ++saveSequenceRef.current;
-    const timeoutId = window.setTimeout(() => {
-      void saveRemoteApplication(session, data)
-        .then((saveResult) => {
-          if (
-            !saveResult ||
-            (data.applicationMeta.recordId === saveResult.applicationId &&
-              (data.applicationMeta.applicantProfileId ?? null) ===
-                saveResult.applicantProfileId) ||
-            saveSequence !== saveSequenceRef.current
-          ) {
-            return;
-          }
-
-          setData((previous) => ({
-            ...previous,
-            applicationMeta: {
-              ...previous.applicationMeta,
-              recordId: saveResult.applicationId,
-              applicantProfileId: saveResult.applicantProfileId ?? undefined,
-            },
-          }));
-        })
-        .catch(() => {
-          // Keep local draft state active if remote save fails.
-        });
-    }, 500);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [data, hasHydratedRemote, isBypassedInDev, isConfigured, session]);
-
-  const value = useMemo<ApplicationContextType>(
-    () => ({
-      data,
-      ensureRemoteRecordId: async () => {
-        if (!session || !isConfigured || isBypassedInDev) {
-          return undefined;
-        }
-
-        if (data.applicationMeta.recordId) {
-          return data.applicationMeta.recordId;
-        }
-
-        const saveResult = await saveRemoteApplication(session, data, {
-          forceCreate: true,
+      if (session && isAuthorizedCompanyUser && isConfigured) {
+        const saveResult = await saveRemoteApplication(session, mergedData, {
+          applicantProfileId:
+            mergedData.applicationMeta.applicantProfileId ??
+            applicantProfile?.id ??
+            null,
+          forceCreate: options?.forceCreate,
         });
 
         if (saveResult) {
-          setData((previous) => ({
-            ...previous,
+          persistedData = mergeStoredApplicationData({
+            ...mergedData,
             applicationMeta: {
-              ...previous.applicationMeta,
-              recordId: saveResult.applicationId,
+              ...mergedData.applicationMeta,
               applicantProfileId:
-                saveResult.applicantProfileId ?? undefined,
+                saveResult.applicantProfileId ??
+                mergedData.applicationMeta.applicantProfileId,
+              applicationNumber:
+                saveResult.applicationNumber ??
+                mergedData.applicationMeta.applicationNumber,
+              recordId: saveResult.applicationId,
+              status: saveResult.submittedAt ? "submitted" : "draft",
+              submittedAt:
+                saveResult.submittedAt ?? mergedData.applicationMeta.submittedAt,
+              updatedAt: saveResult.updatedAt,
             },
-          }));
+          });
         }
-
-        return saveResult?.applicationId ?? undefined;
-      },
-      updatePersonalDetails: (details) => {
-        setData((previous) => ({
-          ...previous,
-          personalDetails: { ...previous.personalDetails, ...details },
-        }));
-      },
-      updateContactDetails: (details) => {
-        setData((previous) => ({
-          ...previous,
-          contactDetails: { ...previous.contactDetails, ...details },
-        }));
-      },
-      selectCourse: (course) => {
-        setData((previous) => ({
-          ...previous,
+      } else {
+        persistedData = mergeStoredApplicationData({
+          ...mergedData,
           applicationMeta: {
-            ...previous.applicationMeta,
-            selectedCourse: course,
+            ...mergedData.applicationMeta,
+            applicantProfileId:
+              mergedData.applicationMeta.applicantProfileId ??
+              applicantProfile?.id,
           },
-        }));
-      },
-      addTertiaryQualification: (qualification) => {
-        setData((previous) => ({
-          ...previous,
-          tertiaryQualifications: [
-            ...previous.tertiaryQualifications,
-            qualification,
-          ],
-        }));
-      },
-      updateTertiaryQualification: (id, qualification) => {
-        setData((previous) => ({
-          ...previous,
-          tertiaryQualifications: previous.tertiaryQualifications.map((item) =>
-            item.id === id ? qualification : item,
-          ),
-        }));
-      },
-      removeTertiaryQualification: (id) => {
-        setData((previous) => {
-          const target = previous.tertiaryQualifications.find((item) => item.id === id);
-          void deleteStoredDocument(target?.transcriptDocument);
-          void deleteStoredDocument(target?.certificateDocument);
-
-          return {
-            ...previous,
-            tertiaryQualifications: previous.tertiaryQualifications.filter(
-              (item) => item.id !== id,
-            ),
-          };
         });
-      },
-      addEmploymentExperience: (experience) => {
-        setData((previous) => ({
-          ...previous,
-          employmentExperiences: [...previous.employmentExperiences, experience],
-        }));
-      },
-      updateEmploymentExperience: (id, experience) => {
-        setData((previous) => ({
-          ...previous,
-          employmentExperiences: previous.employmentExperiences.map((item) =>
-            item.id === id ? experience : item,
-          ),
-        }));
-      },
-      removeEmploymentExperience: (id) => {
-        setData((previous) => ({
-          ...previous,
-          employmentExperiences: previous.employmentExperiences.filter(
-            (item) => item.id !== id,
-          ),
-        }));
-      },
-      addProfessionalAccreditation: (accreditation) => {
-        setData((previous) => ({
-          ...previous,
-          professionalAccreditations: [
-            ...previous.professionalAccreditations,
-            accreditation,
-          ],
-        }));
-      },
-      updateProfessionalAccreditation: (id, accreditation) => {
-        setData((previous) => ({
-          ...previous,
-          professionalAccreditations: previous.professionalAccreditations.map(
-            (item) => (item.id === id ? accreditation : item),
-          ),
-        }));
-      },
-      removeProfessionalAccreditation: (id) => {
-        setData((previous) => {
-          const target = previous.professionalAccreditations.find(
-            (item) => item.id === id,
-          );
-          void deleteStoredDocument(target?.document);
+      }
 
-          return {
-            ...previous,
-            professionalAccreditations:
-              previous.professionalAccreditations.filter((item) => item.id !== id),
-          };
-        });
-      },
-      addSecondaryQualification: (qualification) => {
-        setData((previous) => ({
-          ...previous,
-          secondaryQualifications: [
-            ...previous.secondaryQualifications,
-            qualification,
-          ],
-        }));
-      },
-      updateSecondaryQualification: (id, qualification) => {
-        setData((previous) => ({
-          ...previous,
-          secondaryQualifications: previous.secondaryQualifications.map((item) =>
-            item.id === id ? qualification : item,
-          ),
-        }));
-      },
-      removeSecondaryQualification: (id) => {
-        setData((previous) => ({
-          ...previous,
-          secondaryQualifications: previous.secondaryQualifications.filter(
-            (item) => item.id !== id,
-          ),
-        }));
-      },
-      addLanguageTest: (test) => {
-        setData((previous) => ({
-          ...previous,
-          languageTests: [...previous.languageTests, test],
-        }));
-      },
-      updateLanguageTest: (id, test) => {
-        setData((previous) => ({
-          ...previous,
-          languageTests: previous.languageTests.map((item) =>
-            item.id === id ? test : item,
-          ),
-        }));
-      },
-      removeLanguageTest: (id) => {
-        setData((previous) => {
-          const target = previous.languageTests.find((item) => item.id === id);
-          void deleteStoredDocument(target?.document);
+      upsertLocalApplication(persistedData);
+      upsertSummary(persistedData);
+      setData(persistedData);
 
-          return {
-            ...previous,
-            languageTests: previous.languageTests.filter((item) => item.id !== id),
-          };
-        });
-      },
-      uploadCV: (document) => {
-        setData((previous) => ({
-          ...previous,
-          cvUploaded: true,
-          cvDocument: document,
-          cvFileName: document.name,
-        }));
-      },
-      removeCV: () => {
-        setData((previous) => ({
-          ...previous,
-          cvUploaded: false,
-          cvDocument: undefined,
-          cvFileName: undefined,
-        }));
-      },
-      markApplicationSubmitted: async () => {
-        if (session && isConfigured && !isBypassedInDev) {
-          const submission = await submitRemoteApplication(session, data);
+      const nextActiveId =
+        persistedData.applicationMeta.recordId ?? activeApplicationId;
 
-          setData((previous) => ({
-            ...previous,
-            applicationMeta: {
-              ...previous.applicationMeta,
-              recordId: submission.applicationId,
-              applicationNumber: submission.applicationNumber,
-              submittedAt: submission.submittedAt,
-            },
-          }));
+      if (!options?.keepActive && nextActiveId) {
+        setActiveApplicationId(nextActiveId);
+        saveLocalActiveApplicationId(nextActiveId);
+      }
+
+      return persistedData;
+    },
+    [
+      activeApplicationId,
+      applicantProfile?.id,
+      isAuthorizedCompanyUser,
+      isConfigured,
+      session,
+      upsertSummary,
+    ],
+  );
+
+  const loadApplicationState = useCallback(async () => {
+    setIsHydrating(true);
+
+    try {
+      const profile = await loadApplicantProfile(session ?? null);
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setApplicantProfile(profile);
+
+      if (session && isAuthorizedCompanyUser && isConfigured) {
+        const remoteApplications = await listRemoteApplications(session);
+
+        if (!isMountedRef.current) {
           return;
         }
 
-        setData((previous) => ({
-          ...previous,
-          applicationMeta: {
-            applicationNumber:
-              previous.applicationMeta.applicationNumber ?? createApplicationNumber(),
-            submittedAt: new Date().toISOString(),
-          },
-        }));
-      },
-      resetApplication: () => {
-        void clearStoredDocuments();
-        if (session && isConfigured && !isBypassedInDev && data.applicationMeta.recordId) {
-          void deleteRemoteApplication(session, data.applicationMeta.recordId).catch(
-            () => {
-              // Keep local reset behavior even if remote cleanup fails.
-            },
-          );
+        setApplications(remoteApplications);
+
+        const preferredId =
+          loadLocalActiveApplicationId() ??
+          remoteApplications.find((application) => application.status === "draft")
+            ?.id ??
+          remoteApplications[0]?.id ??
+          null;
+
+        if (!preferredId) {
+          setActiveApplicationId(null);
+          setData(initialApplicationData);
+          return;
         }
+
+        const remoteApplication =
+          (await loadRemoteApplicationById(session, preferredId)) ??
+          initialApplicationData;
+
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        setActiveApplicationId(preferredId);
+        saveLocalActiveApplicationId(preferredId);
+        setData(remoteApplication);
+        upsertLocalApplication(remoteApplication);
+        return;
+      }
+
+      const localApplications = loadLocalApplications();
+      const localSummaries = localApplications
+        .map((application) => summarizeApplication(application))
+        .filter((summary): summary is ApplicationSummary => Boolean(summary))
+        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+
+      setApplications(localSummaries);
+
+      const preferredId =
+        loadLocalActiveApplicationId() ??
+        localSummaries.find((application) => application.status === "draft")?.id ??
+        localSummaries[0]?.id ??
+        null;
+
+      if (!preferredId) {
+        setActiveApplicationId(null);
         setData(initialApplicationData);
-        clearLocalApplicationData();
+        return;
+      }
+
+      const localApplication =
+        findLocalApplicationById(preferredId) ?? initialApplicationData;
+      setActiveApplicationId(preferredId);
+      saveLocalActiveApplicationId(preferredId);
+      setData(localApplication);
+    } finally {
+      if (isMountedRef.current) {
+        setIsHydrating(false);
+      }
+    }
+  }, [isAuthorizedCompanyUser, isConfigured, session]);
+
+  useEffect(() => {
+    void loadApplicationState();
+  }, [loadApplicationState]);
+
+  const openApplication = useCallback(
+    async (applicationId: string) => {
+      if (session && isAuthorizedCompanyUser && isConfigured) {
+        const remoteApplication = await loadRemoteApplicationById(
+          session,
+          applicationId,
+        );
+
+        if (!remoteApplication) {
+          return;
+        }
+
+        setData(remoteApplication);
+        setActiveApplicationId(applicationId);
+        saveLocalActiveApplicationId(applicationId);
+        upsertLocalApplication(remoteApplication);
+        upsertSummary(remoteApplication);
+        return;
+      }
+
+      const localApplication = findLocalApplicationById(applicationId);
+
+      if (!localApplication) {
+        return;
+      }
+
+      setData(localApplication);
+      setActiveApplicationId(applicationId);
+      saveLocalActiveApplicationId(applicationId);
+      upsertSummary(localApplication);
+    },
+    [isAuthorizedCompanyUser, isConfigured, session, upsertSummary],
+  );
+
+  const refreshApplications = useCallback(async () => {
+    await loadApplicationState();
+  }, [loadApplicationState]);
+
+  const beginCourseApplication = useCallback(
+    async (course: SelectedCourse) => {
+      const existingApplication = session && isAuthorizedCompanyUser && isConfigured
+        ? applications.find(
+            (application) =>
+              application.course.code === course.code &&
+              application.status === "draft",
+          )
+        : summarizeApplication(
+            findLocalOpenApplicationForCourse(course.code) ?? initialApplicationData,
+          );
+
+      if (existingApplication?.id) {
+        await openApplication(existingApplication.id);
+        const reopenedApplication =
+          (session && isAuthorizedCompanyUser && isConfigured
+            ? await loadRemoteApplicationById(session, existingApplication.id)
+            : findLocalApplicationById(existingApplication.id)) ?? data;
+        return reopenedApplication;
+      }
+
+      const draft = createApplicationDraft(
+        course,
+        applicantProfile?.id ?? undefined,
+        applicantProfile,
+      );
+
+      const persisted = await persistApplication(draft, { forceCreate: true });
+      return persisted;
+    },
+    [
+      applicantProfile?.id,
+      applications,
+      data,
+      isAuthorizedCompanyUser,
+      isConfigured,
+      openApplication,
+      persistApplication,
+      session,
+    ],
+  );
+
+  const ensureRemoteRecordId = useCallback(async () => {
+    if (data.applicationMeta.recordId) {
+      return data.applicationMeta.recordId;
+    }
+
+    const persisted = await persistApplication(data, { forceCreate: true });
+
+    if (!persisted.applicationMeta.recordId) {
+      throw new Error("Unable to create an application record.");
+    }
+
+    return persisted.applicationMeta.recordId;
+  }, [data, persistApplication]);
+
+  const getNextIncompleteSection = useCallback(
+    (application: ApplicationData = data) =>
+      getNextIncompleteSectionForApplication(application),
+    [data],
+  );
+
+  const updateData = useCallback(
+    async (updater: (current: ApplicationData) => ApplicationData) => {
+      const nextData = updater(data);
+      await persistApplication(nextData);
+    },
+    [data, persistApplication],
+  );
+
+  const markApplicationSubmitted = useCallback(async () => {
+    const nextSubmittedAt = new Date().toISOString();
+
+    if (session && isAuthorizedCompanyUser && isConfigured) {
+      const submission = await submitRemoteApplication(session, data);
+      const nextData = mergeStoredApplicationData({
+        ...data,
+        applicationMeta: {
+          ...data.applicationMeta,
+          applicationNumber: submission.applicationNumber,
+          recordId: submission.applicationId,
+          status: "submitted",
+          submittedAt: submission.submittedAt,
+          updatedAt: submission.submittedAt,
+        },
+      });
+
+      upsertLocalApplication(nextData);
+      upsertSummary(nextData);
+      setData(nextData);
+      return;
+    }
+
+    const nextData = mergeStoredApplicationData({
+      ...data,
+      applicationMeta: {
+        ...data.applicationMeta,
+        applicationNumber:
+          data.applicationMeta.applicationNumber ??
+          `QX-${Math.floor(1000000 + Math.random() * 9000000)}`,
+        status: "submitted",
+        submittedAt: nextSubmittedAt,
+        updatedAt: nextSubmittedAt,
       },
-      getNextIncompleteSection: () => {
-        return getNextIncompleteApplicationSection(data);
-      },
+    });
+    await persistApplication(nextData);
+  }, [
+    data,
+    isAuthorizedCompanyUser,
+    isConfigured,
+    persistApplication,
+    session,
+    upsertSummary,
+  ]);
+
+  const resetApplication = useCallback(async () => {
+    if (session && isAuthorizedCompanyUser && isConfigured) {
+      await Promise.all(
+        applications.map((application) => deleteRemoteApplication(session, application.id)),
+      );
+    }
+
+    clearLocalApplications();
+    clearLocalApplicantProfile();
+    setApplications([]);
+    setActiveApplicationId(null);
+    setData(initialApplicationData);
+    setApplicantProfile(null);
+  }, [applications, isAuthorizedCompanyUser, isConfigured, session]);
+
+  const value = useMemo<ApplicationContextType>(
+    () => ({
+      activeApplicationId,
+      applicantProfile,
+      applications,
+      data,
+      beginCourseApplication,
+      ensureRemoteRecordId,
+      getNextIncompleteSection,
+      isHydrating,
+      markApplicationSubmitted,
+      openApplication,
+      refreshApplications,
+      resetApplication,
+      selectCourse: beginCourseApplication,
+      updateContactDetails: (updates) =>
+        updateData((current) => ({
+          ...current,
+          contactDetails: {
+            ...current.contactDetails,
+            ...updates,
+          },
+        })),
+      updatePersonalDetails: (updates) =>
+        updateData((current) => ({
+          ...current,
+          personalDetails: {
+            ...current.personalDetails,
+            ...updates,
+          },
+        })),
+      uploadCV: (document) =>
+        updateData((current) => ({
+          ...current,
+          cvDocument: document,
+          cvFileName: document.name,
+          cvUploaded: true,
+        })),
+      removeCV: () =>
+        updateData((current) => ({
+          ...current,
+          cvDocument: undefined,
+          cvFileName: undefined,
+          cvUploaded: false,
+        })),
+      addEmploymentExperience: (experience) =>
+        updateData((current) => ({
+          ...current,
+          employmentExperiences: [...current.employmentExperiences, experience],
+        })),
+      updateEmploymentExperience: (id, experience) =>
+        updateData((current) => ({
+          ...current,
+          employmentExperiences: replaceItemById(
+            current.employmentExperiences,
+            id,
+            experience,
+          ),
+        })),
+      removeEmploymentExperience: (id) =>
+        updateData((current) => ({
+          ...current,
+          employmentExperiences: current.employmentExperiences.filter(
+            (experience) => experience.id !== id,
+          ),
+        })),
+      addLanguageTest: (test) =>
+        updateData((current) => ({
+          ...current,
+          languageTests: [...current.languageTests, test],
+        })),
+      updateLanguageTest: (id, test) =>
+        updateData((current) => ({
+          ...current,
+          languageTests: replaceItemById(current.languageTests, id, test),
+        })),
+      removeLanguageTest: (id) =>
+        updateData((current) => ({
+          ...current,
+          languageTests: current.languageTests.filter((test) => test.id !== id),
+        })),
+      addProfessionalAccreditation: (accreditation) =>
+        updateData((current) => ({
+          ...current,
+          professionalAccreditations: [
+            ...current.professionalAccreditations,
+            accreditation,
+          ],
+        })),
+      updateProfessionalAccreditation: (id, accreditation) =>
+        updateData((current) => ({
+          ...current,
+          professionalAccreditations: replaceItemById(
+            current.professionalAccreditations,
+            id,
+            accreditation,
+          ),
+        })),
+      removeProfessionalAccreditation: (id) =>
+        updateData((current) => ({
+          ...current,
+          professionalAccreditations: current.professionalAccreditations.filter(
+            (accreditation) => accreditation.id !== id,
+          ),
+        })),
+      addSecondaryQualification: (qualification) =>
+        updateData((current) => ({
+          ...current,
+          secondaryQualifications: [
+            ...current.secondaryQualifications,
+            qualification,
+          ],
+        })),
+      updateSecondaryQualification: (id, qualification) =>
+        updateData((current) => ({
+          ...current,
+          secondaryQualifications: replaceItemById(
+            current.secondaryQualifications,
+            id,
+            qualification,
+          ),
+        })),
+      removeSecondaryQualification: (id) =>
+        updateData((current) => ({
+          ...current,
+          secondaryQualifications: current.secondaryQualifications.filter(
+            (qualification) => qualification.id !== id,
+          ),
+        })),
+      addTertiaryQualification: (qualification) =>
+        updateData((current) => ({
+          ...current,
+          tertiaryQualifications: [
+            ...current.tertiaryQualifications,
+            qualification,
+          ],
+        })),
+      updateTertiaryQualification: (id, qualification) =>
+        updateData((current) => ({
+          ...current,
+          tertiaryQualifications: replaceItemById(
+            current.tertiaryQualifications,
+            id,
+            qualification,
+          ),
+        })),
+      removeTertiaryQualification: (id) =>
+        updateData((current) => ({
+          ...current,
+          tertiaryQualifications: current.tertiaryQualifications.filter(
+            (qualification) => qualification.id !== id,
+          ),
+        })),
     }),
-    [data, isBypassedInDev, isConfigured, session],
+    [
+      activeApplicationId,
+      applicantProfile,
+      applications,
+      beginCourseApplication,
+      data,
+      ensureRemoteRecordId,
+      getNextIncompleteSection,
+      isHydrating,
+      markApplicationSubmitted,
+      openApplication,
+      refreshApplications,
+      resetApplication,
+      updateData,
+    ],
   );
 
   return (
@@ -465,8 +655,10 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
 export function useApplication() {
   const context = useContext(ApplicationContext);
+
   if (!context) {
-    throw new Error("useApplication must be used within ApplicationProvider");
+    throw new Error("useApplication must be used within an ApplicationProvider.");
   }
+
   return context;
 }

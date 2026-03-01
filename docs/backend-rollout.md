@@ -13,6 +13,10 @@
   - `business_users` is the internal employee using the site
   - `applicant_profiles` is the applicant record being created/tested inside the site
   - public applicant auth should come later, after the internal dogfood phase
+- Current Tuesday-demo frontend model uses one real auth flow only:
+  - Keypath-domain Supabase magic-link auth on `/sign-in`
+  - no second inner applicant OTP/login layer
+  - first successful sign-in provisions or reuses a single `applicant_profiles` record for that user
 - Domains are configured in two places:
   - frontend env: `VITE_ALLOWED_EMAIL_DOMAINS`
   - database allowlist: `public.allowed_email_domains`
@@ -88,13 +92,18 @@ Key tables:
 - `allowed_email_domains`
 
 Notes:
-- `applications.user_id` is still the internal Keypath employee during dogfooding.
-- `applications.applicant_profile_id` is the new bridge to the future public applicant model.
+- `applications.user_id` is still the signed-in Keypath employee during dogfooding.
+- `applications.applicant_profile_id` is the bridge to the future public applicant model and the current reusable profile record.
 - section 1 single-instance data stays on `applications` as JSONB for now:
   - `personal_details`
   - `contact_details`
 - repeated section 2 records are normalized into their own tables
 - uploaded files are stored in the private `application-documents` bucket and referenced from `application_documents`
+- The Tuesday-demo product model is:
+  - one reusable profile per signed-in user
+  - multiple applications per user
+  - one open draft per course
+  - submitted applications kept as separate historical records
 
 ## Storage Convention
 - Bucket: `application-documents`
@@ -122,10 +131,14 @@ Notes:
   - sign-in page
   - callback route
   - protected routing
-- The app now also has a protected applicant-profile step inside the Keypath-only site:
-  - employees authenticate with Keypath-only access first
-  - then create/update an `applicant_profile` with any applicant email domain
-  - application draft sync now provisions that applicant profile before persisting the application record
+- The app now uses one real Keypath-only auth flow:
+  - users browse courses publicly
+  - apply attempts route unauthenticated users to `/sign-in`
+  - successful sign-in returns them to the intended course flow
+  - auth provisioning creates or reuses the user's `applicant_profile`
+- `/profile` is now a plain reusable profile-management screen, not an auth step.
+- Course selection is catalog-driven and attached to each application through `applicationMeta.selectedCourse`.
+- The app now supports multiple applications per user and resumes an existing open draft for the same course instead of creating duplicates.
 - Current application state is now hybrid:
   - local cache and offline fallback in `ApplicationContext`
   - authenticated draft sync through `src/lib/applicationRemoteStore.ts`

@@ -8,6 +8,13 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useAuth } from "../context/AuthContext";
 
+const EMAIL_RESEND_COOLDOWN_MS = 60_000;
+const EMAIL_RATE_LIMIT_COOLDOWN_MS = 5 * 60_000;
+const SIGN_IN_LAST_SENT_STORAGE_KEY =
+  "application-prototype:sign-in:last-email-link-sent-at";
+const SIGN_IN_RATE_LIMIT_UNTIL_STORAGE_KEY =
+  "application-prototype:sign-in:rate-limit-until";
+
 function formatDomains(domains: string[]) {
   return domains.map((domain) => `@${domain}`).join(", ");
 }
@@ -32,23 +39,78 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cooldownRemainingMs, setCooldownRemainingMs] = useState(() => {
+    if (typeof window === "undefined") {
+      return 0;
+    }
+
+    const lastSentAt = Number(
+      window.localStorage.getItem(SIGN_IN_LAST_SENT_STORAGE_KEY) ?? 0,
+    );
+    const rateLimitUntil = Number(
+      window.localStorage.getItem(SIGN_IN_RATE_LIMIT_UNTIL_STORAGE_KEY) ?? 0,
+    );
+
+    const standardCooldownRemaining = Math.max(
+      0,
+      EMAIL_RESEND_COOLDOWN_MS - (Date.now() - lastSentAt),
+    );
+    const rateLimitCooldownRemaining = Math.max(
+      0,
+      rateLimitUntil - Date.now(),
+    );
+
+    return Math.max(standardCooldownRemaining, rateLimitCooldownRemaining);
+  });
 
   const redirectPath = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    return params.get("redirect") || "/dashboard";
+    return params.get("redirect") || "/";
   }, [location.search]);
 
   const shouldAutoEnableDevBypass =
     canUseDevBypass && searchParams.get("dev-bypass") === "1";
 
   useEffect(() => {
-    if (shouldAutoEnableDevBypass && !isBypassedInDev) {
+    if (shouldAutoEnableDevBypass) {
       enableDevBypass();
     }
-  }, [enableDevBypass, isBypassedInDev, shouldAutoEnableDevBypass]);
+  }, [enableDevBypass, shouldAutoEnableDevBypass]);
+
+  useEffect(() => {
+    if (cooldownRemainingMs <= 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setCooldownRemainingMs((previous) => Math.max(0, previous - 1000));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [cooldownRemainingMs]);
 
   if ((session && isAuthorizedCompanyUser) || isBypassedInDev) {
     return <Navigate replace to={redirectPath} />;
+  }
+
+  const cooldownSeconds = Math.ceil(cooldownRemainingMs / 1000);
+
+  function startResendCooldown(durationMs = EMAIL_RESEND_COOLDOWN_MS) {
+    if (typeof window !== "undefined") {
+      const now = Date.now();
+      window.localStorage.setItem(SIGN_IN_LAST_SENT_STORAGE_KEY, String(now));
+
+      if (durationMs > EMAIL_RESEND_COOLDOWN_MS) {
+        window.localStorage.setItem(
+          SIGN_IN_RATE_LIMIT_UNTIL_STORAGE_KEY,
+          String(now + durationMs),
+        );
+      } else {
+        window.localStorage.removeItem(SIGN_IN_RATE_LIMIT_UNTIL_STORAGE_KEY);
+      }
+    }
+
+    setCooldownRemainingMs(durationMs);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -70,15 +132,31 @@ export default function SignIn() {
       return;
     }
 
+    if (cooldownRemainingMs > 0) {
+      setError(
+        `A sign-in link was just sent. Wait ${cooldownSeconds} seconds, or use the email already in your inbox.`,
+      );
+      return;
+    }
+
     setIsSubmitting(true);
-    const { error: signInError } = await sendMagicLink(trimmedEmail, redirectPath);
+      const { error: signInError } = await sendMagicLink(trimmedEmail, redirectPath);
     setIsSubmitting(false);
 
     if (signInError) {
+      if (signInError.toLowerCase().includes("rate limit")) {
+        startResendCooldown(EMAIL_RATE_LIMIT_COOLDOWN_MS);
+        setError(
+          "You’ve requested sign-in links too frequently. Use the latest email already in your inbox, or wait a few minutes before trying again.",
+        );
+        return;
+      }
+
       setError(signInError);
       return;
     }
 
+    startResendCooldown();
     setSuccess(
       `Magic link sent to ${trimmedEmail}. Open it on this device to continue.`,
     );
@@ -170,10 +248,20 @@ export default function SignIn() {
                     {success}
                   </p>
                 ) : null}
+                {cooldownRemainingMs > 0 ? (
+                  <p className="text-sm text-slate-500">
+                    You can request another link in {cooldownSeconds} seconds.
+                  </p>
+                ) : null}
 
                 <Button
                   className="h-12 w-full justify-center text-base"
-                  disabled={isSubmitting || isLoading || !isConfigured}
+                  disabled={
+                    isSubmitting ||
+                    isLoading ||
+                    !isConfigured ||
+                    cooldownRemainingMs > 0
+                  }
                   type="submit"
                   variant="soft"
                 >

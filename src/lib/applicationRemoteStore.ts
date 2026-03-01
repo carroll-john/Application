@@ -1,10 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
+import { getCourseByCode, getDefaultCourse } from "./courseCatalog";
 import {
-  APPLICATION_COURSE,
-  hasStartedApplication,
-} from "./applicationProgress";
-import {
-  initialApplicationData,
   mergeStoredApplicationData,
   type ApplicationData,
   type ContactDetails,
@@ -15,89 +11,95 @@ import {
   type SecondaryQualification,
   type TertiaryQualification,
 } from "./applicationData";
-import { deriveApplicantProfileSeed } from "./applicantProfiles";
+import {
+  summarizeApplication,
+  type ApplicationSummary,
+} from "./applicationRecords";
 import type { UploadedDocument } from "./documentStorage";
 import { supabase } from "./supabase";
 
 interface RemoteApplicationRow {
-  id: string;
   applicant_profile_id: string | null;
   application_number: string | null;
-  submitted_at: string | null;
+  contact_details: ContactDetails | null;
   course_code: string | null;
   course_title: string | null;
-  intake_label: string | null;
-  personal_details: PersonalDetails | null;
-  contact_details: ContactDetails | null;
+  created_at: string;
   cv_document_id: string | null;
   cv_file_name: string | null;
+  id: string;
+  intake_label: string | null;
+  personal_details: PersonalDetails | null;
+  status: "draft" | "submitted";
+  submitted_at: string | null;
+  updated_at: string;
 }
 
 interface RemoteApplicationDocumentRow {
-  id: string;
-  file_name: string;
-  size_bytes: number;
-  mime_type: string;
   created_at: string;
+  file_name: string;
+  id: string;
+  mime_type: string;
+  size_bytes: number;
   storage_bucket: string;
   storage_path: string;
 }
 
 interface RemoteTertiaryQualificationRow {
-  id: string;
-  institution: string;
-  country: string;
-  level: string;
-  course_name: string;
-  start_month: string;
-  start_year: string;
-  completed: boolean;
-  end_month: string;
-  end_year: string;
-  transcript_document_id: string | null;
-  transcript_document_name: string | null;
   certificate_document_id: string | null;
   certificate_document_name: string | null;
+  completed: boolean;
+  country: string;
+  course_name: string;
+  end_month: string;
+  end_year: string;
+  id: string;
+  institution: string;
+  level: string;
+  start_month: string;
+  start_year: string;
+  transcript_document_id: string | null;
+  transcript_document_name: string | null;
 }
 
 interface RemoteEmploymentExperienceRow {
-  id: string;
   company: string;
-  position: string;
+  duties: string;
   employment_type: string;
-  start_month: string;
-  start_year: string;
   end_month: string | null;
   end_year: string | null;
+  id: string;
   is_current_role: boolean;
-  duties: string;
+  position: string;
+  start_month: string;
+  start_year: string;
 }
 
 interface RemoteProfessionalAccreditationRow {
+  document_id: string | null;
+  document_name: string | null;
   id: string;
   name: string;
   status: string;
-  document_id: string | null;
-  document_name: string | null;
 }
 
 interface RemoteSecondaryQualificationRow {
-  id: string;
-  qualification_type: string;
-  country: string;
-  state: string;
-  school: string;
-  qualification_name: string;
   completion_year: string;
+  country: string;
+  id: string;
+  qualification_name: string;
+  qualification_type: string;
+  school: string;
+  state: string;
 }
 
 interface RemoteLanguageTestRow {
-  id: string;
-  test_type: string;
-  test_name: string;
   completion_year: string;
   document_id: string | null;
   document_name: string | null;
+  id: string;
+  test_name: string;
+  test_type: string;
 }
 
 interface RemoteSubmissionResult {
@@ -109,6 +111,9 @@ interface RemoteSubmissionResult {
 export interface RemoteSaveResult {
   applicationId: string;
   applicantProfileId: string | null;
+  applicationNumber?: string;
+  submittedAt?: string | null;
+  updatedAt: string;
 }
 
 function requireSupabaseClient() {
@@ -119,31 +124,105 @@ function requireSupabaseClient() {
   return supabase;
 }
 
-export async function loadRemoteApplication(
+function mapRemoteDocument(
+  document: RemoteApplicationDocumentRow,
+): UploadedDocument {
+  return {
+    id: document.id,
+    name: document.file_name,
+    size: document.size_bytes,
+    type: document.mime_type,
+    lastModified: Date.now(),
+    uploadedAt: document.created_at,
+    source: "remote",
+    storageBucket: document.storage_bucket,
+    storagePath: document.storage_path,
+  };
+}
+
+function mapApplicationSummary(row: RemoteApplicationRow): ApplicationSummary | null {
+  const defaultCourse = getDefaultCourse();
+  const matchingCourse = getCourseByCode(row.course_code);
+
+  return summarizeApplication({
+    applicationMeta: {
+      applicantProfileId: row.applicant_profile_id ?? undefined,
+      applicationNumber: row.application_number ?? undefined,
+      createdAt: row.created_at,
+      recordId: row.id,
+      selectedCourse: {
+        code: row.course_code ?? matchingCourse?.code ?? defaultCourse.code,
+        title: row.course_title ?? matchingCourse?.title ?? defaultCourse.title,
+        provider: matchingCourse?.provider ?? defaultCourse.provider,
+        intake: row.intake_label ?? matchingCourse?.intakeLabel ?? defaultCourse.intakeLabel,
+      },
+      status: row.status,
+      submittedAt: row.submitted_at ?? undefined,
+      updatedAt: row.updated_at,
+    },
+    contactDetails: row.contact_details ?? undefined,
+    cvDocument: undefined,
+    cvFileName: row.cv_file_name ?? undefined,
+    cvUploaded: Boolean(row.cv_document_id || row.cv_file_name),
+    employmentExperiences: [],
+    languageTests: [],
+    personalDetails: row.personal_details ?? undefined,
+    professionalAccreditations: [],
+    secondaryQualifications: [],
+    tertiaryQualifications: [],
+  } as ApplicationData);
+}
+
+async function fetchRemoteApplicationRow(
   session: Session,
-): Promise<ApplicationData | null> {
+  applicationId: string,
+) {
   const client = requireSupabaseClient();
 
-  const { data: applications, error } = await client
+  const { data, error } = await client
     .from("applications")
     .select(
-      "id, applicant_profile_id, application_number, submitted_at, course_code, course_title, intake_label, personal_details, contact_details, cv_document_id, cv_file_name",
+      "id, applicant_profile_id, application_number, course_code, course_title, intake_label, personal_details, contact_details, cv_document_id, cv_file_name, status, submitted_at, created_at, updated_at",
     )
+    .eq("id", applicationId)
     .eq("user_id", session.user.id)
-    .order("updated_at", { ascending: false })
-    .limit(1);
+    .single();
 
   if (error) {
     throw error;
   }
 
-  const application = applications?.[0] as RemoteApplicationRow | undefined;
+  return data as RemoteApplicationRow;
+}
 
-  if (!application) {
-    return null;
+export async function listRemoteApplications(
+  session: Session,
+): Promise<ApplicationSummary[]> {
+  const client = requireSupabaseClient();
+
+  const { data, error } = await client
+    .from("applications")
+    .select(
+      "id, applicant_profile_id, application_number, course_code, course_title, intake_label, personal_details, contact_details, cv_document_id, cv_file_name, status, submitted_at, created_at, updated_at",
+    )
+    .eq("user_id", session.user.id)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    throw error;
   }
 
-  const applicationId = application.id;
+  return ((data as RemoteApplicationRow[] | null) ?? [])
+    .map((row) => mapApplicationSummary(row))
+    .filter((summary): summary is ApplicationSummary => Boolean(summary));
+}
+
+export async function loadRemoteApplicationById(
+  session: Session,
+  applicationId: string,
+): Promise<ApplicationData | null> {
+  const client = requireSupabaseClient();
+  const application = await fetchRemoteApplicationRow(session, applicationId);
 
   const [
     applicationDocumentsResponse,
@@ -204,117 +283,111 @@ export async function loadRemoteApplication(
   const documentMap = new Map<string, UploadedDocument>(
     (
       applicationDocumentsResponse.data as RemoteApplicationDocumentRow[] | null
-    )?.map((document) => [
-      document.id,
-      {
-        id: document.id,
-        name: document.file_name,
-        size: document.size_bytes,
-        type: document.mime_type,
-        lastModified: Date.now(),
-        uploadedAt: document.created_at,
-        source: "remote",
-        storageBucket: document.storage_bucket,
-        storagePath: document.storage_path,
-      } satisfies UploadedDocument,
-    ]) ?? [],
+    )?.map((document) => [document.id, mapRemoteDocument(document)]) ?? [],
   );
+  const defaultCourse = getDefaultCourse();
+  const matchingCourse = getCourseByCode(application.course_code);
 
   return mergeStoredApplicationData({
     applicationMeta: {
-      recordId: application.id,
       applicantProfileId: application.applicant_profile_id ?? undefined,
       applicationNumber: application.application_number ?? undefined,
+      createdAt: application.created_at,
+      recordId: application.id,
+      selectedCourse: {
+        code: application.course_code ?? matchingCourse?.code ?? defaultCourse.code,
+        title:
+          application.course_title ?? matchingCourse?.title ?? defaultCourse.title,
+        provider: matchingCourse?.provider ?? defaultCourse.provider,
+        intake:
+          application.intake_label ??
+          matchingCourse?.intakeLabel ??
+          defaultCourse.intakeLabel,
+      },
+      status: application.status,
       submittedAt: application.submitted_at ?? undefined,
-      selectedCourse:
-        application.course_code && application.course_title && application.intake_label
-          ? {
-              code: application.course_code,
-              title: application.course_title,
-              intake: application.intake_label,
-            }
-          : undefined,
+      updatedAt: application.updated_at,
     },
-    personalDetails: application.personal_details ?? initialApplicationData.personalDetails,
-    contactDetails: application.contact_details ?? initialApplicationData.contactDetails,
-    cvUploaded: Boolean(application.cv_document_id || application.cv_file_name),
+    contactDetails: application.contact_details ?? undefined,
     cvDocument: application.cv_document_id
       ? documentMap.get(application.cv_document_id)
       : undefined,
     cvFileName: application.cv_file_name ?? undefined,
-    tertiaryQualifications: (
-      tertiaryQualificationsResponse.data as RemoteTertiaryQualificationRow[] | null
-    )?.map<TertiaryQualification>((qualification) => ({
-      id: qualification.id,
-      institution: qualification.institution,
-      country: qualification.country,
-      level: qualification.level,
-      courseName: qualification.course_name,
-      startMonth: qualification.start_month,
-      startYear: qualification.start_year,
-      completed: qualification.completed,
-      endMonth: qualification.end_month,
-      endYear: qualification.end_year,
-      transcriptDocument: qualification.transcript_document_id
-        ? documentMap.get(qualification.transcript_document_id)
-        : undefined,
-      transcriptDocumentName:
-        qualification.transcript_document_name ?? undefined,
-      certificateDocument: qualification.certificate_document_id
-        ? documentMap.get(qualification.certificate_document_id)
-        : undefined,
-      certificateDocumentName:
-        qualification.certificate_document_name ?? undefined,
-    })),
+    cvUploaded: Boolean(application.cv_document_id || application.cv_file_name),
     employmentExperiences: (
       employmentExperiencesResponse.data as RemoteEmploymentExperienceRow[] | null
     )?.map<EmploymentExperience>((experience) => ({
-      id: experience.id,
       company: experience.company,
-      position: experience.position,
-      type: experience.employment_type,
-      startMonth: experience.start_month,
-      startYear: experience.start_year,
-      endMonth: experience.end_month ?? "",
-      endYear: experience.end_year ?? "",
       currentRole: experience.is_current_role,
       duties: experience.duties,
+      endMonth: experience.end_month ?? "",
+      endYear: experience.end_year ?? "",
+      id: experience.id,
+      position: experience.position,
+      startMonth: experience.start_month,
+      startYear: experience.start_year,
+      type: experience.employment_type,
     })),
+    languageTests: (
+      languageTestsResponse.data as RemoteLanguageTestRow[] | null
+    )?.map<LanguageTest>((test) => ({
+      document: test.document_id ? documentMap.get(test.document_id) : undefined,
+      documentName: test.document_name ?? undefined,
+      id: test.id,
+      name: test.test_name,
+      type: test.test_type,
+      year: test.completion_year,
+    })),
+    personalDetails: application.personal_details ?? undefined,
     professionalAccreditations: (
       professionalAccreditationsResponse.data as
         | RemoteProfessionalAccreditationRow[]
         | null
     )?.map<ProfessionalAccreditation>((accreditation) => ({
-      id: accreditation.id,
-      name: accreditation.name,
-      status: accreditation.status,
       document: accreditation.document_id
         ? documentMap.get(accreditation.document_id)
         : undefined,
       documentName: accreditation.document_name ?? undefined,
+      id: accreditation.id,
+      name: accreditation.name,
+      status: accreditation.status,
     })),
     secondaryQualifications: (
       secondaryQualificationsResponse.data as
         | RemoteSecondaryQualificationRow[]
         | null
     )?.map<SecondaryQualification>((qualification) => ({
-      id: qualification.id,
-      type: qualification.qualification_type,
       country: qualification.country,
-      state: qualification.state,
-      school: qualification.school,
+      id: qualification.id,
       qualification: qualification.qualification_name,
+      school: qualification.school,
+      state: qualification.state,
+      type: qualification.qualification_type,
       year: qualification.completion_year,
     })),
-    languageTests: (
-      languageTestsResponse.data as RemoteLanguageTestRow[] | null
-    )?.map<LanguageTest>((test) => ({
-      id: test.id,
-      type: test.test_type,
-      name: test.test_name,
-      year: test.completion_year,
-      document: test.document_id ? documentMap.get(test.document_id) : undefined,
-      documentName: test.document_name ?? undefined,
+    tertiaryQualifications: (
+      tertiaryQualificationsResponse.data as RemoteTertiaryQualificationRow[] | null
+    )?.map<TertiaryQualification>((qualification) => ({
+      certificateDocument: qualification.certificate_document_id
+        ? documentMap.get(qualification.certificate_document_id)
+        : undefined,
+      certificateDocumentName:
+        qualification.certificate_document_name ?? undefined,
+      completed: qualification.completed,
+      country: qualification.country,
+      courseName: qualification.course_name,
+      endMonth: qualification.end_month,
+      endYear: qualification.end_year,
+      id: qualification.id,
+      institution: qualification.institution,
+      level: qualification.level,
+      startMonth: qualification.start_month,
+      startYear: qualification.start_year,
+      transcriptDocument: qualification.transcript_document_id
+        ? documentMap.get(qualification.transcript_document_id)
+        : undefined,
+      transcriptDocumentName:
+        qualification.transcript_document_name ?? undefined,
     })),
   });
 }
@@ -323,89 +396,40 @@ function getRemoteDocumentId(document?: UploadedDocument) {
   return document?.source === "remote" ? document.id : null;
 }
 
-async function upsertApplicantProfile(
-  session: Session,
-  data: ApplicationData,
-): Promise<string | null> {
-  const client = requireSupabaseClient();
-  const profile = deriveApplicantProfileSeed(data);
-
-  if (!profile) {
-    return data.applicationMeta.applicantProfileId ?? null;
-  }
-
-  const payload = {
-    id: data.applicationMeta.applicantProfileId ?? undefined,
-    owner_user_id: session.user.id,
-    email: profile.email,
-    first_name: profile.firstName || null,
-    last_name: profile.lastName || null,
-    preferred_name: profile.preferredName || null,
-    phone: profile.phone || null,
-  };
-
-  const profileQuery = data.applicationMeta.applicantProfileId
-    ? client
-        .from("applicant_profiles")
-        .update(payload)
-        .eq("id", data.applicationMeta.applicantProfileId)
-        .eq("owner_user_id", session.user.id)
-        .select("id")
-        .single()
-    : client
-        .from("applicant_profiles")
-        .upsert(payload, { onConflict: "owner_user_id,email" })
-        .select("id")
-        .single();
-
-  const { data: profileRow, error } = await profileQuery;
-
-  if (error) {
-    throw error;
-  }
-
-  return (profileRow as { id: string }).id;
-}
-
 export async function saveRemoteApplication(
   session: Session,
   data: ApplicationData,
-  options?: { forceCreate?: boolean },
+  options?: { applicantProfileId?: string | null; forceCreate?: boolean },
 ): Promise<RemoteSaveResult | null> {
   const client = requireSupabaseClient();
 
   if (
     !options?.forceCreate &&
-    !hasStartedApplication(data) &&
-    !data.applicationMeta.applicationNumber &&
-    !data.applicationMeta.submittedAt
+    !data.applicationMeta.recordId &&
+    !data.applicationMeta.selectedCourse
   ) {
-    return data.applicationMeta.recordId
-      ? {
-          applicationId: data.applicationMeta.recordId,
-          applicantProfileId: data.applicationMeta.applicantProfileId ?? null,
-        }
-      : null;
+    return null;
   }
 
-  const applicantProfileId = await upsertApplicantProfile(session, data);
-
+  const defaultCourse = getDefaultCourse();
+  const selectedCourse = data.applicationMeta.selectedCourse;
   const applicationPayload = {
-    id: data.applicationMeta.recordId ?? undefined,
-    user_id: session.user.id,
-    applicant_profile_id: applicantProfileId,
-    status: data.applicationMeta.submittedAt ? "submitted" : "draft",
+    applicant_profile_id:
+      options?.applicantProfileId ??
+      data.applicationMeta.applicantProfileId ??
+      null,
     application_number: data.applicationMeta.applicationNumber ?? null,
-    submitted_at: data.applicationMeta.submittedAt ?? null,
-    course_code: data.applicationMeta.selectedCourse?.code ?? APPLICATION_COURSE.code,
-    course_title:
-      data.applicationMeta.selectedCourse?.title ?? APPLICATION_COURSE.title,
-    intake_label:
-      data.applicationMeta.selectedCourse?.intake ?? APPLICATION_COURSE.intake,
-    personal_details: data.personalDetails,
     contact_details: data.contactDetails,
+    course_code: selectedCourse?.code ?? defaultCourse.code,
+    course_title: selectedCourse?.title ?? defaultCourse.title,
     cv_document_id: getRemoteDocumentId(data.cvDocument),
     cv_file_name: data.cvFileName ?? null,
+    id: data.applicationMeta.recordId ?? undefined,
+    intake_label: selectedCourse?.intake ?? defaultCourse.intakeLabel,
+    personal_details: data.personalDetails,
+    status: data.applicationMeta.submittedAt ? "submitted" : "draft",
+    submitted_at: data.applicationMeta.submittedAt ?? null,
+    user_id: session.user.id,
   };
 
   const applicationQuery = data.applicationMeta.recordId
@@ -413,12 +437,13 @@ export async function saveRemoteApplication(
         .from("applications")
         .update(applicationPayload)
         .eq("id", data.applicationMeta.recordId)
-        .select("id")
+        .eq("user_id", session.user.id)
+        .select("id, applicant_profile_id, application_number, submitted_at, updated_at")
         .single()
     : client
         .from("applications")
         .insert(applicationPayload)
-        .select("id")
+        .select("id, applicant_profile_id, application_number, submitted_at, updated_at")
         .single();
 
   const { data: applicationRow, error: applicationError } = await applicationQuery;
@@ -443,113 +468,111 @@ export async function saveRemoteApplication(
   if (data.tertiaryQualifications.length > 0) {
     const { error } = await client.from("tertiary_qualifications").insert(
       data.tertiaryQualifications.map((qualification) => ({
-        id: qualification.id,
         application_id: applicationId,
-        institution: qualification.institution,
-        country: qualification.country,
-        level: qualification.level,
-        course_name: qualification.courseName,
-        start_month: qualification.startMonth,
-        start_year: qualification.startYear,
-        completed: qualification.completed,
-        end_month: qualification.endMonth,
-        end_year: qualification.endYear,
-        transcript_document_id: getRemoteDocumentId(
-          qualification.transcriptDocument,
-        ),
-        transcript_document_name: qualification.transcriptDocumentName ?? null,
         certificate_document_id: getRemoteDocumentId(
           qualification.certificateDocument,
         ),
         certificate_document_name:
           qualification.certificateDocumentName ?? null,
+        completed: qualification.completed,
+        country: qualification.country,
+        course_name: qualification.courseName,
+        end_month: qualification.endMonth,
+        end_year: qualification.endYear,
+        id: qualification.id,
+        institution: qualification.institution,
+        level: qualification.level,
+        start_month: qualification.startMonth,
+        start_year: qualification.startYear,
+        transcript_document_id: getRemoteDocumentId(
+          qualification.transcriptDocument,
+        ),
+        transcript_document_name: qualification.transcriptDocumentName ?? null,
       })),
     );
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
   }
 
   if (data.employmentExperiences.length > 0) {
     const { error } = await client.from("employment_experiences").insert(
       data.employmentExperiences.map((experience) => ({
-        id: experience.id,
         application_id: applicationId,
         company: experience.company,
-        position: experience.position,
+        duties: experience.duties,
         employment_type: experience.type,
-        start_month: experience.startMonth,
-        start_year: experience.startYear,
         end_month: experience.endMonth || null,
         end_year: experience.endYear || null,
+        id: experience.id,
         is_current_role: experience.currentRole,
-        duties: experience.duties,
+        position: experience.position,
+        start_month: experience.startMonth,
+        start_year: experience.startYear,
       })),
     );
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
   }
 
   if (data.professionalAccreditations.length > 0) {
     const { error } = await client.from("professional_accreditations").insert(
       data.professionalAccreditations.map((accreditation) => ({
-        id: accreditation.id,
         application_id: applicationId,
-        name: accreditation.name,
-        status: accreditation.status,
         document_id: getRemoteDocumentId(accreditation.document),
         document_name: accreditation.documentName ?? null,
+        id: accreditation.id,
+        name: accreditation.name,
+        status: accreditation.status,
       })),
     );
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
   }
 
   if (data.secondaryQualifications.length > 0) {
     const { error } = await client.from("secondary_qualifications").insert(
       data.secondaryQualifications.map((qualification) => ({
-        id: qualification.id,
         application_id: applicationId,
-        qualification_type: qualification.type,
-        country: qualification.country,
-        state: qualification.state,
-        school: qualification.school,
-        qualification_name: qualification.qualification,
         completion_year: qualification.year,
+        country: qualification.country,
+        id: qualification.id,
+        qualification_name: qualification.qualification,
+        qualification_type: qualification.type,
+        school: qualification.school,
+        state: qualification.state,
       })),
     );
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
   }
 
   if (data.languageTests.length > 0) {
     const { error } = await client.from("language_tests").insert(
       data.languageTests.map((test) => ({
-        id: test.id,
         application_id: applicationId,
-        test_type: test.type,
-        test_name: test.name,
         completion_year: test.year,
         document_id: getRemoteDocumentId(test.document),
         document_name: test.documentName ?? null,
+        id: test.id,
+        test_name: test.name,
+        test_type: test.type,
       })),
     );
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
   }
 
   return {
+    applicantProfileId:
+      (applicationRow as { applicant_profile_id: string | null }).applicant_profile_id ??
+      null,
     applicationId,
-    applicantProfileId,
+    applicationNumber:
+      (applicationRow as { application_number: string | null }).application_number ??
+      undefined,
+    submittedAt:
+      (applicationRow as { submitted_at: string | null }).submitted_at ?? undefined,
+    updatedAt: (applicationRow as { updated_at: string }).updated_at,
   };
 }
 
@@ -558,6 +581,7 @@ export async function submitRemoteApplication(
   data: ApplicationData,
 ): Promise<RemoteSubmissionResult> {
   const saveResult = await saveRemoteApplication(session, data, {
+    applicantProfileId: data.applicationMeta.applicantProfileId ?? null,
     forceCreate: true,
   });
   const applicationId = saveResult?.applicationId ?? data.applicationMeta.recordId;
@@ -578,12 +602,16 @@ export async function submitRemoteApplication(
   return submissionResult as RemoteSubmissionResult;
 }
 
-export async function deleteRemoteApplication(session: Session, recordId: string) {
+export async function deleteRemoteApplication(
+  session: Session,
+  recordId: string,
+) {
   const client = requireSupabaseClient();
-  const { error } = await client.from("applications").delete().eq("id", recordId).eq(
-    "user_id",
-    session.user.id,
-  );
+  const { error } = await client
+    .from("applications")
+    .delete()
+    .eq("id", recordId)
+    .eq("user_id", session.user.id);
 
   if (error) {
     throw error;

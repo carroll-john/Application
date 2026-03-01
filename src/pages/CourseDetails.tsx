@@ -1,6 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AccentIconBadge } from "../components/AccentIconBadge";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { ModalShell } from "../components/ModalShell";
@@ -9,122 +9,142 @@ import { Button } from "../components/ui/button";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { useAuth } from "../context/AuthContext";
+import { getCourseByCode, getDefaultCourse } from "../lib/courseCatalog";
 import {
-  APPLICATION_COURSE,
-  createSelectedCourseSeed,
-} from "../lib/applicationProgress";
-import { isEligibleForMbaCourse } from "../lib/courseEligibility";
+  evaluateCourseEligibility,
+  type EligibilityAnswers,
+} from "../lib/courseEligibility";
 
 type EligibilityOutcome = "success" | "fail" | null;
 
-const acceleratedBenefits = [
-  "Find out immediately if you are eligible to apply",
-  "Upload documents for applications processed in under 48 hours",
-  "Keep your progress as you move through the form",
-  "Fast-track repeat applications from the dashboard",
-] as const;
-
-const mbaBenefits = [
-  {
-    icon: "💻",
-    title: "Learn on your own terms",
-    body:
-      "Balance work, life and study through a fully online, modular application journey.",
-  },
-  {
-    icon: "🎓",
-    title: "Build on existing credentials",
-    body:
-      "Reuse prior education and experience to move into the next stage quickly.",
-  },
-  {
-    icon: "🎯",
-    title: "Translate experience into momentum",
-    body:
-      "The guided flow keeps complex admissions steps understandable and manageable.",
-  },
-] as const;
-
-const eligibilityBenefits = [
-  "Apply on StudyNext",
-  "Liaise with a dedicated support person",
-  "Fast turnaround time on applications",
-  "Accelerate subsequent applications",
-] as const;
-
 export default function CourseDetails() {
   const navigate = useNavigate();
-  const { isAuthorizedCompanyUser, session } = useAuth();
-  const { selectCourse } = useApplication();
+  const { courseCode } = useParams();
+  const [searchParams] = useSearchParams();
+  const { session, isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
+  const { beginCourseApplication, isHydrating } = useApplication();
+  const course = useMemo(
+    () => getCourseByCode(courseCode) ?? getDefaultCourse(),
+    [courseCode],
+  );
   const [showEligibility, setShowEligibility] = useState(false);
   const [eligibilityOutcome, setEligibilityOutcome] =
     useState<EligibilityOutcome>(null);
-  const [eligibilityForm, setEligibilityForm] = useState({
-    goals: "",
-    education: "",
-    experience: "",
+  const [eligibilityReason, setEligibilityReason] = useState("");
+  const [eligibilityForm, setEligibilityForm] = useState<EligibilityAnswers>({
+    educationLevel: "",
+    experienceRange: "",
+    goal: "",
   });
+  const autoApplyStartedRef = useRef(false);
+  const isAuthenticated = Boolean(
+    isBypassedInDev || (session && isAuthorizedCompanyUser),
+  );
+  const shouldAutoApply =
+    searchParams.get("apply") === "1" && searchParams.get("eligible") === "1";
 
-  const isEligibilityFormComplete =
-    Boolean(eligibilityForm.goals) &&
-    Boolean(eligibilityForm.education) &&
-    Boolean(eligibilityForm.experience);
-
-  const applicantProfilePath = `/applicant-profile?redirect=${encodeURIComponent(
-    "/overview",
-  )}&course=${encodeURIComponent(APPLICATION_COURSE.code)}`;
-
-  function handleEligibleApplyNow() {
-    selectCourse(
-      createSelectedCourseSeed({
-        code: APPLICATION_COURSE.code,
-        title: APPLICATION_COURSE.title,
-        intake: APPLICATION_COURSE.intake,
-      }),
-    );
-
-    if (session && isAuthorizedCompanyUser) {
-      navigate(applicantProfilePath);
+  useEffect(() => {
+    if (!shouldAutoApply || !isAuthenticated || isHydrating || autoApplyStartedRef.current) {
       return;
     }
 
-    navigate(`/sign-in?redirect=${encodeURIComponent(applicantProfilePath)}`);
+    autoApplyStartedRef.current = true;
+
+    void beginCourseApplication({
+      code: course.code,
+      intake: course.intakeLabel,
+      provider: course.provider,
+      title: course.title,
+    }).then(() => {
+      navigate("/overview", { replace: true });
+    });
+  }, [
+    beginCourseApplication,
+    course.code,
+    course.intakeLabel,
+    course.provider,
+    course.title,
+    isAuthenticated,
+    isHydrating,
+    navigate,
+    shouldAutoApply,
+  ]);
+
+  const isEligibilityFormComplete =
+    Boolean(eligibilityForm.goal) &&
+    Boolean(eligibilityForm.educationLevel) &&
+    Boolean(eligibilityForm.experienceRange);
+
+  function handleEligibleApplyNow() {
+    if (isAuthenticated) {
+      void beginCourseApplication({
+        code: course.code,
+        intake: course.intakeLabel,
+        provider: course.provider,
+        title: course.title,
+      }).then(() => {
+        navigate("/overview");
+      });
+      return;
+    }
+
+    navigate(
+      `/sign-in?redirect=${encodeURIComponent(
+        `/courses/${course.code}?eligible=1&apply=1`,
+      )}`,
+    );
   }
 
   return (
     <div className="min-h-screen bg-white">
       <AppBrandHeader>
         <div className="hidden rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 sm:block">
-          {APPLICATION_COURSE.provider}
+          {course.provider}
         </div>
       </AppBrandHeader>
 
       <section className="bg-[linear-gradient(135deg,#084E74_0%,#0b678f_55%,#0e7ca9_100%)] text-white">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-16">
           <div className="max-w-2xl">
-            <span className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold tracking-wide text-white/90">
-              100% Online
-            </span>
-            <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-              {APPLICATION_COURSE.title}
-            </h1>
-            <p className="mt-6 max-w-xl text-lg text-slate-100 sm:text-xl">
-              Become a leader of tomorrow through a flexible application
-              experience designed to move quickly.
-            </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              {[
-                "Accelerated application review",
-                "Structured guided workflow",
-                "Save and resume anytime",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur"
+            <div className="flex flex-wrap gap-3">
+              <span className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold tracking-wide text-white/90">
+                {course.delivery}
+              </span>
+              {course.categories.map((category) => (
+                <span
+                  key={category}
+                  className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold tracking-wide text-white/90"
                 >
-                  <p className="text-sm font-semibold text-white">{item}</p>
-                </div>
+                  {category}
+                </span>
               ))}
+            </div>
+            <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
+              {course.title}
+            </h1>
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/70">
+                  Provider
+                </p>
+                <p className="mt-2 text-sm font-semibold text-white">{course.provider}</p>
+              </div>
+              <div className="rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/70">
+                  Duration
+                </p>
+                <p className="mt-2 text-sm font-semibold text-white">
+                  {course.duration || "Flexible study"}
+                </p>
+              </div>
+              <div className="rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur">
+                <p className="text-xs uppercase tracking-[0.16em] text-white/70">
+                  Intake
+                </p>
+                <p className="mt-2 text-sm font-semibold text-white">
+                  {course.intakeLabel}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -154,9 +174,48 @@ export default function CourseDetails() {
               </svg>
             </AccentIconBadge>
             <h2 className="text-2xl font-bold text-[#084E74]">
-              NEW! Accelerated application process
+              Accelerated application process
             </h2>
-            <Checklist items={acceleratedBenefits} />
+            <Checklist
+              items={[
+                "Start with a course-specific eligibility check",
+                "Create or reuse your profile after sign in",
+                "Save and resume applications across courses",
+              ]}
+            />
+            <div className="mt-6 rounded-[28px] border border-slate-200 bg-white px-5 py-4 text-sm text-slate-700">
+              <p className="font-semibold text-slate-900">At a glance</p>
+              <dl className="mt-3 space-y-3">
+                <div>
+                  <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                    Study level
+                  </dt>
+                  <dd className="mt-1 font-medium">{course.studyLevel}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                    Course type
+                  </dt>
+                  <dd className="mt-1 font-medium">{course.courseType}</dd>
+                </div>
+                {course.feeSummary ? (
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Fees
+                    </dt>
+                    <dd className="mt-1 font-medium">{course.feeSummary}</dd>
+                  </div>
+                ) : null}
+                {course.supportSummary ? (
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Support
+                    </dt>
+                    <dd className="mt-1 text-slate-600">{course.supportSummary}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </div>
             <Button
               className="mt-8 w-full"
               onClick={() => setShowEligibility(true)}
@@ -168,24 +227,132 @@ export default function CourseDetails() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-        <h2 className="text-3xl font-bold text-[#084E74]">
-          The SCU MBA online benefits
-        </h2>
-        <div className="mt-8 grid gap-6 md:grid-cols-3">
-          {mbaBenefits.map((card) => (
-            <SurfaceCard
-              key={card.title}
-              className="rounded-[32px] bg-slate-50 p-6 text-center shadow-none"
-            >
-              <div className="text-4xl">{card.icon}</div>
-              <h3 className="mt-4 text-lg font-bold text-slate-900">
-                {card.title}
+        <div>
+          <h2 className="text-3xl font-bold text-[#084E74]">Course details</h2>
+        </div>
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-6">
+            <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
+              <h3 className="text-2xl font-bold text-slate-950">
+                Course overview
               </h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                {card.body}
+              <p className="mt-4 text-base leading-7 text-slate-600">
+                {course.description || course.summary}
               </p>
             </SurfaceCard>
-          ))}
+
+            {course.entryRequirements ? (
+              <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
+                <h3 className="text-2xl font-bold text-slate-950">
+                  Entry requirements
+                </h3>
+                <p className="mt-4 text-base leading-7 text-slate-600">
+                  {course.entryRequirements}
+                </p>
+              </SurfaceCard>
+            ) : null}
+
+            {course.recognitionOfPriorLearning ? (
+              <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
+                <h3 className="text-2xl font-bold text-slate-950">
+                  Recognition of prior learning
+                </h3>
+                <p className="mt-4 text-base leading-7 text-slate-600">
+                  {course.recognitionOfPriorLearning}
+                </p>
+              </SurfaceCard>
+            ) : null}
+          </div>
+
+          <div className="space-y-6">
+            <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
+              <h3 className="text-2xl font-bold text-slate-950">
+                Core subjects
+              </h3>
+              {course.coreSubjects.length ? (
+                <ul className="mt-4 space-y-3">
+                  {course.coreSubjects.map((subject) => (
+                    <li key={subject} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">
+                      {subject}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 text-sm text-slate-600">
+                  Subject list available on request.
+                </p>
+              )}
+            </SurfaceCard>
+
+            <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
+              <h3 className="text-2xl font-bold text-slate-950">
+                Course facts
+              </h3>
+              <dl className="mt-4 space-y-4 text-sm text-slate-700">
+                {course.subjectArea ? (
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Subject area
+                    </dt>
+                    <dd className="mt-1 font-medium">{course.subjectArea}</dd>
+                  </div>
+                ) : null}
+                {course.duration ? (
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Duration
+                    </dt>
+                    <dd className="mt-1 font-medium">{course.duration}</dd>
+                  </div>
+                ) : null}
+                {course.feeSummary ? (
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Fees
+                    </dt>
+                    <dd className="mt-1 font-medium">{course.feeSummary}</dd>
+                  </div>
+                ) : null}
+                {course.supportOptions.length ? (
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Support options
+                    </dt>
+                    <dd className="mt-1 space-y-2">
+                      {course.supportOptions.map((option) => (
+                        <p key={option} className="leading-6">
+                          {option}
+                        </p>
+                      ))}
+                    </dd>
+                  </div>
+                ) : null}
+                {course.feeNotes.length ? (
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Good to know
+                    </dt>
+                    <dd className="mt-1 space-y-2">
+                      {course.feeNotes.map((note) => (
+                        <p key={note} className="leading-6">
+                          {note}
+                        </p>
+                      ))}
+                    </dd>
+                  </div>
+                ) : null}
+                {course.outcomes ? (
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Outcomes
+                    </dt>
+                    <dd className="mt-1 leading-6">{course.outcomes}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </SurfaceCard>
+          </div>
         </div>
       </section>
 
@@ -195,59 +362,48 @@ export default function CourseDetails() {
           title="Eligibility Check"
         >
           <p className="mb-6 text-sm leading-6 text-slate-600">
-            Tell us a little about your goals so we can gauge whether you are
-            ready to proceed.
+            Answer a few questions so we can check this course&apos;s entry
+            criteria before you start an application.
           </p>
           <div className="space-y-4">
             <SelectField
               label="Select: Description of goals"
-              value={eligibilityForm.goals}
+              value={eligibilityForm.goal ?? ""}
               onChange={(value) =>
-                setEligibilityForm((previous) => ({ ...previous, goals: value }))
+                setEligibilityForm((previous) => ({ ...previous, goal: value }))
               }
-              options={["Career advancement", "Expand knowledge", "Build network"]}
+              options={course.eligibility.goalsOptions}
             />
             <SelectField
               label="Select: Education level"
-              value={eligibilityForm.education}
+              value={eligibilityForm.educationLevel ?? ""}
               onChange={(value) =>
                 setEligibilityForm((previous) => ({
                   ...previous,
-                  education: value,
+                  educationLevel: value,
                 }))
               }
-              options={[
-                "High school",
-                "Diploma",
-                "Bachelor degree",
-                "Masters degree",
-                "Doctorate",
-              ]}
+              options={course.eligibility.educationOptions}
             />
             <SelectField
               label="Select: Experience"
-              value={eligibilityForm.experience}
+              value={eligibilityForm.experienceRange ?? ""}
               onChange={(value) =>
                 setEligibilityForm((previous) => ({
                   ...previous,
-                  experience: value,
+                  experienceRange: value,
                 }))
               }
-              options={["Less than 2 years", "2-5 years", "5+ years"]}
+              options={course.eligibility.experienceOptions}
             />
           </div>
           <Button
             className="mt-6 w-full"
             disabled={!isEligibilityFormComplete}
             onClick={() => {
-              setEligibilityOutcome(
-                isEligibleForMbaCourse({
-                  education: eligibilityForm.education,
-                  experience: eligibilityForm.experience,
-                })
-                  ? "success"
-                  : "fail",
-              );
+              const result = evaluateCourseEligibility(course.eligibility, eligibilityForm);
+              setEligibilityOutcome(result.eligible ? "success" : "fail");
+              setEligibilityReason(result.reason ?? "");
             }}
           >
             Next
@@ -257,45 +413,53 @@ export default function CourseDetails() {
 
       {eligibilityOutcome ? (
         <ModalShell
+          maxWidthClassName="max-w-xl"
           onClose={() => {
             setEligibilityOutcome(null);
+            setEligibilityReason("");
             setShowEligibility(false);
           }}
-          title={eligibilityOutcome === "success" ? "Success!" : "Sorry"}
+          title={
+            eligibilityOutcome === "success"
+              ? "Eligible to apply"
+              : "Not eligible yet"
+          }
         >
           <p
             className={`mb-4 text-lg font-semibold ${
               eligibilityOutcome === "success"
-                ? "text-green-600"
-                : "text-red-600"
+                ? "text-green-700"
+                : "text-red-700"
             }`}
           >
             {eligibilityOutcome === "success"
-              ? "You are eligible to apply"
-              : "You are currently ineligible for this course"}
+              ? "You meet the entry criteria"
+              : "You do not meet the entry criteria yet"}
           </p>
-          {eligibilityOutcome === "success" ? (
-            <Checklist items={eligibilityBenefits} />
-          ) : (
-            <p className="text-sm leading-6 text-slate-600">
-              This course currently expects either a bachelor degree or at least
-              two years of experience.
-            </p>
-          )}
+          <p className="text-sm leading-6 text-slate-600">
+            {eligibilityReason}
+          </p>
           <Button
             className="mt-6 w-full"
             onClick={() => {
               if (eligibilityOutcome === "success") {
                 setEligibilityOutcome(null);
+                setEligibilityReason("");
                 setShowEligibility(false);
                 handleEligibleApplyNow();
-              } else {
-                setEligibilityOutcome(null);
-                setShowEligibility(false);
+                return;
               }
+
+              setEligibilityOutcome(null);
+              setEligibilityReason("");
+              setShowEligibility(false);
             }}
           >
-            {eligibilityOutcome === "success" ? "Apply Now" : "Close"}
+            {eligibilityOutcome === "success"
+              ? isAuthenticated
+                ? "Start application"
+                : "Sign in to apply"
+              : "Close"}
           </Button>
         </ModalShell>
       ) : null}
@@ -324,7 +488,7 @@ function SelectField({
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: readonly string[];
   onChange: (value: string) => void;
 }) {
   return (

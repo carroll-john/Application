@@ -3,17 +3,18 @@ import {
   createBrowserRouter,
   Navigate,
   Outlet,
-  useLocation,
 } from "react-router-dom";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { useAuth } from "./context/AuthContext";
 import AuthCallback from "./pages/AuthCallback";
+import CourseList from "./pages/CourseList";
+import ApplicantProfile from "./pages/ApplicantProfile";
 import CourseDetails from "./pages/CourseDetails";
 import SignIn from "./pages/SignIn";
+import { useLocation } from "react-router-dom";
 
 const ApplicationSubmitted = lazy(() => import("./pages/ApplicationSubmitted"));
-const ApplicantProfile = lazy(() => import("./pages/ApplicantProfile"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Overview = lazy(() => import("./pages/Overview"));
 const ProfileRecommendations = lazy(
@@ -73,7 +74,6 @@ function Layout() {
 }
 
 function AuthRequiredLayout() {
-  const location = useLocation();
   const {
     isAuthorizedCompanyUser,
     isBypassedInDev,
@@ -81,6 +81,7 @@ function AuthRequiredLayout() {
     isLoading,
     session,
   } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return <RouteLoadingScreen />;
@@ -108,11 +109,11 @@ function AuthRequiredLayout() {
   }
 
   if (!session || !isAuthorizedCompanyUser) {
-    const redirectPath = `${location.pathname}${location.search}`;
+    const redirect = `${location.pathname}${location.search}`;
     return (
       <Navigate
         replace
-        to={`/sign-in?redirect=${encodeURIComponent(redirectPath)}`}
+        to={`/sign-in?redirect=${encodeURIComponent(redirect)}`}
       />
     );
   }
@@ -121,6 +122,14 @@ function AuthRequiredLayout() {
 }
 
 export const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <CourseList />,
+  },
+  {
+    path: "/courses/:courseCode",
+    element: <CourseDetails />,
+  },
   {
     path: "/sign-in",
     element: <SignIn />,
@@ -132,8 +141,8 @@ export const router = createBrowserRouter([
   {
     element: <AuthRequiredLayout />,
     children: [
-      { path: "/", element: <CourseDetails /> },
-      { path: "/applicant-profile", element: <ApplicantProfile /> },
+      { path: "/profile", element: <ApplicantProfile /> },
+      { path: "/applicant-profile", element: <Navigate replace to="/profile" /> },
       { path: "/overview", element: <Overview /> },
       { path: "/section1/basic-info", element: <Section1BasicInfo /> },
       {

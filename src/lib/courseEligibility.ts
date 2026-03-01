@@ -1,5 +1,4 @@
 export type CourseEducationLevel =
-  | "No formal education"
   | "High school"
   | "Diploma"
   | "Bachelor degree"
@@ -11,13 +10,33 @@ export type CourseExperienceLevel =
   | "2-5 years"
   | "5+ years";
 
-export interface EligibilityCheckInput {
-  education: string;
-  experience: string;
+export interface EligibilityAnswers {
+  educationLevel?: string;
+  experienceRange?: string;
+  goal?: string;
+}
+
+export interface EligibilityResult {
+  eligible: boolean;
+  reason?: string;
+}
+
+export type EligibilityRule = {
+  type: "min_education_or_experience";
+  minEducation: CourseEducationLevel;
+  minExperienceYears: number;
+};
+
+export interface CourseEligibilityConfig {
+  goalsOptions: string[];
+  educationOptions: CourseEducationLevel[];
+  experienceOptions: CourseExperienceLevel[];
+  rules: EligibilityRule[];
+  successCopy?: string;
+  ineligibleCopy?: string;
 }
 
 const educationRank: Record<CourseEducationLevel, number> = {
-  "No formal education": 0,
   "High school": 1,
   Diploma: 2,
   "Bachelor degree": 3,
@@ -27,21 +46,59 @@ const educationRank: Record<CourseEducationLevel, number> = {
 
 const experienceRank: Record<CourseExperienceLevel, number> = {
   "Less than 2 years": 0,
-  "2-5 years": 1,
-  "5+ years": 2,
+  "2-5 years": 2,
+  "5+ years": 5,
 };
 
-export function isEligibleForMbaCourse({
-  education,
-  experience,
-}: EligibilityCheckInput) {
-  const normalizedEducation = education as CourseEducationLevel;
-  const normalizedExperience = experience as CourseExperienceLevel;
+function meetsMinimumEducation(
+  educationLevel: string | undefined,
+  minimumEducation: CourseEducationLevel,
+) {
+  const normalizedEducation = educationLevel as CourseEducationLevel | undefined;
 
-  const hasBachelorOrHigher =
-    educationRank[normalizedEducation] >= educationRank["Bachelor degree"];
-  const hasTwoYearsOrMoreExperience =
-    experienceRank[normalizedExperience] >= experienceRank["2-5 years"];
+  if (!normalizedEducation) {
+    return false;
+  }
 
-  return hasBachelorOrHigher || hasTwoYearsOrMoreExperience;
+  return educationRank[normalizedEducation] >= educationRank[minimumEducation];
+}
+
+function meetsMinimumExperience(
+  experienceRange: string | undefined,
+  minimumExperienceYears: number,
+) {
+  const normalizedExperience = experienceRange as CourseExperienceLevel | undefined;
+
+  if (!normalizedExperience) {
+    return false;
+  }
+
+  return experienceRank[normalizedExperience] >= minimumExperienceYears;
+}
+
+function evaluateRule(
+  rule: EligibilityRule,
+  answers: EligibilityAnswers,
+) {
+  switch (rule.type) {
+    case "min_education_or_experience":
+      return (
+        meetsMinimumEducation(answers.educationLevel, rule.minEducation) ||
+        meetsMinimumExperience(answers.experienceRange, rule.minExperienceYears)
+      );
+    default:
+      return false;
+  }
+}
+
+export function evaluateCourseEligibility(
+  config: CourseEligibilityConfig,
+  answers: EligibilityAnswers,
+): EligibilityResult {
+  const eligible = config.rules.some((rule) => evaluateRule(rule, answers));
+
+  return {
+    eligible,
+    reason: eligible ? config.successCopy : config.ineligibleCopy,
+  };
 }
