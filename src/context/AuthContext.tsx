@@ -17,6 +17,7 @@ import {
 } from "../lib/supabase";
 import { ensureApplicantProfile } from "../lib/applicantProfileStore";
 import { ensureBusinessUserRecord } from "../lib/businessUsers";
+import { syncSentryUser } from "../lib/sentry";
 
 interface AuthContextType {
   user: User | null;
@@ -114,8 +115,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!session || !isAllowedSessionUser(session)) {
+      syncSentryUser(null);
       return;
     }
+
+    const email = session.user.email?.trim().toLowerCase();
+
+    syncSentryUser({
+      companyDomain: email?.split("@")[1],
+      email,
+      id: session.user.id,
+      name:
+        session.user.user_metadata?.full_name?.trim() ||
+        session.user.user_metadata?.name?.trim() ||
+        email?.split("@")[0],
+    });
 
     void Promise.all([
       ensureBusinessUserRecord(session),

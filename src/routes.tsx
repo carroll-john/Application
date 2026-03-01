@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import * as Sentry from "@sentry/react";
 import {
   createBrowserRouter,
   Navigate,
@@ -12,6 +13,7 @@ import CourseList from "./pages/CourseList";
 import ApplicantProfile from "./pages/ApplicantProfile";
 import CourseDetails from "./pages/CourseDetails";
 import SignIn from "./pages/SignIn";
+import { isSentryEnabled } from "./lib/sentry";
 import { useLocation } from "react-router-dom";
 
 const ApplicationSubmitted = lazy(() => import("./pages/ApplicationSubmitted"));
@@ -121,7 +123,11 @@ function AuthRequiredLayout() {
   return <Layout />;
 }
 
-export const router = createBrowserRouter([
+const createAppRouter = isSentryEnabled
+  ? Sentry.wrapCreateBrowserRouterV7(createBrowserRouter)
+  : createBrowserRouter;
+
+export const router = createAppRouter([
   {
     path: "/",
     element: <CourseList />,
