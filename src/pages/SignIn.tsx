@@ -118,9 +118,9 @@ export default function SignIn() {
               <div className="space-y-2">
                 <h2 className="text-2xl font-semibold text-slate-950">Work email</h2>
                 <p className="text-sm leading-6 text-slate-600">
-                  Enter your company email address to unlock the prototype.
-                  We only use the Keypath email domain as the access gate for
-                  this flow.
+                  Enter your company email address to unlock the prototype. We
+                  only use the Keypath email domain as the access gate for this
+                  flow.
                 </p>
               </div>
 
@@ -173,11 +173,7 @@ export default function SignIn() {
                   type="submit"
                   variant="soft"
                 >
-                  {isSubmitting ? (
-                    "Continuing..."
-                  ) : (
-                    "Continue"
-                  )}
+                  {isSubmitting ? "Continuing..." : "Continue"}
                 </Button>
               </form>
 

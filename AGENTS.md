@@ -19,18 +19,18 @@
 - Validate meaningful UI changes in the running app at both desktop and mobile sizes.
 - Form navigation belongs to the form layout, not the site footer. Use the shared action-bar pattern.
 - Keep routing and provider layers thin. Prefer inline route redirects and shared application state over one-off wrapper components when they do not add real behavior.
-- The repo now has a real auth scaffold. Use `AuthContext`, Supabase config, and protected routes instead of inventing page-local auth checks.
-- Company-only access is enforced at the sign-in form, the session gate, and the Supabase RLS layer. Do not rely on a single client-only domain check.
+- The repo now uses a company-email gate scaffold. Use `AuthContext` and protected routes instead of inventing page-local auth checks.
+- Company-only access is currently enforced at the sign-in form and route gate during the demo phase. Keep the Supabase allowlist/RLS setup aligned for backend operations, but do not assume a live session exists in the current frontend flow.
 - Keep that company-domain gate on the whole site during the current dogfood phase. Do not narrow it to admin-only routes until launch preparation explicitly calls for it.
 - Treat business-user access and applicant identity as separate concerns. Use the `business_users` and `applicant_profiles` groundwork rather than assuming the signed-in Keypath employee is the long-term applicant auth model.
-- The current Tuesday-demo auth model uses one real Keypath-only sign-in flow on `/sign-in`. Do not reintroduce a second inner OTP or pseudo-auth layer for applicants.
-- Auto-provision a reusable applicant profile for the signed-in user when no matching `applicant_profiles` record exists yet.
+- The current Tuesday-demo auth model uses one Keypath-only email-domain gate on `/sign-in`. Do not reintroduce OTP, magic-link, or a second inner pseudo-auth layer for applicants.
+- Auto-provision a reusable local applicant profile for the authorized email when no matching local profile exists yet.
 - Use `/profile` as plain profile management, not as an auth step. It should stay limited to updating email and name, linking to the dashboard, and logging out.
 - Profile data should seed new applications, but it must not continuously overwrite existing applications once they have been created.
 - A localhost-only auth bypass now exists for temporary verification beyond the Keypath gate. Keep it strictly local/dev-only and never let it leak into preview or production behavior.
 - The app now supports multiple applications per signed-in user, with one open draft per course for the Tuesday demo. Do not regress it back to a single-application model or reintroduce mock dashboard inventories or fake copy-from-application flows.
 - Treat the selected course as part of the persisted application. Reuse `applicationMeta.selectedCourse` and the shared course helpers instead of letting overview/dashboard/backend saves fall back to an implicit hard-coded course.
-- `ApplicationContext` is now a hybrid draft layer: local cache plus authenticated Supabase draft sync. Do not regress it back to browser-only persistence, and do not bypass the shared remote store when adding backend work.
+- `ApplicationContext` is currently local-first in the demo flow, with authenticated Supabase draft sync remaining available in code for future auth restoration. Do not regress local persistence, and do not bypass the shared remote store path when adding backend work.
 - For dashboard, overview, and other summary surfaces, prefer the shared `AppBrandHeader`, `SurfaceCard`, and `StatusPill` primitives over one-off wrappers.
 - Avoid unnecessary customization. If a button, badge, card, or accent treatment already exists in shared UI, reuse it instead of rebuilding it locally.
 - For document flows, use the shared `FileUpload` component and the IndexedDB-backed document storage pattern in `src/lib/documentStorage.ts` rather than storing file names only.

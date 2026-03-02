@@ -12,7 +12,10 @@ import {
   DEV_AUTH_BYPASS_STORAGE_KEY,
   isAllowedCompanyEmail,
 } from "../lib/supabase";
-import { clearLocalApplicantProfile } from "../lib/applicantProfileStore";
+import {
+  clearLocalApplicantProfile,
+  ensureApplicantProfile,
+} from "../lib/applicantProfileStore";
 import { clearLocalApplications } from "../lib/applicationRecords";
 import { clearStoredDocuments } from "../lib/documentStorage";
 import { syncSentryUser } from "../lib/sentry";
@@ -157,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         saveAuthorizedCompanyEmail(normalizedEmail);
+        await ensureApplicantProfile(null, normalizedEmail);
         setAuthorizedEmail(normalizedEmail);
         syncSentryUser({
           companyDomain: normalizedEmail.split("@")[1],

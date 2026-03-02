@@ -17,7 +17,7 @@ This file stores durable product, UX, and implementation rules for the applicati
 - The current Tuesday-demo model uses a company-email gate on `/sign-in` with no OTP or magic-link step.
 - Access remains restricted to `@keypathedu.com.au` during dogfooding.
 - Do not reintroduce OTP, magic-link, or a second inner pseudo-auth layer for applicants.
-- In the current flow, the company email unlocks local prototype access and the applicant profile is managed locally unless a newer auth decision restores real sessions.
+- In the current flow, the company email unlocks local prototype access and auto-seeds one reusable local applicant profile unless a newer auth decision restores real sessions.
 - `/profile` is profile management, not an auth step.
 - Reusable profile fields are limited to email, first name, and last name.
 - Profile changes affect future applications by default. Existing applications keep the values they were created with.

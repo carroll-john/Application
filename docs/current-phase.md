@@ -5,7 +5,7 @@ Get the Tuesday demo flow stable around:
 - course browsing from a seeded catalog
 - course-specific eligibility
 - one Keypath-domain email gate
-- local profile persistence
+- auto-seeded local profile persistence
 - multiple open applications by course
 - dashboard visibility for open and submitted applications
 

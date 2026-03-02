@@ -19,9 +19,6 @@ export default function ApplicantProfile() {
   const {
     companyUserDisplayName,
     companyUserEmail,
-    isBypassedInDev,
-    isConfigured,
-    session,
     signOut,
   } = useAuth();
   const [profileRecordId, setProfileRecordId] = useState<string | undefined>();
@@ -44,7 +41,8 @@ export default function ApplicantProfile() {
     const hydrate = async () => {
       try {
         const profile = await ensureApplicantProfile(
-          isConfigured && !isBypassedInDev ? session : null,
+          null,
+          companyUserEmail ?? undefined,
         );
 
         if (isCancelled) {
@@ -72,7 +70,7 @@ export default function ApplicantProfile() {
     return () => {
       isCancelled = true;
     };
-  }, [companyUserEmail, isBypassedInDev, isConfigured, session]);
+  }, [companyUserEmail]);
 
   function applyProfile(profile: StoredApplicantProfile | null) {
     const fallbackEmail = companyUserEmail ?? "";
@@ -112,7 +110,7 @@ export default function ApplicantProfile() {
 
     try {
       const savedProfile = await saveApplicantProfile(
-        isConfigured && !isBypassedInDev ? session : null,
+        null,
         {
           email: trimmedEmail,
           firstName: firstName.trim(),

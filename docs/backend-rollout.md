@@ -111,8 +111,8 @@ Notes:
 1. Create the Supabase project.
 2. Run `supabase/migrations/0001_initial.sql`.
 3. Insert allowed domains into `public.allowed_email_domains`.
-4. Configure Auth:
-   - enable magic links
+4. Configure Auth (only if restoring real authenticated sessions):
+   - enable the provider(s) you intend to use
    - set the site URL and redirect URLs for local + Vercel
    - disable providers you do not want exposed
 5. Configure the Vercel env vars.
