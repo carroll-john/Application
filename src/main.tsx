@@ -3,7 +3,10 @@ import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import App from "./App";
 import "./index.css";
+import { initClarity } from "./lib/clarity";
 import { initSentry, isSentryEnabled } from "./lib/sentry";
+
+initClarity();
 
 initSentry();
 

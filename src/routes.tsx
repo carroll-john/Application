@@ -1,13 +1,15 @@
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import * as Sentry from "@sentry/react";
 import {
   createBrowserRouter,
   Navigate,
   Outlet,
+  useLocation,
 } from "react-router-dom";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { useAuth } from "./context/AuthContext";
+import { setClarityTag } from "./lib/clarity";
 import AuthCallback from "./pages/AuthCallback";
 import CourseList from "./pages/CourseList";
 import ApplicantProfile from "./pages/ApplicantProfile";
@@ -16,7 +18,6 @@ import SignIn from "./pages/SignIn";
 import { isSentryEnabled } from "./lib/sentry";
 import { lazyWithRetry } from "./lib/routeChunkRecovery";
 import RouteErrorBoundary from "./pages/RouteErrorBoundary";
-import { useLocation } from "react-router-dom";
 
 const ApplicationSubmitted = lazyWithRetry(
   "application-submitted",
@@ -96,6 +97,52 @@ function RouteLoadingScreen() {
   );
 }
 
+function normalizeClarityRoute(pathname: string) {
+  const normalizedPath = pathname
+    .split("/")
+    .map((segment) => {
+      if (!segment) {
+        return segment;
+      }
+
+      if (/^\d+$/.test(segment)) {
+        return ":id";
+      }
+
+      if (
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          segment,
+        )
+      ) {
+        return ":id";
+      }
+
+      return segment;
+    })
+    .join("/");
+
+  return normalizedPath || "/";
+}
+
+function ClarityRouteTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    setClarityTag("route", normalizeClarityRoute(location.pathname));
+  }, [location.pathname]);
+
+  return null;
+}
+
+function RootLayout() {
+  return (
+    <>
+      <ClarityRouteTracker />
+      <Outlet />
+    </>
+  );
+}
+
 function Layout() {
   return (
     <>
@@ -159,7 +206,7 @@ const createAppRouter = isSentryEnabled
 
 export const router = createAppRouter([
   {
-    element: <Outlet />,
+    element: <RootLayout />,
     errorElement: <RouteErrorBoundary />,
     children: [
       {
