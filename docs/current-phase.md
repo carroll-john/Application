@@ -4,22 +4,22 @@
 Get the Tuesday demo flow stable around:
 - course browsing from a seeded catalog
 - course-specific eligibility
-- one real Keypath-only auth flow
-- automatic profile provisioning
+- one Keypath-domain email gate
+- local profile persistence
 - multiple open applications by course
 - dashboard visibility for open and submitted applications
 
 ## Done
-- Supabase auth, draft sync, storage, and server-backed submit are wired.
+- The Keypath-domain access gate is working in preview and production.
 - Keypath-only site access is working in preview and production.
 - Raw course extract is the catalog source of truth.
 - Intake, fee, support, duration, and visible category data are normalized.
 - The app supports multiple applications per signed-in user with one open draft per course.
 
 ## Next 3 Tasks
-1. Route-by-route QA of the multi-course browse -> eligibility -> auth -> apply flow.
+1. Route-by-route QA of the multi-course browse -> eligibility -> email gate -> apply flow.
 2. Tighten dashboard and overview wording so course/application status is unambiguous.
-3. Prepare and commit the current Tuesday-demo baseline before more feature work.
+3. Decide whether real Supabase auth should return after the demo or stay out of the prototype.
 
 ## Known Risks
 - Production and localhost can diverge if a stale Vite process or cached bundle is still active.

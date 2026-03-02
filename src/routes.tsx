@@ -84,7 +84,6 @@ function AuthRequiredLayout() {
     isBypassedInDev,
     isConfigured,
     isLoading,
-    session,
   } = useAuth();
   const location = useLocation();
 
@@ -104,16 +103,15 @@ function AuthRequiredLayout() {
             Authentication setup required
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Set `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and
-            `VITE_ALLOWED_EMAIL_DOMAINS` before deploying this app outside local
-            development.
+            Set `VITE_ALLOWED_EMAIL_DOMAINS` before deploying this app outside
+            local development.
           </p>
         </div>
       </div>
     );
   }
 
-  if (!session || !isAuthorizedCompanyUser) {
+  if (!isAuthorizedCompanyUser) {
     const redirect = `${location.pathname}${location.search}`;
     return (
       <Navigate

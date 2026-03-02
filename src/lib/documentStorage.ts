@@ -257,7 +257,8 @@ export async function replaceStoredDocument(
   }
 
   const { applicationId, kind } = options;
-  const canUseRemote = Boolean(applicationId && kind && supabase);
+  const session = supabase ? await getSupabaseSession() : null;
+  const canUseRemote = Boolean(applicationId && kind && supabase && session);
 
   const savedDocument = canUseRemote
     ? await saveRemoteDocumentFile(nextFile, applicationId!, kind!)
