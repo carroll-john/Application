@@ -23,6 +23,8 @@ const APP_ENVIRONMENT = import.meta.env.MODE;
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN?.trim() ?? "";
 const SENTRY_ENVIRONMENT =
   import.meta.env.VITE_SENTRY_ENVIRONMENT?.trim() || APP_ENVIRONMENT;
+const SENTRY_ENABLED =
+  import.meta.env.VITE_SENTRY_ENABLED?.trim().toLowerCase() === "true";
 
 let sentryStarted = false;
 
@@ -36,7 +38,7 @@ function parseSampleRate(value: string | undefined, fallback: number) {
   return Math.max(0, Math.min(1, parsed));
 }
 
-export const isSentryEnabled = Boolean(SENTRY_DSN);
+export const isSentryEnabled = SENTRY_ENABLED && Boolean(SENTRY_DSN);
 
 export function initSentry() {
   if (!isSentryEnabled || sentryStarted) {

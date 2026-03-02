@@ -1,13 +1,50 @@
 import { ArrowRight, BookOpen } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
 import { getCourseCatalog } from "../lib/courseCatalog";
+
+const COURSE_CATEGORY_FILTERS = ["All", "Business", "Technology", "Health"] as const;
+type CourseCategoryFilter = (typeof COURSE_CATEGORY_FILTERS)[number];
 
 export default function CourseList() {
   const navigate = useNavigate();
   const courses = getCourseCatalog();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<CourseCategoryFilter>("All");
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+
+  const filteredCourses = useMemo(
+    () =>
+      courses.filter((course) => {
+        const matchesCategory =
+          activeCategory === "All" || course.categories.includes(activeCategory);
+
+        if (!matchesCategory) {
+          return false;
+        }
+
+        if (!normalizedQuery) {
+          return true;
+        }
+
+        const searchableText = [
+          course.title,
+          course.provider,
+          course.categories.join(" "),
+          course.studyLevel ?? "",
+          course.courseType ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(normalizedQuery);
+      }),
+    [activeCategory, courses, normalizedQuery],
+  );
 
   return (
     <div className="min-h-screen bg-[#f7f7f4]">
@@ -28,8 +65,44 @@ export default function CourseList() {
           </p>
         </div>
 
+        <SurfaceCard className="mt-8 rounded-[28px] p-5 sm:p-6">
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">
+                Find courses quickly
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                Search by course or provider, then narrow by category.
+              </p>
+            </div>
+            <Input
+              aria-label="Search courses"
+              placeholder="Search by course name or provider"
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+            <div className="flex flex-wrap gap-2">
+              {COURSE_CATEGORY_FILTERS.map((category) => (
+                <Button
+                  key={category}
+                  size="sm"
+                  type="button"
+                  variant={activeCategory === category ? "soft" : "neutralOutline"}
+                  onClick={() => setActiveCategory(category)}
+                >
+                  {category}
+                </Button>
+              ))}
+            </div>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
+              {filteredCourses.length} courses shown
+            </p>
+          </div>
+        </SurfaceCard>
+
         <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {courses.map((course) => (
+          {filteredCourses.map((course) => (
             <SurfaceCard
               key={course.code}
               className="min-w-0 h-full rounded-[28px] border-slate-200 p-0"
@@ -97,6 +170,29 @@ export default function CourseList() {
             </SurfaceCard>
           ))}
         </div>
+
+        {!filteredCourses.length ? (
+          <SurfaceCard className="mt-6 rounded-[28px] p-6 text-center sm:p-8">
+            <p className="text-lg font-semibold text-slate-900">
+              No courses match those filters.
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              Try a different search term or reset to all categories.
+            </p>
+            <div className="mt-5 flex justify-center">
+              <Button
+                type="button"
+                variant="neutralOutline"
+                onClick={() => {
+                  setSearchQuery("");
+                  setActiveCategory("All");
+                }}
+              >
+                Clear filters
+              </Button>
+            </div>
+          </SurfaceCard>
+        ) : null}
       </section>
     </div>
   );
