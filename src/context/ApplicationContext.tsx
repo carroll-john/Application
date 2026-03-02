@@ -116,8 +116,8 @@ function replaceItemById<T extends { id: string }>(
 
 export function ApplicationProvider({ children }: { children: ReactNode }) {
   const {
+    companyUserEmail,
     isAuthorizedCompanyUser,
-    isBypassedInDev,
     isConfigured,
     session,
   } = useAuth();
@@ -236,7 +236,9 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     setIsHydrating(true);
 
     try {
-      const profile = await loadApplicantProfile(session ?? null);
+      const profile = session && isAuthorizedCompanyUser && isConfigured
+        ? await loadApplicantProfile(session)
+        : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
 
       if (!isMountedRef.current) {
         return;
@@ -311,7 +313,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         setIsHydrating(false);
       }
     }
-  }, [isAuthorizedCompanyUser, isBypassedInDev, isConfigured, session]);
+  }, [companyUserEmail, isAuthorizedCompanyUser, isConfigured, session]);
 
   useEffect(() => {
     void loadApplicationState();
@@ -356,21 +358,23 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   }, [loadApplicationState]);
 
   const refreshApplicantProfile = useCallback(async () => {
-    const profile = await loadApplicantProfile(session ?? null);
+    const profile = session && isAuthorizedCompanyUser && isConfigured
+      ? await loadApplicantProfile(session)
+      : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
 
     if (!isMountedRef.current) {
       return;
     }
 
     setApplicantProfile(profile);
-  }, [session]);
+  }, [companyUserEmail, isAuthorizedCompanyUser, isConfigured, session]);
 
   const beginCourseApplication = useCallback(
     async (course: SelectedCourse) => {
       const resolvedApplicantProfile =
         session && isAuthorizedCompanyUser && isConfigured
           ? await ensureApplicantProfile(session)
-          : applicantProfile;
+          : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
 
       if (isMountedRef.current) {
         setApplicantProfile(resolvedApplicantProfile);
@@ -408,8 +412,8 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       return persisted;
     },
     [
-      applicantProfile,
       applications,
+      companyUserEmail,
       data,
       isAuthorizedCompanyUser,
       isConfigured,

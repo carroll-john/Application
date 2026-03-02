@@ -13,6 +13,7 @@
     "finish-task": "bash ./scripts/finish-task.sh"
   },
   "dependencies": {
+    "@sentry/react": "^10.40.0",
     "@supabase/supabase-js": "^2.98.0",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.511.0",
@@ -22,10 +23,12 @@
     "react-router-dom": "^7.6.2"
   },
   "devDependencies": {
+    "@sentry/vite-plugin": "^5.1.1",
     "@tailwindcss/vite": "^4.1.8",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.5.2",
+    "node-fetch": "^2.7.0",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vitest": "^4.0.18"

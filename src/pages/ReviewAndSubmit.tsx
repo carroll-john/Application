@@ -11,6 +11,7 @@ import {
   validateApplication,
   type ValidationError,
 } from "../lib/applicationValidation";
+import { captureSentryException } from "../lib/sentry";
 import { sleep } from "../lib/utils";
 
 const REVIEW_VALIDATION_FLAG = "review:auto-validate";
@@ -68,6 +69,17 @@ export default function ReviewAndSubmit() {
       await markApplicationSubmitted();
       navigate("/submitted");
     } catch (error) {
+      captureSentryException(error, {
+        extras: {
+          activeApplicationId: data.applicationMeta.recordId ?? null,
+          courseCode: data.applicationMeta.selectedCourse?.code ?? null,
+          courseTitle: data.applicationMeta.selectedCourse?.title ?? null,
+        },
+        tags: {
+          flow: "application_submit",
+          screen: "review_and_submit",
+        },
+      });
       const message =
         error instanceof Error
           ? error.message
