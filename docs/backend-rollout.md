@@ -32,12 +32,15 @@ VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_ALLOWED_EMAIL_DOMAINS=yourcompany.com
+OPENAI_API_KEY=your_openai_api_key
+OPENAI_CV_PARSER_MODEL=gpt-4.1
 ```
 
 Current workspace values:
 - `VITE_SUPABASE_URL` points at your Supabase project
 - `VITE_ALLOWED_EMAIL_DOMAINS=keypathedu.com.au`
 - keep the publishable key only in local env and Vercel envs, not in checked-in docs
+- `OPENAI_API_KEY` is server-only and powers the `/api/parse-cv` function for CV employment parsing
 
 ## Supabase Project Setup
 Run [supabase/migrations/0001_initial.sql](/Users/jc/Documents/New%20project/supabase/migrations/0001_initial.sql) in the Supabase SQL editor, then seed the company allowlist:
@@ -146,6 +149,10 @@ Notes:
   - `src/lib/documentStorage.ts` uploads to Supabase Storage when auth + Supabase config + an application record are available
   - the Section 2 document forms create a remote application record on demand if needed before upload
   - local IndexedDB storage remains the fallback in development or when Supabase is not configured
+- CV parsing now runs through the Vercel server function `/api/parse-cv`:
+  - requires `OPENAI_API_KEY`
+  - optionally uses `OPENAI_CV_PARSER_MODEL`
+  - saves drafted employment history into the same application draft state used by the rest of Section 2
 - Remaining limitation:
   - the remote storage path still needs end-to-end verification against a real Supabase project and bucket configuration
   - document cleanup is best-effort today; orphaned remote file records are still possible if a document upload succeeds but a later draft save fails

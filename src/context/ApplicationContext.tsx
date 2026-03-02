@@ -69,6 +69,9 @@ interface ApplicationContextType {
   updatePersonalDetails: (updates: Partial<PersonalDetails>) => Promise<void>;
   uploadCV: (document: NonNullable<ApplicationData["cvDocument"]>) => Promise<void>;
   removeCV: () => Promise<void>;
+  replaceEmploymentExperiences: (
+    experiences: EmploymentExperience[],
+  ) => Promise<void>;
   addEmploymentExperience: (experience: EmploymentExperience) => Promise<void>;
   updateEmploymentExperience: (
     id: string,
@@ -122,6 +125,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     session,
   } = useAuth();
   const [data, setData] = useState<ApplicationData>(initialApplicationData);
+  const dataRef = useRef<ApplicationData>(initialApplicationData);
   const [applications, setApplications] = useState<ApplicationSummary[]>([]);
   const [activeApplicationId, setActiveApplicationId] = useState<string | null>(
     null,
@@ -138,6 +142,10 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       isMountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   const upsertSummary = useCallback((application: ApplicationData) => {
     const summary = summarizeApplication(application);
@@ -210,6 +218,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
       upsertLocalApplication(persistedData);
       upsertSummary(persistedData);
+      dataRef.current = persistedData;
       setData(persistedData);
 
       const nextActiveId =
@@ -262,6 +271,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
         if (!preferredId) {
           setActiveApplicationId(null);
+          dataRef.current = initialApplicationData;
           setData(initialApplicationData);
           return;
         }
@@ -276,6 +286,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
         setActiveApplicationId(preferredId);
         saveLocalActiveApplicationId(preferredId);
+        dataRef.current = remoteApplication;
         setData(remoteApplication);
         upsertLocalApplication(remoteApplication);
         return;
@@ -297,6 +308,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
       if (!preferredId) {
         setActiveApplicationId(null);
+        dataRef.current = initialApplicationData;
         setData(initialApplicationData);
         return;
       }
@@ -305,6 +317,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         findLocalApplicationById(preferredId) ?? initialApplicationData;
       setActiveApplicationId(preferredId);
       saveLocalActiveApplicationId(preferredId);
+      dataRef.current = localApplication;
       setData(localApplication);
     } finally {
       if (isMountedRef.current) {
@@ -329,6 +342,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        dataRef.current = remoteApplication;
         setData(remoteApplication);
         setActiveApplicationId(applicationId);
         saveLocalActiveApplicationId(applicationId);
@@ -343,6 +357,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      dataRef.current = localApplication;
       setData(localApplication);
       setActiveApplicationId(applicationId);
       saveLocalActiveApplicationId(applicationId);
@@ -420,18 +435,18 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   );
 
   const ensureRemoteRecordId = useCallback(async () => {
-    if (data.applicationMeta.recordId) {
-      return data.applicationMeta.recordId;
+    if (dataRef.current.applicationMeta.recordId) {
+      return dataRef.current.applicationMeta.recordId;
     }
 
-    const persisted = await persistApplication(data, { forceCreate: true });
+    const persisted = await persistApplication(dataRef.current, { forceCreate: true });
 
     if (!persisted.applicationMeta.recordId) {
       throw new Error("Unable to create an application record.");
     }
 
     return persisted.applicationMeta.recordId;
-  }, [data, persistApplication]);
+  }, [persistApplication]);
 
   const getNextIncompleteSection = useCallback(
     (application: ApplicationData = data) =>
@@ -441,10 +456,11 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
   const updateData = useCallback(
     async (updater: (current: ApplicationData) => ApplicationData) => {
-      const nextData = updater(data);
-      await persistApplication(nextData);
+      const nextData = updater(dataRef.current);
+      const persistedData = await persistApplication(nextData);
+      dataRef.current = persistedData;
     },
-    [data, persistApplication],
+    [persistApplication],
   );
 
   const markApplicationSubmitted = useCallback(async () => {
@@ -466,6 +482,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
       upsertLocalApplication(nextData);
       upsertSummary(nextData);
+      dataRef.current = nextData;
       setData(nextData);
       return;
     }
@@ -503,6 +520,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     clearLocalApplicantProfile();
     setApplications([]);
     setActiveApplicationId(null);
+    dataRef.current = initialApplicationData;
     setData(initialApplicationData);
     setApplicantProfile(null);
   }, [applications, isAuthorizedCompanyUser, isConfigured, session]);
@@ -552,6 +570,11 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           cvDocument: undefined,
           cvFileName: undefined,
           cvUploaded: false,
+        })),
+      replaceEmploymentExperiences: (experiences) =>
+        updateData((current) => ({
+          ...current,
+          employmentExperiences: experiences,
         })),
       addEmploymentExperience: (experience) =>
         updateData((current) => ({
