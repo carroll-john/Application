@@ -1,3 +1,6 @@
+import { useLocation } from "react-router-dom";
+import { useApplication } from "../context/ApplicationContext";
+import { captureApplicationStepEvent, getApplicationStepDefinition } from "../lib/posthog";
 import { Button, type ButtonProps } from "./ui/button";
 
 interface FormActionBarProps {
@@ -27,7 +30,38 @@ export function FormActionBar({
   primaryDisabled = false,
   primaryVariant = "default",
 }: FormActionBarProps) {
+  const location = useLocation();
+  const { data } = useApplication();
   const hasSecondary = Boolean(secondaryLabel && onSecondary);
+  const stepDefinition = getApplicationStepDefinition(location.pathname);
+
+  function handlePrimaryClick() {
+    if (stepDefinition && stepDefinition.group !== "review") {
+      captureApplicationStepEvent("application_step_completed", {
+        application: data,
+        pathname: location.pathname,
+        properties: {
+          action_label: primaryLabel,
+        },
+      });
+    }
+
+    onPrimary();
+  }
+
+  function handleSecondaryClick() {
+    if (stepDefinition) {
+      captureApplicationStepEvent("application_saved_for_later", {
+        application: data,
+        pathname: location.pathname,
+        properties: {
+          action_label: secondaryLabel,
+        },
+      });
+    }
+
+    onSecondary?.();
+  }
 
   return (
     <div
@@ -47,7 +81,7 @@ export function FormActionBar({
           <Button
             className="order-2 w-full"
             disabled={secondaryDisabled}
-            onClick={onSecondary}
+            onClick={handleSecondaryClick}
             variant={secondaryVariant}
           >
             {secondaryLabel}
@@ -56,7 +90,7 @@ export function FormActionBar({
         <Button
           className={hasSecondary ? "order-1 w-full sm:order-3" : "order-1 w-full sm:order-2"}
           disabled={primaryDisabled}
-          onClick={onPrimary}
+          onClick={handlePrimaryClick}
           variant={primaryVariant}
         >
           {primaryLabel}

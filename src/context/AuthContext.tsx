@@ -18,6 +18,7 @@ import {
 } from "../lib/applicantProfileStore";
 import { clearLocalApplications } from "../lib/applicationRecords";
 import { clearStoredDocuments } from "../lib/documentStorage";
+import { syncPostHogUser } from "../lib/posthog";
 import { syncSentryUser } from "../lib/sentry";
 
 interface AuthContextType {
@@ -112,10 +113,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!authorizedEmail) {
+      syncPostHogUser(null);
       syncSentryUser(null);
       return;
     }
 
+    syncPostHogUser({
+      companyDomain: authorizedEmail.split("@")[1],
+      email: authorizedEmail,
+      id: authorizedEmail,
+      name: formatCompanyDisplayName(authorizedEmail),
+    });
     syncSentryUser({
       companyDomain: authorizedEmail.split("@")[1],
       email: authorizedEmail,
@@ -162,6 +170,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         saveAuthorizedCompanyEmail(normalizedEmail);
         await ensureApplicantProfile(null, normalizedEmail);
         setAuthorizedEmail(normalizedEmail);
+        syncPostHogUser({
+          companyDomain: normalizedEmail.split("@")[1],
+          email: normalizedEmail,
+          id: normalizedEmail,
+          name: formatCompanyDisplayName(normalizedEmail),
+        });
         syncSentryUser({
           companyDomain: normalizedEmail.split("@")[1],
           email: normalizedEmail,
@@ -174,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut: async () => {
         clearAuthorizedCompanyEmail();
         setAuthorizedEmail(null);
+        syncPostHogUser(null);
         syncSentryUser(null);
 
         if (canUseLocalDevAuthBypass) {

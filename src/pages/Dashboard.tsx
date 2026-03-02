@@ -9,6 +9,7 @@ import { useApplication } from "../context/ApplicationContext";
 import { useAuth } from "../context/AuthContext";
 import type { ApplicationSummary } from "../lib/applicationRecords";
 import { formatApplicationDate, getSelectedCourse } from "../lib/applicationProgress";
+import { capturePostHogEvent } from "../lib/posthog";
 
 type DashboardTab = "all" | "draft" | "submitted";
 
@@ -153,6 +154,16 @@ export default function Dashboard() {
                 application={application}
                 isActive={application.id === activeApplicationId}
                 onOpen={async () => {
+                  capturePostHogEvent("application_opened_from_dashboard", {
+                    application_id: application.id,
+                    application_number: application.applicationNumber ?? null,
+                    application_status: application.status,
+                    course_code: application.course.code,
+                    course_intake: application.course.intake,
+                    course_provider: application.course.provider,
+                    course_title: application.course.title,
+                    is_active_application: application.id === activeApplicationId,
+                  });
                   await openApplication(application.id);
                   navigate(
                     application.status === "submitted" ? "/submitted" : "/overview",

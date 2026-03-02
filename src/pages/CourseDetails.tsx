@@ -14,6 +14,10 @@ import {
   evaluateCourseEligibility,
   type EligibilityAnswers,
 } from "../lib/courseEligibility";
+import {
+  capturePostHogEvent,
+  getCourseAnalyticsProperties,
+} from "../lib/posthog";
 
 type EligibilityOutcome = "success" | "fail" | null;
 
@@ -102,6 +106,10 @@ export default function CourseDetails() {
     setApplyError(null);
 
     if (isAuthenticated) {
+      capturePostHogEvent("application_start_requested", {
+        ...getCourseAnalyticsProperties(course),
+        auth_state: "authenticated",
+      });
       setIsStartingApplication(true);
 
       try {
@@ -124,6 +132,11 @@ export default function CourseDetails() {
       return;
     }
 
+    capturePostHogEvent("application_sign_in_redirected", {
+      ...getCourseAnalyticsProperties(course),
+      auth_state: "anonymous",
+      redirect_reason: "eligible_apply",
+    });
     resetEligibilityState();
     navigate(
       `/sign-in?redirect=${encodeURIComponent(
@@ -255,7 +268,12 @@ export default function CourseDetails() {
             </div>
             <Button
               className="mt-8 w-full"
-              onClick={() => setShowEligibility(true)}
+              onClick={() => {
+                capturePostHogEvent("eligibility_check_opened", {
+                  ...getCourseAnalyticsProperties(course),
+                });
+                setShowEligibility(true);
+              }}
             >
               Eligibility Check
             </Button>
@@ -443,6 +461,13 @@ export default function CourseDetails() {
             onClick={() => {
               setApplyError(null);
               const result = evaluateCourseEligibility(course.eligibility, eligibilityForm);
+              capturePostHogEvent("eligibility_check_completed", {
+                ...getCourseAnalyticsProperties(course),
+                education_level: eligibilityForm.educationLevel,
+                eligible: result.eligible,
+                experience_range: eligibilityForm.experienceRange,
+                goal: eligibilityForm.goal,
+              });
               setEligibilityOutcome(result.eligible ? "success" : "fail");
               setEligibilityReason(result.reason ?? "");
             }}

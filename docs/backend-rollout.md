@@ -30,6 +30,8 @@ Add these to Vercel and local `.env`:
 ```env
 VITE_CLARITY_PROJECT_ID=your_clarity_project_id
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+VITE_POSTHOG_KEY=your_posthog_project_key
+VITE_POSTHOG_HOST=https://us.i.posthog.com
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_ALLOWED_EMAIL_DOMAINS=yourcompany.com

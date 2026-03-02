@@ -4,10 +4,11 @@ import * as Sentry from "@sentry/react";
 import App from "./App";
 import "./index.css";
 import { initClarity } from "./lib/clarity";
+import { initPostHog } from "./lib/posthog";
 import { initSentry, isSentryEnabled } from "./lib/sentry";
 
 initClarity();
-
+initPostHog();
 initSentry();
 
 const container = document.getElementById("root");

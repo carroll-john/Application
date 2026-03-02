@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { ScrollToTop } from "./components/ScrollToTop";
+import { useApplication } from "./context/ApplicationContext";
 import { useAuth } from "./context/AuthContext";
 import { setClarityTag } from "./lib/clarity";
 import AuthCallback from "./pages/AuthCallback";
@@ -15,6 +16,7 @@ import CourseList from "./pages/CourseList";
 import ApplicantProfile from "./pages/ApplicantProfile";
 import CourseDetails from "./pages/CourseDetails";
 import SignIn from "./pages/SignIn";
+import { trackApplicationStepView, trackPostHogPageView } from "./lib/posthog";
 import { isSentryEnabled } from "./lib/sentry";
 import { lazyWithRetry } from "./lib/routeChunkRecovery";
 import RouteErrorBoundary from "./pages/RouteErrorBoundary";
@@ -134,18 +136,18 @@ function ClarityRouteTracker() {
   return null;
 }
 
-function RootLayout() {
+function Layout() {
+  const location = useLocation();
+  const { data } = useApplication();
+
+  useEffect(() => {
+    trackPostHogPageView(location.pathname, location.search);
+    trackApplicationStepView(location.pathname, data);
+  }, [data, location.pathname, location.search]);
+
   return (
     <>
       <ClarityRouteTracker />
-      <Outlet />
-    </>
-  );
-}
-
-function Layout() {
-  return (
-    <>
       <ScrollToTop />
       <Suspense fallback={<RouteLoadingScreen />}>
         <Outlet />
@@ -168,7 +170,7 @@ function AuthRequiredLayout() {
   }
 
   if (isBypassedInDev) {
-    return <Layout />;
+    return <Outlet />;
   }
 
   if (!isConfigured) {
@@ -197,7 +199,7 @@ function AuthRequiredLayout() {
     );
   }
 
-  return <Layout />;
+  return <Outlet />;
 }
 
 const createAppRouter = isSentryEnabled
@@ -206,7 +208,7 @@ const createAppRouter = isSentryEnabled
 
 export const router = createAppRouter([
   {
-    element: <RootLayout />,
+    element: <Layout />,
     errorElement: <RouteErrorBoundary />,
     children: [
       {
