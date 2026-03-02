@@ -28,6 +28,7 @@
 Add these to Vercel and local `.env`:
 
 ```env
+VITE_CLARITY_PROJECT_ID=your_clarity_project_id
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
@@ -37,6 +38,8 @@ VITE_ALLOWED_EMAIL_DOMAINS=yourcompany.com
 Current workspace values:
 - `VITE_SUPABASE_URL` points at your Supabase project
 - `VITE_ALLOWED_EMAIL_DOMAINS=keypathedu.com.au`
+- `VITE_CLARITY_PROJECT_ID` is optional; the frontend loader is a no-op until it is set
+- Clarity excludes likely automated traffic (for example `navigator.webdriver`, headless/bot user agents) and supports explicit opt-out via `?clarity=off` or local/session storage key `application-prototype:disable-clarity=1`.
 - keep the publishable key only in local env and Vercel envs, not in checked-in docs
 
 ## Supabase Project Setup

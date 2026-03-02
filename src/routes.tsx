@@ -1,18 +1,19 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import {
   createBrowserRouter,
   Navigate,
   Outlet,
+  useLocation,
 } from "react-router-dom";
 import { LoadingSpinner } from "./components/LoadingSpinner";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { useAuth } from "./context/AuthContext";
+import { setClarityTag } from "./lib/clarity";
 import AuthCallback from "./pages/AuthCallback";
 import CourseList from "./pages/CourseList";
 import ApplicantProfile from "./pages/ApplicantProfile";
 import CourseDetails from "./pages/CourseDetails";
 import SignIn from "./pages/SignIn";
-import { useLocation } from "react-router-dom";
 
 const ApplicationSubmitted = lazy(() => import("./pages/ApplicationSubmitted"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -62,10 +63,48 @@ function RouteLoadingScreen() {
   );
 }
 
+function normalizeClarityRoute(pathname: string) {
+  const normalizedPath = pathname
+    .split("/")
+    .map((segment) => {
+      if (!segment) {
+        return segment;
+      }
+
+      if (/^\d+$/.test(segment)) {
+        return ":id";
+      }
+
+      if (
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          segment,
+        )
+      ) {
+        return ":id";
+      }
+
+      return segment;
+    })
+    .join("/");
+
+  return normalizedPath || "/";
+}
+
+function ClarityRouteTracker() {
+  const location = useLocation();
+
+  useEffect(() => {
+    setClarityTag("route", normalizeClarityRoute(location.pathname));
+  }, [location.pathname]);
+
+  return null;
+}
+
 function Layout() {
   return (
     <>
       <ScrollToTop />
+      <ClarityRouteTracker />
       <Suspense fallback={<RouteLoadingScreen />}>
         <Outlet />
       </Suspense>
@@ -88,7 +127,7 @@ function AuthRequiredLayout() {
   }
 
   if (isBypassedInDev) {
-    return <Layout />;
+    return <Outlet />;
   }
 
   if (!isConfigured) {
@@ -118,88 +157,108 @@ function AuthRequiredLayout() {
     );
   }
 
-  return <Layout />;
+  return <Outlet />;
 }
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: <CourseList />,
-  },
-  {
-    path: "/courses/:courseCode",
-    element: <CourseDetails />,
-  },
-  {
-    path: "/sign-in",
-    element: <SignIn />,
-  },
-  {
-    path: "/auth/callback",
-    element: <AuthCallback />,
-  },
-  {
-    element: <AuthRequiredLayout />,
+    element: <Layout />,
     children: [
-      { path: "/profile", element: <ApplicantProfile /> },
-      { path: "/applicant-profile", element: <Navigate replace to="/profile" /> },
-      { path: "/overview", element: <Overview /> },
-      { path: "/section1/basic-info", element: <Section1BasicInfo /> },
       {
-        path: "/section1/personal-contact",
-        element: <Section1PersonalContact />,
-      },
-      { path: "/section1/contact-info", element: <Section1ContactInfo /> },
-      { path: "/section1/address", element: <Section1ContactDetails /> },
-      {
-        path: "/section1/cultural-background",
-        element: <Section1CulturalBackground />,
-      },
-      { path: "/section1/family-support", element: <Section1BackgroundInfo /> },
-      {
-        path: "/section1/contact-details",
-        element: <Navigate replace to="/section1/contact-info" />,
+        path: "/",
+        element: <CourseList />,
       },
       {
-        path: "/section1/background-info",
-        element: <Navigate replace to="/section1/family-support" />,
-      },
-      { path: "/section2/qualifications", element: <Section2Qualifications /> },
-      { path: "/section2/add-tertiary", element: <Section2AddTertiary /> },
-      { path: "/section2/edit-tertiary/:id", element: <Section2AddTertiary /> },
-      { path: "/section2/add-employment", element: <Section2AddEmployment /> },
-      {
-        path: "/section2/edit-employment/:id",
-        element: <Section2AddEmployment />,
+        path: "/courses/:courseCode",
+        element: <CourseDetails />,
       },
       {
-        path: "/section2/add-accreditation",
-        element: <Section2AddAccreditation />,
+        path: "/sign-in",
+        element: <SignIn />,
       },
       {
-        path: "/section2/edit-accreditation/:id",
-        element: <Section2AddAccreditation />,
-      },
-      { path: "/section2/add-secondary", element: <Section2AddSecondary /> },
-      {
-        path: "/section2/edit-secondary/:id",
-        element: <Section2AddSecondary />,
+        path: "/auth/callback",
+        element: <AuthCallback />,
       },
       {
-        path: "/section2/add-language-test",
-        element: <Section2AddLanguageTest />,
-      },
-      {
-        path: "/section2/edit-language-test/:id",
-        element: <Section2AddLanguageTest />,
-      },
-      { path: "/section2/add-cv", element: <Section2AddCV /> },
-      { path: "/review", element: <ReviewAndSubmit /> },
-      { path: "/submitted", element: <ApplicationSubmitted /> },
-      { path: "/dashboard", element: <Dashboard /> },
-      {
-        path: "/profile-recommendations",
-        element: <ProfileRecommendations />,
+        element: <AuthRequiredLayout />,
+        children: [
+          { path: "/profile", element: <ApplicantProfile /> },
+          {
+            path: "/applicant-profile",
+            element: <Navigate replace to="/profile" />,
+          },
+          { path: "/overview", element: <Overview /> },
+          { path: "/section1/basic-info", element: <Section1BasicInfo /> },
+          {
+            path: "/section1/personal-contact",
+            element: <Section1PersonalContact />,
+          },
+          { path: "/section1/contact-info", element: <Section1ContactInfo /> },
+          { path: "/section1/address", element: <Section1ContactDetails /> },
+          {
+            path: "/section1/cultural-background",
+            element: <Section1CulturalBackground />,
+          },
+          {
+            path: "/section1/family-support",
+            element: <Section1BackgroundInfo />,
+          },
+          {
+            path: "/section1/contact-details",
+            element: <Navigate replace to="/section1/contact-info" />,
+          },
+          {
+            path: "/section1/background-info",
+            element: <Navigate replace to="/section1/family-support" />,
+          },
+          {
+            path: "/section2/qualifications",
+            element: <Section2Qualifications />,
+          },
+          { path: "/section2/add-tertiary", element: <Section2AddTertiary /> },
+          {
+            path: "/section2/edit-tertiary/:id",
+            element: <Section2AddTertiary />,
+          },
+          {
+            path: "/section2/add-employment",
+            element: <Section2AddEmployment />,
+          },
+          {
+            path: "/section2/edit-employment/:id",
+            element: <Section2AddEmployment />,
+          },
+          {
+            path: "/section2/add-accreditation",
+            element: <Section2AddAccreditation />,
+          },
+          {
+            path: "/section2/edit-accreditation/:id",
+            element: <Section2AddAccreditation />,
+          },
+          { path: "/section2/add-secondary", element: <Section2AddSecondary /> },
+          {
+            path: "/section2/edit-secondary/:id",
+            element: <Section2AddSecondary />,
+          },
+          {
+            path: "/section2/add-language-test",
+            element: <Section2AddLanguageTest />,
+          },
+          {
+            path: "/section2/edit-language-test/:id",
+            element: <Section2AddLanguageTest />,
+          },
+          { path: "/section2/add-cv", element: <Section2AddCV /> },
+          { path: "/review", element: <ReviewAndSubmit /> },
+          { path: "/submitted", element: <ApplicationSubmitted /> },
+          { path: "/dashboard", element: <Dashboard /> },
+          {
+            path: "/profile-recommendations",
+            element: <ProfileRecommendations />,
+          },
+        ],
       },
     ],
   },
