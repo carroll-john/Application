@@ -2,10 +2,10 @@
 
 ## 2026-03-01
 
-### One real auth flow for the Tuesday demo
-- Use one real Supabase magic-link auth flow.
+### Company-domain gate for the Tuesday demo
+- Use a Keypath email-domain gate on `/sign-in`.
 - Restrict access to `@keypathedu.com.au` during dogfooding.
-- Do not use a second inner applicant OTP/login flow.
+- Do not use OTP, magic-link, or a second inner applicant login flow for the current demo.
 
 ### Profile is data, not auth
 - `/profile` is a reusable profile-management screen.

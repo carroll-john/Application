@@ -14,14 +14,14 @@ This file stores durable product, UX, and implementation rules for the applicati
 - Submission requirements and page-save requirements are separate unless the product explicitly says otherwise.
 
 ## Auth And Identity
-- The current Tuesday-demo model uses one real Supabase magic-link auth flow on `/sign-in`.
+- The current Tuesday-demo model uses a company-email gate on `/sign-in` with no OTP or magic-link step.
 - Access remains restricted to `@keypathedu.com.au` during dogfooding.
-- Do not reintroduce a second inner OTP or pseudo-auth layer for applicants.
-- Auto-provision one reusable `applicant_profiles` record for the signed-in user when no matching profile exists.
+- Do not reintroduce OTP, magic-link, or a second inner pseudo-auth layer for applicants.
+- In the current flow, the company email unlocks local prototype access and auto-seeds one reusable local applicant profile unless a newer auth decision restores real sessions.
 - `/profile` is profile management, not an auth step.
 - Reusable profile fields are limited to email, first name, and last name.
 - Profile changes affect future applications by default. Existing applications keep the values they were created with.
-- After Keypath auth, users should land on the course catalog (`/`), not be bounced into profile or application routes.
+- After the Keypath email gate, users should land on the intended course or app route, or `/` by default.
 - A localhost-only auth bypass exists for local verification. It must stay dev-only and must never affect preview or production behavior.
 
 ## Course And Application Model
@@ -49,10 +49,10 @@ This file stores durable product, UX, and implementation rules for the applicati
 
 ## State And Persistence
 - `ApplicationContext` is the shared application state layer.
-- It is a hybrid draft model: local cache plus authenticated Supabase draft sync.
-- Do not regress application persistence back to browser-only or page-local state.
+- It currently runs in local-first mode for the Tuesday demo because the access gate no longer creates a real Supabase session.
+- Keep shared draft persistence in `ApplicationContext`; do not scatter it into page-local state.
 - Shared application types and local cache helpers live in `src/lib/applicationData.ts`.
-- Document storage is hybrid through `src/lib/documentStorage.ts`: Supabase Storage when available, local fallback in development.
+- Document storage should fall back cleanly to local IndexedDB when no authenticated Supabase session is present.
 
 ## Validation Rules
 - Section 2 submission rule: the user must have either at least one tertiary qualification, or both a CV and employment experience.

@@ -14,6 +14,47 @@ export interface StoredApplicantProfile extends ApplicantProfileSeed {
   id?: string;
 }
 
+function createLocalApplicantProfileId(email: string) {
+  return `local-profile:${email.trim().toLowerCase()}`;
+}
+
+function toTitleCasePart(part: string) {
+  if (!part) {
+    return "";
+  }
+
+  return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+}
+
+function deriveProfileNameFromEmail(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const [localPart = ""] = normalizedEmail.split("@");
+  const baseLocalPart = localPart.split("+")[0] ?? localPart;
+  const tokens = baseLocalPart
+    .split(/[^a-z0-9]+/i)
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+  if (tokens.length === 0) {
+    return {
+      firstName: "",
+      lastName: "",
+    };
+  }
+
+  if (tokens.length === 1) {
+    return {
+      firstName: toTitleCasePart(tokens[0]),
+      lastName: "",
+    };
+  }
+
+  return {
+    firstName: toTitleCasePart(tokens[0]),
+    lastName: tokens.slice(1).map(toTitleCasePart).join(" "),
+  };
+}
+
 function normalizeProfile(
   profile: ApplicantProfileSeed | StoredApplicantProfile,
 ): StoredApplicantProfile {
@@ -70,6 +111,20 @@ export function clearLocalApplicantProfile() {
   }
 
   window.localStorage.removeItem(LOCAL_APPLICANT_PROFILE_STORAGE_KEY);
+}
+
+export function createSeededLocalApplicantProfile(
+  email: string,
+): StoredApplicantProfile {
+  const normalizedEmail = email.trim().toLowerCase();
+  const seededName = deriveProfileNameFromEmail(normalizedEmail);
+
+  return normalizeProfile({
+    id: createLocalApplicantProfileId(normalizedEmail),
+    email: normalizedEmail,
+    firstName: seededName.firstName,
+    lastName: seededName.lastName,
+  });
 }
 
 function mapRemoteProfile(
@@ -175,9 +230,35 @@ export async function saveApplicantProfile(
 
 export async function ensureApplicantProfile(
   session: Session | null,
+  fallbackEmail?: string,
 ): Promise<StoredApplicantProfile | null> {
   if (!session) {
-    return loadLocalApplicantProfile();
+    const existingProfile = loadLocalApplicantProfile();
+    const normalizedFallbackEmail = fallbackEmail?.trim().toLowerCase();
+
+    if (
+      existingProfile &&
+      (!normalizedFallbackEmail || existingProfile.email === normalizedFallbackEmail)
+    ) {
+      if (existingProfile.id) {
+        return existingProfile;
+      }
+
+      const upgradedProfile = {
+        ...existingProfile,
+        id: createLocalApplicantProfileId(existingProfile.email),
+      };
+      saveLocalApplicantProfile(upgradedProfile);
+      return upgradedProfile;
+    }
+
+    if (!normalizedFallbackEmail) {
+      return existingProfile;
+    }
+
+    const seededProfile = createSeededLocalApplicantProfile(normalizedFallbackEmail);
+    saveLocalApplicantProfile(seededProfile);
+    return seededProfile;
   }
 
   const existingProfile = await loadApplicantProfile(session);

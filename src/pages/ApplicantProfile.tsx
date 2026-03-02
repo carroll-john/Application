@@ -16,8 +16,11 @@ import {
 export default function ApplicantProfile() {
   const navigate = useNavigate();
   const { refreshApplicantProfile } = useApplication();
-  const { companyUserDisplayName, isBypassedInDev, isConfigured, session, signOut } =
-    useAuth();
+  const {
+    companyUserDisplayName,
+    companyUserEmail,
+    signOut,
+  } = useAuth();
   const [profileRecordId, setProfileRecordId] = useState<string | undefined>();
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -38,7 +41,8 @@ export default function ApplicantProfile() {
     const hydrate = async () => {
       try {
         const profile = await ensureApplicantProfile(
-          isConfigured && !isBypassedInDev ? session : null,
+          null,
+          companyUserEmail ?? undefined,
         );
 
         if (isCancelled) {
@@ -66,23 +70,15 @@ export default function ApplicantProfile() {
     return () => {
       isCancelled = true;
     };
-  }, [isBypassedInDev, isConfigured, session]);
+  }, [companyUserEmail]);
 
   function applyProfile(profile: StoredApplicantProfile | null) {
-    const fallbackEmail = session?.user.email?.trim().toLowerCase() ?? "";
-    const fallbackFirstName =
-      session?.user.user_metadata?.given_name?.trim?.() ||
-      session?.user.user_metadata?.first_name?.trim?.() ||
-      "";
-    const fallbackLastName =
-      session?.user.user_metadata?.family_name?.trim?.() ||
-      session?.user.user_metadata?.last_name?.trim?.() ||
-      "";
+    const fallbackEmail = companyUserEmail ?? "";
 
     setProfileRecordId(profile?.id);
     setEmail(profile?.email ?? fallbackEmail);
-    setFirstName(profile?.firstName ?? fallbackFirstName);
-    setLastName(profile?.lastName ?? fallbackLastName);
+    setFirstName(profile?.firstName ?? "");
+    setLastName(profile?.lastName ?? "");
   }
 
   async function handleSave() {
@@ -114,7 +110,7 @@ export default function ApplicantProfile() {
 
     try {
       const savedProfile = await saveApplicantProfile(
-        isConfigured && !isBypassedInDev ? session : null,
+        null,
         {
           email: trimmedEmail,
           firstName: firstName.trim(),
