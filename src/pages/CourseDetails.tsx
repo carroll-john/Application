@@ -21,7 +21,7 @@ export default function CourseDetails() {
   const navigate = useNavigate();
   const { courseCode } = useParams();
   const [searchParams] = useSearchParams();
-  const { session, isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
+  const { isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
   const { beginCourseApplication, isHydrating } = useApplication();
   const course = useMemo(
     () => getCourseByCode(courseCode) ?? getDefaultCourse(),
@@ -39,9 +39,7 @@ export default function CourseDetails() {
   });
   const [isStartingApplication, setIsStartingApplication] = useState(false);
   const autoApplyStartedRef = useRef(false);
-  const isAuthenticated = Boolean(
-    isBypassedInDev || (session && isAuthorizedCompanyUser),
-  );
+  const isAuthenticated = Boolean(isBypassedInDev || isAuthorizedCompanyUser);
   const shouldAutoApply =
     searchParams.get("apply") === "1" && searchParams.get("eligible") === "1";
   const isApplyActionPending = isHydrating || isStartingApplication;

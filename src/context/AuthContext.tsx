@@ -6,33 +6,29 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Session, User } from "@supabase/supabase-js";
 import {
   allowedEmailDomains,
   canUseLocalDevAuthBypass,
   DEV_AUTH_BYPASS_STORAGE_KEY,
   isAllowedCompanyEmail,
-  isSupabaseConfigured,
-  supabase,
 } from "../lib/supabase";
-import { ensureApplicantProfile } from "../lib/applicantProfileStore";
-import { ensureBusinessUserRecord } from "../lib/businessUsers";
+import { clearLocalApplicantProfile } from "../lib/applicantProfileStore";
+import { clearLocalApplications } from "../lib/applicationRecords";
+import { clearStoredDocuments } from "../lib/documentStorage";
 import { syncSentryUser } from "../lib/sentry";
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: null;
+  session: null;
   isLoading: boolean;
   isConfigured: boolean;
   isBypassedInDev: boolean;
   canUseDevBypass: boolean;
   isAuthorizedCompanyUser: boolean;
+  companyUserEmail: string | null;
   companyUserDisplayName: string;
   companyDomains: string[];
-  sendMagicLink: (
-    email: string,
-    redirectPath?: string,
-  ) => Promise<{ error: string | null }>;
+  authorizeCompanyEmail: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   isAllowedEmail: (email: string) => boolean;
   enableDevBypass: () => void;
@@ -40,16 +36,63 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const COMPANY_ACCESS_EMAIL_STORAGE_KEY =
+  "application-prototype:company-access-email";
 
-function isAllowedSessionUser(nextSession: Session | null) {
-  const email = nextSession?.user.email?.trim().toLowerCase();
-  return Boolean(email && isAllowedCompanyEmail(email));
+function normalizeCompanyEmail(email: string | null | undefined) {
+  return email?.trim().toLowerCase() ?? "";
+}
+
+function loadAuthorizedCompanyEmail() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const email = normalizeCompanyEmail(
+    window.localStorage.getItem(COMPANY_ACCESS_EMAIL_STORAGE_KEY),
+  );
+
+  return email && isAllowedCompanyEmail(email) ? email : null;
+}
+
+function saveAuthorizedCompanyEmail(email: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(COMPANY_ACCESS_EMAIL_STORAGE_KEY, email);
+}
+
+function clearAuthorizedCompanyEmail() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(COMPANY_ACCESS_EMAIL_STORAGE_KEY);
+}
+
+function formatCompanyDisplayName(email: string | null) {
+  if (!email) {
+    return "Team member";
+  }
+
+  const localPart = email.split("@")[0] ?? "";
+  const normalizedName = localPart.replace(/[._-]+/g, " ").trim();
+
+  if (!normalizedName) {
+    return "Team member";
+  }
+
+  return normalizedName
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
+  const [authorizedEmail, setAuthorizedEmail] = useState<string | null>(() =>
+    loadAuthorizedCompanyEmail(),
+  );
   const [hasDevBypassEnabled, setHasDevBypassEnabled] = useState(() => {
     if (!canUseLocalDevAuthBypass) {
       return false;
@@ -59,135 +102,80 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.localStorage.getItem(DEV_AUTH_BYPASS_STORAGE_KEY) === "enabled"
     );
   });
+  const isCompanyGateConfigured = allowedEmailDomains.length > 0;
 
   const isBypassedInDev =
-    (import.meta.env.DEV && !isSupabaseConfigured) || hasDevBypassEnabled;
+    (import.meta.env.DEV && !isCompanyGateConfigured) || hasDevBypassEnabled;
 
   useEffect(() => {
-    const client = supabase;
-
-    if (!client) {
-      setIsLoading(false);
-      return;
-    }
-
-    let isMounted = true;
-
-    void client.auth.getSession().then(({ data }) => {
-      if (!isMounted) {
-        return;
-      }
-
-      if (data.session && !isAllowedSessionUser(data.session)) {
-        void client.auth.signOut();
-        setSession(null);
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      setIsLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = client.auth.onAuthStateChange((_event, nextSession) => {
-      if (nextSession && !isAllowedSessionUser(nextSession)) {
-        void client.auth.signOut();
-        setSession(null);
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-      setIsLoading(false);
-    });
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!session || !isAllowedSessionUser(session)) {
+    if (!authorizedEmail) {
       syncSentryUser(null);
       return;
     }
 
-    const email = session.user.email?.trim().toLowerCase();
-
     syncSentryUser({
-      companyDomain: email?.split("@")[1],
-      email,
-      id: session.user.id,
-      name:
-        session.user.user_metadata?.full_name?.trim() ||
-        session.user.user_metadata?.name?.trim() ||
-        email?.split("@")[0],
+      companyDomain: authorizedEmail.split("@")[1],
+      email: authorizedEmail,
+      id: authorizedEmail,
+      name: formatCompanyDisplayName(authorizedEmail),
     });
-
-    void Promise.all([
-      ensureBusinessUserRecord(session),
-      ensureApplicantProfile(session),
-    ]).catch(() => {
-      // Do not block the sign-in flow if profile provisioning fails.
-    });
-  }, [session]);
+  }, [authorizedEmail]);
 
   const value = useMemo<AuthContextType>(
     () => ({
-      user,
-      session,
-      isLoading,
-      isConfigured: isSupabaseConfigured,
+      user: null,
+      session: null,
+      isLoading: false,
+      isConfigured: isCompanyGateConfigured,
       isBypassedInDev,
       canUseDevBypass: canUseLocalDevAuthBypass,
-      isAuthorizedCompanyUser: isAllowedSessionUser(session),
-      companyUserDisplayName:
-        user?.user_metadata?.full_name?.trim() ||
-        user?.user_metadata?.name?.trim() ||
-        user?.email?.split("@")[0] ||
-        "Team member",
+      isAuthorizedCompanyUser: Boolean(authorizedEmail) || isBypassedInDev,
+      companyUserEmail: authorizedEmail,
+      companyUserDisplayName: formatCompanyDisplayName(authorizedEmail),
       companyDomains: allowedEmailDomains,
-      sendMagicLink: async (email, redirectPath = "/") => {
-        if (!supabase) {
-          return { error: "Supabase auth is not configured." };
+      authorizeCompanyEmail: async (email) => {
+        const normalizedEmail = normalizeCompanyEmail(email);
+
+        if (!normalizedEmail) {
+          return { error: "Enter your work email address." };
         }
 
-        if (!isAllowedCompanyEmail(email)) {
+        if (!isAllowedCompanyEmail(normalizedEmail)) {
           return {
             error: `Use your company email address (${allowedEmailDomains.join(", ")}).`,
           };
         }
 
-        const redirectUrl = new URL("/auth/callback", window.location.origin);
-        redirectUrl.searchParams.set("redirect", redirectPath);
+        const previousEmail = loadAuthorizedCompanyEmail();
 
-        const { error } = await supabase.auth.signInWithOtp({
-          email: email.trim().toLowerCase(),
-          options: {
-            emailRedirectTo: redirectUrl.toString(),
-          },
+        if (previousEmail && previousEmail !== normalizedEmail) {
+          clearLocalApplications();
+          clearLocalApplicantProfile();
+          await clearStoredDocuments().catch(() => {
+            // Ignore IndexedDB cleanup issues during gate changes.
+          });
+        }
+
+        saveAuthorizedCompanyEmail(normalizedEmail);
+        setAuthorizedEmail(normalizedEmail);
+        syncSentryUser({
+          companyDomain: normalizedEmail.split("@")[1],
+          email: normalizedEmail,
+          id: normalizedEmail,
+          name: formatCompanyDisplayName(normalizedEmail),
         });
 
-        return { error: error?.message ?? null };
+        return { error: null };
       },
       signOut: async () => {
+        clearAuthorizedCompanyEmail();
+        setAuthorizedEmail(null);
+        syncSentryUser(null);
+
         if (canUseLocalDevAuthBypass) {
           window.localStorage.removeItem(DEV_AUTH_BYPASS_STORAGE_KEY);
           setHasDevBypassEnabled(false);
         }
-
-        if (!supabase) {
-          return;
-        }
-
-        await supabase.auth.signOut();
       },
       isAllowedEmail: isAllowedCompanyEmail,
       enableDevBypass: () => {
@@ -207,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setHasDevBypassEnabled(false);
       },
     }),
-    [hasDevBypassEnabled, isBypassedInDev, isLoading, session, user],
+    [authorizedEmail, isBypassedInDev, isCompanyGateConfigured],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

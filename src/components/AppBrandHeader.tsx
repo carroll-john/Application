@@ -14,8 +14,8 @@ export function AppBrandHeader({
   showApplicantProfileLink = true,
 }: AppBrandHeaderProps) {
   const location = useLocation();
-  const { isAuthorizedCompanyUser, isBypassedInDev, session } = useAuth();
-  const isSignedIn = isBypassedInDev || Boolean(session && isAuthorizedCompanyUser);
+  const { isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
+  const isSignedIn = isBypassedInDev || isAuthorizedCompanyUser;
   const canShowAccountLink =
     showApplicantProfileLink &&
     location.pathname !== "/profile" &&

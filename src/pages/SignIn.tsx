@@ -1,25 +1,24 @@
 import { Mail, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useLocation, useSearchParams } from "react-router-dom";
+import {
+  Navigate,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
-import { LoadingSpinner } from "../components/LoadingSpinner";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { useAuth } from "../context/AuthContext";
-
-const EMAIL_RESEND_COOLDOWN_MS = 60_000;
-const EMAIL_RATE_LIMIT_COOLDOWN_MS = 5 * 60_000;
-const SIGN_IN_LAST_SENT_STORAGE_KEY =
-  "application-prototype:sign-in:last-email-link-sent-at";
-const SIGN_IN_RATE_LIMIT_UNTIL_STORAGE_KEY =
-  "application-prototype:sign-in:rate-limit-until";
+import { sanitizeRedirectPath } from "../lib/authCallback";
 
 function formatDomains(domains: string[]) {
   return domains.map((domain) => `@${domain}`).join(", ");
 }
 
 export default function SignIn() {
+  const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const {
@@ -31,41 +30,16 @@ export default function SignIn() {
     isAllowedEmail,
     isBypassedInDev,
     isConfigured,
-    isLoading,
-    sendMagicLink,
-    session,
+    authorizeCompanyEmail,
   } = useAuth();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [cooldownRemainingMs, setCooldownRemainingMs] = useState(() => {
-    if (typeof window === "undefined") {
-      return 0;
-    }
-
-    const lastSentAt = Number(
-      window.localStorage.getItem(SIGN_IN_LAST_SENT_STORAGE_KEY) ?? 0,
-    );
-    const rateLimitUntil = Number(
-      window.localStorage.getItem(SIGN_IN_RATE_LIMIT_UNTIL_STORAGE_KEY) ?? 0,
-    );
-
-    const standardCooldownRemaining = Math.max(
-      0,
-      EMAIL_RESEND_COOLDOWN_MS - (Date.now() - lastSentAt),
-    );
-    const rateLimitCooldownRemaining = Math.max(
-      0,
-      rateLimitUntil - Date.now(),
-    );
-
-    return Math.max(standardCooldownRemaining, rateLimitCooldownRemaining);
-  });
+  const trimmedEmail = email.trim().toLowerCase();
 
   const redirectPath = useMemo(() => {
     const params = new URLSearchParams(location.search);
-    return params.get("redirect") || "/";
+    return sanitizeRedirectPath(params.get("redirect"));
   }, [location.search]);
 
   const shouldAutoEnableDevBypass =
@@ -77,48 +51,13 @@ export default function SignIn() {
     }
   }, [enableDevBypass, shouldAutoEnableDevBypass]);
 
-  useEffect(() => {
-    if (cooldownRemainingMs <= 0) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setCooldownRemainingMs((previous) => Math.max(0, previous - 1000));
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [cooldownRemainingMs]);
-
-  if ((session && isAuthorizedCompanyUser) || isBypassedInDev) {
+  if (isAuthorizedCompanyUser || isBypassedInDev) {
     return <Navigate replace to={redirectPath} />;
-  }
-
-  const cooldownSeconds = Math.ceil(cooldownRemainingMs / 1000);
-
-  function startResendCooldown(durationMs = EMAIL_RESEND_COOLDOWN_MS) {
-    if (typeof window !== "undefined") {
-      const now = Date.now();
-      window.localStorage.setItem(SIGN_IN_LAST_SENT_STORAGE_KEY, String(now));
-
-      if (durationMs > EMAIL_RESEND_COOLDOWN_MS) {
-        window.localStorage.setItem(
-          SIGN_IN_RATE_LIMIT_UNTIL_STORAGE_KEY,
-          String(now + durationMs),
-        );
-      } else {
-        window.localStorage.removeItem(SIGN_IN_RATE_LIMIT_UNTIL_STORAGE_KEY);
-      }
-    }
-
-    setCooldownRemainingMs(durationMs);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setSuccess(null);
-
-    const trimmedEmail = email.trim().toLowerCase();
 
     if (!trimmedEmail) {
       setError("Enter your work email address.");
@@ -132,34 +71,15 @@ export default function SignIn() {
       return;
     }
 
-    if (cooldownRemainingMs > 0) {
-      setError(
-        `A sign-in link was just sent. Wait ${cooldownSeconds} seconds, or use the email already in your inbox.`,
-      );
-      return;
-    }
-
     setIsSubmitting(true);
-      const { error: signInError } = await sendMagicLink(trimmedEmail, redirectPath);
+    const { error: signInError } = await authorizeCompanyEmail(trimmedEmail);
     setIsSubmitting(false);
 
     if (signInError) {
-      if (signInError.toLowerCase().includes("rate limit")) {
-        startResendCooldown(EMAIL_RATE_LIMIT_COOLDOWN_MS);
-        setError(
-          "You’ve requested sign-in links too frequently. Use the latest email already in your inbox, or wait a few minutes before trying again.",
-        );
-        return;
-      }
-
       setError(signInError);
       return;
     }
-
-    startResendCooldown();
-    setSuccess(
-      `Magic link sent to ${trimmedEmail}. Open it on this device to continue.`,
-    );
+    navigate(redirectPath, { replace: true });
   }
 
   return (
@@ -178,7 +98,7 @@ export default function SignIn() {
               </h1>
               <p className="max-w-xl text-lg leading-8 text-slate-600">
                 This environment is limited to employees using approved company
-                email domains. We&apos;ll send you a secure magic link to continue.
+                email domains. Enter your Keypath email to continue.
               </p>
             </div>
             <div className="rounded-[28px] border border-slate-200 bg-white/80 p-6 shadow-sm">
@@ -198,17 +118,17 @@ export default function SignIn() {
               <div className="space-y-2">
                 <h2 className="text-2xl font-semibold text-slate-950">Work email</h2>
                 <p className="text-sm leading-6 text-slate-600">
-                  Enter your company email address and we&apos;ll send you a magic
-                  link. If this is your first time here, we&apos;ll create your
-                  account automatically after verification.
+                  Enter your company email address to unlock the prototype.
+                  We only use the Keypath email domain as the access gate for
+                  this flow.
                 </p>
               </div>
 
               {!isConfigured ? (
                 <div className="rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-bg)] p-4 text-sm text-[var(--warning-text)]">
-                  Supabase auth is not configured yet. Add `VITE_SUPABASE_URL`,
-                  `VITE_SUPABASE_ANON_KEY`, and `VITE_ALLOWED_EMAIL_DOMAINS` to
-                  enable sign-in outside local development.
+                  Company-email access is not configured yet. Add
+                  `VITE_ALLOWED_EMAIL_DOMAINS` to enable sign-in outside local
+                  development.
                 </div>
               ) : null}
 
@@ -233,7 +153,10 @@ export default function SignIn() {
                       }
                       type="email"
                       value={email}
-                      onChange={(event) => setEmail(event.target.value)}
+                      onChange={(event) => {
+                        setEmail(event.target.value);
+                        setError(null);
+                      }}
                     />
                   </div>
                 </div>
@@ -243,35 +166,17 @@ export default function SignIn() {
                     {error}
                   </p>
                 ) : null}
-                {success ? (
-                  <p className="text-sm font-medium text-[var(--success-text)]">
-                    {success}
-                  </p>
-                ) : null}
-                {cooldownRemainingMs > 0 ? (
-                  <p className="text-sm text-slate-500">
-                    You can request another link in {cooldownSeconds} seconds.
-                  </p>
-                ) : null}
 
                 <Button
                   className="h-12 w-full justify-center text-base"
-                  disabled={
-                    isSubmitting ||
-                    isLoading ||
-                    !isConfigured ||
-                    cooldownRemainingMs > 0
-                  }
+                  disabled={isSubmitting || !isConfigured}
                   type="submit"
                   variant="soft"
                 >
                   {isSubmitting ? (
-                    <>
-                      <LoadingSpinner />
-                      Sending link...
-                    </>
+                    "Continuing..."
                   ) : (
-                    "Send magic link"
+                    "Continue"
                   )}
                 </Button>
               </form>
@@ -293,7 +198,6 @@ export default function SignIn() {
                       onClick={() => {
                         disableDevBypass();
                         setError(null);
-                        setSuccess(null);
                       }}
                     >
                       Use real sign-in
