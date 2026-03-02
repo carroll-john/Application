@@ -65,23 +65,21 @@ export default function CourseList() {
           </p>
         </div>
 
-        <SurfaceCard className="mt-8 rounded-[28px] p-5 sm:p-6">
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">
-                Find courses quickly
-              </p>
-              <p className="mt-1 text-sm text-slate-600">
-                Search by course or provider, then narrow by category.
+        <SurfaceCard className="mt-8 rounded-[24px] border-slate-200/80 bg-white/90 p-4 sm:p-5">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <Input
+                aria-label="Search courses"
+                className="h-10 rounded-xl border-slate-200 bg-slate-50 px-3 py-2 shadow-none focus:bg-white sm:max-w-xl"
+                placeholder="Search courses or providers"
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500 sm:shrink-0">
+                {filteredCourses.length} courses shown
               </p>
             </div>
-            <Input
-              aria-label="Search courses"
-              placeholder="Search by course name or provider"
-              type="search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
             <div className="flex flex-wrap gap-2">
               {COURSE_CATEGORY_FILTERS.map((category) => (
                 <Button
@@ -95,54 +93,51 @@ export default function CourseList() {
                 </Button>
               ))}
             </div>
-            <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">
-              {filteredCourses.length} courses shown
-            </p>
           </div>
         </SurfaceCard>
 
-        <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredCourses.map((course) => (
             <SurfaceCard
               key={course.code}
-              className="min-w-0 h-full rounded-[28px] border-slate-200 p-0"
+              className="min-w-0 rounded-[24px] border-slate-200 p-0"
             >
-              <div className="flex h-full min-w-0 flex-col p-5">
+              <div className="flex min-w-0 flex-col p-4">
                 <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full bg-[#E4EFEE] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#084E74]">
+                  <span className="rounded-full bg-[#E4EFEE] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#084E74]">
                     {course.delivery}
                   </span>
                   {course.categories.map((category) => (
                     <span
                       key={category}
-                      className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600"
+                      className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-600"
                     >
                       {category}
                     </span>
                   ))}
                 </div>
 
-                <p className="mt-4 break-words text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                <p className="mt-3 break-words text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                   {course.provider}
                 </p>
-                <h2 className="mt-2 break-words text-xl font-bold leading-tight text-slate-950">
+                <h2 className="mt-1.5 break-words text-lg font-bold leading-snug text-slate-950">
                   {course.title}
                 </h2>
 
-                <dl className="mt-5 space-y-3 text-sm text-slate-700">
-                  <div className="border-t border-slate-100 pt-3 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dl className="mt-3.5 space-y-2 text-sm text-slate-700">
+                  <div className="border-t border-slate-100 pt-2 sm:flex sm:items-start sm:justify-between sm:gap-4">
                     <dt className="text-slate-500">Intake</dt>
                     <dd className="mt-1 break-words font-medium text-slate-950 sm:mt-0 sm:max-w-[65%] sm:text-right">
                       {course.intakeLabel}
                     </dd>
                   </div>
-                  <div className="border-t border-slate-100 pt-3 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                  <div className="border-t border-slate-100 pt-2 sm:flex sm:items-start sm:justify-between sm:gap-4">
                     <dt className="text-slate-500">Duration</dt>
                     <dd className="mt-1 break-words font-medium text-slate-950 sm:mt-0 sm:max-w-[65%] sm:text-right">
                       {course.duration || "Flexible study"}
                     </dd>
                   </div>
-                  <div className="border-t border-slate-100 pt-3 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                  <div className="border-t border-slate-100 pt-2 sm:flex sm:items-start sm:justify-between sm:gap-4">
                     <dt className="text-slate-500">Fees</dt>
                     <dd className="mt-1 break-words font-medium text-slate-950 sm:mt-0 sm:max-w-[65%] sm:text-right">
                       {course.feeSummary || "Contact provider"}
@@ -150,13 +145,7 @@ export default function CourseList() {
                   </div>
                 </dl>
 
-                {course.supportSummary ? (
-                  <p className="mt-4 text-xs leading-5 text-slate-500">
-                    Support options: {course.supportSummary}
-                  </p>
-                ) : null}
-
-                <div className="mt-auto pt-5">
+                <div className="mt-4">
                   <Button
                     className="w-full"
                     size="sm"
