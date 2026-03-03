@@ -8,9 +8,15 @@ import { formatIsoDateForDisplay } from "../components/ui/date-controls";
 import { useApplication } from "../context/ApplicationContext";
 import { formatStructuredAddress, type StructuredAddress } from "../lib/address";
 import {
+  captureApplicationStepEvent,
+  capturePostHogEvent,
+  getCourseAnalyticsProperties,
+} from "../lib/posthog";
+import {
   validateApplication,
   type ValidationError,
 } from "../lib/applicationValidation";
+import { captureSentryException } from "../lib/sentry";
 import { sleep } from "../lib/utils";
 
 const REVIEW_VALIDATION_FLAG = "review:auto-validate";
@@ -58,12 +64,24 @@ export default function ReviewAndSubmit() {
     setSubmitError(null);
 
     if (validationErrors.length > 0) {
+      capturePostHogEvent("application_submit_blocked", {
+        ...getCourseAnalyticsProperties(data.applicationMeta.selectedCourse),
+        application_id: data.applicationMeta.recordId ?? null,
+        validation_error_count: validationErrors.length,
+      });
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     setIsSubmitting(true);
     try {
+      captureApplicationStepEvent("application_submit_started", {
+        application: data,
+        pathname: "/review",
+        properties: {
+          validation_error_count: 0,
+        },
+      });
       await sleep(300);
       await markApplicationSubmitted();
       navigate("/submitted");
@@ -72,6 +90,22 @@ export default function ReviewAndSubmit() {
         error instanceof Error
           ? error.message
           : "We couldn't submit the application right now. Please try again.";
+      capturePostHogEvent("application_submit_failed", {
+        ...getCourseAnalyticsProperties(data.applicationMeta.selectedCourse),
+        application_id: data.applicationMeta.recordId ?? null,
+        error_message: message,
+      });
+      captureSentryException(error, {
+        extras: {
+          activeApplicationId: data.applicationMeta.recordId ?? null,
+          courseCode: data.applicationMeta.selectedCourse?.code ?? null,
+          courseTitle: data.applicationMeta.selectedCourse?.title ?? null,
+        },
+        tags: {
+          flow: "application_submit",
+          screen: "review_and_submit",
+        },
+      });
       setSubmitError(message);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {

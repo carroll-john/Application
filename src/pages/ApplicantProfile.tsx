@@ -16,8 +16,11 @@ import {
 export default function ApplicantProfile() {
   const navigate = useNavigate();
   const { refreshApplicantProfile } = useApplication();
-  const { companyUserDisplayName, isBypassedInDev, isConfigured, session, signOut } =
-    useAuth();
+  const {
+    companyUserDisplayName,
+    companyUserEmail,
+    signOut,
+  } = useAuth();
   const [profileRecordId, setProfileRecordId] = useState<string | undefined>();
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -31,6 +34,8 @@ export default function ApplicantProfile() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const signedInLabel =
+    companyUserDisplayName || companyUserEmail || "your Keypath account";
 
   useEffect(() => {
     let isCancelled = false;
@@ -38,7 +43,8 @@ export default function ApplicantProfile() {
     const hydrate = async () => {
       try {
         const profile = await ensureApplicantProfile(
-          isConfigured && !isBypassedInDev ? session : null,
+          null,
+          companyUserEmail ?? undefined,
         );
 
         if (isCancelled) {
@@ -66,23 +72,15 @@ export default function ApplicantProfile() {
     return () => {
       isCancelled = true;
     };
-  }, [isBypassedInDev, isConfigured, session]);
+  }, [companyUserEmail]);
 
   function applyProfile(profile: StoredApplicantProfile | null) {
-    const fallbackEmail = session?.user.email?.trim().toLowerCase() ?? "";
-    const fallbackFirstName =
-      session?.user.user_metadata?.given_name?.trim?.() ||
-      session?.user.user_metadata?.first_name?.trim?.() ||
-      "";
-    const fallbackLastName =
-      session?.user.user_metadata?.family_name?.trim?.() ||
-      session?.user.user_metadata?.last_name?.trim?.() ||
-      "";
+    const fallbackEmail = companyUserEmail ?? "";
 
     setProfileRecordId(profile?.id);
     setEmail(profile?.email ?? fallbackEmail);
-    setFirstName(profile?.firstName ?? fallbackFirstName);
-    setLastName(profile?.lastName ?? fallbackLastName);
+    setFirstName(profile?.firstName ?? "");
+    setLastName(profile?.lastName ?? "");
   }
 
   async function handleSave() {
@@ -114,7 +112,7 @@ export default function ApplicantProfile() {
 
     try {
       const savedProfile = await saveApplicantProfile(
-        isConfigured && !isBypassedInDev ? session : null,
+        null,
         {
           email: trimmedEmail,
           firstName: firstName.trim(),
@@ -128,11 +126,11 @@ export default function ApplicantProfile() {
       setStatusMessage(
         "Profile updated. New applications will use these details by default.",
       );
-      setIsSubmitting(false);
     } catch {
       setErrors({
         form: "We couldn't update your profile right now. Try again.",
       });
+    } finally {
       setIsSubmitting(false);
     }
   }
@@ -141,7 +139,7 @@ export default function ApplicantProfile() {
     return (
       <div className="min-h-screen bg-[#f7f7f4]">
         <AppBrandHeader maxWidthClassName="max-w-5xl" />
-        <div className="mx-auto flex min-h-[calc(100vh-73px)] max-w-5xl items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           <SurfaceCard className="w-full max-w-xl p-8 text-center text-slate-600">
             Loading your profile...
           </SurfaceCard>
@@ -154,20 +152,39 @@ export default function ApplicantProfile() {
     <div className="min-h-screen bg-[#f7f7f4]">
       <AppBrandHeader maxWidthClassName="max-w-5xl" />
 
-      <div className="mx-auto flex min-h-[calc(100vh-73px)] max-w-5xl items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
-        <SurfaceCard className="w-full max-w-3xl p-8 sm:p-10">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-3xl">
+            <h1 className="text-3xl font-bold text-slate-950 sm:text-4xl">
+              Profile
+            </h1>
+            <p className="mt-3 text-base leading-7 text-slate-600">
+              Update the reusable details you want to start new applications
+              with. Existing applications keep the details they were created
+              with.
+            </p>
+            <p className="mt-2 text-sm font-medium text-slate-500">
+              Signed in as {signedInLabel}
+            </p>
+          </div>
+          <Button
+            className="sm:min-w-[160px]"
+            type="button"
+            variant="outline"
+            onClick={async () => {
+              await signOut();
+              navigate("/", { replace: true });
+            }}
+          >
+            Log out
+          </Button>
+        </div>
+
+        <SurfaceCard className="max-w-3xl p-6 sm:p-8">
           <div className="space-y-6">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-semibold text-slate-950">Profile</h1>
-              <p className="text-base leading-7 text-slate-600">
-                Update the reusable details you want to start new applications
-                with. Existing applications keep the details they were created
-                with.
-              </p>
-              <p className="text-sm font-medium text-slate-500">
-                Signed in as {companyUserDisplayName}
-              </p>
-            </div>
+            <h2 className="text-xl font-semibold text-slate-900">
+              Reusable applicant details
+            </h2>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
@@ -265,17 +282,6 @@ export default function ApplicantProfile() {
                 onClick={() => void handleSave()}
               >
                 {isSubmitting ? "Updating..." : "Update profile"}
-              </Button>
-              <Button
-                className="sm:min-w-[160px]"
-                type="button"
-                variant="outline"
-                onClick={async () => {
-                  await signOut();
-                  navigate("/", { replace: true });
-                }}
-              >
-                Log out
               </Button>
             </div>
           </div>

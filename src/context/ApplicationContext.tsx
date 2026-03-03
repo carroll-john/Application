@@ -48,6 +48,11 @@ import type {
   TertiaryQualification,
 } from "../lib/applicationData";
 import { initialApplicationData, mergeStoredApplicationData } from "../lib/applicationData";
+import {
+  capturePostHogEvent,
+  getApplicationAnalyticsProperties,
+  getCourseAnalyticsProperties,
+} from "../lib/posthog";
 import { useAuth } from "./AuthContext";
 
 interface ApplicationContextType {
@@ -56,7 +61,7 @@ interface ApplicationContextType {
   applications: ApplicationSummary[];
   data: ApplicationData;
   beginCourseApplication: (course: SelectedCourse) => Promise<ApplicationData>;
-  ensureRemoteRecordId: () => Promise<string | undefined>;
+  ensureRemoteRecordId: () => Promise<string>;
   getNextIncompleteSection: (application?: ApplicationData) => string | null;
   isHydrating: boolean;
   markApplicationSubmitted: () => Promise<void>;
@@ -119,13 +124,12 @@ function replaceItemById<T extends { id: string }>(
 
 export function ApplicationProvider({ children }: { children: ReactNode }) {
   const {
+    companyUserEmail,
     isAuthorizedCompanyUser,
-    isBypassedInDev,
     isConfigured,
     session,
   } = useAuth();
   const [data, setData] = useState<ApplicationData>(initialApplicationData);
-  const dataRef = useRef<ApplicationData>(initialApplicationData);
   const [applications, setApplications] = useState<ApplicationSummary[]>([]);
   const [activeApplicationId, setActiveApplicationId] = useState<string | null>(
     null,
@@ -142,10 +146,6 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       isMountedRef.current = false;
     };
   }, []);
-
-  useEffect(() => {
-    dataRef.current = data;
-  }, [data]);
 
   const upsertSummary = useCallback((application: ApplicationData) => {
     const summary = summarizeApplication(application);
@@ -218,7 +218,6 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
       upsertLocalApplication(persistedData);
       upsertSummary(persistedData);
-      dataRef.current = persistedData;
       setData(persistedData);
 
       const nextActiveId =
@@ -245,7 +244,9 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     setIsHydrating(true);
 
     try {
-      const profile = await loadApplicantProfile(session ?? null);
+      const profile = session && isAuthorizedCompanyUser && isConfigured
+        ? await loadApplicantProfile(session)
+        : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
 
       if (!isMountedRef.current) {
         return;
@@ -271,7 +272,6 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
         if (!preferredId) {
           setActiveApplicationId(null);
-          dataRef.current = initialApplicationData;
           setData(initialApplicationData);
           return;
         }
@@ -286,7 +286,6 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
         setActiveApplicationId(preferredId);
         saveLocalActiveApplicationId(preferredId);
-        dataRef.current = remoteApplication;
         setData(remoteApplication);
         upsertLocalApplication(remoteApplication);
         return;
@@ -308,7 +307,6 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
       if (!preferredId) {
         setActiveApplicationId(null);
-        dataRef.current = initialApplicationData;
         setData(initialApplicationData);
         return;
       }
@@ -317,14 +315,13 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         findLocalApplicationById(preferredId) ?? initialApplicationData;
       setActiveApplicationId(preferredId);
       saveLocalActiveApplicationId(preferredId);
-      dataRef.current = localApplication;
       setData(localApplication);
     } finally {
       if (isMountedRef.current) {
         setIsHydrating(false);
       }
     }
-  }, [isAuthorizedCompanyUser, isBypassedInDev, isConfigured, session]);
+  }, [companyUserEmail, isAuthorizedCompanyUser, isConfigured, session]);
 
   useEffect(() => {
     void loadApplicationState();
@@ -342,7 +339,6 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        dataRef.current = remoteApplication;
         setData(remoteApplication);
         setActiveApplicationId(applicationId);
         saveLocalActiveApplicationId(applicationId);
@@ -357,7 +353,6 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      dataRef.current = localApplication;
       setData(localApplication);
       setActiveApplicationId(applicationId);
       saveLocalActiveApplicationId(applicationId);
@@ -371,21 +366,23 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   }, [loadApplicationState]);
 
   const refreshApplicantProfile = useCallback(async () => {
-    const profile = await loadApplicantProfile(session ?? null);
+    const profile = session && isAuthorizedCompanyUser && isConfigured
+      ? await loadApplicantProfile(session)
+      : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
 
     if (!isMountedRef.current) {
       return;
     }
 
     setApplicantProfile(profile);
-  }, [session]);
+  }, [companyUserEmail, isAuthorizedCompanyUser, isConfigured, session]);
 
   const beginCourseApplication = useCallback(
     async (course: SelectedCourse) => {
       const resolvedApplicantProfile =
         session && isAuthorizedCompanyUser && isConfigured
           ? await ensureApplicantProfile(session)
-          : applicantProfile;
+          : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
 
       if (isMountedRef.current) {
         setApplicantProfile(resolvedApplicantProfile);
@@ -407,6 +404,14 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           (session && isAuthorizedCompanyUser && isConfigured
             ? await loadRemoteApplicationById(session, existingApplication.id)
             : findLocalApplicationById(existingApplication.id)) ?? data;
+        capturePostHogEvent("application_draft_resumed", {
+          ...getCourseAnalyticsProperties(course),
+          application_id: existingApplication.id,
+          storage_mode:
+            session && isAuthorizedCompanyUser && isConfigured
+              ? "remote"
+              : "local",
+        });
         return reopenedApplication;
       }
 
@@ -420,11 +425,20 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         applicantProfileId: resolvedApplicantProfile?.id ?? null,
         forceCreate: true,
       });
+      capturePostHogEvent("application_draft_created", {
+        ...getCourseAnalyticsProperties(course),
+        applicant_profile_id: resolvedApplicantProfile?.id ?? null,
+        application_id: persisted.applicationMeta.recordId ?? null,
+        storage_mode:
+          session && isAuthorizedCompanyUser && isConfigured
+            ? "remote"
+            : "local",
+      });
       return persisted;
     },
     [
-      applicantProfile,
       applications,
+      companyUserEmail,
       data,
       isAuthorizedCompanyUser,
       isConfigured,
@@ -435,22 +449,18 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   );
 
   const ensureRemoteRecordId = useCallback(async () => {
-    if (dataRef.current.applicationMeta.recordId) {
-      return dataRef.current.applicationMeta.recordId;
+    if (data.applicationMeta.recordId) {
+      return data.applicationMeta.recordId;
     }
 
-    if (!(session && isAuthorizedCompanyUser && isConfigured)) {
-      return undefined;
-    }
-
-    const persisted = await persistApplication(dataRef.current, { forceCreate: true });
+    const persisted = await persistApplication(data, { forceCreate: true });
 
     if (!persisted.applicationMeta.recordId) {
       throw new Error("Unable to create an application record.");
     }
 
     return persisted.applicationMeta.recordId;
-  }, [isAuthorizedCompanyUser, isConfigured, persistApplication, session]);
+  }, [data, persistApplication]);
 
   const getNextIncompleteSection = useCallback(
     (application: ApplicationData = data) =>
@@ -460,11 +470,26 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
   const updateData = useCallback(
     async (updater: (current: ApplicationData) => ApplicationData) => {
-      const nextData = updater(dataRef.current);
-      const persistedData = await persistApplication(nextData);
-      dataRef.current = persistedData;
+      const nextData = updater(data);
+      await persistApplication(nextData);
     },
-    [persistApplication],
+    [data, persistApplication],
+  );
+
+  const updateDataWithEvent = useCallback(
+    async (
+      updater: (current: ApplicationData) => ApplicationData,
+      eventName: string,
+      properties?: (nextData: ApplicationData) => Record<string, unknown>,
+    ) => {
+      const nextData = updater(data);
+      const persisted = await persistApplication(nextData);
+      capturePostHogEvent(eventName, {
+        ...getApplicationAnalyticsProperties(persisted),
+        ...properties?.(persisted),
+      });
+    },
+    [data, persistApplication],
   );
 
   const markApplicationSubmitted = useCallback(async () => {
@@ -486,8 +511,13 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
       upsertLocalApplication(nextData);
       upsertSummary(nextData);
-      dataRef.current = nextData;
       setData(nextData);
+      capturePostHogEvent("application_submitted", {
+        ...getCourseAnalyticsProperties(nextData.applicationMeta.selectedCourse),
+        application_id: nextData.applicationMeta.recordId ?? null,
+        application_number: nextData.applicationMeta.applicationNumber ?? null,
+        submission_mode: "remote",
+      });
       return;
     }
 
@@ -503,7 +533,13 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         updatedAt: nextSubmittedAt,
       },
     });
-    await persistApplication(nextData);
+    const persisted = await persistApplication(nextData);
+    capturePostHogEvent("application_submitted", {
+      ...getCourseAnalyticsProperties(persisted.applicationMeta.selectedCourse),
+      application_id: persisted.applicationMeta.recordId ?? null,
+      application_number: persisted.applicationMeta.applicationNumber ?? null,
+      submission_mode: "local",
+    });
   }, [
     data,
     isAuthorizedCompanyUser,
@@ -524,7 +560,6 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     clearLocalApplicantProfile();
     setApplications([]);
     setActiveApplicationId(null);
-    dataRef.current = initialApplicationData;
     setData(initialApplicationData);
     setApplicantProfile(null);
   }, [applications, isAuthorizedCompanyUser, isConfigured, session]);
@@ -562,132 +597,248 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           },
         })),
       uploadCV: (document) =>
-        updateData((current) => ({
-          ...current,
-          cvDocument: document,
-          cvFileName: document.name,
-          cvUploaded: true,
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            cvDocument: document,
+            cvFileName: document.name,
+            cvUploaded: true,
+          }),
+          "application_cv_saved",
+          () => ({
+            cv_file_name: document.name,
+          }),
+        ),
       removeCV: () =>
-        updateData((current) => ({
-          ...current,
-          cvDocument: undefined,
-          cvFileName: undefined,
-          cvUploaded: false,
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            cvDocument: undefined,
+            cvFileName: undefined,
+            cvUploaded: false,
+          }),
+          "application_cv_removed",
+        ),
       replaceEmploymentExperiences: (experiences) =>
-        updateData((current) => ({
-          ...current,
-          employmentExperiences: experiences,
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            employmentExperiences: experiences,
+          }),
+          "application_employment_experience_saved",
+          () => ({
+            action: "bulk_replaced_from_cv",
+            total_count: experiences.length,
+          }),
+        ),
       addEmploymentExperience: (experience) =>
-        updateData((current) => ({
-          ...current,
-          employmentExperiences: [...current.employmentExperiences, experience],
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            employmentExperiences: [...current.employmentExperiences, experience],
+          }),
+          "application_employment_experience_saved",
+          (nextData) => ({
+            action: "created",
+            total_count: nextData.employmentExperiences.length,
+          }),
+        ),
       updateEmploymentExperience: (id, experience) =>
-        updateData((current) => ({
-          ...current,
-          employmentExperiences: replaceItemById(
-            current.employmentExperiences,
-            id,
-            experience,
-          ),
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            employmentExperiences: replaceItemById(
+              current.employmentExperiences,
+              id,
+              experience,
+            ),
+          }),
+          "application_employment_experience_saved",
+          (nextData) => ({
+            action: "updated",
+            total_count: nextData.employmentExperiences.length,
+          }),
+        ),
       removeEmploymentExperience: (id) =>
-        updateData((current) => ({
-          ...current,
-          employmentExperiences: current.employmentExperiences.filter(
-            (experience) => experience.id !== id,
-          ),
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            employmentExperiences: current.employmentExperiences.filter(
+              (experience) => experience.id !== id,
+            ),
+          }),
+          "application_employment_experience_removed",
+          (nextData) => ({
+            total_count: nextData.employmentExperiences.length,
+          }),
+        ),
       addLanguageTest: (test) =>
-        updateData((current) => ({
-          ...current,
-          languageTests: [...current.languageTests, test],
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            languageTests: [...current.languageTests, test],
+          }),
+          "application_language_test_saved",
+          (nextData) => ({
+            action: "created",
+            total_count: nextData.languageTests.length,
+          }),
+        ),
       updateLanguageTest: (id, test) =>
-        updateData((current) => ({
-          ...current,
-          languageTests: replaceItemById(current.languageTests, id, test),
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            languageTests: replaceItemById(current.languageTests, id, test),
+          }),
+          "application_language_test_saved",
+          (nextData) => ({
+            action: "updated",
+            total_count: nextData.languageTests.length,
+          }),
+        ),
       removeLanguageTest: (id) =>
-        updateData((current) => ({
-          ...current,
-          languageTests: current.languageTests.filter((test) => test.id !== id),
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            languageTests: current.languageTests.filter((test) => test.id !== id),
+          }),
+          "application_language_test_removed",
+          (nextData) => ({
+            total_count: nextData.languageTests.length,
+          }),
+        ),
       addProfessionalAccreditation: (accreditation) =>
-        updateData((current) => ({
-          ...current,
-          professionalAccreditations: [
-            ...current.professionalAccreditations,
-            accreditation,
-          ],
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            professionalAccreditations: [
+              ...current.professionalAccreditations,
+              accreditation,
+            ],
+          }),
+          "application_professional_accreditation_saved",
+          (nextData) => ({
+            action: "created",
+            total_count: nextData.professionalAccreditations.length,
+          }),
+        ),
       updateProfessionalAccreditation: (id, accreditation) =>
-        updateData((current) => ({
-          ...current,
-          professionalAccreditations: replaceItemById(
-            current.professionalAccreditations,
-            id,
-            accreditation,
-          ),
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            professionalAccreditations: replaceItemById(
+              current.professionalAccreditations,
+              id,
+              accreditation,
+            ),
+          }),
+          "application_professional_accreditation_saved",
+          (nextData) => ({
+            action: "updated",
+            total_count: nextData.professionalAccreditations.length,
+          }),
+        ),
       removeProfessionalAccreditation: (id) =>
-        updateData((current) => ({
-          ...current,
-          professionalAccreditations: current.professionalAccreditations.filter(
-            (accreditation) => accreditation.id !== id,
-          ),
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            professionalAccreditations: current.professionalAccreditations.filter(
+              (accreditation) => accreditation.id !== id,
+            ),
+          }),
+          "application_professional_accreditation_removed",
+          (nextData) => ({
+            total_count: nextData.professionalAccreditations.length,
+          }),
+        ),
       addSecondaryQualification: (qualification) =>
-        updateData((current) => ({
-          ...current,
-          secondaryQualifications: [
-            ...current.secondaryQualifications,
-            qualification,
-          ],
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            secondaryQualifications: [
+              ...current.secondaryQualifications,
+              qualification,
+            ],
+          }),
+          "application_secondary_qualification_saved",
+          (nextData) => ({
+            action: "created",
+            total_count: nextData.secondaryQualifications.length,
+          }),
+        ),
       updateSecondaryQualification: (id, qualification) =>
-        updateData((current) => ({
-          ...current,
-          secondaryQualifications: replaceItemById(
-            current.secondaryQualifications,
-            id,
-            qualification,
-          ),
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            secondaryQualifications: replaceItemById(
+              current.secondaryQualifications,
+              id,
+              qualification,
+            ),
+          }),
+          "application_secondary_qualification_saved",
+          (nextData) => ({
+            action: "updated",
+            total_count: nextData.secondaryQualifications.length,
+          }),
+        ),
       removeSecondaryQualification: (id) =>
-        updateData((current) => ({
-          ...current,
-          secondaryQualifications: current.secondaryQualifications.filter(
-            (qualification) => qualification.id !== id,
-          ),
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            secondaryQualifications: current.secondaryQualifications.filter(
+              (qualification) => qualification.id !== id,
+            ),
+          }),
+          "application_secondary_qualification_removed",
+          (nextData) => ({
+            total_count: nextData.secondaryQualifications.length,
+          }),
+        ),
       addTertiaryQualification: (qualification) =>
-        updateData((current) => ({
-          ...current,
-          tertiaryQualifications: [
-            ...current.tertiaryQualifications,
-            qualification,
-          ],
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            tertiaryQualifications: [
+              ...current.tertiaryQualifications,
+              qualification,
+            ],
+          }),
+          "application_tertiary_qualification_saved",
+          (nextData) => ({
+            action: "created",
+            total_count: nextData.tertiaryQualifications.length,
+          }),
+        ),
       updateTertiaryQualification: (id, qualification) =>
-        updateData((current) => ({
-          ...current,
-          tertiaryQualifications: replaceItemById(
-            current.tertiaryQualifications,
-            id,
-            qualification,
-          ),
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            tertiaryQualifications: replaceItemById(
+              current.tertiaryQualifications,
+              id,
+              qualification,
+            ),
+          }),
+          "application_tertiary_qualification_saved",
+          (nextData) => ({
+            action: "updated",
+            total_count: nextData.tertiaryQualifications.length,
+          }),
+        ),
       removeTertiaryQualification: (id) =>
-        updateData((current) => ({
-          ...current,
-          tertiaryQualifications: current.tertiaryQualifications.filter(
-            (qualification) => qualification.id !== id,
-          ),
-        })),
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            tertiaryQualifications: current.tertiaryQualifications.filter(
+              (qualification) => qualification.id !== id,
+            ),
+          }),
+          "application_tertiary_qualification_removed",
+          (nextData) => ({
+            total_count: nextData.tertiaryQualifications.length,
+          }),
+        ),
     }),
     [
       activeApplicationId,
@@ -704,6 +855,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       refreshApplications,
       resetApplication,
       updateData,
+      updateDataWithEvent,
     ],
   );
 

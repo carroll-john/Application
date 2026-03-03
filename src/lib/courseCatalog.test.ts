@@ -50,6 +50,11 @@ describe("course catalog", () => {
     const monashDigitalMba = getCourseCatalog().find((course) =>
       course.title.includes("Business Administration (Digital)"),
     );
+    const scuIt = getCourseCatalog().find(
+      (course) =>
+        course.provider === "Southern Cross University" &&
+        course.title === "Master of Information Technology",
+    );
 
     expect(unisqMba?.feeSummary).toBe("Approx. $17,392 per year");
     expect(unisqMba?.supportSummary).toBe("CSP · FEE-HELP · HECS-HELP");
@@ -63,6 +68,8 @@ describe("course catalog", () => {
     expect(monashDigitalMba?.supportSummary).toBe("FEE-HELP");
     expect(monashDigitalMba?.feeNotes).toContain("Approx. $66,300 total for the full course.");
     expect(monashDigitalMba?.feeNotes).toContain("Scholarships or discounts may be available.");
+    expect(scuIt?.feeSummary).toBe("Approx. $26,000 per year");
+    expect(scuIt?.feeSummary).not.toContain("$208,000");
   });
 
   it("returns the first seeded course as the default", () => {

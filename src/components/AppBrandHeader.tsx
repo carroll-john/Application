@@ -14,8 +14,8 @@ export function AppBrandHeader({
   showApplicantProfileLink = true,
 }: AppBrandHeaderProps) {
   const location = useLocation();
-  const { isAuthorizedCompanyUser, isBypassedInDev, session } = useAuth();
-  const isSignedIn = isBypassedInDev || Boolean(session && isAuthorizedCompanyUser);
+  const { isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
+  const isSignedIn = isBypassedInDev || isAuthorizedCompanyUser;
   const canShowAccountLink =
     showApplicantProfileLink &&
     location.pathname !== "/profile" &&
@@ -29,7 +29,18 @@ export function AppBrandHeader({
       <div
         className={`mx-auto flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8 ${maxWidthClassName}`}
       >
-        <div className="h-10 w-32 rounded-2xl bg-[#084E74]" />
+        <NavLink
+          aria-label="Go to course browse"
+          className="inline-flex h-10 items-center rounded-2xl bg-[#084E74] px-4 text-white transition hover:bg-[#063d5a]"
+          to="/"
+        >
+          <span className="text-[0.62rem] font-extrabold uppercase tracking-[0.24em]">
+            KEYPATH
+          </span>
+          <span className="ml-2 hidden text-[0.62rem] font-semibold uppercase tracking-[0.14em] sm:inline">
+            APPLY
+          </span>
+        </NavLink>
         <div className="flex items-center gap-3">
           {canShowAccountLink ? (
             <NavLink

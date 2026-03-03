@@ -14,6 +14,10 @@ import {
   evaluateCourseEligibility,
   type EligibilityAnswers,
 } from "../lib/courseEligibility";
+import {
+  capturePostHogEvent,
+  getCourseAnalyticsProperties,
+} from "../lib/posthog";
 
 type EligibilityOutcome = "success" | "fail" | null;
 
@@ -21,7 +25,7 @@ export default function CourseDetails() {
   const navigate = useNavigate();
   const { courseCode } = useParams();
   const [searchParams] = useSearchParams();
-  const { session, isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
+  const { isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
   const { beginCourseApplication, isHydrating } = useApplication();
   const course = useMemo(
     () => getCourseByCode(courseCode) ?? getDefaultCourse(),
@@ -37,11 +41,11 @@ export default function CourseDetails() {
     experienceRange: "",
     goal: "",
   });
+  const courseDetailsSectionRef = useRef<HTMLElement | null>(null);
+  const entryRequirementsRef = useRef<HTMLDivElement | null>(null);
   const [isStartingApplication, setIsStartingApplication] = useState(false);
   const autoApplyStartedRef = useRef(false);
-  const isAuthenticated = Boolean(
-    isBypassedInDev || (session && isAuthorizedCompanyUser),
-  );
+  const isAuthenticated = Boolean(isBypassedInDev || isAuthorizedCompanyUser);
   const shouldAutoApply =
     searchParams.get("apply") === "1" && searchParams.get("eligible") === "1";
   const isApplyActionPending = isHydrating || isStartingApplication;
@@ -104,6 +108,10 @@ export default function CourseDetails() {
     setApplyError(null);
 
     if (isAuthenticated) {
+      capturePostHogEvent("application_start_requested", {
+        ...getCourseAnalyticsProperties(course),
+        auth_state: "authenticated",
+      });
       setIsStartingApplication(true);
 
       try {
@@ -126,12 +134,26 @@ export default function CourseDetails() {
       return;
     }
 
+    capturePostHogEvent("application_sign_in_redirected", {
+      ...getCourseAnalyticsProperties(course),
+      auth_state: "anonymous",
+      redirect_reason: "eligible_apply",
+    });
     resetEligibilityState();
     navigate(
       `/sign-in?redirect=${encodeURIComponent(
         `/courses/${course.code}?eligible=1&apply=1`,
       )}`,
     );
+  }
+
+  function handleReviewRequirements() {
+    resetEligibilityState();
+
+    window.requestAnimationFrame(() => {
+      const target = entryRequirementsRef.current ?? courseDetailsSectionRef.current;
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   return (
@@ -257,7 +279,12 @@ export default function CourseDetails() {
             </div>
             <Button
               className="mt-8 w-full"
-              onClick={() => setShowEligibility(true)}
+              onClick={() => {
+                capturePostHogEvent("eligibility_check_opened", {
+                  ...getCourseAnalyticsProperties(course),
+                });
+                setShowEligibility(true);
+              }}
             >
               Eligibility Check
             </Button>
@@ -265,7 +292,10 @@ export default function CourseDetails() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+      <section
+        ref={courseDetailsSectionRef}
+        className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16"
+      >
         <div>
           <h2 className="text-3xl font-bold text-[#084E74]">Course details</h2>
         </div>
@@ -282,14 +312,16 @@ export default function CourseDetails() {
             </SurfaceCard>
 
             {course.entryRequirements ? (
-              <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
-                <h3 className="text-2xl font-bold text-slate-950">
-                  Entry requirements
-                </h3>
-                <p className="mt-4 text-base leading-7 text-slate-600">
-                  {course.entryRequirements}
-                </p>
-              </SurfaceCard>
+              <div ref={entryRequirementsRef}>
+                <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
+                  <h3 className="text-2xl font-bold text-slate-950">
+                    Entry requirements
+                  </h3>
+                  <p className="mt-4 text-base leading-7 text-slate-600">
+                    {course.entryRequirements}
+                  </p>
+                </SurfaceCard>
+              </div>
             ) : null}
 
             {course.recognitionOfPriorLearning ? (
@@ -445,6 +477,13 @@ export default function CourseDetails() {
             onClick={() => {
               setApplyError(null);
               const result = evaluateCourseEligibility(course.eligibility, eligibilityForm);
+              capturePostHogEvent("eligibility_check_completed", {
+                ...getCourseAnalyticsProperties(course),
+                education_level: eligibilityForm.educationLevel,
+                eligible: result.eligible,
+                experience_range: eligibilityForm.experienceRange,
+                goal: eligibilityForm.goal,
+              });
               setEligibilityOutcome(result.eligible ? "success" : "fail");
               setEligibilityReason(result.reason ?? "");
             }}
@@ -483,26 +522,48 @@ export default function CourseDetails() {
               {applyError}
             </p>
           ) : null}
-          <Button
-            className="mt-6 w-full"
-            disabled={eligibilityOutcome === "success" && isApplyActionPending}
-            onClick={() => {
-              if (eligibilityOutcome === "success") {
+          {eligibilityOutcome === "success" ? (
+            <Button
+              className="mt-6 w-full"
+              disabled={isApplyActionPending}
+              onClick={() => {
                 void handleEligibleApplyNow();
-                return;
-              }
-
-              resetEligibilityState();
-            }}
-          >
-            {eligibilityOutcome === "success"
-              ? isAuthenticated
+              }}
+            >
+              {isAuthenticated
                 ? isApplyActionPending
                   ? "Preparing application..."
                   : "Start application"
-                : "Sign in to apply"
-              : "Close"}
-          </Button>
+                : "Sign in to apply"}
+            </Button>
+          ) : (
+            <div className="mt-6 space-y-3">
+              <Button className="w-full" onClick={handleReviewRequirements}>
+                Review entry requirements
+              </Button>
+              <Button
+                className="w-full"
+                variant="soft"
+                onClick={() => {
+                  setApplyError(null);
+                  setEligibilityReason("");
+                  setEligibilityOutcome(null);
+                }}
+              >
+                Try again
+              </Button>
+              <Button
+                className="w-full"
+                variant="neutralOutline"
+                onClick={() => {
+                  resetEligibilityState();
+                  navigate("/");
+                }}
+              >
+                Browse courses
+              </Button>
+            </div>
+          )}
         </ModalShell>
       ) : null}
     </div>

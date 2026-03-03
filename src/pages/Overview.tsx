@@ -1,8 +1,9 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
+import { captureApplicationStepEvent } from "../lib/posthog";
 import {
   getSelectedCourse,
   hasStartedApplication,
@@ -32,6 +33,7 @@ const overviewSections = [
 
 export default function Overview() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data, getNextIncompleteSection } = useApplication();
   const started = hasStartedApplication(data);
   const submitted = isApplicationSubmitted(data);
@@ -60,7 +62,17 @@ export default function Overview() {
               </div>
               <Button
                 className="mt-5"
-                onClick={() => navigate(nextPath)}
+                onClick={() => {
+                  captureApplicationStepEvent("application_step_completed", {
+                    application: data,
+                    pathname: location.pathname,
+                    properties: {
+                      action_label: primaryLabel,
+                      next_path: nextPath,
+                    },
+                  });
+                  navigate(nextPath);
+                }}
               >
                 {primaryLabel}
               </Button>

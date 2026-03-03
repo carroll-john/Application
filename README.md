@@ -140,3 +140,4 @@ npm run finish-task -- --keep-branch "Spike onboarding copy"
 - Read `docs/project-memory.md` before making product or UX changes.
 - The app is currently dogfooded behind a Keypath-only site gate.
 - Localhost has a dev-only auth bypass for post-auth verification.
+- PostHog is optional and activates when `VITE_POSTHOG_KEY` is set. Use `VITE_POSTHOG_HOST` to point at your PostHog region, for example `https://us.i.posthog.com`.
