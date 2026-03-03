@@ -104,11 +104,25 @@ That command:
 - creates a new `codex/<slug>` branch
 - creates a sibling worktree next to the repo, for example `/Users/jc/Documents/new-project-fix-auth-redirect`
 - prints the new path so the next Codex thread can stay isolated there
+- refreshes `origin/master` and uses it as the default base
+- refuses to branch from a base that does not include the latest `origin/master` commit
 
 By default the helper refuses to run if the current checkout is dirty, which prevents unrelated in-progress edits from leaking into the new task. If you intentionally want to branch from the current committed `HEAD` while leaving local changes behind in the existing checkout, use:
 
 ```bash
 npm run start-task -- --allow-dirty "Spike onboarding copy"
+```
+
+If you intentionally need to branch from something that is behind `origin/master`, override the stale-base guard:
+
+```bash
+npm run start-task -- --base codex/existing-feature --allow-behind-master "Follow-up changes"
+```
+
+If you are offline and want to skip the `origin/master` refresh step:
+
+```bash
+npm run start-task -- --no-fetch "Offline task setup"
 ```
 
 ## Finish Task
@@ -120,6 +134,7 @@ npm run finish-task -- "Fix auth redirect"
 ```
 
 The helper resolves either the original task name, the full branch name, or the worktree path. It removes the sibling worktree first and then deletes the `codex/<slug>` branch with Git's safe delete behavior.
+Before deleting the branch (without `--force`), it refreshes `origin/master` and verifies the task branch is already merged there.
 
 Run it from the main checkout or another worktree, not from inside the task worktree you are trying to remove.
 
@@ -133,6 +148,12 @@ If you want to remove only the worktree and keep the branch around:
 
 ```bash
 npm run finish-task -- --keep-branch "Spike onboarding copy"
+```
+
+If you are offline and want to skip the `origin/master` refresh during cleanup:
+
+```bash
+npm run finish-task -- --no-fetch "Offline cleanup"
 ```
 
 ## Notes
