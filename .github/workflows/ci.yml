@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - "codex/**"
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+  cv-parser-regression:
+    if: ${{ secrets.OPENAI_API_KEY != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CV_PARSER_BASE_URL: http://127.0.0.1:4190
+      CV_PARSER_PORT: "4190"
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_CV_PARSER_MODEL: gpt-4.1-mini
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start parser API server
+        run: |
+          npm run dev:cv-parser-api > /tmp/cv-parser-api.log 2>&1 &
+          echo $! > /tmp/cv-parser-api.pid
+
+      - name: Wait for parser API
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$CV_PARSER_BASE_URL/healthz" > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Parser API did not become ready."
+          cat /tmp/cv-parser-api.log || true
+          exit 1
+
+      - name: Run parser regression suite
+        run: npm run test:cv-parser -- --base-url "$CV_PARSER_BASE_URL"
+
+      - name: Stop parser API and print logs
+        if: always()
+        run: |
+          if [ -f /tmp/cv-parser-api.pid ]; then
+            kill "$(cat /tmp/cv-parser-api.pid)" || true
+          fi
+          cat /tmp/cv-parser-api.log || true

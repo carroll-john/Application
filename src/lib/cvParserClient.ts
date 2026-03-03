@@ -22,14 +22,39 @@ function parseErrorMessage(payload: unknown) {
   return null;
 }
 
+const LOCAL_PARSER_FALLBACK_URL =
+  import.meta.env.VITE_LOCAL_CV_PARSER_URL?.trim() ||
+  "http://127.0.0.1:4190/api/parse-cv";
+
+function isLocalhostRuntime() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const host = window.location.hostname;
+  return host === "localhost" || host === "127.0.0.1";
+}
+
+async function requestParseCv(formData: FormData) {
+  const requestInit: RequestInit = {
+    body: formData,
+    method: "POST",
+  };
+
+  const primaryResponse = await fetch("/api/parse-cv", requestInit);
+
+  if (primaryResponse.status !== 404 || !isLocalhostRuntime()) {
+    return primaryResponse;
+  }
+
+  return fetch(LOCAL_PARSER_FALLBACK_URL, requestInit);
+}
+
 export async function parseEmploymentExperiencesFromCv(file: File) {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch("/api/parse-cv", {
-    body: formData,
-    method: "POST",
-  });
+  const response = await requestParseCv(formData);
 
   let payload: unknown = null;
 
@@ -110,7 +135,7 @@ export async function parseEmploymentExperiencesFromCv(file: File) {
 export function getCvParserErrorMessage(error: unknown) {
   if (error instanceof CvParserRequestError) {
     if (error.status === 404) {
-      return "AI CV parsing isn't available in this local server. Save the CV and try again in Vercel preview or production.";
+      return "AI CV parsing isn't available on this local server. Start the local parser API (`npm run dev:cv-parser-api`) and try again.";
     }
 
     return error.message;

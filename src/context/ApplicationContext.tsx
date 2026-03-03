@@ -56,7 +56,7 @@ interface ApplicationContextType {
   applications: ApplicationSummary[];
   data: ApplicationData;
   beginCourseApplication: (course: SelectedCourse) => Promise<ApplicationData>;
-  ensureRemoteRecordId: () => Promise<string>;
+  ensureRemoteRecordId: () => Promise<string | undefined>;
   getNextIncompleteSection: (application?: ApplicationData) => string | null;
   isHydrating: boolean;
   markApplicationSubmitted: () => Promise<void>;
@@ -439,6 +439,10 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       return dataRef.current.applicationMeta.recordId;
     }
 
+    if (!(session && isAuthorizedCompanyUser && isConfigured)) {
+      return undefined;
+    }
+
     const persisted = await persistApplication(dataRef.current, { forceCreate: true });
 
     if (!persisted.applicationMeta.recordId) {
@@ -446,7 +450,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     }
 
     return persisted.applicationMeta.recordId;
-  }, [persistApplication]);
+  }, [isAuthorizedCompanyUser, isConfigured, persistApplication, session]);
 
   const getNextIncompleteSection = useCallback(
     (application: ApplicationData = data) =>

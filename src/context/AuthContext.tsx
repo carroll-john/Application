@@ -17,6 +17,7 @@ import {
 } from "../lib/supabase";
 import { ensureApplicantProfile } from "../lib/applicantProfileStore";
 import { ensureBusinessUserRecord } from "../lib/businessUsers";
+import { identifyPostHogUser, resetPostHogUser } from "../lib/posthog";
 
 interface AuthContextType {
   user: User | null;
@@ -124,6 +125,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Do not block the sign-in flow if profile provisioning fails.
     });
   }, [session]);
+
+  useEffect(() => {
+    if (user?.id) {
+      identifyPostHogUser(user.id, {
+        email: user.email?.trim().toLowerCase() ?? undefined,
+        is_dev_bypass: isBypassedInDev,
+      });
+      return;
+    }
+
+    resetPostHogUser();
+  }, [isBypassedInDev, user?.email, user?.id]);
 
   const value = useMemo<AuthContextType>(
     () => ({

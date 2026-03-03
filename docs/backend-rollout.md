@@ -32,14 +32,19 @@ VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_ALLOWED_EMAIL_DOMAINS=yourcompany.com
+VITE_POSTHOG_KEY=your_posthog_project_api_key
+VITE_POSTHOG_HOST=https://us.i.posthog.com
+VITE_POSTHOG_CV_PARSER_FLAG=cv_parser_autofill_experiment
 OPENAI_API_KEY=your_openai_api_key
-OPENAI_CV_PARSER_MODEL=gpt-4.1
+OPENAI_CV_PARSER_MODEL=gpt-4.1-mini
 ```
 
 Current workspace values:
 - `VITE_SUPABASE_URL` points at your Supabase project
 - `VITE_ALLOWED_EMAIL_DOMAINS=keypathedu.com.au`
 - keep the publishable key only in local env and Vercel envs, not in checked-in docs
+- `VITE_POSTHOG_KEY` + `VITE_POSTHOG_HOST` enable feature flags/experiment capture on the frontend
+- CV parser experiment flag key defaults to `cv_parser_autofill_experiment` (override with `VITE_POSTHOG_CV_PARSER_FLAG`)
 - `OPENAI_API_KEY` is server-only and powers the `/api/parse-cv` function for CV employment parsing
 
 ## Supabase Project Setup

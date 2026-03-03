@@ -22,11 +22,73 @@ University application prototype built with React, Vite, TypeScript, Tailwind, a
 ```bash
 npm install
 npm run dev
+npm run dev:cv-parser-api
 npm test
 npm run build
+npm run test:cv-parser
 npm run start-task -- "Fix auth redirect"
 npm run finish-task -- "Fix auth redirect"
 ```
+
+## CV Parser Regression
+
+Run a local parser API server (required for the regression script):
+
+```bash
+npm run dev:cv-parser-api
+```
+
+The parser API reads `OPENAI_API_KEY` from process environment. If your key is in `.env.local`, export it first:
+
+```bash
+set -a; source .env.local; set +a
+```
+
+When running on localhost, the app now falls back to `http://127.0.0.1:4190/api/parse-cv` if `/api/parse-cv` is missing from the frontend dev server.
+
+Then run the mixed-format parser regression suite (`.txt`, `.docx`, `.pdf`) against that server:
+
+```bash
+npm run test:cv-parser
+```
+
+Include a real CV file in the same run:
+
+```bash
+npm run test:cv-parser -- --file "/absolute/path/to/CV.docx"
+```
+
+Optional flags:
+
+- `--base-url http://127.0.0.1:4190`
+- `--timeout-ms 240000`
+- `--out-dir /tmp/my-cv-parser-run`
+- `--no-strict` (do not fail exit code when cases fail)
+
+The script writes `results.json` and `results.csv` to a timestamped folder in `/tmp` by default.
+
+## PostHog CV Parser Experiment
+
+The CV employment auto-draft flow is gated by PostHog feature flag `cv_parser_autofill_experiment` by default.
+
+Configure these frontend env vars for experiment control:
+
+```env
+VITE_POSTHOG_KEY=your_posthog_project_api_key
+VITE_POSTHOG_HOST=https://us.i.posthog.com
+VITE_POSTHOG_CV_PARSER_FLAG=cv_parser_autofill_experiment
+```
+
+When the flag resolves to `enabled`, `on`, `true`, `test`, `treatment`, or `variant*`, CV auto-drafting runs.
+All other variants are treated as control and skip the parser call after CV save.
+
+The app captures experiment events:
+- `cv_parser_experiment_exposure`
+- `cv_parser_save_continue_clicked`
+- `cv_parser_autofill_succeeded`
+- `cv_parser_autofill_empty`
+- `cv_parser_autofill_failed`
+- `cv_parser_autofill_skipped_control`
 
 
 ## Start New Task
