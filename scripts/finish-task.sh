@@ -5,13 +5,14 @@ set -euo pipefail
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/finish-task.sh [--force] [--keep-branch] <task name | branch | worktree path>
+  ./scripts/finish-task.sh [--force] [--keep-branch] [--no-fetch] <task name | branch | worktree path>
 
 Examples:
   ./scripts/finish-task.sh "Fix auth redirect"
   ./scripts/finish-task.sh codex/fix-auth-redirect
   ./scripts/finish-task.sh /Users/jc/Documents/new-project-fix-auth-redirect
   ./scripts/finish-task.sh --force "Spike onboarding copy"
+  ./scripts/finish-task.sh --no-fetch "Offline cleanup"
 
 Removes the task worktree created by start-task and then deletes the codex branch.
 Run this from a different checkout than the task worktree you want to remove.
@@ -93,6 +94,7 @@ find_branch_for_worktree() {
 main() {
   local force=0
   local keep_branch=0
+  local no_fetch=0
   local target=""
   local repo_root
   local current_worktree
@@ -105,6 +107,10 @@ main() {
         ;;
       --keep-branch)
         keep_branch=1
+        shift
+        ;;
+      --no-fetch)
+        no_fetch=1
         shift
         ;;
       -h|--help)
@@ -182,6 +188,35 @@ main() {
     echo "Refusing to remove the current worktree '$target_worktree'." >&2
     echo "Run finish-task from the main checkout or another worktree." >&2
     exit 1
+  fi
+
+  if [ "$keep_branch" -eq 0 ] && [ "$force" -eq 0 ]; then
+    if ! git remote get-url origin >/dev/null 2>&1; then
+      echo "Remote 'origin' is required to verify merge status before deleting '$target_branch'." >&2
+      exit 1
+    fi
+
+    if [ "$no_fetch" -ne 1 ]; then
+      if ! git fetch origin master --prune >/dev/null 2>&1; then
+        echo "Could not refresh origin/master." >&2
+        echo "Run 'git fetch origin master' and retry, or pass --no-fetch to skip this refresh." >&2
+        exit 1
+      fi
+    fi
+
+    if ! git rev-parse --verify "origin/master^{commit}" >/dev/null 2>&1; then
+      echo "origin/master does not resolve to a commit." >&2
+      exit 1
+    fi
+
+    if ! git merge-base --is-ancestor "$target_branch" "origin/master"; then
+      local ahead_behind
+      ahead_behind="$(git rev-list --left-right --count "origin/master...$target_branch")"
+      echo "Refusing to delete '$target_branch' because it is not merged into origin/master." >&2
+      echo "Divergence (origin/master...$target_branch): $ahead_behind" >&2
+      echo "Merge the branch first, or rerun with --force to delete anyway." >&2
+      exit 1
+    fi
   fi
 
   if [ -n "$target_worktree" ]; then
