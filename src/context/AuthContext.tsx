@@ -15,8 +15,12 @@ import {
 import {
   clearLocalApplicantProfile,
   ensureApplicantProfile,
+  loadLocalApplicantProfile,
 } from "../lib/applicantProfileStore";
-import { clearLocalApplications } from "../lib/applicationRecords";
+import {
+  clearLocalApplications,
+  loadLocalApplications,
+} from "../lib/applicationRecords";
 import { clearStoredDocuments } from "../lib/documentStorage";
 import { syncPostHogUser } from "../lib/posthog";
 import { syncSentryUser } from "../lib/sentry";
@@ -42,6 +46,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const COMPANY_ACCESS_EMAIL_STORAGE_KEY =
   "application-prototype:company-access-email";
+const LOCAL_DATA_OWNER_EMAIL_STORAGE_KEY =
+  "application-prototype:local-data-owner-email";
 
 function normalizeCompanyEmail(email: string | null | undefined) {
   return email?.trim().toLowerCase() ?? "";
@@ -65,6 +71,24 @@ function saveAuthorizedCompanyEmail(email: string) {
   }
 
   window.localStorage.setItem(COMPANY_ACCESS_EMAIL_STORAGE_KEY, email);
+}
+
+function loadLocalDataOwnerEmail() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return normalizeCompanyEmail(
+    window.localStorage.getItem(LOCAL_DATA_OWNER_EMAIL_STORAGE_KEY),
+  );
+}
+
+function saveLocalDataOwnerEmail(email: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(LOCAL_DATA_OWNER_EMAIL_STORAGE_KEY, email);
 }
 
 function clearAuthorizedCompanyEmail() {
@@ -158,8 +182,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const previousEmail = loadAuthorizedCompanyEmail();
+        const previousLocalDataOwnerEmail = loadLocalDataOwnerEmail();
+        const previousLocalProfileEmail =
+          loadLocalApplicantProfile()?.email ?? null;
+        const knownLocalOwnerEmail =
+          previousEmail ??
+          previousLocalDataOwnerEmail ??
+          previousLocalProfileEmail;
+        const expectedLocalProfileId = `local-profile:${normalizedEmail}`;
+        const hasConflictingLocalDraftOwner = loadLocalApplications().some(
+          (application) => {
+            const applicantProfileId =
+              application.applicationMeta.applicantProfileId
+                ?.trim()
+                .toLowerCase() ?? "";
 
-        if (previousEmail && previousEmail !== normalizedEmail) {
+            if (!applicantProfileId.startsWith("local-profile:")) {
+              return false;
+            }
+
+            return applicantProfileId !== expectedLocalProfileId;
+          },
+        );
+        const isSwitchingUser =
+          (Boolean(knownLocalOwnerEmail) &&
+            knownLocalOwnerEmail !== normalizedEmail) ||
+          hasConflictingLocalDraftOwner;
+
+        if (isSwitchingUser) {
           clearLocalApplications();
           clearLocalApplicantProfile();
           await clearStoredDocuments().catch(() => {
@@ -168,6 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         saveAuthorizedCompanyEmail(normalizedEmail);
+        saveLocalDataOwnerEmail(normalizedEmail);
         await ensureApplicantProfile(null, normalizedEmail);
         setAuthorizedEmail(normalizedEmail);
         syncPostHogUser({
@@ -186,6 +237,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: null };
       },
       signOut: async () => {
+        if (authorizedEmail) {
+          saveLocalDataOwnerEmail(authorizedEmail);
+        }
         clearAuthorizedCompanyEmail();
         setAuthorizedEmail(null);
         syncPostHogUser(null);
