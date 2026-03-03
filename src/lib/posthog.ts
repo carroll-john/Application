@@ -61,11 +61,14 @@ type PostHogQueue = Array<[string, ...unknown[]]> & {
   __SV?: number;
   _i?: Array<[string, PostHogConfig, string?]>;
   capture?: (eventName: string, properties?: Record<string, unknown>) => void;
+  getFeatureFlag?: (key: string) => boolean | string | undefined;
   identify?: (
     distinctId: string,
     properties?: Record<string, unknown>,
   ) => void;
   init?: (token: string, config: PostHogConfig, name?: string) => void;
+  isFeatureEnabled?: (key: string) => boolean | undefined;
+  onFeatureFlags?: (callback: () => void) => (() => void) | void;
   register?: (properties: Record<string, unknown>) => void;
   reset?: () => void;
 };
@@ -87,11 +90,31 @@ const BOT_USER_AGENT_PATTERN =
   /(bot|spider|crawl|slurp|bingpreview|headless|phantomjs|ahrefsbot|semrushbot|mj12bot|dotbot|facebookexternalhit|gptbot|chatgpt-user|claudebot|anthropic-ai|perplexitybot|bytespider|duckduckbot|baiduspider|yandexbot|applebot)/i;
 const AUTOMATION_USER_AGENT_PATTERN =
   /(playwright|puppeteer|cypress|selenium|webdriver|postmanruntime|insomnia|curl|wget|python-requests)/i;
+const ENABLED_VARIANTS = new Set([
+  "enabled",
+  "on",
+  "true",
+  "test",
+  "treatment",
+  "variant",
+  "variant_a",
+  "variant_b",
+]);
 
 let postHogStarted = false;
 let lastTrackedPageKey: string | null = null;
 let lastTrackedApplicationStepKey: string | null = null;
 let postHogBlockReason: string | null = null;
+
+export interface CvParserExperimentState {
+  enabled: boolean;
+  source: "posthog" | "fallback";
+  variant: string | boolean | null;
+}
+
+export const CV_PARSER_FEATURE_FLAG_KEY =
+  import.meta.env.VITE_POSTHOG_CV_PARSER_FLAG?.trim() ||
+  "cv_parser_autofill_experiment";
 
 const routeAnalyticsDefinitions: RouteAnalyticsDefinition[] = [
   {
@@ -488,6 +511,18 @@ function canCapturePostHog() {
   return !postHogBlockReason;
 }
 
+function normalizeFeatureFlagVariant(value: unknown) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  return ENABLED_VARIANTS.has(value.trim().toLowerCase());
+}
+
 export function initPostHog() {
   if (!canCapturePostHog() || postHogStarted) {
     return;
@@ -531,6 +566,17 @@ export function syncPostHogUser(user: PostHogUserContext | null) {
   });
 }
 
+export function onPostHogFeatureFlags(callback: () => void) {
+  if (!canCapturePostHog()) {
+    return () => {};
+  }
+
+  initPostHog();
+
+  const unsubscribe = window.posthog?.onFeatureFlags?.(callback);
+  return typeof unsubscribe === "function" ? unsubscribe : () => {};
+}
+
 export function capturePostHogEvent(
   eventName: string,
   properties?: Record<string, unknown>,
@@ -545,6 +591,47 @@ export function capturePostHogEvent(
     app_environment: APP_ENVIRONMENT,
     ...properties,
   });
+}
+
+export function getCvParserExperimentState(): CvParserExperimentState {
+  if (!canCapturePostHog()) {
+    return {
+      enabled: true,
+      source: "fallback",
+      variant: null,
+    };
+  }
+
+  initPostHog();
+
+  const variant = window.posthog?.getFeatureFlag?.(CV_PARSER_FEATURE_FLAG_KEY);
+  const normalizedVariant = normalizeFeatureFlagVariant(variant);
+  const safeVariant =
+    typeof variant === "string" || typeof variant === "boolean" ? variant : null;
+
+  if (normalizedVariant !== null) {
+    return {
+      enabled: normalizedVariant,
+      source: "posthog",
+      variant: safeVariant,
+    };
+  }
+
+  const enabled = window.posthog?.isFeatureEnabled?.(CV_PARSER_FEATURE_FLAG_KEY);
+
+  if (typeof enabled === "boolean") {
+    return {
+      enabled,
+      source: "posthog",
+      variant: safeVariant ?? enabled,
+    };
+  }
+
+  return {
+    enabled: true,
+    source: "fallback",
+    variant: safeVariant,
+  };
 }
 
 export function getCourseAnalyticsProperties(

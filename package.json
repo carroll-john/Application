@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:cv-parser": "node ./scripts/cv-parser-regression.mjs",
+    "dev:cv-parser-api": "node --experimental-strip-types ./scripts/dev-cv-parser-server.mjs",
     "start-task": "bash ./scripts/start-task.sh",
     "finish-task": "bash ./scripts/finish-task.sh"
   },

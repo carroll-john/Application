@@ -29,7 +29,7 @@ export function FileUpload({
   onRemove?: () => void;
   onFileSelect: (file: File) => void;
 }) {
-  const inputId = useId();
+  const inputId = useId().replace(/:/g, "");
   const [error, setError] = useState<string | null>(null);
   const fileSizeLabel = formatFileSize(fileSize);
   const hasFile = Boolean(fileName);

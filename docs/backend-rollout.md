@@ -146,6 +146,11 @@ Notes:
 - Document uploads are local-first:
   - `src/lib/documentStorage.ts` uses IndexedDB when no authenticated Supabase session is available
   - remote uploads remain available in code for any future return to real auth
+- CV parsing now runs through the Vercel server function `/api/parse-cv`:
+  - requires `OPENAI_API_KEY`
+  - optionally uses `OPENAI_CV_PARSER_MODEL`
+  - can be cohort-gated with the PostHog feature flag `cv_parser_autofill_experiment`
+  - drafts employment history back into the same local application state used in Section 2
 - Remaining limitation:
   - the remote storage path still needs end-to-end verification against a real Supabase project and bucket configuration
   - document cleanup is best-effort today; orphaned remote file records are still possible if a document upload succeeds but a later draft save fails

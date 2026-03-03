@@ -74,6 +74,9 @@ interface ApplicationContextType {
   updatePersonalDetails: (updates: Partial<PersonalDetails>) => Promise<void>;
   uploadCV: (document: NonNullable<ApplicationData["cvDocument"]>) => Promise<void>;
   removeCV: () => Promise<void>;
+  replaceEmploymentExperiences: (
+    experiences: EmploymentExperience[],
+  ) => Promise<void>;
   addEmploymentExperience: (experience: EmploymentExperience) => Promise<void>;
   updateEmploymentExperience: (
     id: string,
@@ -615,6 +618,18 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
             cvUploaded: false,
           }),
           "application_cv_removed",
+        ),
+      replaceEmploymentExperiences: (experiences) =>
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            employmentExperiences: experiences,
+          }),
+          "application_employment_experience_saved",
+          () => ({
+            action: "bulk_replaced_from_cv",
+            total_count: experiences.length,
+          }),
         ),
       addEmploymentExperience: (experience) =>
         updateDataWithEvent(

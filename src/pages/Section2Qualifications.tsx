@@ -12,7 +12,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { FormActionBar } from "../components/FormActionBar";
 import { SectionProgressHeader } from "../components/SectionProgressHeader";
 import { StatusMessage } from "../components/StatusMessage";
@@ -69,6 +69,7 @@ function isTertiaryQualificationComplete(
 }
 
 export default function Section2Qualifications() {
+  const location = useLocation();
   const navigate = useNavigate();
   const { fromReview, previousLabel, returnPath, reviewSuffix } = useReviewReturn();
   const {
@@ -98,6 +99,42 @@ export default function Section2Qualifications() {
     employmentExperiencesCount: data.employmentExperiences.length,
     tertiaryQualificationsCount: data.tertiaryQualifications.length,
   });
+
+  useEffect(() => {
+    const nextMessage =
+      location.state &&
+      typeof location.state === "object" &&
+      "section2StatusMessage" in location.state
+        ? location.state.section2StatusMessage
+        : null;
+
+    if (
+      !nextMessage ||
+      typeof nextMessage !== "object" ||
+      !("message" in nextMessage) ||
+      !("type" in nextMessage) ||
+      typeof nextMessage.message !== "string" ||
+      typeof nextMessage.type !== "string"
+    ) {
+      return;
+    }
+
+    setStatusMessage({
+      message: nextMessage.message,
+      type:
+        nextMessage.type === "success" ||
+        nextMessage.type === "warning" ||
+        nextMessage.type === "error" ||
+        nextMessage.type === "status"
+          ? nextMessage.type
+          : "status",
+    });
+
+    navigate(`${location.pathname}${location.search}`, {
+      replace: true,
+      state: null,
+    });
+  }, [location.pathname, location.search, location.state, navigate]);
 
   useEffect(() => {
     const next: SectionState = { ...initialSections };
