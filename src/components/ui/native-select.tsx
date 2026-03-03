@@ -211,7 +211,7 @@ export const NativeSelect = React.forwardRef<HTMLButtonElement, NativeSelectProp
               type="button"
               onClick={() => handleSelect(option.value)}
             >
-              <span className="min-w-0 flex-1 break-words">{option.label}</span>
+              <span className="min-w-0 flex-1 break-normal">{option.label}</span>
               {isSelected ? <Check className="h-4 w-4 shrink-0" /> : null}
             </button>
           );

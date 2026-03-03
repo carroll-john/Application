@@ -186,9 +186,9 @@ function CalendarHeader({
         <ChevronLeft className="h-4 w-4" />
       </button>
 
-      <div className="grid flex-1 gap-2 sm:grid-cols-[minmax(0,1fr)_8.5rem]">
+      <div className="grid flex-1 gap-2 min-[480px]:grid-cols-[minmax(8.5rem,1fr)_7rem]">
         <NativeSelect
-          className="h-10 rounded-xl px-3 py-2 text-sm"
+          className="h-10 min-w-[8.5rem] rounded-xl px-3 py-2 text-sm"
           value={monthNames[date.getMonth()]}
           onChange={(event) => changeMonth(monthNames.indexOf(event.target.value))}
         >
@@ -199,7 +199,7 @@ function CalendarHeader({
           ))}
         </NativeSelect>
         <NativeSelect
-          className="h-10 rounded-xl px-3 py-2 text-sm"
+          className="h-10 min-w-[7rem] rounded-xl px-3 py-2 text-sm"
           value={String(date.getFullYear())}
           onChange={(event) => changeYear(Number(event.target.value))}
         >
