@@ -109,6 +109,174 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+type CvParserErrorCode =
+  | "CV_PARSER_METHOD_NOT_ALLOWED"
+  | "CV_PARSER_NOT_CONFIGURED"
+  | "CV_PARSER_FILE_REQUIRED"
+  | "CV_PARSER_FILE_UNSUPPORTED"
+  | "CV_PARSER_FILE_TOO_LARGE"
+  | "CV_PARSER_TEXT_FILE_EMPTY"
+  | "CV_PARSER_UPSTREAM_FAILED"
+  | "CV_PARSER_UPSTREAM_RATE_LIMITED"
+  | "CV_PARSER_UPSTREAM_TIMEOUT"
+  | "CV_PARSER_UPSTREAM_UNAVAILABLE"
+  | "CV_PARSER_RESPONSE_TRUNCATED"
+  | "CV_PARSER_RESPONSE_INVALID"
+  | "CV_PARSER_RESPONSE_UNREADABLE"
+  | "CV_PARSER_UNEXPECTED_FAILURE"
+  | "CV_PARSER_UNSUPPORTED_REQUEST_SHAPE";
+
+const CV_PARSER_ERROR_DEFINITIONS: Record<
+  CvParserErrorCode,
+  { message: string; status: number }
+> = {
+  CV_PARSER_METHOD_NOT_ALLOWED: {
+    message: "Method not allowed.",
+    status: 405,
+  },
+  CV_PARSER_NOT_CONFIGURED: {
+    message: "AI CV parsing is not configured on this deployment.",
+    status: 503,
+  },
+  CV_PARSER_FILE_REQUIRED: {
+    message: "Attach a CV file before parsing.",
+    status: 400,
+  },
+  CV_PARSER_FILE_UNSUPPORTED: {
+    message: "Use a PDF, DOC, DOCX, or TXT file for CV parsing.",
+    status: 400,
+  },
+  CV_PARSER_FILE_TOO_LARGE: {
+    message: "Choose a file smaller than 5 MB.",
+    status: 400,
+  },
+  CV_PARSER_TEXT_FILE_EMPTY: {
+    message: "This text file appears to be empty. Upload a CV with content.",
+    status: 400,
+  },
+  CV_PARSER_UPSTREAM_FAILED: {
+    message: "We couldn't parse this CV right now. Please try again.",
+    status: 502,
+  },
+  CV_PARSER_UPSTREAM_RATE_LIMITED: {
+    message: "The parser is busy right now. Please try again shortly.",
+    status: 502,
+  },
+  CV_PARSER_UPSTREAM_TIMEOUT: {
+    message: "The parser took too long to respond. Please try again.",
+    status: 502,
+  },
+  CV_PARSER_UPSTREAM_UNAVAILABLE: {
+    message: "The parser is temporarily unavailable. Please try again shortly.",
+    status: 502,
+  },
+  CV_PARSER_RESPONSE_TRUNCATED: {
+    message:
+      "The parser response was cut off for this CV. Please try again or upload a shorter file.",
+    status: 502,
+  },
+  CV_PARSER_RESPONSE_INVALID: {
+    message: "The parser did not return employment data in the expected format.",
+    status: 502,
+  },
+  CV_PARSER_RESPONSE_UNREADABLE: {
+    message: "The parser returned an unreadable response.",
+    status: 502,
+  },
+  CV_PARSER_UNEXPECTED_FAILURE: {
+    message: "Unexpected parser failure.",
+    status: 500,
+  },
+  CV_PARSER_UNSUPPORTED_REQUEST_SHAPE: {
+    message: "Unsupported request shape.",
+    status: 500,
+  },
+};
+
+function errorResponse(code: CvParserErrorCode) {
+  const definition = CV_PARSER_ERROR_DEFINITIONS[code];
+
+  return jsonResponse(
+    {
+      code,
+      error: definition.message,
+    },
+    definition.status,
+  );
+}
+
+function extractOpenAiErrorRecord(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return {
+      code: null,
+      message: null,
+      type: null,
+    };
+  }
+
+  const record = payload as Record<string, unknown>;
+
+  if (!record.error || typeof record.error !== "object") {
+    return {
+      code: null,
+      message: null,
+      type: null,
+    };
+  }
+
+  const errorRecord = record.error as Record<string, unknown>;
+  const code =
+    typeof errorRecord.code === "string" || typeof errorRecord.code === "number"
+      ? String(errorRecord.code)
+      : null;
+  const message =
+    typeof errorRecord.message === "string" && errorRecord.message.trim()
+      ? errorRecord.message
+      : null;
+  const type =
+    typeof errorRecord.type === "string" && errorRecord.type.trim()
+      ? errorRecord.type
+      : null;
+
+  return {
+    code,
+    message,
+    type,
+  };
+}
+
+function normalizeUpstreamErrorCode(
+  upstreamStatus: number,
+  payload: unknown,
+): CvParserErrorCode {
+  const upstreamError = extractOpenAiErrorRecord(payload);
+  const normalizedType = upstreamError.type?.toLowerCase() ?? "";
+  const normalizedCode = upstreamError.code?.toLowerCase() ?? "";
+
+  if (
+    upstreamStatus === 429 ||
+    normalizedType.includes("rate_limit") ||
+    normalizedCode.includes("rate_limit")
+  ) {
+    return "CV_PARSER_UPSTREAM_RATE_LIMITED";
+  }
+
+  if (
+    upstreamStatus === 408 ||
+    upstreamStatus === 504 ||
+    normalizedType.includes("timeout") ||
+    normalizedCode.includes("timeout")
+  ) {
+    return "CV_PARSER_UPSTREAM_TIMEOUT";
+  }
+
+  if (upstreamStatus >= 500) {
+    return "CV_PARSER_UPSTREAM_UNAVAILABLE";
+  }
+
+  return "CV_PARSER_UPSTREAM_FAILED";
+}
+
 function buildSentryContext(
   request: Request,
   extras?: Record<string, unknown>,
@@ -977,34 +1145,28 @@ async function requestOpenAi(
 async function handleWebRequest(request: Request) {
   try {
     if (request.method !== "POST") {
-      return jsonResponse({ error: "Method not allowed." }, 405);
+      return errorResponse("CV_PARSER_METHOD_NOT_ALLOWED");
     }
 
     const apiKey = process.env.OPENAI_API_KEY?.trim();
 
     if (!apiKey) {
-      return jsonResponse(
-        { error: "AI CV parsing is not configured on this deployment." },
-        503,
-      );
+      return errorResponse("CV_PARSER_NOT_CONFIGURED");
     }
 
     const formData = await request.formData();
     const file = toParsedUploadFile(formData.get("file"));
 
     if (!file) {
-      return jsonResponse({ error: "Attach a CV file before parsing." }, 400);
+      return errorResponse("CV_PARSER_FILE_REQUIRED");
     }
 
     if (!isSupportedFile(file)) {
-      return jsonResponse(
-        { error: "Use a PDF, DOC, DOCX, or TXT file for CV parsing." },
-        400,
-      );
+      return errorResponse("CV_PARSER_FILE_UNSUPPORTED");
     }
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      return jsonResponse({ error: "Choose a file smaller than 5 MB." }, 400);
+      return errorResponse("CV_PARSER_FILE_TOO_LARGE");
     }
 
     const fileBuffer = await file.arrayBuffer();
@@ -1023,10 +1185,7 @@ async function handleWebRequest(request: Request) {
       const cvText = decodeTextFile(fileBuffer);
 
       if (!cvText) {
-        return jsonResponse(
-          { error: "This text file appears to be empty. Upload a CV with content." },
-          400,
-        );
+        return errorResponse("CV_PARSER_TEXT_FILE_EMPTY");
       }
 
       inputContent.push({
@@ -1107,10 +1266,11 @@ async function handleWebRequest(request: Request) {
     );
 
     if (!openAiResponse.ok) {
-      const upstreamMessage =
-        payload?.error?.message && typeof payload.error.message === "string"
-          ? payload.error.message
-          : "The OpenAI request failed.";
+      const upstreamError = extractOpenAiErrorRecord(payload);
+      const normalizedErrorCode = normalizeUpstreamErrorCode(
+        openAiResponse.status,
+        payload,
+      );
 
       await captureApiMessage(
         "CV parser upstream request failed",
@@ -1118,7 +1278,10 @@ async function handleWebRequest(request: Request) {
           request,
           {
             model,
-            openai_error: upstreamMessage,
+            openai_error: upstreamError.message ?? "unknown",
+            openai_error_code: upstreamError.code ?? "unknown",
+            openai_error_type: upstreamError.type ?? "unknown",
+            parser_error_code: normalizedErrorCode,
             openai_status: openAiResponse.status,
             openai_status_text: openAiResponse.statusText,
           },
@@ -1128,7 +1291,7 @@ async function handleWebRequest(request: Request) {
         ),
       );
 
-      return jsonResponse({ error: upstreamMessage }, 502);
+      return errorResponse(normalizedErrorCode);
     }
 
     try {
@@ -1140,13 +1303,7 @@ async function handleWebRequest(request: Request) {
           payload?.status === "incomplete" &&
           payload?.incomplete_details?.reason === "max_output_tokens"
         ) {
-          return jsonResponse(
-            {
-              error:
-                "The parser response was cut off for this CV. Please try again or upload a shorter file.",
-            },
-            502,
-          );
+          return errorResponse("CV_PARSER_RESPONSE_TRUNCATED");
         }
 
         await captureApiMessage(
@@ -1164,10 +1321,7 @@ async function handleWebRequest(request: Request) {
           ),
         );
 
-        return jsonResponse(
-          { error: "The parser did not return employment data in the expected format." },
-          502,
-        );
+        return errorResponse("CV_PARSER_RESPONSE_INVALID");
       }
 
       const normalizedExperiences = extractedExperiences.map((item) =>
@@ -1192,10 +1346,7 @@ async function handleWebRequest(request: Request) {
         ),
       );
 
-      return jsonResponse(
-        { error: "The parser returned an unreadable response." },
-        502,
-      );
+      return errorResponse("CV_PARSER_RESPONSE_UNREADABLE");
     }
   } catch (error) {
     await captureApiException(
@@ -1205,7 +1356,7 @@ async function handleWebRequest(request: Request) {
       }),
     );
 
-    return jsonResponse({ error: "Unexpected parser failure." }, 500);
+    return errorResponse("CV_PARSER_UNEXPECTED_FAILURE");
   } finally {
     if (IS_API_SENTRY_TRACING_ENABLED) {
       await flushSentry();
@@ -1339,5 +1490,5 @@ export default async function handler(
     return;
   }
 
-  return jsonResponse({ error: "Unsupported request shape." }, 500);
+  return errorResponse("CV_PARSER_UNSUPPORTED_REQUEST_SHAPE");
 }
