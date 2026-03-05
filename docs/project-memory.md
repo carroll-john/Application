@@ -64,6 +64,9 @@ This file stores durable product, UX, and implementation rules for the applicati
 ## Integrations
 - Auth, database, and storage target: Supabase.
 - Hosting target: Vercel at `https://application-prototype.vercel.app`.
+- Error monitoring target: Sentry for frontend runtime errors plus `/api/parse-cv` server failures.
+- `/api/parse-cv` now emits Sentry Agent Insights spans (`gen_ai.invoke_agent` + `gen_ai.response`) for OpenAI parsing calls.
+- Sentry smoke-test events are intentionally filtered before send in non-development environments (known smoke markers and `/dev/sentry-smoke`) so demo checks do not pollute issue triage.
 - Address autocomplete uses Google Places when `VITE_GOOGLE_MAPS_API_KEY` is configured, with local fallback otherwise.
 - Server-backed submission depends on `supabase/migrations/0002_server_submit.sql` and the `submit_application` RPC.
 - Business-user and applicant-profile separation depends on `supabase/migrations/0003_business_users_and_applicant_profiles.sql`.

@@ -90,6 +90,41 @@ The app captures experiment events:
 - `cv_parser_autofill_failed`
 - `cv_parser_autofill_skipped_control`
 
+## Sentry Issues
+
+Sentry issue reporting is wired for:
+- frontend runtime errors and route-level failures
+- server-side `/api/parse-cv` failures (OpenAI upstream errors, unreadable parser payloads, and unhandled exceptions)
+
+Set these env vars in Vercel (and locally when needed):
+
+```env
+SENTRY_ENABLED=true
+SENTRY_DSN=your_sentry_dsn
+SENTRY_ENVIRONMENT=production
+SENTRY_TRACES_SAMPLE_RATE=0.1
+SENTRY_AGENT_NAME=cv-parser-employment-agent
+SENTRY_AI_RECORD_INPUTS=false
+SENTRY_AI_RECORD_OUTPUTS=false
+VITE_SENTRY_ENABLED=true
+VITE_SENTRY_DSN=your_sentry_dsn
+VITE_SENTRY_ENVIRONMENT=production
+VITE_SENTRY_TRACES_SAMPLE_RATE=0.1
+VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE=0
+VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE=0.1
+SENTRY_ORG=your_sentry_org_slug
+SENTRY_PROJECT=your_sentry_project_slug
+SENTRY_AUTH_TOKEN=your_sentry_auth_token
+```
+
+Notes:
+- `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are only required for source map upload during build.
+- Server-side capture falls back to `VITE_SENTRY_DSN` when `SENTRY_DSN` is not set.
+- `/api/parse-cv` emits Agent Insights spans (`gen_ai.invoke_agent` + `gen_ai.response`) so OpenAI parser calls appear in Sentry AI monitoring.
+- Leave `SENTRY_AI_RECORD_INPUTS` and `SENTRY_AI_RECORD_OUTPUTS` as `false` unless you explicitly want prompt/response text recorded in Sentry.
+- Use `/dev/sentry-smoke` in development to confirm frontend events are reaching Sentry.
+- Smoke-test events (`/dev/sentry-smoke` and known smoke markers) are dropped before send in non-development environments so they do not create preview/production issues.
+
 
 ## Start New Task
 

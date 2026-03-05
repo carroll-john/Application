@@ -35,12 +35,34 @@ VITE_POSTHOG_HOST=https://us.i.posthog.com
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_ALLOWED_EMAIL_DOMAINS=yourcompany.com
+SENTRY_ENABLED=true
+SENTRY_DSN=your_sentry_dsn
+SENTRY_ENVIRONMENT=preview
+SENTRY_TRACES_SAMPLE_RATE=0.1
+SENTRY_AGENT_NAME=cv-parser-employment-agent
+SENTRY_AI_RECORD_INPUTS=false
+SENTRY_AI_RECORD_OUTPUTS=false
+VITE_SENTRY_ENABLED=true
+VITE_SENTRY_DSN=your_sentry_dsn
+VITE_SENTRY_ENVIRONMENT=preview
+VITE_SENTRY_TRACES_SAMPLE_RATE=0.1
+VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE=0
+VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE=0.1
+SENTRY_AUTH_TOKEN=your_sentry_auth_token
+SENTRY_ORG=your_sentry_org_slug
+SENTRY_PROJECT=your_sentry_project_slug
 ```
 
 Current workspace values:
 - `VITE_SUPABASE_URL` points at your Supabase project
 - `VITE_ALLOWED_EMAIL_DOMAINS=keypathedu.com.au`
 - `VITE_CLARITY_PROJECT_ID` is optional; the frontend loader is a no-op until it is set
+- server-side Sentry capture for `/api/parse-cv` uses `SENTRY_DSN` (or falls back to `VITE_SENTRY_DSN` if omitted)
+- server-side parser tracing uses `SENTRY_TRACES_SAMPLE_RATE` and emits Agent Insights spans (`gen_ai.invoke_agent` and `gen_ai.response`)
+- keep `SENTRY_AI_RECORD_INPUTS` and `SENTRY_AI_RECORD_OUTPUTS` disabled unless you intentionally want prompt/response content captured
+- frontend Sentry capture uses `VITE_SENTRY_DSN` and `VITE_SENTRY_ENABLED`
+- frontend smoke-test markers are filtered before send in non-development environments (`/dev/sentry-smoke`, `dev_sentry_smoke`, and codex smoke messages)
+- source map upload during build requires `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`
 - Clarity excludes likely automated traffic (for example `navigator.webdriver`, headless/bot user agents) and supports explicit opt-out via `?clarity=off` or local/session storage key `application-prototype:disable-clarity=1`.
 - keep the publishable key only in local env and Vercel envs, not in checked-in docs
 

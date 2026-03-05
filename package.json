@@ -15,6 +15,7 @@
     "finish-task": "bash ./scripts/finish-task.sh"
   },
   "dependencies": {
+    "@sentry/node": "^10.42.0",
     "@sentry/react": "^10.40.0",
     "@supabase/supabase-js": "^2.98.0",
     "date-fns": "^4.1.0",
