@@ -127,6 +127,13 @@ Notes:
 - Use `/dev/sentry-smoke` in development to confirm frontend events are reaching Sentry.
 - Smoke-test events (`/dev/sentry-smoke` and known smoke markers) are dropped before send in non-development environments so they do not create preview/production issues.
 
+## Content Security Policy Rollout
+
+- CSP is now enforced in `vercel.json` as `Content-Security-Policy` with reports sent to `/api/csp-report`.
+- Reports are logged from `api/csp-report.ts` with the `[csp-report]` prefix so you can review blocked sources and tune allowlists.
+- Synthetic test payloads using `example-cdn.test` are dropped at the collector to avoid polluting production monitoring.
+- If rollout issues appear, temporarily switch back to `Content-Security-Policy-Report-Only` while adjusting allowlists.
+
 
 ## Start New Task
 
