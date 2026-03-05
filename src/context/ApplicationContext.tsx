@@ -123,12 +123,7 @@ function replaceItemById<T extends { id: string }>(
 }
 
 export function ApplicationProvider({ children }: { children: ReactNode }) {
-  const {
-    companyUserEmail,
-    isAuthorizedCompanyUser,
-    isConfigured,
-    session,
-  } = useAuth();
+  const { companyUserEmail, session, storageMode } = useAuth();
   const [data, setData] = useState<ApplicationData>(initialApplicationData);
   const [applications, setApplications] = useState<ApplicationSummary[]>([]);
   const [activeApplicationId, setActiveApplicationId] = useState<string | null>(
@@ -138,6 +133,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     useState<StoredApplicantProfile | null>(null);
   const [isHydrating, setIsHydrating] = useState(true);
   const isMountedRef = useRef(true);
+  const isRemoteStorage = storageMode === "remote";
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -162,6 +158,14 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const getRemoteSession = useCallback(() => {
+    if (!session) {
+      throw new Error("Remote storage mode requires an authenticated session.");
+    }
+
+    return session;
+  }, [session]);
+
   const persistApplication = useCallback(
     async (
       nextData: ApplicationData,
@@ -179,8 +183,9 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         applicantProfile?.id ??
         null;
 
-      if (session && isAuthorizedCompanyUser && isConfigured) {
-        const saveResult = await saveRemoteApplication(session, mergedData, {
+      if (isRemoteStorage) {
+        const remoteSession = getRemoteSession();
+        const saveResult = await saveRemoteApplication(remoteSession, mergedData, {
           applicantProfileId: resolvedApplicantProfileId,
           forceCreate: options?.forceCreate,
         });
@@ -233,9 +238,8 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     [
       activeApplicationId,
       applicantProfile?.id,
-      isAuthorizedCompanyUser,
-      isConfigured,
-      session,
+      getRemoteSession,
+      isRemoteStorage,
       upsertSummary,
     ],
   );
@@ -244,8 +248,8 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     setIsHydrating(true);
 
     try {
-      const profile = session && isAuthorizedCompanyUser && isConfigured
-        ? await loadApplicantProfile(session)
+      const profile = isRemoteStorage
+        ? await loadApplicantProfile(getRemoteSession())
         : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
 
       if (!isMountedRef.current) {
@@ -254,8 +258,9 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
       setApplicantProfile(profile);
 
-      if (session && isAuthorizedCompanyUser && isConfigured) {
-        const remoteApplications = await listRemoteApplications(session);
+      if (isRemoteStorage) {
+        const remoteSession = getRemoteSession();
+        const remoteApplications = await listRemoteApplications(remoteSession);
 
         if (!isMountedRef.current) {
           return;
@@ -278,7 +283,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
         let resolvedPreferredId = preferredId;
         let remoteApplication = await loadRemoteApplicationById(
-          session,
+          remoteSession,
           resolvedPreferredId,
         );
 
@@ -296,7 +301,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
           resolvedPreferredId = fallbackId;
           remoteApplication = await loadRemoteApplicationById(
-            session,
+            remoteSession,
             resolvedPreferredId,
           );
         }
@@ -348,7 +353,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         setIsHydrating(false);
       }
     }
-  }, [companyUserEmail, isAuthorizedCompanyUser, isConfigured, session]);
+  }, [companyUserEmail, getRemoteSession, isRemoteStorage]);
 
   useEffect(() => {
     void loadApplicationState();
@@ -356,9 +361,10 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
   const openApplication = useCallback(
     async (applicationId: string) => {
-      if (session && isAuthorizedCompanyUser && isConfigured) {
+      if (isRemoteStorage) {
+        const remoteSession = getRemoteSession();
         const remoteApplication = await loadRemoteApplicationById(
-          session,
+          remoteSession,
           applicationId,
         );
 
@@ -385,7 +391,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       saveLocalActiveApplicationId(applicationId);
       upsertSummary(localApplication);
     },
-    [isAuthorizedCompanyUser, isConfigured, session, upsertSummary],
+    [getRemoteSession, isRemoteStorage, upsertSummary],
   );
 
   const refreshApplications = useCallback(async () => {
@@ -393,8 +399,8 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   }, [loadApplicationState]);
 
   const refreshApplicantProfile = useCallback(async () => {
-    const profile = session && isAuthorizedCompanyUser && isConfigured
-      ? await loadApplicantProfile(session)
+    const profile = isRemoteStorage
+      ? await loadApplicantProfile(getRemoteSession())
       : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
 
     if (!isMountedRef.current) {
@@ -402,20 +408,21 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     }
 
     setApplicantProfile(profile);
-  }, [companyUserEmail, isAuthorizedCompanyUser, isConfigured, session]);
+  }, [companyUserEmail, getRemoteSession, isRemoteStorage]);
 
   const beginCourseApplication = useCallback(
     async (course: SelectedCourse) => {
+      const remoteSession = isRemoteStorage ? getRemoteSession() : null;
       const resolvedApplicantProfile =
-        session && isAuthorizedCompanyUser && isConfigured
-          ? await ensureApplicantProfile(session)
+        isRemoteStorage
+          ? await ensureApplicantProfile(remoteSession)
           : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
 
       if (isMountedRef.current) {
         setApplicantProfile(resolvedApplicantProfile);
       }
 
-      const existingApplication = session && isAuthorizedCompanyUser && isConfigured
+      const existingApplication = isRemoteStorage
         ? applications.find(
             (application) =>
               application.course.code === course.code &&
@@ -428,16 +435,13 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       if (existingApplication?.id) {
         await openApplication(existingApplication.id);
         const reopenedApplication =
-          (session && isAuthorizedCompanyUser && isConfigured
-            ? await loadRemoteApplicationById(session, existingApplication.id)
+          (isRemoteStorage && remoteSession
+            ? await loadRemoteApplicationById(remoteSession, existingApplication.id)
             : findLocalApplicationById(existingApplication.id)) ?? data;
         capturePostHogEvent("application_draft_resumed", {
           ...getCourseAnalyticsProperties(course),
           application_id: existingApplication.id,
-          storage_mode:
-            session && isAuthorizedCompanyUser && isConfigured
-              ? "remote"
-              : "local",
+          storage_mode: storageMode,
         });
         return reopenedApplication;
       }
@@ -456,10 +460,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         ...getCourseAnalyticsProperties(course),
         applicant_profile_id: resolvedApplicantProfile?.id ?? null,
         application_id: persisted.applicationMeta.recordId ?? null,
-        storage_mode:
-          session && isAuthorizedCompanyUser && isConfigured
-            ? "remote"
-            : "local",
+        storage_mode: storageMode,
       });
       return persisted;
     },
@@ -467,11 +468,11 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       applications,
       companyUserEmail,
       data,
-      isAuthorizedCompanyUser,
-      isConfigured,
+      getRemoteSession,
+      isRemoteStorage,
       openApplication,
       persistApplication,
-      session,
+      storageMode,
     ],
   );
 
@@ -522,8 +523,9 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   const markApplicationSubmitted = useCallback(async () => {
     const nextSubmittedAt = new Date().toISOString();
 
-    if (session && isAuthorizedCompanyUser && isConfigured) {
-      const submission = await submitRemoteApplication(session, data);
+    if (isRemoteStorage) {
+      const remoteSession = getRemoteSession();
+      const submission = await submitRemoteApplication(remoteSession, data);
       const nextData = mergeStoredApplicationData({
         ...data,
         applicationMeta: {
@@ -569,17 +571,19 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     });
   }, [
     data,
-    isAuthorizedCompanyUser,
-    isConfigured,
+    getRemoteSession,
+    isRemoteStorage,
     persistApplication,
-    session,
     upsertSummary,
   ]);
 
   const resetApplication = useCallback(async () => {
-    if (session && isAuthorizedCompanyUser && isConfigured) {
+    if (isRemoteStorage) {
+      const remoteSession = getRemoteSession();
       await Promise.all(
-        applications.map((application) => deleteRemoteApplication(session, application.id)),
+        applications.map((application) =>
+          deleteRemoteApplication(remoteSession, application.id),
+        ),
       );
     }
 
@@ -589,7 +593,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     setActiveApplicationId(null);
     setData(initialApplicationData);
     setApplicantProfile(null);
-  }, [applications, isAuthorizedCompanyUser, isConfigured, session]);
+  }, [applications, getRemoteSession, isRemoteStorage]);
 
   const value = useMemo<ApplicationContextType>(
     () => ({

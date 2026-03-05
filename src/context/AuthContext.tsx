@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { Session, User } from "@supabase/supabase-js";
 import {
   allowedEmailDomains,
   canUseLocalDevAuthBypass,
@@ -30,8 +31,9 @@ import { syncPostHogUser } from "../lib/posthog";
 import { syncSentryUser } from "../lib/sentry";
 
 interface AuthContextType {
-  user: null;
-  session: null;
+  user: User | null;
+  session: Session | null;
+  storageMode: StorageMode;
   isLoading: boolean;
   isConfigured: boolean;
   isBypassedInDev: boolean;
@@ -46,6 +48,8 @@ interface AuthContextType {
   enableDevBypass: () => void;
   disableDevBypass: () => void;
 }
+
+export type StorageMode = "local" | "remote";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const COMPANY_ACCESS_EMAIL_STORAGE_KEY =
@@ -233,121 +237,132 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [authorizedEmail]);
 
   const value = useMemo<AuthContextType>(
-    () => ({
-      user: null,
-      session: null,
-      isLoading: false,
-      isConfigured: isCompanyGateConfigured,
-      isBypassedInDev,
-      canUseDevBypass: canUseLocalDevAuthBypass,
-      isAuthorizedCompanyUser: Boolean(authorizedEmail) || isBypassedInDev,
-      companyUserEmail: authorizedEmail,
-      companyUserDisplayName: formatCompanyDisplayName(authorizedEmail),
-      companyDomains: allowedEmailDomains,
-      authorizeCompanyEmail: async (email) => {
-        const normalizedEmail = normalizeCompanyEmail(email);
+    () => {
+      const session: Session | null = null;
+      const user: User | null = null;
+      const isAuthorizedCompanyUser = Boolean(authorizedEmail) || isBypassedInDev;
+      const storageMode: StorageMode =
+        session && isAuthorizedCompanyUser && isCompanyGateConfigured
+          ? "remote"
+          : "local";
 
-        if (!normalizedEmail) {
-          return { error: "Enter your work email address." };
-        }
+      return {
+        user,
+        session,
+        storageMode,
+        isLoading: false,
+        isConfigured: isCompanyGateConfigured,
+        isBypassedInDev,
+        canUseDevBypass: canUseLocalDevAuthBypass,
+        isAuthorizedCompanyUser,
+        companyUserEmail: authorizedEmail,
+        companyUserDisplayName: formatCompanyDisplayName(authorizedEmail),
+        companyDomains: allowedEmailDomains,
+        authorizeCompanyEmail: async (email) => {
+          const normalizedEmail = normalizeCompanyEmail(email);
 
-        if (!isAllowedCompanyEmail(normalizedEmail)) {
-          return {
-            error: `Use your company email address (${allowedEmailDomains.join(", ")}).`,
-          };
-        }
+          if (!normalizedEmail) {
+            return { error: "Enter your work email address." };
+          }
 
-        const previousEmail = loadAuthorizedCompanyEmail();
-        const previousLocalDataOwnerEmail = loadLocalDataOwnerEmail();
-        const previousLocalProfileEmail =
-          loadLocalApplicantProfile()?.email ?? null;
-        const knownLocalOwnerEmail =
-          previousEmail ??
-          previousLocalDataOwnerEmail ??
-          previousLocalProfileEmail;
-        const expectedLocalProfileId = `local-profile:${normalizedEmail}`;
-        const hasConflictingLocalDraftOwner = loadLocalApplications().some(
-          (application) => {
-            const applicantProfileId =
-              application.applicationMeta.applicantProfileId
-                ?.trim()
-                .toLowerCase() ?? "";
+          if (!isAllowedCompanyEmail(normalizedEmail)) {
+            return {
+              error: `Use your company email address (${allowedEmailDomains.join(", ")}).`,
+            };
+          }
 
-            if (!applicantProfileId.startsWith("local-profile:")) {
-              return false;
-            }
+          const previousEmail = loadAuthorizedCompanyEmail();
+          const previousLocalDataOwnerEmail = loadLocalDataOwnerEmail();
+          const previousLocalProfileEmail =
+            loadLocalApplicantProfile()?.email ?? null;
+          const knownLocalOwnerEmail =
+            previousEmail ??
+            previousLocalDataOwnerEmail ??
+            previousLocalProfileEmail;
+          const expectedLocalProfileId = `local-profile:${normalizedEmail}`;
+          const hasConflictingLocalDraftOwner = loadLocalApplications().some(
+            (application) => {
+              const applicantProfileId =
+                application.applicationMeta.applicantProfileId
+                  ?.trim()
+                  .toLowerCase() ?? "";
 
-            return applicantProfileId !== expectedLocalProfileId;
-          },
-        );
-        const isSwitchingUser =
-          (Boolean(knownLocalOwnerEmail) &&
-            knownLocalOwnerEmail !== normalizedEmail) ||
-          hasConflictingLocalDraftOwner;
+              if (!applicantProfileId.startsWith("local-profile:")) {
+                return false;
+              }
 
-        if (isSwitchingUser) {
-          clearLocalApplications();
-          clearLocalApplicantProfile();
-          await clearStoredDocuments().catch(() => {
-            // Ignore IndexedDB cleanup issues during gate changes.
+              return applicantProfileId !== expectedLocalProfileId;
+            },
+          );
+          const isSwitchingUser =
+            (Boolean(knownLocalOwnerEmail) &&
+              knownLocalOwnerEmail !== normalizedEmail) ||
+            hasConflictingLocalDraftOwner;
+
+          if (isSwitchingUser) {
+            clearLocalApplications();
+            clearLocalApplicantProfile();
+            await clearStoredDocuments().catch(() => {
+              // Ignore IndexedDB cleanup issues during gate changes.
+            });
+          }
+
+          saveAuthorizedCompanyEmail(normalizedEmail);
+          saveLocalDataOwnerEmail(normalizedEmail);
+          await ensureApplicantProfile(null, normalizedEmail);
+          setAuthorizedEmail(normalizedEmail);
+          syncPostHogUser({
+            companyDomain: normalizedEmail.split("@")[1],
+            email: normalizedEmail,
+            id: normalizedEmail,
+            name: formatCompanyDisplayName(normalizedEmail),
           });
-        }
+          syncSentryUser({
+            companyDomain: normalizedEmail.split("@")[1],
+            email: normalizedEmail,
+            id: normalizedEmail,
+            name: formatCompanyDisplayName(normalizedEmail),
+          });
 
-        saveAuthorizedCompanyEmail(normalizedEmail);
-        saveLocalDataOwnerEmail(normalizedEmail);
-        await ensureApplicantProfile(null, normalizedEmail);
-        setAuthorizedEmail(normalizedEmail);
-        syncPostHogUser({
-          companyDomain: normalizedEmail.split("@")[1],
-          email: normalizedEmail,
-          id: normalizedEmail,
-          name: formatCompanyDisplayName(normalizedEmail),
-        });
-        syncSentryUser({
-          companyDomain: normalizedEmail.split("@")[1],
-          email: normalizedEmail,
-          id: normalizedEmail,
-          name: formatCompanyDisplayName(normalizedEmail),
-        });
+          return { error: null };
+        },
+        signOut: async () => {
+          if (authorizedEmail) {
+            saveLocalDataOwnerEmail(authorizedEmail);
+          }
+          clearAuthorizedCompanyEmail();
+          setAuthorizedEmail(null);
+          syncPostHogUser(null);
+          syncSentryUser(null);
 
-        return { error: null };
-      },
-      signOut: async () => {
-        if (authorizedEmail) {
-          saveLocalDataOwnerEmail(authorizedEmail);
-        }
-        clearAuthorizedCompanyEmail();
-        setAuthorizedEmail(null);
-        syncPostHogUser(null);
-        syncSentryUser(null);
+          if (canUseLocalDevAuthBypass) {
+            window.localStorage.removeItem(DEV_AUTH_BYPASS_STORAGE_KEY);
+            setHasDevBypassEnabled(false);
+          }
+        },
+        isAllowedEmail: isAllowedCompanyEmail,
+        enableDevBypass: () => {
+          if (!canUseLocalDevAuthBypass) {
+            return;
+          }
 
-        if (canUseLocalDevAuthBypass) {
+          setExpiringStorageString(
+            DEV_AUTH_BYPASS_STORAGE_KEY,
+            "enabled",
+            DEV_AUTH_BYPASS_TTL_MS,
+          );
+          setHasDevBypassEnabled(true);
+        },
+        disableDevBypass: () => {
+          if (!canUseLocalDevAuthBypass) {
+            return;
+          }
+
           window.localStorage.removeItem(DEV_AUTH_BYPASS_STORAGE_KEY);
           setHasDevBypassEnabled(false);
-        }
-      },
-      isAllowedEmail: isAllowedCompanyEmail,
-      enableDevBypass: () => {
-        if (!canUseLocalDevAuthBypass) {
-          return;
-        }
-
-        setExpiringStorageString(
-          DEV_AUTH_BYPASS_STORAGE_KEY,
-          "enabled",
-          DEV_AUTH_BYPASS_TTL_MS,
-        );
-        setHasDevBypassEnabled(true);
-      },
-      disableDevBypass: () => {
-        if (!canUseLocalDevAuthBypass) {
-          return;
-        }
-
-        window.localStorage.removeItem(DEV_AUTH_BYPASS_STORAGE_KEY);
-        setHasDevBypassEnabled(false);
-      },
-    }),
+        },
+      };
+    },
     [authorizedEmail, isBypassedInDev, isCompanyGateConfigured],
   );
 
