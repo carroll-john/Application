@@ -11,10 +11,7 @@ import {
 import {
   clearLocalApplications,
   createApplicationDraft,
-  findLocalApplicationById,
-  findLocalOpenApplicationForCourse,
   loadLocalActiveApplicationId,
-  loadLocalApplications,
   saveLocalActiveApplicationId,
   summarizeApplication,
   upsertLocalApplication,
@@ -24,16 +21,7 @@ import {
   getNextIncompleteSection as getNextIncompleteSectionForApplication,
 } from "../lib/applicationNextStep";
 import {
-  deleteRemoteApplication,
-  listRemoteApplications,
-  loadRemoteApplicationById,
-  saveRemoteApplication,
-  submitRemoteApplication,
-} from "../lib/applicationRemoteStore";
-import {
   clearLocalApplicantProfile,
-  ensureApplicantProfile,
-  loadApplicantProfile,
   type StoredApplicantProfile,
 } from "../lib/applicantProfileStore";
 import type {
@@ -48,6 +36,7 @@ import type {
   TertiaryQualification,
 } from "../lib/applicationData";
 import { initialApplicationData, mergeStoredApplicationData } from "../lib/applicationData";
+import { createApplicationStorageAdapter } from "../lib/applicationStorageAdapter";
 import {
   capturePostHogEvent,
   getApplicationAnalyticsProperties,
@@ -133,7 +122,10 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     useState<StoredApplicantProfile | null>(null);
   const [isHydrating, setIsHydrating] = useState(true);
   const isMountedRef = useRef(true);
-  const isRemoteStorage = storageMode === "remote";
+  const storageAdapter = useMemo(
+    () => createApplicationStorageAdapter({ mode: storageMode, session }),
+    [session, storageMode],
+  );
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -158,14 +150,6 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const getRemoteSession = useCallback(() => {
-    if (!session) {
-      throw new Error("Remote storage mode requires an authenticated session.");
-    }
-
-    return session;
-  }, [session]);
-
   const persistApplication = useCallback(
     async (
       nextData: ApplicationData,
@@ -176,50 +160,16 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       },
     ) => {
       const mergedData = mergeStoredApplicationData(nextData);
-      let persistedData = mergedData;
       const resolvedApplicantProfileId =
         options?.applicantProfileId ??
         mergedData.applicationMeta.applicantProfileId ??
         applicantProfile?.id ??
         null;
 
-      if (isRemoteStorage) {
-        const remoteSession = getRemoteSession();
-        const saveResult = await saveRemoteApplication(remoteSession, mergedData, {
-          applicantProfileId: resolvedApplicantProfileId,
-          forceCreate: options?.forceCreate,
-        });
-
-        if (saveResult) {
-          persistedData = mergeStoredApplicationData({
-            ...mergedData,
-            applicationMeta: {
-              ...mergedData.applicationMeta,
-              applicantProfileId:
-                saveResult.applicantProfileId ??
-                resolvedApplicantProfileId ??
-                undefined,
-              applicationNumber:
-                saveResult.applicationNumber ??
-                mergedData.applicationMeta.applicationNumber,
-              recordId: saveResult.applicationId,
-              status: saveResult.submittedAt ? "submitted" : "draft",
-              submittedAt:
-                saveResult.submittedAt ?? mergedData.applicationMeta.submittedAt,
-              updatedAt: saveResult.updatedAt,
-            },
-          });
-        }
-      } else {
-        persistedData = mergeStoredApplicationData({
-          ...mergedData,
-          applicationMeta: {
-            ...mergedData.applicationMeta,
-            applicantProfileId:
-              resolvedApplicantProfileId ?? undefined,
-          },
-        });
-      }
+      const persistedData = await storageAdapter.saveApplication(mergedData, {
+        applicantProfileId: resolvedApplicantProfileId,
+        forceCreate: options?.forceCreate,
+      });
 
       upsertLocalApplication(persistedData);
       upsertSummary(persistedData);
@@ -238,8 +188,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     [
       activeApplicationId,
       applicantProfile?.id,
-      getRemoteSession,
-      isRemoteStorage,
+      storageAdapter,
       upsertSummary,
     ],
   );
@@ -248,93 +197,28 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     setIsHydrating(true);
 
     try {
-      const profile = isRemoteStorage
-        ? await loadApplicantProfile(getRemoteSession())
-        : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
+      const profile = await storageAdapter.ensureApplicantProfile(
+        companyUserEmail ?? undefined,
+      );
 
       if (!isMountedRef.current) {
         return;
       }
 
       setApplicantProfile(profile);
+      const loadedApplications = await storageAdapter.listApplications();
 
-      if (isRemoteStorage) {
-        const remoteSession = getRemoteSession();
-        const remoteApplications = await listRemoteApplications(remoteSession);
-
-        if (!isMountedRef.current) {
-          return;
-        }
-
-        setApplications(remoteApplications);
-
-        const preferredId =
-          loadLocalActiveApplicationId() ??
-          remoteApplications.find((application) => application.status === "draft")
-            ?.id ??
-          remoteApplications[0]?.id ??
-          null;
-
-        if (!preferredId) {
-          setActiveApplicationId(null);
-          setData(initialApplicationData);
-          return;
-        }
-
-        let resolvedPreferredId = preferredId;
-        let remoteApplication = await loadRemoteApplicationById(
-          remoteSession,
-          resolvedPreferredId,
-        );
-
-        if (!remoteApplication) {
-          const fallbackId =
-            remoteApplications.find(
-              (application) => application.id !== resolvedPreferredId,
-            )?.id ?? null;
-
-          if (!fallbackId) {
-            setActiveApplicationId(null);
-            setData(initialApplicationData);
-            return;
-          }
-
-          resolvedPreferredId = fallbackId;
-          remoteApplication = await loadRemoteApplicationById(
-            remoteSession,
-            resolvedPreferredId,
-          );
-        }
-
-        if (!remoteApplication) {
-          setActiveApplicationId(null);
-          setData(initialApplicationData);
-          return;
-        }
-
-        if (!isMountedRef.current) {
-          return;
-        }
-
-        setActiveApplicationId(resolvedPreferredId);
-        saveLocalActiveApplicationId(resolvedPreferredId);
-        setData(remoteApplication);
-        upsertLocalApplication(remoteApplication);
+      if (!isMountedRef.current) {
         return;
       }
 
-      const localApplications = loadLocalApplications();
-      const localSummaries = localApplications
-        .map((application) => summarizeApplication(application))
-        .filter((summary): summary is ApplicationSummary => Boolean(summary))
-        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
-
-      setApplications(localSummaries);
+      setApplications(loadedApplications);
 
       const preferredId =
         loadLocalActiveApplicationId() ??
-        localSummaries.find((application) => application.status === "draft")?.id ??
-        localSummaries[0]?.id ??
+        loadedApplications.find((application) => application.status === "draft")
+          ?.id ??
+        loadedApplications[0]?.id ??
         null;
 
       if (!preferredId) {
@@ -343,17 +227,47 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const localApplication =
-        findLocalApplicationById(preferredId) ?? initialApplicationData;
-      setActiveApplicationId(preferredId);
-      saveLocalActiveApplicationId(preferredId);
-      setData(localApplication);
+      let resolvedPreferredId = preferredId;
+      let application = await storageAdapter.loadApplicationById(
+        resolvedPreferredId,
+      );
+
+      if (!application) {
+        const fallbackId =
+          loadedApplications.find(
+            (loadedApplication) => loadedApplication.id !== resolvedPreferredId,
+          )?.id ?? null;
+
+        if (!fallbackId) {
+          setActiveApplicationId(null);
+          setData(initialApplicationData);
+          return;
+        }
+
+        resolvedPreferredId = fallbackId;
+        application = await storageAdapter.loadApplicationById(resolvedPreferredId);
+      }
+
+      if (!application) {
+        setActiveApplicationId(null);
+        setData(initialApplicationData);
+        return;
+      }
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setActiveApplicationId(resolvedPreferredId);
+      saveLocalActiveApplicationId(resolvedPreferredId);
+      setData(application);
+      storageAdapter.syncLoadedApplication(application);
     } finally {
       if (isMountedRef.current) {
         setIsHydrating(false);
       }
     }
-  }, [companyUserEmail, getRemoteSession, isRemoteStorage]);
+  }, [companyUserEmail, storageAdapter]);
 
   useEffect(() => {
     void loadApplicationState();
@@ -361,37 +275,19 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
 
   const openApplication = useCallback(
     async (applicationId: string) => {
-      if (isRemoteStorage) {
-        const remoteSession = getRemoteSession();
-        const remoteApplication = await loadRemoteApplicationById(
-          remoteSession,
-          applicationId,
-        );
+      const application = await storageAdapter.loadApplicationById(applicationId);
 
-        if (!remoteApplication) {
-          return;
-        }
-
-        setData(remoteApplication);
-        setActiveApplicationId(applicationId);
-        saveLocalActiveApplicationId(applicationId);
-        upsertLocalApplication(remoteApplication);
-        upsertSummary(remoteApplication);
+      if (!application) {
         return;
       }
 
-      const localApplication = findLocalApplicationById(applicationId);
-
-      if (!localApplication) {
-        return;
-      }
-
-      setData(localApplication);
+      setData(application);
       setActiveApplicationId(applicationId);
       saveLocalActiveApplicationId(applicationId);
-      upsertSummary(localApplication);
+      storageAdapter.syncLoadedApplication(application);
+      upsertSummary(application);
     },
-    [getRemoteSession, isRemoteStorage, upsertSummary],
+    [storageAdapter, upsertSummary],
   );
 
   const refreshApplications = useCallback(async () => {
@@ -399,45 +295,36 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   }, [loadApplicationState]);
 
   const refreshApplicantProfile = useCallback(async () => {
-    const profile = isRemoteStorage
-      ? await loadApplicantProfile(getRemoteSession())
-      : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
+    const profile = await storageAdapter.loadApplicantProfile(
+      companyUserEmail ?? undefined,
+    );
 
     if (!isMountedRef.current) {
       return;
     }
 
     setApplicantProfile(profile);
-  }, [companyUserEmail, getRemoteSession, isRemoteStorage]);
+  }, [companyUserEmail, storageAdapter]);
 
   const beginCourseApplication = useCallback(
     async (course: SelectedCourse) => {
-      const remoteSession = isRemoteStorage ? getRemoteSession() : null;
-      const resolvedApplicantProfile =
-        isRemoteStorage
-          ? await ensureApplicantProfile(remoteSession)
-          : await ensureApplicantProfile(null, companyUserEmail ?? undefined);
+      const resolvedApplicantProfile = await storageAdapter.ensureApplicantProfile(
+        companyUserEmail ?? undefined,
+      );
 
       if (isMountedRef.current) {
         setApplicantProfile(resolvedApplicantProfile);
       }
 
-      const existingApplication = isRemoteStorage
-        ? applications.find(
-            (application) =>
-              application.course.code === course.code &&
-              application.status === "draft",
-          )
-        : summarizeApplication(
-            findLocalOpenApplicationForCourse(course.code) ?? initialApplicationData,
-          );
+      const existingApplication = await storageAdapter.findOpenDraftForCourse(
+        course.code,
+        applications,
+      );
 
       if (existingApplication?.id) {
         await openApplication(existingApplication.id);
         const reopenedApplication =
-          (isRemoteStorage && remoteSession
-            ? await loadRemoteApplicationById(remoteSession, existingApplication.id)
-            : findLocalApplicationById(existingApplication.id)) ?? data;
+          (await storageAdapter.loadApplicationById(existingApplication.id)) ?? data;
         capturePostHogEvent("application_draft_resumed", {
           ...getCourseAnalyticsProperties(course),
           application_id: existingApplication.id,
@@ -468,10 +355,9 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       applications,
       companyUserEmail,
       data,
-      getRemoteSession,
-      isRemoteStorage,
       openApplication,
       persistApplication,
+      storageAdapter,
       storageMode,
     ],
   );
@@ -521,71 +407,42 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   );
 
   const markApplicationSubmitted = useCallback(async () => {
-    const nextSubmittedAt = new Date().toISOString();
+    const submittedApplication = await storageAdapter.submitApplication(data);
 
-    if (isRemoteStorage) {
-      const remoteSession = getRemoteSession();
-      const submission = await submitRemoteApplication(remoteSession, data);
-      const nextData = mergeStoredApplicationData({
-        ...data,
-        applicationMeta: {
-          ...data.applicationMeta,
-          applicationNumber: submission.applicationNumber,
-          recordId: submission.applicationId,
-          status: "submitted",
-          submittedAt: submission.submittedAt,
-          updatedAt: submission.submittedAt,
-        },
-      });
+    upsertLocalApplication(submittedApplication);
+    upsertSummary(submittedApplication);
+    setData(submittedApplication);
 
-      upsertLocalApplication(nextData);
-      upsertSummary(nextData);
-      setData(nextData);
-      capturePostHogEvent("application_submitted", {
-        ...getCourseAnalyticsProperties(nextData.applicationMeta.selectedCourse),
-        application_id: nextData.applicationMeta.recordId ?? null,
-        application_number: nextData.applicationMeta.applicationNumber ?? null,
-        submission_mode: "remote",
-      });
-      return;
+    const nextActiveId =
+      submittedApplication.applicationMeta.recordId ?? activeApplicationId;
+
+    if (nextActiveId) {
+      setActiveApplicationId(nextActiveId);
+      saveLocalActiveApplicationId(nextActiveId);
     }
 
-    const nextData = mergeStoredApplicationData({
-      ...data,
-      applicationMeta: {
-        ...data.applicationMeta,
-        applicationNumber:
-          data.applicationMeta.applicationNumber ??
-          `QX-${Math.floor(1000000 + Math.random() * 9000000)}`,
-        status: "submitted",
-        submittedAt: nextSubmittedAt,
-        updatedAt: nextSubmittedAt,
-      },
-    });
-    const persisted = await persistApplication(nextData);
     capturePostHogEvent("application_submitted", {
-      ...getCourseAnalyticsProperties(persisted.applicationMeta.selectedCourse),
-      application_id: persisted.applicationMeta.recordId ?? null,
-      application_number: persisted.applicationMeta.applicationNumber ?? null,
-      submission_mode: "local",
+      ...getCourseAnalyticsProperties(
+        submittedApplication.applicationMeta.selectedCourse,
+      ),
+      application_id: submittedApplication.applicationMeta.recordId ?? null,
+      application_number:
+        submittedApplication.applicationMeta.applicationNumber ?? null,
+      submission_mode: storageAdapter.mode,
     });
   }, [
+    activeApplicationId,
     data,
-    getRemoteSession,
-    isRemoteStorage,
-    persistApplication,
+    storageAdapter,
     upsertSummary,
   ]);
 
   const resetApplication = useCallback(async () => {
-    if (isRemoteStorage) {
-      const remoteSession = getRemoteSession();
-      await Promise.all(
-        applications.map((application) =>
-          deleteRemoteApplication(remoteSession, application.id),
-        ),
-      );
-    }
+    await Promise.all(
+      applications.map((application) =>
+        storageAdapter.deleteApplication(application.id),
+      ),
+    );
 
     clearLocalApplications();
     clearLocalApplicantProfile();
@@ -593,7 +450,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     setActiveApplicationId(null);
     setData(initialApplicationData);
     setApplicantProfile(null);
-  }, [applications, getRemoteSession, isRemoteStorage]);
+  }, [applications, storageAdapter]);
 
   const value = useMemo<ApplicationContextType>(
     () => ({
