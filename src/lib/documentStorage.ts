@@ -42,6 +42,10 @@ const DATABASE_NAME = "application-prototype-documents";
 const STORE_NAME = "documents";
 const DATABASE_VERSION = 1;
 const STORAGE_BUCKET = "application-documents";
+const REMOTE_DOCUMENT_PROXY_PATH = "/api/document-delivery";
+const REMOTE_DOCUMENT_PROXY_IDENTIFIER_HEADER = "x-document-proxy";
+
+type RemoteDocumentDisposition = "attachment" | "inline";
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -107,6 +111,115 @@ async function getSupabaseSession() {
   }
 
   return data.session;
+}
+
+function isLocalhostRuntime() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const host = window.location.hostname;
+  return host === "localhost" || host === "127.0.0.1";
+}
+
+function triggerDocumentDownload(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const link = window.document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  link.rel = "noopener noreferrer";
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+function buildProxyDocumentRequestUrl(
+  documentId: string,
+  disposition: RemoteDocumentDisposition,
+) {
+  const query = new URLSearchParams({
+    disposition,
+    documentId,
+  });
+  return `${REMOTE_DOCUMENT_PROXY_PATH}?${query.toString()}`;
+}
+
+async function requestRemoteDocumentProxy(
+  document: UploadedDocument,
+  disposition: RemoteDocumentDisposition,
+) {
+  const session = await getSupabaseSession();
+
+  if (!session) {
+    return null;
+  }
+
+  const response = await fetch(
+    buildProxyDocumentRequestUrl(document.id, disposition),
+    {
+      cache: "no-store",
+      headers: {
+        authorization: `Bearer ${session.access_token}`,
+      },
+      method: "GET",
+    },
+  );
+
+  if (
+    response.headers.get(REMOTE_DOCUMENT_PROXY_IDENTIFIER_HEADER) !== "1" &&
+    isLocalhostRuntime()
+  ) {
+    return null;
+  }
+
+  if (response.headers.get(REMOTE_DOCUMENT_PROXY_IDENTIFIER_HEADER) !== "1") {
+    throw new Error("Unexpected remote document proxy response.");
+  }
+
+  return response;
+}
+
+async function createRemoteDocumentSignedUrl(
+  document: UploadedDocument,
+): Promise<string | null> {
+  if (!document.storagePath || !supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase.storage
+    .from(document.storageBucket ?? STORAGE_BUCKET)
+    .createSignedUrl(document.storagePath, 60);
+
+  if (error || !data?.signedUrl) {
+    return null;
+  }
+
+  return data.signedUrl;
+}
+
+async function downloadRemoteDocumentViaSignedUrl(document: UploadedDocument) {
+  const signedUrl = await createRemoteDocumentSignedUrl(document);
+
+  if (!signedUrl) {
+    return false;
+  }
+
+  const link = window.document.createElement("a");
+  link.href = signedUrl;
+  link.download = document.name;
+  link.rel = "noopener noreferrer";
+  link.click();
+  return true;
+}
+
+async function viewRemoteDocumentViaSignedUrl(document: UploadedDocument) {
+  const signedUrl = await createRemoteDocumentSignedUrl(document);
+
+  if (!signedUrl) {
+    return false;
+  }
+
+  const opened = window.open(signedUrl, "_blank", "noopener,noreferrer");
+  return Boolean(opened);
 }
 
 export async function saveDocumentFile(file: File): Promise<UploadedDocument> {
@@ -293,20 +406,26 @@ export async function downloadStoredDocument(
   }
 
   if (isRemoteDocument(document) && supabase) {
-    const { data, error } = await supabase.storage
-      .from(document.storageBucket ?? STORAGE_BUCKET)
-      .createSignedUrl(document.storagePath!, 60);
+    try {
+      const proxyResponse = await requestRemoteDocumentProxy(
+        document,
+        "attachment",
+      );
 
-    if (error || !data?.signedUrl) {
+      if (proxyResponse) {
+        if (!proxyResponse.ok) {
+          return false;
+        }
+
+        const proxyBlob = await proxyResponse.blob();
+        triggerDocumentDownload(proxyBlob, document.name);
+        return true;
+      }
+
+      return downloadRemoteDocumentViaSignedUrl(document);
+    } catch {
       return false;
     }
-
-    const link = window.document.createElement("a");
-    link.href = data.signedUrl;
-    link.download = document.name;
-    link.rel = "noopener noreferrer";
-    link.click();
-    return true;
   }
 
   const file = await loadLocalDocumentFile(document.id);
@@ -315,12 +434,7 @@ export async function downloadStoredDocument(
     return false;
   }
 
-  const url = URL.createObjectURL(file);
-  const link = window.document.createElement("a");
-  link.href = url;
-  link.download = document.name;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  triggerDocumentDownload(file, document.name);
   return true;
 }
 
@@ -340,16 +454,22 @@ export async function viewStoredDocument(
   }
 
   if (isRemoteDocument(document) && supabase) {
-    const { data, error } = await supabase.storage
-      .from(document.storageBucket ?? STORAGE_BUCKET)
-      .createSignedUrl(document.storagePath!, 60);
+    try {
+      const proxyResponse = await requestRemoteDocumentProxy(document, "inline");
 
-    if (error || !data?.signedUrl) {
+      if (proxyResponse) {
+        if (!proxyResponse.ok) {
+          return false;
+        }
+
+        const proxyBlob = await proxyResponse.blob();
+        return viewLocalDocument(proxyBlob);
+      }
+
+      return viewRemoteDocumentViaSignedUrl(document);
+    } catch {
       return false;
     }
-
-    const opened = window.open(data.signedUrl, "_blank", "noopener,noreferrer");
-    return Boolean(opened);
   }
 
   const file = await loadLocalDocumentFile(document.id);

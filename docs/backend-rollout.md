@@ -60,6 +60,7 @@ Current workspace values:
 - `VITE_ALLOWED_EMAIL_DOMAINS=keypathedu.com.au`
 - `VITE_CLARITY_PROJECT_ID` is optional; the frontend loader is a no-op until it is set
 - server-side Sentry capture for `/api/parse-cv` uses `SENTRY_DSN` (or falls back to `VITE_SENTRY_DSN` if omitted)
+- server-side document delivery proxy (`/api/document-delivery`) reads `SUPABASE_URL`/`SUPABASE_ANON_KEY` when present, and falls back to `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`
 - server-side parser tracing uses `SENTRY_TRACES_SAMPLE_RATE` and emits Agent Insights spans (`gen_ai.invoke_agent` and `gen_ai.response`)
 - keep `SENTRY_AI_RECORD_INPUTS` and `SENTRY_AI_RECORD_OUTPUTS` disabled unless you intentionally want prompt/response content captured
 - frontend Sentry capture uses `VITE_SENTRY_DSN` and `VITE_SENTRY_ENABLED`
@@ -179,6 +180,10 @@ Notes:
 - Document uploads are local-first:
   - `src/lib/documentStorage.ts` uses IndexedDB when no authenticated Supabase session is available
   - remote uploads remain available in code for any future return to real auth
+- Remote document delivery is now proxy-first for authenticated sessions:
+  - `src/lib/documentStorage.ts` requests `/api/document-delivery` with a bearer token instead of opening raw signed URLs
+  - the proxy enforces `Cache-Control: no-store` and returns `Content-Disposition: attachment` for sensitive document MIME types
+  - localhost dev falls back to signed URLs only when the proxy endpoint is unavailable
 - CV parsing now runs through the Vercel server function `/api/parse-cv`:
   - requires `OPENAI_API_KEY`
   - optionally uses `OPENAI_CV_PARSER_MODEL`
