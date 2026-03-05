@@ -13,6 +13,10 @@ import {
   isAllowedCompanyEmail,
 } from "../lib/supabase";
 import {
+  getExpiringStorageString,
+  setExpiringStorageString,
+} from "../lib/expiringStorage";
+import {
   clearLocalApplicantProfile,
   ensureApplicantProfile,
   loadLocalApplicantProfile,
@@ -48,47 +52,69 @@ const COMPANY_ACCESS_EMAIL_STORAGE_KEY =
   "application-prototype:company-access-email";
 const LOCAL_DATA_OWNER_EMAIL_STORAGE_KEY =
   "application-prototype:local-data-owner-email";
+const HOURS_TO_MS = 60 * 60 * 1000;
+const COMPANY_ACCESS_EMAIL_TTL_MS = 24 * HOURS_TO_MS;
+const LOCAL_DATA_OWNER_EMAIL_TTL_MS = 24 * HOURS_TO_MS;
+const DEV_AUTH_BYPASS_TTL_MS = 4 * HOURS_TO_MS;
 
 function normalizeCompanyEmail(email: string | null | undefined) {
   return email?.trim().toLowerCase() ?? "";
 }
 
 function loadAuthorizedCompanyEmail() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const email = normalizeCompanyEmail(
-    window.localStorage.getItem(COMPANY_ACCESS_EMAIL_STORAGE_KEY),
+  const email = getExpiringStorageString(
+    COMPANY_ACCESS_EMAIL_STORAGE_KEY,
+    COMPANY_ACCESS_EMAIL_TTL_MS,
+    {
+      normalize: normalizeCompanyEmail,
+      validate: isAllowedCompanyEmail,
+    },
   );
 
-  return email && isAllowedCompanyEmail(email) ? email : null;
+  return email ?? null;
 }
 
 function saveAuthorizedCompanyEmail(email: string) {
-  if (typeof window === "undefined") {
+  const normalizedEmail = normalizeCompanyEmail(email);
+
+  if (!normalizedEmail) {
+    clearAuthorizedCompanyEmail();
     return;
   }
 
-  window.localStorage.setItem(COMPANY_ACCESS_EMAIL_STORAGE_KEY, email);
+  setExpiringStorageString(
+    COMPANY_ACCESS_EMAIL_STORAGE_KEY,
+    normalizedEmail,
+    COMPANY_ACCESS_EMAIL_TTL_MS,
+  );
 }
 
 function loadLocalDataOwnerEmail() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return normalizeCompanyEmail(
-    window.localStorage.getItem(LOCAL_DATA_OWNER_EMAIL_STORAGE_KEY),
+  return getExpiringStorageString(
+    LOCAL_DATA_OWNER_EMAIL_STORAGE_KEY,
+    LOCAL_DATA_OWNER_EMAIL_TTL_MS,
+    {
+      normalize: normalizeCompanyEmail,
+      validate: (email) => email.length > 0,
+    },
   );
 }
 
 function saveLocalDataOwnerEmail(email: string) {
-  if (typeof window === "undefined") {
+  const normalizedEmail = normalizeCompanyEmail(email);
+
+  if (!normalizedEmail) {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(LOCAL_DATA_OWNER_EMAIL_STORAGE_KEY);
+    }
     return;
   }
 
-  window.localStorage.setItem(LOCAL_DATA_OWNER_EMAIL_STORAGE_KEY, email);
+  setExpiringStorageString(
+    LOCAL_DATA_OWNER_EMAIL_STORAGE_KEY,
+    normalizedEmail,
+    LOCAL_DATA_OWNER_EMAIL_TTL_MS,
+  );
 }
 
 function clearAuthorizedCompanyEmail() {
@@ -127,7 +153,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return (
-      window.localStorage.getItem(DEV_AUTH_BYPASS_STORAGE_KEY) === "enabled"
+      getExpiringStorageString(
+        DEV_AUTH_BYPASS_STORAGE_KEY,
+        DEV_AUTH_BYPASS_TTL_MS,
+        {
+          normalize: (value) => value.trim().toLowerCase(),
+          validate: (value) => value === "enabled",
+        },
+      ) === "enabled"
     );
   });
   const isCompanyGateConfigured = allowedEmailDomains.length > 0;
@@ -256,7 +289,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        window.localStorage.setItem(DEV_AUTH_BYPASS_STORAGE_KEY, "enabled");
+        setExpiringStorageString(
+          DEV_AUTH_BYPASS_STORAGE_KEY,
+          "enabled",
+          DEV_AUTH_BYPASS_TTL_MS,
+        );
         setHasDevBypassEnabled(true);
       },
       disableDevBypass: () => {
