@@ -1,4 +1,15 @@
 import { supabase } from "./supabase";
+import {
+  assertDocumentUploadFileSize,
+  DocumentUploadLimitError,
+  REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION,
+  REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION,
+  REMOTE_UPLOAD_RATE_LIMIT_MAX_UPLOADS,
+  REMOTE_UPLOAD_RATE_LIMIT_WINDOW_MINUTES,
+  toDocumentUploadLimitError,
+} from "./documentUploadLimits";
+
+export { getDocumentUploadErrorMessage } from "./documentUploadLimits";
 
 export type DocumentKind =
   | "cv"
@@ -31,6 +42,14 @@ interface RemoteDocumentRow {
   created_at: string;
   storage_bucket: string;
   storage_path: string;
+}
+
+interface RemoteDocumentSizeRow {
+  size_bytes: number;
+}
+
+interface RemoteApplicationIdRow {
+  id: string;
 }
 
 interface ReplaceStoredDocumentOptions {
@@ -223,6 +242,8 @@ async function viewRemoteDocumentViaSignedUrl(document: UploadedDocument) {
 }
 
 export async function saveDocumentFile(file: File): Promise<UploadedDocument> {
+  assertDocumentUploadFileSize(file.size);
+
   const document: UploadedDocument = {
     id: crypto.randomUUID(),
     name: file.name,
@@ -241,6 +262,90 @@ export async function saveDocumentFile(file: File): Promise<UploadedDocument> {
   );
 
   return document;
+}
+
+async function enforceRemoteUploadLimits(
+  applicationId: string,
+  userId: string,
+  nextFileSizeBytes: number,
+) {
+  if (!supabase) {
+    return;
+  }
+
+  assertDocumentUploadFileSize(nextFileSizeBytes);
+
+  const { data: applicationDocuments, error: applicationDocumentsError } =
+    await supabase
+      .from("application_documents")
+      .select("size_bytes")
+      .eq("application_id", applicationId);
+
+  if (applicationDocumentsError) {
+    throw applicationDocumentsError;
+  }
+
+  const existingDocuments =
+    (applicationDocuments as RemoteDocumentSizeRow[] | null) ?? [];
+  const existingCount = existingDocuments.length;
+  const existingTotalBytes = existingDocuments.reduce(
+    (sum, document) => sum + document.size_bytes,
+    0,
+  );
+
+  if (existingCount >= REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION) {
+    throw new DocumentUploadLimitError("UPLOAD_APP_FILE_COUNT_LIMIT", {
+      limit: REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION,
+    });
+  }
+
+  if (
+    existingTotalBytes + nextFileSizeBytes >
+    REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION
+  ) {
+    throw new DocumentUploadLimitError("UPLOAD_APP_TOTAL_BYTES_LIMIT", {
+      limit: REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION,
+    });
+  }
+
+  const { data: userApplications, error: userApplicationsError } = await supabase
+    .from("applications")
+    .select("id")
+    .eq("user_id", userId);
+
+  if (userApplicationsError) {
+    throw userApplicationsError;
+  }
+
+  const applicationIds =
+    (userApplications as RemoteApplicationIdRow[] | null)?.map(
+      (application) => application.id,
+    ) ?? [];
+
+  if (applicationIds.length === 0) {
+    return;
+  }
+
+  const windowStartIso = new Date(
+    Date.now() - REMOTE_UPLOAD_RATE_LIMIT_WINDOW_MINUTES * 60_000,
+  ).toISOString();
+
+  const { count, error: recentUploadError } = await supabase
+    .from("application_documents")
+    .select("id", { count: "exact", head: true })
+    .in("application_id", applicationIds)
+    .gte("created_at", windowStartIso);
+
+  if (recentUploadError) {
+    throw recentUploadError;
+  }
+
+  if ((count ?? 0) >= REMOTE_UPLOAD_RATE_LIMIT_MAX_UPLOADS) {
+    throw new DocumentUploadLimitError("UPLOAD_RATE_LIMIT", {
+      limit: REMOTE_UPLOAD_RATE_LIMIT_MAX_UPLOADS,
+      windowMinutes: REMOTE_UPLOAD_RATE_LIMIT_WINDOW_MINUTES,
+    });
+  }
 }
 
 async function loadLocalDocumentFile(id: string): Promise<File | null> {
@@ -274,6 +379,8 @@ async function saveRemoteDocumentFile(
     throw new Error("No authenticated session is available.");
   }
 
+  await enforceRemoteUploadLimits(applicationId, session.user.id, file.size);
+
   const documentId = crypto.randomUUID();
   const safeName = sanitizeFileName(file.name);
   const storagePath = `${session.user.id}/${applicationId}/${kind}/${documentId}-${safeName}`;
@@ -287,6 +394,12 @@ async function saveRemoteDocumentFile(
     });
 
   if (uploadError) {
+    const limitError = toDocumentUploadLimitError(uploadError);
+
+    if (limitError) {
+      throw limitError;
+    }
+
     throw uploadError;
   }
 
@@ -311,6 +424,12 @@ async function saveRemoteDocumentFile(
 
   if (error) {
     await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
+    const limitError = toDocumentUploadLimitError(error);
+
+    if (limitError) {
+      throw limitError;
+    }
+
     throw error;
   }
 

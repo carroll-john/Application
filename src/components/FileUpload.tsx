@@ -2,6 +2,7 @@ import { Eye, Paperclip, Trash2, Upload } from "lucide-react";
 import { useId, useState } from "react";
 import { Button } from "./ui/button";
 import { formatFileSize } from "../lib/documentStorage";
+import { DOCUMENT_UPLOAD_MAX_FILE_BYTES } from "../lib/documentUploadLimits";
 import { cn } from "../lib/utils";
 
 export function FileUpload({
@@ -33,7 +34,11 @@ export function FileUpload({
   const [error, setError] = useState<string | null>(null);
   const fileSizeLabel = formatFileSize(fileSize);
   const hasFile = Boolean(fileName);
-  const defaultDescription = "PDF, DOC, DOCX, and TXT files are accepted. Max 5 MB.";
+  const maxFileSizeMb = DOCUMENT_UPLOAD_MAX_FILE_BYTES / (1024 * 1024);
+  const maxFileSizeLabel = Number.isInteger(maxFileSizeMb)
+    ? `${maxFileSizeMb} MB`
+    : `${maxFileSizeMb.toFixed(1)} MB`;
+  const defaultDescription = `PDF, DOC, DOCX, and TXT files are accepted. Max ${maxFileSizeLabel}.`;
   const pendingDescription =
     description === undefined ? defaultDescription : description;
   const attachedStateDescription =
@@ -100,8 +105,8 @@ export function FileUpload({
                     return;
                   }
 
-                  if (file.size > 5 * 1024 * 1024) {
-                    setError("Choose a file smaller than 5 MB.");
+                  if (file.size > DOCUMENT_UPLOAD_MAX_FILE_BYTES) {
+                    setError(`Choose a file smaller than ${maxFileSizeLabel}.`);
                     event.target.value = "";
                     return;
                   }

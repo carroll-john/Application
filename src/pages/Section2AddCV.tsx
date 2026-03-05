@@ -20,6 +20,7 @@ import {
 } from "../lib/posthog";
 import {
   deleteStoredDocument,
+  getDocumentUploadErrorMessage,
   replaceStoredDocument,
   viewLocalDocument,
   viewStoredDocument,
@@ -236,10 +237,12 @@ export default function Section2AddCV() {
       navigate(returnPath("/section2/qualifications"), {
         state: flashMessage ? { section2StatusMessage: flashMessage } : undefined,
       });
-    } catch {
+    } catch (error) {
       setSaveProgress(null);
       setStatusMessage({
-        message: "We couldn't save your CV right now. Please try again.",
+        message:
+          getDocumentUploadErrorMessage(error) ??
+          "We couldn't save your CV right now. Please try again.",
         type: "error",
       });
     } finally {

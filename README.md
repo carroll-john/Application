@@ -92,6 +92,19 @@ The app captures experiment events:
 - `cv_parser_autofill_failed`
 - `cv_parser_autofill_skipped_control`
 
+## Document Upload Guardrails
+
+Remote uploads now enforce explicit quotas and rate limits in both frontend checks and Supabase trigger checks.
+
+Optional frontend env overrides (defaults shown):
+
+```env
+VITE_REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION=30
+VITE_REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION=104857600
+VITE_REMOTE_UPLOAD_RATE_LIMIT_WINDOW_MINUTES=10
+VITE_REMOTE_UPLOAD_RATE_LIMIT_MAX_UPLOADS=20
+```
+
 ## Sentry Issues
 
 Sentry issue reporting is wired for:

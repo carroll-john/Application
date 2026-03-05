@@ -25,3 +25,13 @@
 - Normalize support labels to `CSP`, `FEE-HELP`, and `HECS-HELP`.
 - Normalize fees to simple approximate figures.
 - Normalize duration to year-based labels where possible.
+
+## 2026-03-05
+
+### Explicit document upload guardrails
+- Keep the 5 MB per-file limit and add explicit remote upload quotas/rate controls.
+- Enforce controls in both frontend storage logic and Supabase (`application_documents`) so future remote-primary flows remain bounded even if client checks are bypassed.
+- Current remote guardrails:
+  - per-application file quota: 30
+  - per-application total bytes: 100 MB
+  - per-user upload rate limit: 20 uploads per 10 minutes

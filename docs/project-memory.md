@@ -69,6 +69,7 @@ This file stores durable product, UX, and implementation rules for the applicati
 - Clarity should stay masked/disabled on PII-heavy routes (`/sign-in`, `/profile`, `/dashboard`, `/overview`, `/section1/*`, `/section2/*`, `/review`, `/submitted`, `/profile-recommendations`).
 - `/api/parse-cv` now emits Sentry Agent Insights spans (`gen_ai.invoke_agent` + `gen_ai.response`) for OpenAI parsing calls.
 - Sensitive remote documents should be delivered through `/api/document-delivery` with bearer auth, `no-store` caching headers, and attachment disposition rather than exposing direct signed URLs in the browser.
+- Remote document uploads should enforce explicit controls in both client and database layers (see `supabase/migrations/0005_document_upload_limits.sql`): per-application file-count quota, per-application total-byte quota, and per-user upload rate limits.
 - Sentry smoke-test events are intentionally filtered before send in non-development environments (known smoke markers and `/dev/sentry-smoke`) so demo checks do not pollute issue triage.
 - Address autocomplete uses Google Places when `VITE_GOOGLE_MAPS_API_KEY` is configured, with local fallback otherwise.
 - Server-backed submission depends on `supabase/migrations/0002_server_submit.sql`, `supabase/migrations/0004_submission_rpc_grants.sql`, and the `submit_application` RPC.

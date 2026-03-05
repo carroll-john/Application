@@ -12,6 +12,7 @@ import { FileUpload } from "../components/FileUpload";
 import { FormActionBar } from "../components/FormActionBar";
 import { FormSectionCard } from "../components/FormSectionCard";
 import { SectionProgressHeader } from "../components/SectionProgressHeader";
+import { StatusMessage } from "../components/StatusMessage";
 import { MonthYearPickerField } from "../components/ui/date-controls";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -20,6 +21,7 @@ import { useApplication } from "../context/ApplicationContext";
 import { useReviewReturn } from "../hooks/useReviewReturn";
 import {
   deleteStoredDocument,
+  getDocumentUploadErrorMessage,
   replaceStoredDocument,
   viewLocalDocument,
   viewStoredDocument,
@@ -64,6 +66,10 @@ export default function Section2AddTertiary() {
   );
   const [selectedCertificateFile, setSelectedCertificateFile] =
     useState<File | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{
+    message: string;
+    type: "success" | "warning" | "error" | "status";
+  } | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const hasTranscript =
     Boolean(selectedTranscriptFile) ||
@@ -152,6 +158,16 @@ export default function Section2AddTertiary() {
           sectionLabel="Section 2 of 3"
           title={existing ? "Edit Tertiary Qualification" : "Add Tertiary Qualification"}
         />
+
+        {statusMessage ? (
+          <div className="mt-4">
+            <StatusMessage
+              message={statusMessage.message}
+              type={statusMessage.type}
+              onDismiss={() => setStatusMessage(null)}
+            />
+          </div>
+        ) : null}
 
         <div className="space-y-6">
           <FormSectionCard
@@ -475,13 +491,23 @@ export default function Section2AddTertiary() {
           onPrevious={() => navigate(returnPath("/section2/qualifications"))}
           onPrimary={async () => {
             setShowValidation(true);
+            setStatusMessage(null);
 
             if (missingRequiredFields.length > 0) {
               return;
             }
 
-            await saveRecord();
-            navigate(returnPath("/section2/qualifications"));
+            try {
+              await saveRecord();
+              navigate(returnPath("/section2/qualifications"));
+            } catch (error) {
+              setStatusMessage({
+                message:
+                  getDocumentUploadErrorMessage(error) ??
+                  "We couldn't save this qualification right now. Please try again.",
+                type: "error",
+              });
+            }
           }}
         />
       </div>

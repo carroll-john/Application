@@ -5,6 +5,7 @@ import { FileUpload } from "../components/FileUpload";
 import { FormActionBar } from "../components/FormActionBar";
 import { FormSectionCard } from "../components/FormSectionCard";
 import { SectionProgressHeader } from "../components/SectionProgressHeader";
+import { StatusMessage } from "../components/StatusMessage";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
@@ -12,6 +13,7 @@ import { useApplication } from "../context/ApplicationContext";
 import { useReviewReturn } from "../hooks/useReviewReturn";
 import {
   deleteStoredDocument,
+  getDocumentUploadErrorMessage,
   replaceStoredDocument,
   viewLocalDocument,
   viewStoredDocument,
@@ -43,6 +45,10 @@ export default function Section2AddAccreditation() {
     documentName: existing?.documentName,
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [statusMessage, setStatusMessage] = useState<{
+    message: string;
+    type: "success" | "warning" | "error" | "status";
+  } | null>(null);
   const originalDocument = existing?.document;
   const hasDocument =
     Boolean(selectedFile) ||
@@ -93,6 +99,16 @@ export default function Section2AddAccreditation() {
               : "Add Professional Accreditation"
           }
         />
+
+        {statusMessage ? (
+          <div className="mt-4">
+            <StatusMessage
+              message={statusMessage.message}
+              type={statusMessage.type}
+              onDismiss={() => setStatusMessage(null)}
+            />
+          </div>
+        ) : null}
 
         <div className="space-y-6">
           <FormSectionCard
@@ -207,8 +223,19 @@ export default function Section2AddAccreditation() {
           primaryLabel="Save & Continue"
           onPrevious={() => navigate(returnPath("/section2/qualifications"))}
           onPrimary={async () => {
-            await saveRecord();
-            navigate(returnPath("/section2/qualifications"));
+            setStatusMessage(null);
+
+            try {
+              await saveRecord();
+              navigate(returnPath("/section2/qualifications"));
+            } catch (error) {
+              setStatusMessage({
+                message:
+                  getDocumentUploadErrorMessage(error) ??
+                  "We couldn't save this accreditation right now. Please try again.",
+                type: "error",
+              });
+            }
           }}
         />
       </div>

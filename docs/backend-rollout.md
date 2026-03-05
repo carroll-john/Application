@@ -37,6 +37,10 @@ VITE_POSTHOG_HOST=https://us.i.posthog.com
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_ALLOWED_EMAIL_DOMAINS=yourcompany.com
+VITE_REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION=30
+VITE_REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION=104857600
+VITE_REMOTE_UPLOAD_RATE_LIMIT_WINDOW_MINUTES=10
+VITE_REMOTE_UPLOAD_RATE_LIMIT_MAX_UPLOADS=20
 SENTRY_ENABLED=true
 SENTRY_DSN=your_sentry_dsn
 SENTRY_ENVIRONMENT=preview
@@ -59,6 +63,11 @@ Current workspace values:
 - `VITE_SUPABASE_URL` points at your Supabase project
 - `VITE_ALLOWED_EMAIL_DOMAINS=keypathedu.com.au`
 - `VITE_CLARITY_PROJECT_ID` is optional; the frontend loader is a no-op until it is set
+- remote upload guardrail defaults are:
+  - `VITE_REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION=30`
+  - `VITE_REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION=104857600` (100 MB)
+  - `VITE_REMOTE_UPLOAD_RATE_LIMIT_WINDOW_MINUTES=10`
+  - `VITE_REMOTE_UPLOAD_RATE_LIMIT_MAX_UPLOADS=20`
 - server-side Sentry capture for `/api/parse-cv` uses `SENTRY_DSN` (or falls back to `VITE_SENTRY_DSN` if omitted)
 - server-side document delivery proxy (`/api/document-delivery`) reads `SUPABASE_URL`/`SUPABASE_ANON_KEY` when present, and falls back to `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`
 - server-side parser tracing uses `SENTRY_TRACES_SAMPLE_RATE` and emits Agent Insights spans (`gen_ai.invoke_agent` and `gen_ai.response`)
@@ -94,6 +103,10 @@ Then run [supabase/migrations/0003_business_users_and_applicant_profiles.sql](/U
 Then run [supabase/migrations/0004_submission_rpc_grants.sql](/Users/jc/Documents/New%20project/supabase/migrations/0004_submission_rpc_grants.sql) to add:
 - authenticated execute grants for `submit_application` and supporting RPC functions
 - authenticated sequence permissions for server-generated application numbers
+
+Then run [supabase/migrations/0005_document_upload_limits.sql](/Users/jc/Documents/New%20project/supabase/migrations/0005_document_upload_limits.sql) to add:
+- explicit application-document upload quotas and rate limits
+- indexes for user/rate-limit document checks
 
 Then configure Auth in Supabase when real auth returns:
 - enable the providers you actually intend to use
@@ -150,14 +163,15 @@ Notes:
 4. Run `supabase/migrations/0002_server_submit.sql`.
 5. Run `supabase/migrations/0003_business_users_and_applicant_profiles.sql`.
 6. Run `supabase/migrations/0004_submission_rpc_grants.sql`.
-7. Configure Auth (only if restoring real authenticated sessions):
+7. Run `supabase/migrations/0005_document_upload_limits.sql`.
+8. Configure Auth (only if restoring real authenticated sessions):
    - enable the provider(s) you intend to use
    - set the site URL and redirect URLs for local + Vercel
    - disable providers you do not want exposed
-8. Configure the Vercel env vars.
-9. Replace local draft persistence with backend persistence.
-10. Replace IndexedDB document storage with Supabase Storage uploads.
-11. Move submission validation and application-number generation to server-backed operations.
+9. Configure the Vercel env vars.
+10. Replace local draft persistence with backend persistence.
+11. Replace IndexedDB document storage with Supabase Storage uploads.
+12. Move submission validation and application-number generation to server-backed operations.
 
 ## Current Frontend State
 - The app now has:
@@ -180,6 +194,10 @@ Notes:
 - Document uploads are local-first:
   - `src/lib/documentStorage.ts` uses IndexedDB when no authenticated Supabase session is available
   - remote uploads remain available in code for any future return to real auth
+- Explicit upload controls now exist for remote mode:
+  - per-file size cap: 5 MB
+  - per-application quota: max 30 files, max 100 MB total
+  - per-user rate limit: max 20 uploads per 10 minutes
 - Remote document delivery is now proxy-first for authenticated sessions:
   - `src/lib/documentStorage.ts` requests `/api/document-delivery` with a bearer token instead of opening raw signed URLs
   - the proxy enforces `Cache-Control: no-store` and returns `Content-Disposition: attachment` for sensitive document MIME types
