@@ -176,7 +176,7 @@ function mapApplicationSummary(row: RemoteApplicationRow): ApplicationSummary | 
 async function fetchRemoteApplicationRow(
   session: Session,
   applicationId: string,
-) {
+): Promise<RemoteApplicationRow | null> {
   const client = requireSupabaseClient();
 
   const { data, error } = await client
@@ -186,13 +186,13 @@ async function fetchRemoteApplicationRow(
     )
     .eq("id", applicationId)
     .eq("user_id", session.user.id)
-    .single();
+    .maybeSingle();
 
   if (error) {
     throw error;
   }
 
-  return data as RemoteApplicationRow;
+  return (data as RemoteApplicationRow | null) ?? null;
 }
 
 export async function listRemoteApplications(
@@ -223,6 +223,10 @@ export async function loadRemoteApplicationById(
 ): Promise<ApplicationData | null> {
   const client = requireSupabaseClient();
   const application = await fetchRemoteApplicationRow(session, applicationId);
+
+  if (!application) {
+    return null;
+  }
 
   const [
     applicationDocumentsResponse,
@@ -454,7 +458,7 @@ export async function saveRemoteApplication(
 
   const applicationId = (applicationRow as { id: string }).id;
 
-  await Promise.all([
+  const deleteResponses = await Promise.all([
     client.from("tertiary_qualifications").delete().eq("application_id", applicationId),
     client.from("employment_experiences").delete().eq("application_id", applicationId),
     client
@@ -464,6 +468,12 @@ export async function saveRemoteApplication(
     client.from("secondary_qualifications").delete().eq("application_id", applicationId),
     client.from("language_tests").delete().eq("application_id", applicationId),
   ]);
+
+  for (const response of deleteResponses) {
+    if (response.error) {
+      throw response.error;
+    }
+  }
 
   if (data.tertiaryQualifications.length > 0) {
     const { error } = await client.from("tertiary_qualifications").insert(

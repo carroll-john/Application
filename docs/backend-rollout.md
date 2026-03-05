@@ -86,6 +86,10 @@ Then run [supabase/migrations/0003_business_users_and_applicant_profiles.sql](/U
 - `applications.applicant_profile_id`
 - the RLS foundation for separating internal site users from applicant records
 
+Then run [supabase/migrations/0004_submission_rpc_grants.sql](/Users/jc/Documents/New%20project/supabase/migrations/0004_submission_rpc_grants.sql) to add:
+- authenticated execute grants for `submit_application` and supporting RPC functions
+- authenticated sequence permissions for server-generated application numbers
+
 Then configure Auth in Supabase when real auth returns:
 - enable the providers you actually intend to use
 - set the local site URL and redirect URLs for the chosen auth flow
@@ -138,14 +142,17 @@ Notes:
 1. Create the Supabase project.
 2. Run `supabase/migrations/0001_initial.sql`.
 3. Insert allowed domains into `public.allowed_email_domains`.
-4. Configure Auth (only if restoring real authenticated sessions):
+4. Run `supabase/migrations/0002_server_submit.sql`.
+5. Run `supabase/migrations/0003_business_users_and_applicant_profiles.sql`.
+6. Run `supabase/migrations/0004_submission_rpc_grants.sql`.
+7. Configure Auth (only if restoring real authenticated sessions):
    - enable the provider(s) you intend to use
    - set the site URL and redirect URLs for local + Vercel
    - disable providers you do not want exposed
-5. Configure the Vercel env vars.
-6. Replace local draft persistence with backend persistence.
-7. Replace IndexedDB document storage with Supabase Storage uploads.
-8. Move submission validation and application-number generation to server-backed operations.
+8. Configure the Vercel env vars.
+9. Replace local draft persistence with backend persistence.
+10. Replace IndexedDB document storage with Supabase Storage uploads.
+11. Move submission validation and application-number generation to server-backed operations.
 
 ## Current Frontend State
 - The app now has:

@@ -233,10 +233,24 @@ export async function deleteStoredDocument(
     const storagePath = document.storagePath;
 
     if (storagePath) {
-      await supabase.storage.from(bucket).remove([storagePath]);
+      const { error: storageError } = await supabase.storage
+        .from(bucket)
+        .remove([storagePath]);
+
+      if (storageError) {
+        throw storageError;
+      }
     }
 
-    await supabase.from("application_documents").delete().eq("id", document.id);
+    const { error: documentDeleteError } = await supabase
+      .from("application_documents")
+      .delete()
+      .eq("id", document.id);
+
+    if (documentDeleteError) {
+      throw documentDeleteError;
+    }
+
     return;
   }
 

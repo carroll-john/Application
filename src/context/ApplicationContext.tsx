@@ -276,16 +276,43 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const remoteApplication =
-          (await loadRemoteApplicationById(session, preferredId)) ??
-          initialApplicationData;
+        let resolvedPreferredId = preferredId;
+        let remoteApplication = await loadRemoteApplicationById(
+          session,
+          resolvedPreferredId,
+        );
+
+        if (!remoteApplication) {
+          const fallbackId =
+            remoteApplications.find(
+              (application) => application.id !== resolvedPreferredId,
+            )?.id ?? null;
+
+          if (!fallbackId) {
+            setActiveApplicationId(null);
+            setData(initialApplicationData);
+            return;
+          }
+
+          resolvedPreferredId = fallbackId;
+          remoteApplication = await loadRemoteApplicationById(
+            session,
+            resolvedPreferredId,
+          );
+        }
+
+        if (!remoteApplication) {
+          setActiveApplicationId(null);
+          setData(initialApplicationData);
+          return;
+        }
 
         if (!isMountedRef.current) {
           return;
         }
 
-        setActiveApplicationId(preferredId);
-        saveLocalActiveApplicationId(preferredId);
+        setActiveApplicationId(resolvedPreferredId);
+        saveLocalActiveApplicationId(resolvedPreferredId);
         setData(remoteApplication);
         upsertLocalApplication(remoteApplication);
         return;
