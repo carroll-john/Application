@@ -18,10 +18,14 @@ This file stores durable product, UX, and implementation rules for the applicati
 - Access remains restricted to `@keypathedu.com.au` during dogfooding.
 - Do not reintroduce OTP, magic-link, or a second inner pseudo-auth layer for applicants.
 - In the current flow, the company email unlocks local prototype access and auto-seeds one reusable local applicant profile unless a newer auth decision restores real sessions.
+- Company access and local-data-owner storage keys are TTL-backed and should expire after 24 hours.
+- The localhost-only bypass key is TTL-backed and should expire after 4 hours.
+- Dev bypass must stay restricted to `localhost` and `127.0.0.1` in development only.
 - `/profile` is profile management, not an auth step.
 - Reusable profile fields are limited to email, first name, and last name.
 - Profile changes affect future applications by default. Existing applications keep the values they were created with.
 - After the Keypath email gate, users should land on the intended course or app route, or `/` by default.
+- Post-sign-in redirects must be sanitized to internal absolute app paths.
 - A localhost-only auth bypass exists for local verification. It must stay dev-only and must never affect preview or production behavior.
 
 ## Course And Application Model
@@ -50,11 +54,14 @@ This file stores durable product, UX, and implementation rules for the applicati
 ## State And Persistence
 - `ApplicationContext` is the shared application state layer.
 - It currently runs in local-first mode for the Tuesday demo because the access gate no longer creates a real Supabase session.
+- `AuthContext` is the source of truth for selecting `storageMode` (`local` vs `remote`).
+- `ApplicationStorageAdapter` is the shared storage contract; route/page code should not branch local-vs-remote persistence logic.
 - Keep shared draft persistence in `ApplicationContext`; do not scatter it into page-local state.
 - Shared application types and local cache helpers live in `src/lib/applicationData.ts`.
 - Document storage should fall back cleanly to local IndexedDB when no authenticated Supabase session is present.
 
 ## Validation Rules
+- Use one shared validation schema for step completion and submission readiness (`src/lib/applicationValidationSchema.ts`).
 - Section 2 submission rule: the user must have either at least one tertiary qualification, or both a CV and employment experience.
 - Tertiary document requirements are submission-gated, not save-gated:
   - every tertiary qualification requires a transcript before submission
@@ -70,6 +77,7 @@ This file stores durable product, UX, and implementation rules for the applicati
 - `/api/parse-cv` now emits Sentry Agent Insights spans (`gen_ai.invoke_agent` + `gen_ai.response`) for OpenAI parsing calls.
 - Sensitive remote documents should be delivered through `/api/document-delivery` with bearer auth, `no-store` caching headers, and attachment disposition rather than exposing direct signed URLs in the browser.
 - Remote document uploads should enforce explicit controls in both client and database layers (see `supabase/migrations/0005_document_upload_limits.sql`): per-application file-count quota, per-application total-byte quota, and per-user upload rate limits.
+- Enforced CSP should remain active through `vercel.json`, with reports collected at `/api/csp-report` and logged with `[csp-report]`.
 - Sentry smoke-test events are intentionally filtered before send in non-development environments (known smoke markers and `/dev/sentry-smoke`) so demo checks do not pollute issue triage.
 - Address autocomplete uses Google Places when `VITE_GOOGLE_MAPS_API_KEY` is configured, with local fallback otherwise.
 - Server-backed submission depends on `supabase/migrations/0002_server_submit.sql`, `supabase/migrations/0004_submission_rpc_grants.sql`, and the `submit_application` RPC.
@@ -77,6 +85,7 @@ This file stores durable product, UX, and implementation rules for the applicati
 
 ## Operational Rules
 - Keep `docs/backend-rollout.md` aligned with backend assumptions and migration requirements.
+- Regenerate `src/lib/supabase.types.ts` after schema changes instead of adding manual row casts in remote-store code.
 - Use `supabase/reset_test_data.sql` plus a private/incognito browser session for clean hosted test runs.
 - If localhost behavior and source disagree, check for a stale Vite process and retest in a fresh browser tab before refactoring.
 - When cleaning up, remove dead prototype-era state and behavior rather than carrying it forward.

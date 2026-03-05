@@ -5,23 +5,28 @@
 - Open a course detail page for each course.
 - Run a course-specific eligibility check.
 - Pass through `/sign-in` with a Keypath email domain check only.
+- Return users to an internal intended path after sign-in (safe redirect only).
 - Auto-create or reuse a local reusable profile for the active browser session.
 - Start or resume one open application per course.
 - See all open and submitted applications for the signed-in user.
+- Keep local-first draft persistence as the active demo path.
+- Keep CSP enforcement and secure document-delivery behavior active in hosted demo runs.
 
 ## Out Of Scope
 - Admin tooling
 - Provider/course form configuration UI
 - Public non-Keypath sign-up
 - Multiple profiles per user
+- Restoring full Supabase session auth for applicants
 - Deep CMS or marketing polish
 
 ## Acceptance Checklist
 - A signed-out user can browse the course catalog and course details.
 - An unauthenticated user who tries to apply is sent to `/sign-in`.
-- After the email gate, the user returns to the intended course/application flow.
+- After the email gate, the user returns to the intended internal course/application flow.
 - If no local profile exists, the email gate auto-seeds one and `/profile` can refine it.
 - If an open application already exists for the selected course, it is resumed.
 - If no open application exists for the selected course, a new one is created.
 - Dashboard shows multiple applications across different courses.
-- Review and submission still work with the current validation rules.
+- Review and submission still work with shared validation rules (including submission-gated tertiary document checks).
+- Localhost-only bypass behavior never activates on preview/production hosts.
