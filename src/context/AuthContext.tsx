@@ -56,6 +56,7 @@ const HOURS_TO_MS = 60 * 60 * 1000;
 const COMPANY_ACCESS_EMAIL_TTL_MS = 24 * HOURS_TO_MS;
 const LOCAL_DATA_OWNER_EMAIL_TTL_MS = 24 * HOURS_TO_MS;
 const DEV_AUTH_BYPASS_TTL_MS = 4 * HOURS_TO_MS;
+const AUTH_STORAGE_REVALIDATE_INTERVAL_MS = 60 * 1000;
 
 function normalizeCompanyEmail(email: string | null | undefined) {
   return email?.trim().toLowerCase() ?? "";
@@ -117,6 +118,19 @@ function saveLocalDataOwnerEmail(email: string) {
   );
 }
 
+function loadDevBypassEnabled() {
+  if (!canUseLocalDevAuthBypass) {
+    return false;
+  }
+
+  return (
+    getExpiringStorageString(DEV_AUTH_BYPASS_STORAGE_KEY, DEV_AUTH_BYPASS_TTL_MS, {
+      normalize: (value) => value.trim().toLowerCase(),
+      validate: (value) => value === "enabled",
+    }) === "enabled"
+  );
+}
+
 function clearAuthorizedCompanyEmail() {
   if (typeof window === "undefined") {
     return;
@@ -147,26 +161,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authorizedEmail, setAuthorizedEmail] = useState<string | null>(() =>
     loadAuthorizedCompanyEmail(),
   );
-  const [hasDevBypassEnabled, setHasDevBypassEnabled] = useState(() => {
-    if (!canUseLocalDevAuthBypass) {
-      return false;
-    }
-
-    return (
-      getExpiringStorageString(
-        DEV_AUTH_BYPASS_STORAGE_KEY,
-        DEV_AUTH_BYPASS_TTL_MS,
-        {
-          normalize: (value) => value.trim().toLowerCase(),
-          validate: (value) => value === "enabled",
-        },
-      ) === "enabled"
-    );
-  });
+  const [hasDevBypassEnabled, setHasDevBypassEnabled] = useState(
+    loadDevBypassEnabled,
+  );
   const isCompanyGateConfigured = allowedEmailDomains.length > 0;
 
   const isBypassedInDev =
     (import.meta.env.DEV && !isCompanyGateConfigured) || hasDevBypassEnabled;
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const syncAuthStateFromStorage = () => {
+      const nextAuthorizedEmail = loadAuthorizedCompanyEmail();
+      const nextHasDevBypassEnabled = loadDevBypassEnabled();
+
+      setAuthorizedEmail((currentEmail) =>
+        currentEmail === nextAuthorizedEmail ? currentEmail : nextAuthorizedEmail,
+      );
+      setHasDevBypassEnabled((currentValue) =>
+        currentValue === nextHasDevBypassEnabled
+          ? currentValue
+          : nextHasDevBypassEnabled,
+      );
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncAuthStateFromStorage();
+      }
+    };
+
+    syncAuthStateFromStorage();
+    const intervalId = window.setInterval(
+      syncAuthStateFromStorage,
+      AUTH_STORAGE_REVALIDATE_INTERVAL_MS,
+    );
+    window.addEventListener("storage", syncAuthStateFromStorage);
+    window.addEventListener("focus", syncAuthStateFromStorage);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("storage", syncAuthStateFromStorage);
+      window.removeEventListener("focus", syncAuthStateFromStorage);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (!authorizedEmail) {
