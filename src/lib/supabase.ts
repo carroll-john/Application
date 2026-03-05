@@ -5,6 +5,17 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 export const DEV_AUTH_BYPASS_STORAGE_KEY =
   "application-prototype:dev-auth-bypass";
 
+export function canUseLocalDevAuthBypassForHostname(
+  isDev: boolean,
+  hostname: string | null | undefined,
+) {
+  if (!isDev) {
+    return false;
+  }
+
+  return ["127.0.0.1", "localhost"].includes(hostname ?? "");
+}
+
 export const allowedEmailDomains = (
   import.meta.env.VITE_ALLOWED_EMAIL_DOMAINS ?? ""
 )
@@ -27,9 +38,11 @@ export const supabase = isSupabaseConfigured
   : null;
 
 export const canUseLocalDevAuthBypass =
-  import.meta.env.DEV &&
   typeof window !== "undefined" &&
-  ["127.0.0.1", "localhost"].includes(window.location.hostname);
+  canUseLocalDevAuthBypassForHostname(
+    import.meta.env.DEV,
+    window.location.hostname,
+  );
 
 export function isAllowedCompanyEmail(email: string) {
   const [, domain = ""] = email.trim().toLowerCase().split("@");
