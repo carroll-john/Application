@@ -1,33 +1,17 @@
-interface Section2RequirementInput {
-  cvUploaded: boolean;
-  employmentExperiencesCount: number;
-  tertiaryQualificationsCount: number;
-}
+import {
+  getSection2SubmissionMissingFields as getSchemaSection2SubmissionMissingFields,
+  meetsSection2SubmissionRequirement as meetsSchemaSection2SubmissionRequirement,
+  type Section2RequirementInput,
+} from "./applicationValidationSchema";
 
-export function meetsSection2SubmissionRequirement({
-  cvUploaded,
-  employmentExperiencesCount,
-  tertiaryQualificationsCount,
-}: Section2RequirementInput) {
-  return tertiaryQualificationsCount > 0 || (cvUploaded && employmentExperiencesCount > 0);
+export function meetsSection2SubmissionRequirement(
+  input: Section2RequirementInput,
+) {
+  return meetsSchemaSection2SubmissionRequirement(input);
 }
 
 export function getSection2SubmissionMissingFields(
   input: Section2RequirementInput,
 ) {
-  if (meetsSection2SubmissionRequirement(input)) {
-    return [];
-  }
-
-  const missingFields: string[] = [];
-
-  if (!input.cvUploaded) {
-    missingFields.push("CV upload or a tertiary qualification");
-  }
-
-  if (input.employmentExperiencesCount === 0) {
-    missingFields.push("Employment experience or a tertiary qualification");
-  }
-
-  return missingFields;
+  return getSchemaSection2SubmissionMissingFields(input);
 }

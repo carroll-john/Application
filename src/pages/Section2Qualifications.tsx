@@ -20,6 +20,7 @@ import { StatusPill } from "../components/StatusPill";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
 import { useReviewReturn } from "../hooks/useReviewReturn";
+import { isTertiaryQualificationSubmissionReady } from "../lib/applicationValidationSchema";
 import { meetsSection2SubmissionRequirement } from "../lib/section2Requirements";
 
 type SectionStatus =
@@ -47,27 +48,6 @@ const initialSections: SectionState = {
   languageTest: "locked",
 };
 
-function isTertiaryQualificationComplete(
-  qualification: (typeof useApplication extends () => infer T ? T : never)["data"]["tertiaryQualifications"][number],
-) {
-  const hasTranscript =
-    Boolean(qualification.transcriptDocument) ||
-    Boolean(qualification.transcriptDocumentName);
-  const hasCertificate =
-    Boolean(qualification.certificateDocument) ||
-    Boolean(qualification.certificateDocumentName);
-
-  if (!hasTranscript) {
-    return false;
-  }
-
-  if (qualification.completed && !hasCertificate) {
-    return false;
-  }
-
-  return true;
-}
-
 export default function Section2Qualifications() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -91,7 +71,7 @@ export default function Section2Qualifications() {
   const hasTertiaryQualification = data.tertiaryQualifications.length > 0;
   const tertiaryRequirementsMet =
     hasTertiaryQualification &&
-    data.tertiaryQualifications.every(isTertiaryQualificationComplete);
+    data.tertiaryQualifications.every(isTertiaryQualificationSubmissionReady);
   const hasCv = data.cvUploaded;
   const hasEmploymentExperience = data.employmentExperiences.length > 0;
   const meetsSection2MinimumRequirement = meetsSection2SubmissionRequirement({
