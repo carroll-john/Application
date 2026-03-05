@@ -16,91 +16,36 @@ import {
   type ApplicationSummary,
 } from "./applicationRecords";
 import type { UploadedDocument } from "./documentStorage";
+import type { Json, Tables, TablesInsert } from "./supabase.types";
 import { supabase } from "./supabase";
 
-interface RemoteApplicationRow {
-  applicant_profile_id: string | null;
-  application_number: string | null;
-  contact_details: ContactDetails | null;
-  course_code: string | null;
-  course_title: string | null;
-  created_at: string;
-  cv_document_id: string | null;
-  cv_file_name: string | null;
-  id: string;
-  intake_label: string | null;
-  personal_details: PersonalDetails | null;
-  status: "draft" | "submitted";
-  submitted_at: string | null;
-  updated_at: string;
-}
-
-interface RemoteApplicationDocumentRow {
-  created_at: string;
-  file_name: string;
-  id: string;
-  mime_type: string;
-  size_bytes: number;
-  storage_bucket: string;
-  storage_path: string;
-}
-
-interface RemoteTertiaryQualificationRow {
-  certificate_document_id: string | null;
-  certificate_document_name: string | null;
-  completed: boolean;
-  country: string;
-  course_name: string;
-  end_month: string;
-  end_year: string;
-  id: string;
-  institution: string;
-  level: string;
-  start_month: string;
-  start_year: string;
-  transcript_document_id: string | null;
-  transcript_document_name: string | null;
-}
-
-interface RemoteEmploymentExperienceRow {
-  company: string;
-  duties: string;
-  employment_type: string;
-  end_month: string | null;
-  end_year: string | null;
-  id: string;
-  is_current_role: boolean;
-  position: string;
-  start_month: string;
-  start_year: string;
-}
-
-interface RemoteProfessionalAccreditationRow {
-  document_id: string | null;
-  document_name: string | null;
-  id: string;
-  name: string;
-  status: string;
-}
-
-interface RemoteSecondaryQualificationRow {
-  completion_year: string;
-  country: string;
-  id: string;
-  qualification_name: string;
-  qualification_type: string;
-  school: string;
-  state: string;
-}
-
-interface RemoteLanguageTestRow {
-  completion_year: string;
-  document_id: string | null;
-  document_name: string | null;
-  id: string;
-  test_name: string;
-  test_type: string;
-}
+type RemoteApplicationRow = Pick<
+  Tables<"applications">,
+  | "applicant_profile_id"
+  | "application_number"
+  | "contact_details"
+  | "course_code"
+  | "course_title"
+  | "created_at"
+  | "cv_document_id"
+  | "cv_file_name"
+  | "id"
+  | "intake_label"
+  | "personal_details"
+  | "status"
+  | "submitted_at"
+  | "updated_at"
+>;
+type RemoteApplicationDocumentRow = Pick<
+  Tables<"application_documents">,
+  | "created_at"
+  | "file_name"
+  | "id"
+  | "mime_type"
+  | "size_bytes"
+  | "storage_bucket"
+  | "storage_path"
+>;
 
 interface RemoteSubmissionResult {
   applicationId: string;
@@ -114,6 +59,35 @@ export interface RemoteSaveResult {
   applicationNumber?: string;
   submittedAt?: string | null;
   updatedAt: string;
+}
+
+function isJsonObject(value: Json): value is { [key: string]: Json | undefined } {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toContactDetails(value: Json): ContactDetails | undefined {
+  return isJsonObject(value) ? (value as unknown as ContactDetails) : undefined;
+}
+
+function toPersonalDetails(value: Json): PersonalDetails | undefined {
+  return isJsonObject(value) ? (value as unknown as PersonalDetails) : undefined;
+}
+
+function toJsonValue<T>(value: T | undefined): Json | undefined {
+  return value as unknown as Json | undefined;
+}
+
+function isRemoteSubmissionResult(value: unknown): value is RemoteSubmissionResult {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  return (
+    typeof candidate.applicationId === "string" &&
+    typeof candidate.applicationNumber === "string" &&
+    typeof candidate.submittedAt === "string"
+  );
 }
 
 function requireSupabaseClient() {
@@ -160,13 +134,13 @@ function mapApplicationSummary(row: RemoteApplicationRow): ApplicationSummary | 
       submittedAt: row.submitted_at ?? undefined,
       updatedAt: row.updated_at,
     },
-    contactDetails: row.contact_details ?? undefined,
+    contactDetails: toContactDetails(row.contact_details),
     cvDocument: undefined,
     cvFileName: row.cv_file_name ?? undefined,
     cvUploaded: Boolean(row.cv_document_id || row.cv_file_name),
     employmentExperiences: [],
     languageTests: [],
-    personalDetails: row.personal_details ?? undefined,
+    personalDetails: toPersonalDetails(row.personal_details),
     professionalAccreditations: [],
     secondaryQualifications: [],
     tertiaryQualifications: [],
@@ -192,7 +166,7 @@ async function fetchRemoteApplicationRow(
     throw error;
   }
 
-  return (data as RemoteApplicationRow | null) ?? null;
+  return data;
 }
 
 export async function listRemoteApplications(
@@ -212,7 +186,7 @@ export async function listRemoteApplications(
     throw error;
   }
 
-  return ((data as RemoteApplicationRow[] | null) ?? [])
+  return (data ?? [])
     .map((row) => mapApplicationSummary(row))
     .filter((summary): summary is ApplicationSummary => Boolean(summary));
 }
@@ -285,9 +259,10 @@ export async function loadRemoteApplicationById(
   if (languageTestsResponse.error) throw languageTestsResponse.error;
 
   const documentMap = new Map<string, UploadedDocument>(
-    (
-      applicationDocumentsResponse.data as RemoteApplicationDocumentRow[] | null
-    )?.map((document) => [document.id, mapRemoteDocument(document)]) ?? [],
+    (applicationDocumentsResponse.data ?? []).map((document) => [
+      document.id,
+      mapRemoteDocument(document),
+    ]),
   );
   const defaultCourse = getDefaultCourse();
   const matchingCourse = getCourseByCode(application.course_code);
@@ -312,15 +287,15 @@ export async function loadRemoteApplicationById(
       submittedAt: application.submitted_at ?? undefined,
       updatedAt: application.updated_at,
     },
-    contactDetails: application.contact_details ?? undefined,
+    contactDetails: toContactDetails(application.contact_details),
     cvDocument: application.cv_document_id
       ? documentMap.get(application.cv_document_id)
       : undefined,
     cvFileName: application.cv_file_name ?? undefined,
     cvUploaded: Boolean(application.cv_document_id || application.cv_file_name),
-    employmentExperiences: (
-      employmentExperiencesResponse.data as RemoteEmploymentExperienceRow[] | null
-    )?.map<EmploymentExperience>((experience) => ({
+    employmentExperiences: (employmentExperiencesResponse.data ?? []).map<
+      EmploymentExperience
+    >((experience) => ({
       company: experience.company,
       currentRole: experience.is_current_role,
       duties: experience.duties,
@@ -332,9 +307,7 @@ export async function loadRemoteApplicationById(
       startYear: experience.start_year,
       type: experience.employment_type,
     })),
-    languageTests: (
-      languageTestsResponse.data as RemoteLanguageTestRow[] | null
-    )?.map<LanguageTest>((test) => ({
+    languageTests: (languageTestsResponse.data ?? []).map<LanguageTest>((test) => ({
       document: test.document_id ? documentMap.get(test.document_id) : undefined,
       documentName: test.document_name ?? undefined,
       id: test.id,
@@ -342,12 +315,10 @@ export async function loadRemoteApplicationById(
       type: test.test_type,
       year: test.completion_year,
     })),
-    personalDetails: application.personal_details ?? undefined,
-    professionalAccreditations: (
-      professionalAccreditationsResponse.data as
-        | RemoteProfessionalAccreditationRow[]
-        | null
-    )?.map<ProfessionalAccreditation>((accreditation) => ({
+    personalDetails: toPersonalDetails(application.personal_details),
+    professionalAccreditations: (professionalAccreditationsResponse.data ?? []).map<
+      ProfessionalAccreditation
+    >((accreditation) => ({
       document: accreditation.document_id
         ? documentMap.get(accreditation.document_id)
         : undefined,
@@ -356,11 +327,9 @@ export async function loadRemoteApplicationById(
       name: accreditation.name,
       status: accreditation.status,
     })),
-    secondaryQualifications: (
-      secondaryQualificationsResponse.data as
-        | RemoteSecondaryQualificationRow[]
-        | null
-    )?.map<SecondaryQualification>((qualification) => ({
+    secondaryQualifications: (secondaryQualificationsResponse.data ?? []).map<
+      SecondaryQualification
+    >((qualification) => ({
       country: qualification.country,
       id: qualification.id,
       qualification: qualification.qualification_name,
@@ -369,9 +338,9 @@ export async function loadRemoteApplicationById(
       type: qualification.qualification_type,
       year: qualification.completion_year,
     })),
-    tertiaryQualifications: (
-      tertiaryQualificationsResponse.data as RemoteTertiaryQualificationRow[] | null
-    )?.map<TertiaryQualification>((qualification) => ({
+    tertiaryQualifications: (tertiaryQualificationsResponse.data ?? []).map<
+      TertiaryQualification
+    >((qualification) => ({
       certificateDocument: qualification.certificate_document_id
         ? documentMap.get(qualification.certificate_document_id)
         : undefined,
@@ -417,20 +386,20 @@ export async function saveRemoteApplication(
 
   const defaultCourse = getDefaultCourse();
   const selectedCourse = data.applicationMeta.selectedCourse;
-  const applicationPayload = {
+  const applicationPayload: TablesInsert<"applications"> = {
     applicant_profile_id:
       options?.applicantProfileId ??
       data.applicationMeta.applicantProfileId ??
       null,
     application_number: data.applicationMeta.applicationNumber ?? null,
-    contact_details: data.contactDetails,
+    contact_details: toJsonValue(data.contactDetails),
     course_code: selectedCourse?.code ?? defaultCourse.code,
     course_title: selectedCourse?.title ?? defaultCourse.title,
     cv_document_id: getRemoteDocumentId(data.cvDocument),
     cv_file_name: data.cvFileName ?? null,
     id: data.applicationMeta.recordId ?? undefined,
     intake_label: selectedCourse?.intake ?? defaultCourse.intakeLabel,
-    personal_details: data.personalDetails,
+    personal_details: toJsonValue(data.personalDetails),
     status: data.applicationMeta.submittedAt ? "submitted" : "draft",
     submitted_at: data.applicationMeta.submittedAt ?? null,
     user_id: session.user.id,
@@ -456,7 +425,11 @@ export async function saveRemoteApplication(
     throw applicationError;
   }
 
-  const applicationId = (applicationRow as { id: string }).id;
+  if (!applicationRow) {
+    throw new Error("Failed to save the application.");
+  }
+
+  const applicationId = applicationRow.id;
 
   const deleteResponses = await Promise.all([
     client.from("tertiary_qualifications").delete().eq("application_id", applicationId),
@@ -573,16 +546,11 @@ export async function saveRemoteApplication(
   }
 
   return {
-    applicantProfileId:
-      (applicationRow as { applicant_profile_id: string | null }).applicant_profile_id ??
-      null,
+    applicantProfileId: applicationRow.applicant_profile_id ?? null,
     applicationId,
-    applicationNumber:
-      (applicationRow as { application_number: string | null }).application_number ??
-      undefined,
-    submittedAt:
-      (applicationRow as { submitted_at: string | null }).submitted_at ?? undefined,
-    updatedAt: (applicationRow as { updated_at: string }).updated_at,
+    applicationNumber: applicationRow.application_number ?? undefined,
+    submittedAt: applicationRow.submitted_at ?? undefined,
+    updatedAt: applicationRow.updated_at,
   };
 }
 
@@ -609,7 +577,11 @@ export async function submitRemoteApplication(
     throw error;
   }
 
-  return submissionResult as RemoteSubmissionResult;
+  if (!isRemoteSubmissionResult(submissionResult)) {
+    throw new Error("Unexpected submit_application RPC response.");
+  }
+
+  return submissionResult;
 }
 
 export async function deleteRemoteApplication(

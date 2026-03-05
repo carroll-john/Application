@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import type { Enums, Tables, TablesInsert } from "./supabase.types";
 import {
   assertDocumentUploadFileSize,
   DocumentUploadLimitError,
@@ -11,12 +12,7 @@ import {
 
 export { getDocumentUploadErrorMessage } from "./documentUploadLimits";
 
-export type DocumentKind =
-  | "cv"
-  | "tertiary_transcript"
-  | "tertiary_certificate"
-  | "accreditation_document"
-  | "language_test_document";
+export type DocumentKind = Enums<"document_kind">;
 
 export interface UploadedDocument {
   id: string;
@@ -34,23 +30,16 @@ interface StoredDocumentRecord extends UploadedDocument {
   blob: Blob;
 }
 
-interface RemoteDocumentRow {
-  id: string;
-  file_name: string;
-  size_bytes: number;
-  mime_type: string;
-  created_at: string;
-  storage_bucket: string;
-  storage_path: string;
-}
-
-interface RemoteDocumentSizeRow {
-  size_bytes: number;
-}
-
-interface RemoteApplicationIdRow {
-  id: string;
-}
+type RemoteDocumentRow = Pick<
+  Tables<"application_documents">,
+  | "id"
+  | "file_name"
+  | "size_bytes"
+  | "mime_type"
+  | "created_at"
+  | "storage_bucket"
+  | "storage_path"
+>;
 
 interface ReplaceStoredDocumentOptions {
   applicationId?: string;
@@ -285,8 +274,7 @@ async function enforceRemoteUploadLimits(
     throw applicationDocumentsError;
   }
 
-  const existingDocuments =
-    (applicationDocuments as RemoteDocumentSizeRow[] | null) ?? [];
+  const existingDocuments = applicationDocuments ?? [];
   const existingCount = existingDocuments.length;
   const existingTotalBytes = existingDocuments.reduce(
     (sum, document) => sum + document.size_bytes,
@@ -317,10 +305,9 @@ async function enforceRemoteUploadLimits(
     throw userApplicationsError;
   }
 
-  const applicationIds =
-    (userApplications as RemoteApplicationIdRow[] | null)?.map(
-      (application) => application.id,
-    ) ?? [];
+  const applicationIds = (userApplications ?? []).map(
+    (application) => application.id,
+  );
 
   if (applicationIds.length === 0) {
     return;
@@ -403,7 +390,7 @@ async function saveRemoteDocumentFile(
     throw uploadError;
   }
 
-  const remoteRow = {
+  const remoteRow: TablesInsert<"application_documents"> = {
     id: documentId,
     application_id: applicationId,
     kind,
@@ -433,7 +420,11 @@ async function saveRemoteDocumentFile(
     throw error;
   }
 
-  return toUploadedDocument(data as RemoteDocumentRow, file.lastModified);
+  if (!data) {
+    throw new Error("Failed to store the uploaded document metadata.");
+  }
+
+  return toUploadedDocument(data, file.lastModified);
 }
 
 function toUploadedDocument(

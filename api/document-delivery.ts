@@ -1,12 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-
-interface RemoteDocumentRow {
-  id: string;
-  file_name: string;
-  mime_type: string;
-  storage_bucket: string;
-  storage_path: string;
-}
+import type { Database } from "../src/lib/supabase.types";
 
 type DocumentDisposition = "attachment" | "inline";
 
@@ -180,18 +173,22 @@ async function handleWebRequest(request: Request) {
       requestUrl.searchParams.get("disposition"),
     );
 
-    const supabase = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
-      auth: {
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-        persistSession: false,
-      },
-      global: {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
+    const supabase = createClient<Database>(
+      supabaseConfig.url,
+      supabaseConfig.anonKey,
+      {
+        auth: {
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+          persistSession: false,
+        },
+        global: {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         },
       },
-    });
+    );
 
     const { data: userData, error: userError } =
       await supabase.auth.getUser(accessToken);
@@ -210,17 +207,16 @@ async function handleWebRequest(request: Request) {
       return errorResponse("DOCUMENT_PROXY_FORBIDDEN_OR_NOT_FOUND");
     }
 
-    const typedDocumentRow = documentRow as RemoteDocumentRow;
     const { data: fileBlob, error: downloadError } = await supabase.storage
-      .from(typedDocumentRow.storage_bucket)
-      .download(typedDocumentRow.storage_path);
+      .from(documentRow.storage_bucket)
+      .download(documentRow.storage_path);
 
     if (downloadError || !fileBlob) {
       return errorResponse("DOCUMENT_PROXY_FORBIDDEN_OR_NOT_FOUND");
     }
 
     const mimeType = (
-      typedDocumentRow.mime_type ||
+      documentRow.mime_type ||
       fileBlob.type ||
       "application/octet-stream"
     ).trim();
@@ -230,7 +226,7 @@ async function handleWebRequest(request: Request) {
       "content-disposition",
       buildContentDisposition(
         resolveDisposition(requestedDisposition, mimeType),
-        typedDocumentRow.file_name,
+        documentRow.file_name,
       ),
     );
     responseHeaders.set("content-type", mimeType || "application/octet-stream");
