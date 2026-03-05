@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shouldExcludeClarityTraffic } from "./clarity";
+import { isClarityPiiRoute, shouldExcludeClarityTraffic } from "./clarity";
 
 describe("shouldExcludeClarityTraffic", () => {
   it("excludes webdriver sessions", () => {
@@ -38,5 +38,18 @@ describe("shouldExcludeClarityTraffic", () => {
         search: "",
       }),
     ).toBe(false);
+  });
+});
+
+describe("isClarityPiiRoute", () => {
+  it("marks application routes as PII routes", () => {
+    expect(isClarityPiiRoute("/section1/personal-contact")).toBe(true);
+    expect(isClarityPiiRoute("/section2/add-cv")).toBe(true);
+    expect(isClarityPiiRoute("/review")).toBe(true);
+  });
+
+  it("does not mark catalog routes as PII routes", () => {
+    expect(isClarityPiiRoute("/")).toBe(false);
+    expect(isClarityPiiRoute("/courses/mba")).toBe(false);
   });
 });

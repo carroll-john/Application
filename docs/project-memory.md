@@ -65,6 +65,8 @@ This file stores durable product, UX, and implementation rules for the applicati
 - Auth, database, and storage target: Supabase.
 - Hosting target: Vercel at `https://application-prototype.vercel.app`.
 - Error monitoring target: Sentry for frontend runtime errors plus `/api/parse-cv` server failures.
+- Analytics are consent-gated (`application-prototype:analytics-consent`); PostHog runs manual events only (autocapture disabled) with hashed analytics user IDs.
+- Clarity should stay masked/disabled on PII-heavy routes (`/sign-in`, `/profile`, `/dashboard`, `/overview`, `/section1/*`, `/section2/*`, `/review`, `/submitted`, `/profile-recommendations`).
 - `/api/parse-cv` now emits Sentry Agent Insights spans (`gen_ai.invoke_agent` + `gen_ai.response`) for OpenAI parsing calls.
 - Sentry smoke-test events are intentionally filtered before send in non-development environments (known smoke markers and `/dev/sentry-smoke`) so demo checks do not pollute issue triage.
 - Address autocomplete uses Google Places when `VITE_GOOGLE_MAPS_API_KEY` is configured, with local fallback otherwise.

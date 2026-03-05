@@ -1,3 +1,8 @@
+import {
+  hasAnalyticsConsent,
+  onAnalyticsConsentChange,
+} from "./analyticsConsent";
+
 type ClarityArgument = string | number | boolean | null | undefined;
 
 type ClarityFn = ((...args: ClarityArgument[]) => void) & {
@@ -14,14 +19,73 @@ declare global {
 const CLARITY_PROJECT_ID = import.meta.env.VITE_CLARITY_PROJECT_ID?.trim() ?? "";
 const CLARITY_SCRIPT_SELECTOR = 'script[data-clarity="application-prototype"]';
 const CLARITY_DISABLE_STORAGE_KEY = "application-prototype:disable-clarity";
+const CLARITY_MASK_ATTRIBUTE = "data-clarity-mask";
 const AGENT_USER_AGENT_PATTERN =
   /(headlesschrome|playwright|puppeteer|selenium|lighthouse|datadogsynthetics|pingdom|newrelicpinger|bot|crawler|spider|slurp|bingpreview|facebookexternalhit|discordbot|slackbot)/i;
 const FALSE_LIKE_PATTERN = /^(0|false|off|no)$/i;
 const CLARITY_DISABLE_QUERY_KEYS = ["clarity", "disable_clarity", "no_clarity"];
+const CLARITY_PII_ROUTE_PATTERNS = [
+  /^\/sign-in$/,
+  /^\/auth\/callback$/,
+  /^\/profile$/,
+  /^\/dashboard$/,
+  /^\/overview$/,
+  /^\/section1(?:\/|$)/,
+  /^\/section2(?:\/|$)/,
+  /^\/review$/,
+  /^\/submitted$/,
+  /^\/profile-recommendations$/,
+];
 
 let clarityStarted = false;
+let clarityConsentListenerAttached = false;
 
 export const isClarityEnabled = Boolean(CLARITY_PROJECT_ID);
+
+function applyClarityMask(shouldMask: boolean) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const elements = [document.body, document.getElementById("root")];
+  for (const element of elements) {
+    if (!element) {
+      continue;
+    }
+
+    if (shouldMask) {
+      element.setAttribute(CLARITY_MASK_ATTRIBUTE, "true");
+      continue;
+    }
+
+    element.removeAttribute(CLARITY_MASK_ATTRIBUTE);
+  }
+}
+
+function ensureClarityConsentListener() {
+  if (clarityConsentListenerAttached || typeof window === "undefined") {
+    return;
+  }
+
+  clarityConsentListenerAttached = true;
+  onAnalyticsConsentChange(() => {
+    if (!hasAnalyticsConsent()) {
+      window.clarity?.("consent", false);
+      return;
+    }
+
+    if (isClarityPiiRoute(window.location.pathname)) {
+      return;
+    }
+
+    initClarity();
+    window.clarity?.("consent", true);
+  });
+}
+
+export function isClarityPiiRoute(pathname: string) {
+  return CLARITY_PII_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname));
+}
 
 function isTruthyValue(value: string | null) {
   if (value === null) {
@@ -112,6 +176,14 @@ function canTrackClaritySession() {
     return false;
   }
 
+  if (!hasAnalyticsConsent()) {
+    return false;
+  }
+
+  if (isClarityPiiRoute(window.location.pathname)) {
+    return false;
+  }
+
   if (hasStorageOptOut()) {
     return false;
   }
@@ -133,6 +205,8 @@ function createClarityStub() {
 }
 
 export function initClarity() {
+  ensureClarityConsentListener();
+
   if (
     !canTrackClaritySession() ||
     clarityStarted ||
@@ -163,10 +237,41 @@ export function initClarity() {
   clarityStarted = true;
 }
 
+export function syncClarityRoutePrivacy(pathname: string) {
+  const piiRoute = isClarityPiiRoute(pathname);
+  applyClarityMask(piiRoute);
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.__DISABLE_CLARITY__ = piiRoute;
+
+  if (piiRoute) {
+    window.clarity?.("consent", false);
+    return;
+  }
+
+  if (!hasAnalyticsConsent()) {
+    return;
+  }
+
+  initClarity();
+  window.clarity?.("consent", true);
+}
+
 export function setClarityTag(key: string, value: string | null | undefined) {
   if (!canTrackClaritySession() || !value || typeof window === "undefined") {
     return;
   }
 
   window.clarity?.("set", key, value);
+}
+
+export function captureClarityEvent(eventName: string) {
+  if (!canTrackClaritySession() || typeof window === "undefined") {
+    return;
+  }
+
+  window.clarity?.("event", eventName);
 }

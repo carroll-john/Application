@@ -2,6 +2,13 @@
 
 This app sends page and funnel events to PostHog through `src/lib/posthog.ts`.
 
+## Consent And Identity
+
+- Analytics capture is disabled by default until consent is granted (`application-prototype:analytics-consent=granted`), unless overridden by `VITE_ANALYTICS_CONSENT_DEFAULT`.
+- PostHog runs in manual mode (`autocapture: false`), so only explicit app events are sent.
+- PostHog user identity uses a salted hash (raw email/user IDs are not used as analytics distinct IDs).
+- `applicant_profile_id` event property is hashed before capture.
+
 ## Page Naming
 
 `$pageview` events now include:
@@ -48,6 +55,21 @@ Recommended main application funnel:
 4. `application_step_completed`
 5. `application_submit_started`
 6. `application_submitted`
+
+## Required Funnel Step Events (3-5)
+
+These explicit events are emitted in addition to their source events so funnel
+reporting can target a stable required step series across platforms.
+
+| Explicit event | Source event | Required step |
+| --- | --- | --- |
+| `funnel_step_3_application_step_viewed` | `application_step_viewed` | 3 |
+| `funnel_step_4_application_step_completed` | `application_step_completed` | 4 |
+| `funnel_step_5_application_submit_started` | `application_submit_started` | 5 |
+
+Platform setup:
+- PostHog: use the explicit `funnel_step_3_*` to `funnel_step_5_*` events directly in funnels.
+- Clarity: the same explicit event names are sent as Clarity custom events when Clarity tracking is active.
 
 Important submit-path rules:
 
@@ -124,6 +146,8 @@ Application-step events also include:
 ## Bot And Agent Exclusion
 
 Client-side PostHog capture is disabled for detected automation or bot traffic before events are sent.
+
+Capture is also disabled when analytics consent is denied.
 
 Current exclusion checks:
 

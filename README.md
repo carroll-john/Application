@@ -74,6 +74,8 @@ The CV employment auto-draft flow is gated by PostHog feature flag `cv_parser_au
 Configure these frontend env vars for experiment control:
 
 ```env
+VITE_ANALYTICS_CONSENT_DEFAULT=denied
+VITE_ANALYTICS_HASH_SALT=replace_with_private_salt
 VITE_POSTHOG_KEY=your_posthog_project_api_key
 VITE_POSTHOG_HOST=https://us.i.posthog.com
 VITE_POSTHOG_CV_PARSER_FLAG=cv_parser_autofill_experiment
@@ -196,4 +198,4 @@ npm run finish-task -- --no-fetch "Offline cleanup"
 - Read `docs/project-memory.md` before making product or UX changes.
 - The app is currently dogfooded behind a Keypath-only site gate.
 - Localhost has a dev-only auth bypass for post-auth verification.
-- PostHog is optional and activates when `VITE_POSTHOG_KEY` is set. Use `VITE_POSTHOG_HOST` to point at your PostHog region, for example `https://us.i.posthog.com`.
+- PostHog is optional and activates when `VITE_POSTHOG_KEY` is set, analytics consent is granted, and bot/automation filters pass. Use `VITE_POSTHOG_HOST` to point at your PostHog region, for example `https://us.i.posthog.com`.

@@ -1,4 +1,13 @@
 import type { ApplicationData } from "./applicationData";
+import {
+  hasAnalyticsConsent,
+  onAnalyticsConsentChange,
+} from "./analyticsConsent";
+import {
+  hashAnalyticsIdentifier,
+  hashAnalyticsIdentifierSync,
+} from "./analyticsIdentity";
+import { captureClarityEvent } from "./clarity";
 
 type PostHogConfig = {
   api_host: string;
@@ -42,6 +51,16 @@ type ApplicationStepDefinition = {
   label: string;
   order: number;
   pattern: RegExp;
+};
+
+type RequiredFunnelStepDefinition = {
+  eventName: string;
+  sourceEventName:
+    | "application_step_viewed"
+    | "application_step_completed"
+    | "application_submit_started";
+  stepLabel: string;
+  stepNumber: 3 | 4 | 5;
 };
 
 type RouteAnalyticsDefinition = {
@@ -105,6 +124,8 @@ let postHogStarted = false;
 let lastTrackedPageKey: string | null = null;
 let lastTrackedApplicationStepKey: string | null = null;
 let postHogBlockReason: string | null = null;
+let postHogConsentListenerAttached = false;
+let postHogIdentifyRequestId = 0;
 
 export interface CvParserExperimentState {
   enabled: boolean;
@@ -378,6 +399,27 @@ const applicationStepDefinitions: ApplicationStepDefinition[] = [
   },
 ];
 
+const requiredFunnelStepDefinitions: RequiredFunnelStepDefinition[] = [
+  {
+    eventName: "funnel_step_3_application_step_viewed",
+    sourceEventName: "application_step_viewed",
+    stepLabel: "Application step viewed",
+    stepNumber: 3,
+  },
+  {
+    eventName: "funnel_step_4_application_step_completed",
+    sourceEventName: "application_step_completed",
+    stepLabel: "Application step completed",
+    stepNumber: 4,
+  },
+  {
+    eventName: "funnel_step_5_application_submit_started",
+    sourceEventName: "application_submit_started",
+    stepLabel: "Application submit started",
+    stepNumber: 5,
+  },
+];
+
 function buildScriptUrl(apiHost: string) {
   if (apiHost.includes(".i.posthog.com")) {
     return `${apiHost.replace(".i.posthog.com", "-assets.i.posthog.com")}/static/array.js`;
@@ -463,6 +505,26 @@ function registerBaseProperties() {
 
 export const isPostHogEnabled = Boolean(POSTHOG_KEY);
 
+function ensurePostHogConsentListener() {
+  if (postHogConsentListenerAttached || typeof window === "undefined") {
+    return;
+  }
+
+  postHogConsentListenerAttached = true;
+  onAnalyticsConsentChange(() => {
+    if (hasAnalyticsConsent()) {
+      initPostHog();
+      return;
+    }
+
+    postHogIdentifyRequestId += 1;
+    postHogStarted = false;
+    lastTrackedPageKey = null;
+    lastTrackedApplicationStepKey = null;
+    window.posthog?.reset?.();
+  });
+}
+
 function detectPostHogBlockReason() {
   if (typeof window === "undefined" || typeof navigator === "undefined") {
     return null;
@@ -501,6 +563,10 @@ function canCapturePostHog() {
     return false;
   }
 
+  if (!hasAnalyticsConsent()) {
+    return false;
+  }
+
   if (!postHogBlockReason) {
     postHogBlockReason = detectPostHogBlockReason();
     if (postHogBlockReason && import.meta.env.DEV) {
@@ -524,6 +590,8 @@ function normalizeFeatureFlagVariant(value: unknown) {
 }
 
 export function initPostHog() {
+  ensurePostHogConsentListener();
+
   if (!canCapturePostHog() || postHogStarted) {
     return;
   }
@@ -536,7 +604,7 @@ export function initPostHog() {
 
   client.init(POSTHOG_KEY, {
     api_host: POSTHOG_HOST,
-    autocapture: true,
+    autocapture: false,
     capture_pageleave: true,
     capture_pageview: false,
     persistence: "localStorage+cookie",
@@ -552,17 +620,27 @@ export function syncPostHogUser(user: PostHogUserContext | null) {
 
   initPostHog();
 
+  postHogIdentifyRequestId += 1;
+  const requestId = postHogIdentifyRequestId;
+
   if (!user) {
     window.posthog?.reset?.();
     registerBaseProperties();
     return;
   }
 
-  window.posthog?.identify?.(user.id, {
-    app_environment: APP_ENVIRONMENT,
-    company_domain: user.companyDomain ?? "unknown",
-    email: user.email,
-    name: user.name,
+  const companyDomain = user.companyDomain ?? user.email?.split("@")[1] ?? "unknown";
+
+  void hashAnalyticsIdentifier(user.id).then((hashedUserId) => {
+    if (requestId !== postHogIdentifyRequestId || !canCapturePostHog()) {
+      return;
+    }
+
+    window.posthog?.identify?.(hashedUserId, {
+      app_environment: APP_ENVIRONMENT,
+      analytics_user_id_hash: hashedUserId,
+      company_domain: companyDomain,
+    });
   });
 }
 
@@ -581,6 +659,12 @@ export function capturePostHogEvent(
   eventName: string,
   properties?: Record<string, unknown>,
 ) {
+  const requiredFunnelStepDefinition = getRequiredFunnelStepDefinition(eventName);
+
+  if (requiredFunnelStepDefinition) {
+    captureClarityEvent(requiredFunnelStepDefinition.eventName);
+  }
+
   if (!canCapturePostHog()) {
     return;
   }
@@ -589,6 +673,18 @@ export function capturePostHogEvent(
 
   window.posthog?.capture?.(eventName, {
     app_environment: APP_ENVIRONMENT,
+    ...properties,
+  });
+
+  if (!requiredFunnelStepDefinition) {
+    return;
+  }
+
+  window.posthog?.capture?.(requiredFunnelStepDefinition.eventName, {
+    app_environment: APP_ENVIRONMENT,
+    funnel_source_event: eventName,
+    required_funnel_step_label: requiredFunnelStepDefinition.stepLabel,
+    required_funnel_step_number: requiredFunnelStepDefinition.stepNumber,
     ...properties,
   });
 }
@@ -648,9 +744,13 @@ export function getCourseAnalyticsProperties(
 export function getApplicationAnalyticsProperties(
   application: ApplicationAnalyticsContext | null | undefined,
 ) {
+  const rawApplicantProfileId = application?.applicationMeta?.applicantProfileId ?? null;
+
   return {
     ...getCourseAnalyticsProperties(application?.applicationMeta?.selectedCourse),
-    applicant_profile_id: application?.applicationMeta?.applicantProfileId ?? null,
+    applicant_profile_id: rawApplicantProfileId
+      ? hashAnalyticsIdentifierSync(rawApplicantProfileId)
+      : null,
     application_has_cv: Boolean(application?.cvUploaded),
     application_id: application?.applicationMeta?.recordId ?? null,
     application_number: application?.applicationMeta?.applicationNumber ?? null,
@@ -672,6 +772,14 @@ export function getRouteAnalyticsDefinition(pathname: string) {
 
 export function getApplicationStepDefinition(pathname: string) {
   return applicationStepDefinitions.find((step) => step.pattern.test(pathname)) ?? null;
+}
+
+export function getRequiredFunnelStepDefinition(sourceEventName: string) {
+  return (
+    requiredFunnelStepDefinitions.find(
+      (definition) => definition.sourceEventName === sourceEventName,
+    ) ?? null
+  );
 }
 
 function getApplicationStepAnalyticsProperties(

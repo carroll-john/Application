@@ -10,7 +10,7 @@ import { LoadingSpinner } from "./components/LoadingSpinner";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { useApplication } from "./context/ApplicationContext";
 import { useAuth } from "./context/AuthContext";
-import { setClarityTag } from "./lib/clarity";
+import { setClarityTag, syncClarityRoutePrivacy } from "./lib/clarity";
 import AuthCallback from "./pages/AuthCallback";
 import CourseList from "./pages/CourseList";
 import ApplicantProfile from "./pages/ApplicantProfile";
@@ -130,6 +130,7 @@ function ClarityRouteTracker() {
   const location = useLocation();
 
   useEffect(() => {
+    syncClarityRoutePrivacy(location.pathname);
     setClarityTag("route", normalizeClarityRoute(location.pathname));
   }, [location.pathname]);
 

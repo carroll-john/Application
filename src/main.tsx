@@ -3,10 +3,11 @@ import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import App from "./App";
 import "./index.css";
-import { initClarity } from "./lib/clarity";
+import { initClarity, syncClarityRoutePrivacy } from "./lib/clarity";
 import { initPostHog } from "./lib/posthog";
 import { initSentry, isSentryEnabled } from "./lib/sentry";
 
+syncClarityRoutePrivacy(window.location.pathname);
 initClarity();
 initPostHog();
 initSentry();
