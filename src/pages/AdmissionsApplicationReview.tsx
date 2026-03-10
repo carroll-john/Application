@@ -20,8 +20,10 @@ import {
   addAdmissionsNote,
   assignAdmissionsRecord,
   buildAdmissionsDocumentPreview,
+  evaluateAdmissionsDocumentAccess,
   findAdmissionsRecord,
   loadAdmissionsWorkspaceRecords,
+  requestAdmissionsDocumentAccess,
   saveAdmissionsWorkspaceRecords,
   updateAdmissionsStatus,
   type AdmissionsQueueRecord,
@@ -100,8 +102,14 @@ export default function AdmissionsApplicationReview() {
     [applicationId, records],
   );
   const [noteDraft, setNoteDraft] = useState("");
-  const [activeDocument, setActiveDocument] =
-    useState<CanonicalDocumentReference | null>(null);
+  const [activeDocumentSession, setActiveDocumentSession] = useState<{
+    accessedAt: string;
+    document: CanonicalDocumentReference;
+  } | null>(null);
+  const [documentAccessMessage, setDocumentAccessMessage] = useState<{
+    body: string;
+    tone: "info" | "warning";
+  } | null>(null);
 
   if (!record) {
     return (
@@ -143,9 +151,13 @@ export default function AdmissionsApplicationReview() {
   ]
     .filter(Boolean)
     .join(" ");
+  const documentAccessPolicy = evaluateAdmissionsDocumentAccess(record, actor);
 
-  const previewMarkup = activeDocument
-    ? buildAdmissionsDocumentPreview(record, activeDocument)
+  const previewMarkup = activeDocumentSession
+    ? buildAdmissionsDocumentPreview(record, activeDocumentSession.document, {
+        actor,
+        accessedAt: activeDocumentSession.accessedAt,
+      })
     : "";
 
   return (
@@ -283,6 +295,28 @@ export default function AdmissionsApplicationReview() {
                 title="Documents"
                 body="Each document opens in a protected inline preview so reviewers can inspect evidence without exposing raw storage URLs."
               />
+              <div
+                className={`mt-5 rounded-[24px] border px-4 py-3 text-sm ${
+                  documentAccessPolicy.allowed
+                    ? "border-[#c6d8e3] bg-[#F2F8FB] text-[#0B4F74]"
+                    : "border-amber-200 bg-amber-50 text-amber-900"
+                }`}
+              >
+                {documentAccessPolicy.allowed
+                  ? "Protected evidence opens inline only. Raw source links remain hidden and every document view is logged to the admissions audit trail."
+                  : documentAccessPolicy.reason}
+              </div>
+              {documentAccessMessage ? (
+                <div
+                  className={`mt-4 rounded-[24px] border px-4 py-3 text-sm ${
+                    documentAccessMessage.tone === "warning"
+                      ? "border-amber-200 bg-amber-50 text-amber-900"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                  }`}
+                >
+                  {documentAccessMessage.body}
+                </div>
+              ) : null}
               <div className="mt-6 grid gap-4">
                 {record.application.documents.map((document) => (
                   <div
@@ -309,9 +343,47 @@ export default function AdmissionsApplicationReview() {
                       </div>
                       <Button
                         onClick={() => {
-                          setActiveDocument(document);
+                          const accessDecision = requestAdmissionsDocumentAccess(
+                            records,
+                            {
+                              actor,
+                              applicationId: record.applicationId,
+                              documentId: document.documentId,
+                            },
+                          );
+
+                          updateRecords(() => accessDecision.records);
+
+                          if (!accessDecision.allowed || !accessDecision.document) {
+                            setActiveDocumentSession(null);
+                            setDocumentAccessMessage({
+                              body:
+                                accessDecision.reason ??
+                                "Protected evidence could not be opened for this reviewer.",
+                              tone: "warning",
+                            });
+                            capturePostHogEvent("admissions_document_preview_blocked", {
+                              admissions_application_id: record.applicationId,
+                              admissions_document_access_reason: accessDecision.reasonCode,
+                              admissions_document_category: document.category,
+                              admissions_document_id: document.documentId,
+                            });
+                            return;
+                          }
+
+                          setDocumentAccessMessage({
+                            body: `Protected preview opened for ${accessDecision.document.filename}. Access logged ${formatTimestamp(
+                              accessDecision.occurredAt,
+                            )}.`,
+                            tone: "info",
+                          });
+                          setActiveDocumentSession({
+                            accessedAt: accessDecision.occurredAt,
+                            document: accessDecision.document,
+                          });
                           capturePostHogEvent("admissions_document_preview_opened", {
                             admissions_application_id: record.applicationId,
+                            admissions_document_access_outcome: "opened",
                             admissions_document_category: document.category,
                             admissions_document_id: document.documentId,
                           });
@@ -461,7 +533,7 @@ export default function AdmissionsApplicationReview() {
             <SurfaceCard className="rounded-[32px] p-6">
               <SectionHeader
                 title="Audit trail"
-                body="Assignment and queue-state changes remain visible by user and timestamp."
+                body="Assignment, queue-state, note, and document-access events remain visible by user and timestamp."
               />
               <div className="mt-5 grid gap-3">
                 {record.auditEvents
@@ -478,6 +550,12 @@ export default function AdmissionsApplicationReview() {
                             <FileText className="h-4 w-4" />
                           ) : event.type === "status" ? (
                             <CheckCircle2 className="h-4 w-4" />
+                          ) : event.type === "document-access" ? (
+                            event.metadata?.outcome === "blocked" ? (
+                              <AlertCircle className="h-4 w-4" />
+                            ) : (
+                              <ShieldCheck className="h-4 w-4" />
+                            )
                           ) : (
                             <AlertCircle className="h-4 w-4" />
                           )}
@@ -499,35 +577,61 @@ export default function AdmissionsApplicationReview() {
         </div>
       </div>
 
-      {activeDocument ? (
+      {activeDocumentSession ? (
         <ModalShell
           bodyClassName="space-y-4"
           maxWidthClassName="max-w-5xl"
-          onClose={() => setActiveDocument(null)}
+          onClose={() => setActiveDocumentSession(null)}
           panelClassName="overflow-hidden"
-          title={activeDocument.filename}
+          title={activeDocumentSession.document.filename}
         >
           <div className="rounded-[24px] border border-[#c6d8e3] bg-[#F2F8FB] px-4 py-3 text-sm text-[#0B4F74]">
-            Protected preview only. Raw source links stay hidden from the admissions workspace.
+            Protected preview only. Access logged {formatTimestamp(
+              activeDocumentSession.accessedAt,
+            )}. Raw source links stay hidden from the admissions workspace.
           </div>
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_280px]">
             <iframe
               className="min-h-[560px] w-full rounded-[28px] border border-slate-200 bg-white"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              sandbox=""
               srcDoc={previewMarkup}
-              title={`${activeDocument.filename} preview`}
+              title={`${activeDocumentSession.document.filename} preview`}
             />
             <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
                 Preview metadata
               </p>
               <dl className="mt-4 grid gap-3 text-sm text-slate-700">
-                <MetadataRow label="Category" value={activeDocument.category} />
-                <MetadataRow label="Content type" value={activeDocument.contentType} />
-                <MetadataRow label="Size" value={formatFileSize(activeDocument.sizeBytes)} />
-                <MetadataRow label="Uploaded" value={formatTimestamp(activeDocument.uploadedAt)} />
+                <MetadataRow
+                  label="Category"
+                  value={activeDocumentSession.document.category}
+                />
+                <MetadataRow
+                  label="Content type"
+                  value={activeDocumentSession.document.contentType}
+                />
+                <MetadataRow
+                  label="Size"
+                  value={formatFileSize(activeDocumentSession.document.sizeBytes)}
+                />
+                <MetadataRow
+                  label="Uploaded"
+                  value={formatTimestamp(activeDocumentSession.document.uploadedAt)}
+                />
                 <MetadataRow
                   label="Submission required"
-                  value={activeDocument.requiredForSubmission ? "Yes" : "No"}
+                  value={
+                    activeDocumentSession.document.requiredForSubmission
+                      ? "Yes"
+                      : "No"
+                  }
+                />
+                <MetadataRow label="Viewer" value={actor} />
+                <MetadataRow
+                  label="Access logged"
+                  value={formatTimestamp(activeDocumentSession.accessedAt)}
                 />
               </dl>
             </div>

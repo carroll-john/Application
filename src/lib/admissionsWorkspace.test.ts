@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   addAdmissionsNote,
   assignAdmissionsRecord,
+  buildAdmissionsDocumentPreview,
   buildAdmissionsQueueSearchParams,
   createSeedAdmissionsRecords,
+  evaluateAdmissionsDocumentAccess,
   filterAdmissionsQueueRecords,
   paginateAdmissionsQueueRecords,
   readAdmissionsQueueSearchState,
+  requestAdmissionsDocumentAccess,
   updateAdmissionsStatus,
 } from "./admissionsWorkspace";
 
@@ -157,5 +160,87 @@ describe("admissionsWorkspace", () => {
       totalRecords: 9,
     });
     expect(pagination.records).toHaveLength(1);
+  });
+
+  it("blocks document access when the application is assigned to a different reviewer and records the attempt", () => {
+    const records = createSeedAdmissionsRecords();
+    const record = records.find((candidate) => candidate.applicationId === "app-hhi-003");
+
+    expect(record).toBeDefined();
+    expect(
+      evaluateAdmissionsDocumentAccess(
+        record!,
+        "samira.chen@keypath.com.au",
+      ),
+    ).toMatchObject({
+      allowed: false,
+      reasonCode: "assignee_mismatch",
+    });
+
+    const access = requestAdmissionsDocumentAccess(records, {
+      actor: "samira.chen@keypath.com.au",
+      applicationId: "app-hhi-003",
+      documentId: "doc-006",
+      occurredAt: "2026-03-10T11:15:00Z",
+    });
+    const updated = access.records.find(
+      (candidate) => candidate.applicationId === "app-hhi-003",
+    );
+
+    expect(access).toMatchObject({
+      allowed: false,
+      occurredAt: "2026-03-10T11:15:00Z",
+      reasonCode: "assignee_mismatch",
+    });
+    expect(access.reason).toContain("alex.wong@keypath.com.au");
+    expect(updated?.auditEvents.at(-1)).toMatchObject({
+      actor: "samira.chen@keypath.com.au",
+      metadata: {
+        documentCategory: "certificate",
+        documentId: "doc-006",
+        outcome: "blocked",
+        reasonCode: "assignee_mismatch",
+      },
+      summary: "Blocked document viewer access for allied-health-cert.pdf.",
+      type: "document-access",
+    });
+  });
+
+  it("logs successful document access and watermarks the protected preview with reviewer metadata", () => {
+    const access = requestAdmissionsDocumentAccess(createSeedAdmissionsRecords(), {
+      actor: "samira.chen@keypath.com.au",
+      applicationId: "app-tiu-008",
+      documentId: "doc-003",
+      occurredAt: "2026-03-10T11:20:00Z",
+    });
+    const updated = access.records.find(
+      (candidate) => candidate.applicationId === "app-tiu-008",
+    );
+
+    expect(access).toMatchObject({
+      allowed: true,
+      occurredAt: "2026-03-10T11:20:00Z",
+      reasonCode: "ok",
+    });
+    expect(updated?.auditEvents.at(-1)).toMatchObject({
+      actor: "samira.chen@keypath.com.au",
+      metadata: {
+        documentCategory: "transcript",
+        documentId: "doc-003",
+        outcome: "opened",
+        reasonCode: "ok",
+      },
+      summary: "Opened protected document viewer for analytics-transcript.pdf.",
+      type: "document-access",
+    });
+
+    const preview = buildAdmissionsDocumentPreview(updated!, access.document!, {
+      actor: "samira.chen@keypath.com.au",
+      accessedAt: "2026-03-10T11:20:00Z",
+    });
+
+    expect(preview).toContain("Viewer samira.chen@keypath.com.au");
+    expect(preview).toContain("Access logged 2026-03-10T11:20:00Z");
+    expect(preview).toContain("Protected preview");
   });
 });

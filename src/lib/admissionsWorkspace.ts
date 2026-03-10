@@ -17,7 +17,11 @@ export type AdmissionsQueueStatus =
 
 export type AdmissionsPriority = "high" | "medium" | "normal";
 
-export type AdmissionsAuditEventType = "assignment" | "status" | "note";
+export type AdmissionsAuditEventType =
+  | "assignment"
+  | "status"
+  | "note"
+  | "document-access";
 
 export type AdmissionsStatusFilter = "all" | AdmissionsQueueStatus;
 
@@ -77,12 +81,36 @@ export interface AdmissionsNote {
   noteId: string;
 }
 
+export interface AdmissionsAuditEventMetadata {
+  documentCategory?: string;
+  documentId?: string;
+  outcome?: "opened" | "blocked";
+  reasonCode?: AdmissionsDocumentAccessReasonCode;
+}
+
 export interface AdmissionsAuditEvent {
   actor: string;
   eventId: string;
+  metadata?: AdmissionsAuditEventMetadata;
   occurredAt: string;
   summary: string;
   type: AdmissionsAuditEventType;
+}
+
+export type AdmissionsDocumentAccessReasonCode =
+  | "ok"
+  | "reviewer_required"
+  | "record_not_found"
+  | "document_not_found"
+  | "assignee_mismatch";
+
+export interface AdmissionsDocumentAccessDecision {
+  allowed: boolean;
+  document?: CanonicalDocumentReference;
+  occurredAt: string;
+  reason?: string;
+  reasonCode: AdmissionsDocumentAccessReasonCode;
+  records: AdmissionsQueueRecord[];
 }
 
 export interface AdmissionsQueueRecord {
@@ -117,6 +145,7 @@ function cloneNote(note: AdmissionsNote): AdmissionsNote {
 function cloneAuditEvent(event: AdmissionsAuditEvent): AdmissionsAuditEvent {
   return {
     ...event,
+    metadata: event.metadata ? { ...event.metadata } : undefined,
   };
 }
 
@@ -337,6 +366,7 @@ export function paginateAdmissionsQueueRecords(
 function createAuditEvent(input: {
   applicationId: string;
   actor: string;
+  metadata?: AdmissionsAuditEventMetadata;
   occurredAt: string;
   summary: string;
   type: AdmissionsAuditEventType;
@@ -347,8 +377,12 @@ function createAuditEvent(input: {
       "admissions",
       sanitizeToken(input.applicationId),
       sanitizeToken(input.type),
+      input.metadata?.documentId ? sanitizeToken(input.metadata.documentId) : "",
       String(Date.parse(input.occurredAt)),
-    ].join("-"),
+    ]
+      .filter(Boolean)
+      .join("-"),
+    metadata: input.metadata ? { ...input.metadata } : undefined,
     occurredAt: input.occurredAt,
     summary: input.summary,
     type: input.type,
@@ -669,6 +703,133 @@ export function findAdmissionsRecord(
   );
 }
 
+function normalizeAdmissionsActor(actor: string): string {
+  return actor.trim().toLowerCase();
+}
+
+export function evaluateAdmissionsDocumentAccess(
+  record: AdmissionsQueueRecord,
+  actor: string,
+): Pick<
+  AdmissionsDocumentAccessDecision,
+  "allowed" | "reason" | "reasonCode"
+> {
+  const normalizedActor = normalizeAdmissionsActor(actor);
+  const normalizedAssignee = record.assignee
+    ? normalizeAdmissionsActor(record.assignee)
+    : "";
+
+  if (!normalizedActor) {
+    return {
+      allowed: false,
+      reason:
+        "A signed-in admissions reviewer is required before protected evidence can be opened.",
+      reasonCode: "reviewer_required",
+    };
+  }
+
+  if (normalizedAssignee && normalizedAssignee !== normalizedActor) {
+    return {
+      allowed: false,
+      reason: `Protected evidence is assigned to ${record.assignee}. Reassign this application before opening documents.`,
+      reasonCode: "assignee_mismatch",
+    };
+  }
+
+  return {
+    allowed: true,
+    reasonCode: "ok",
+  };
+}
+
+export function requestAdmissionsDocumentAccess(
+  records: AdmissionsQueueRecord[],
+  input: {
+    actor: string;
+    applicationId: string;
+    documentId: string;
+    occurredAt?: string;
+  },
+): AdmissionsDocumentAccessDecision {
+  const occurredAt = input.occurredAt ?? new Date().toISOString();
+  const nextRecords = cloneAdmissionsRecords(records);
+  const record = nextRecords.find(
+    (candidate) => candidate.applicationId === input.applicationId,
+  );
+
+  if (!record) {
+    return {
+      allowed: false,
+      occurredAt,
+      reason:
+        "This admissions item is no longer available. Return to the queue and reopen it before viewing documents.",
+      reasonCode: "record_not_found",
+      records: nextRecords,
+    };
+  }
+
+  const document = record.application.documents.find(
+    (candidate) => candidate.documentId === input.documentId,
+  );
+
+  if (!document) {
+    record.auditEvents.push(
+      createAuditEvent({
+        applicationId: record.applicationId,
+        actor: input.actor,
+        metadata: {
+          documentId: input.documentId,
+          outcome: "blocked",
+          reasonCode: "document_not_found",
+        },
+        occurredAt,
+        summary: "Blocked document viewer access because the requested document was not found.",
+        type: "document-access",
+      }),
+    );
+    record.lastActivityAt = occurredAt;
+
+    return {
+      allowed: false,
+      occurredAt,
+      reason:
+        "The requested document is no longer attached to this application. Refresh the review workspace and try again.",
+      reasonCode: "document_not_found",
+      records: nextRecords,
+    };
+  }
+
+  const accessDecision = evaluateAdmissionsDocumentAccess(record, input.actor);
+
+  record.auditEvents.push(
+    createAuditEvent({
+      applicationId: record.applicationId,
+      actor: input.actor,
+      metadata: {
+        documentCategory: document.category,
+        documentId: document.documentId,
+        outcome: accessDecision.allowed ? "opened" : "blocked",
+        reasonCode: accessDecision.reasonCode,
+      },
+      occurredAt,
+      summary: accessDecision.allowed
+        ? `Opened protected document viewer for ${document.filename}.`
+        : `Blocked document viewer access for ${document.filename}.`,
+      type: "document-access",
+    }),
+  );
+  record.lastActivityAt = occurredAt;
+
+  return {
+    allowed: accessDecision.allowed,
+    document,
+    occurredAt,
+    reason: accessDecision.reason,
+    reasonCode: accessDecision.reasonCode,
+    records: nextRecords,
+  };
+}
+
 export function assignAdmissionsRecord(
   records: AdmissionsQueueRecord[],
   input: {
@@ -854,6 +1015,10 @@ function buildDocumentEvidenceSummary(
 export function buildAdmissionsDocumentPreview(
   record: AdmissionsQueueRecord,
   document: CanonicalDocumentReference,
+  viewer: {
+    actor: string;
+    accessedAt: string;
+  },
 ): string {
   const applicantName = `${record.application.personalDetails.firstName} ${record.application.personalDetails.lastName}`.trim();
   const evidenceSummary = buildDocumentEvidenceSummary(record.application, document)
@@ -903,6 +1068,16 @@ export function buildAdmissionsDocumentPreview(
       .meta-item { border-radius: 18px; background: #f4f8fb; padding: 14px 16px; }
       .meta-label { display: block; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #5a6b7d; }
       .meta-value { display: block; margin-top: 6px; font-weight: 600; }
+      .watermark {
+        margin-top: 18px;
+        border-radius: 18px;
+        background: #fff3cd;
+        color: #6b4b00;
+        padding: 14px 16px;
+        font-size: 12px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
     </style>
   </head>
   <body>
@@ -928,6 +1103,9 @@ export function buildAdmissionsDocumentPreview(
             <span class="meta-label">Source system</span>
             <span class="meta-value">${escapeHtml(record.application.sourceSystem)}</span>
           </div>
+        </div>
+        <div class="watermark">
+          Viewer ${escapeHtml(viewer.actor)} | Access logged ${escapeHtml(viewer.accessedAt)}
         </div>
       </div>
       <div class="panel">
