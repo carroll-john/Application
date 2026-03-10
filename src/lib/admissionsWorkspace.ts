@@ -5,7 +5,9 @@ import type {
 import { canonicalApplicationSamples } from "../integrationPlatform/examples";
 
 export const ADMISSIONS_WORKSPACE_STORAGE_KEY =
-  "application-prototype:admissions-workspace:v1";
+  "application-prototype:admissions-workspace:v2";
+
+export const ADMISSIONS_QUEUE_PAGE_SIZE = 6;
 
 export type AdmissionsQueueStatus =
   | "new"
@@ -16,6 +18,57 @@ export type AdmissionsQueueStatus =
 export type AdmissionsPriority = "high" | "medium" | "normal";
 
 export type AdmissionsAuditEventType = "assignment" | "status" | "note";
+
+export type AdmissionsStatusFilter = "all" | AdmissionsQueueStatus;
+
+export type AdmissionsAssigneeFilter = "all" | "mine" | "unassigned";
+
+export interface AdmissionsQueueSearchState {
+  assignee: AdmissionsAssigneeFilter;
+  courseLine: string;
+  page: number;
+  partner: string;
+  query: string;
+  status: AdmissionsStatusFilter;
+}
+
+export interface AdmissionsQueueFilterOption {
+  label: string;
+  value: string;
+}
+
+export interface AdmissionsQueuePage {
+  endRecord: number;
+  page: number;
+  pageSize: number;
+  records: AdmissionsQueueRecord[];
+  startRecord: number;
+  totalPages: number;
+  totalRecords: number;
+}
+
+export const DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE: AdmissionsQueueSearchState = {
+  assignee: "all",
+  courseLine: "all",
+  page: 1,
+  partner: "all",
+  query: "",
+  status: "all",
+};
+
+const ADMISSIONS_STATUS_FILTER_VALUES = new Set<AdmissionsStatusFilter>([
+  "all",
+  "new",
+  "assigned",
+  "under-review",
+  "ready-for-decision",
+]);
+
+const ADMISSIONS_ASSIGNEE_FILTER_VALUES = new Set<AdmissionsAssigneeFilter>([
+  "all",
+  "mine",
+  "unassigned",
+]);
 
 export interface AdmissionsNote {
   author: string;
@@ -80,6 +133,205 @@ export function cloneAdmissionsRecords(
   records: AdmissionsQueueRecord[],
 ): AdmissionsQueueRecord[] {
   return records.map((record) => cloneRecord(record));
+}
+
+function createAdmissionsSeedApplication(input: {
+  applicantId: string;
+  applicationId: string;
+  baseApplication: CanonicalApplicationV1;
+  email: string;
+  firstName: string;
+  lastName: string;
+  submittedAt: string;
+}): CanonicalApplicationV1 {
+  const application = cloneApplication(input.baseApplication);
+  application.applicantId = input.applicantId;
+  application.applicationId = input.applicationId;
+  application.personalDetails.email = input.email;
+  application.personalDetails.firstName = input.firstName;
+  application.personalDetails.lastName = input.lastName;
+  application.submittedAt = input.submittedAt;
+  return application;
+}
+
+function getAdmissionsCourseLineLabel(record: AdmissionsQueueRecord): string {
+  return `${record.application.selectedCourse.courseTitle} (${record.application.selectedCourse.courseCode})`;
+}
+
+function getAdmissionsSearchText(record: AdmissionsQueueRecord): string {
+  return [
+    record.application.applicationId,
+    record.application.applicantId,
+    record.application.personalDetails.firstName,
+    record.application.personalDetails.lastName,
+    record.application.personalDetails.email,
+    record.application.selectedCourse.providerCode,
+    record.application.selectedCourse.providerName,
+    record.application.selectedCourse.courseCode,
+    record.application.selectedCourse.courseTitle,
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
+export function getAdmissionsQueuePartnerOptions(
+  records: AdmissionsQueueRecord[],
+): AdmissionsQueueFilterOption[] {
+  return Array.from(
+    new Map(
+      records.map((record) => [
+        record.application.selectedCourse.providerName,
+        {
+          label: record.application.selectedCourse.providerName,
+          value: record.application.selectedCourse.providerName,
+        } satisfies AdmissionsQueueFilterOption,
+      ]),
+    ).values(),
+  ).sort((left, right) => left.label.localeCompare(right.label));
+}
+
+export function getAdmissionsQueueCourseLineOptions(
+  records: AdmissionsQueueRecord[],
+): AdmissionsQueueFilterOption[] {
+  return Array.from(
+    new Map(
+      records.map((record) => [
+        record.application.selectedCourse.courseCode,
+        {
+          label: getAdmissionsCourseLineLabel(record),
+          value: record.application.selectedCourse.courseCode,
+        } satisfies AdmissionsQueueFilterOption,
+      ]),
+    ).values(),
+  ).sort((left, right) => left.label.localeCompare(right.label));
+}
+
+export function readAdmissionsQueueSearchState(
+  searchParams: URLSearchParams,
+): AdmissionsQueueSearchState {
+  const status = searchParams.get("status");
+  const assignee = searchParams.get("assignee");
+  const rawPage = Number.parseInt(searchParams.get("page") ?? "", 10);
+
+  return {
+    assignee: ADMISSIONS_ASSIGNEE_FILTER_VALUES.has(
+      assignee as AdmissionsAssigneeFilter,
+    )
+      ? (assignee as AdmissionsAssigneeFilter)
+      : DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE.assignee,
+    courseLine:
+      searchParams.get("course")?.trim() ||
+      DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE.courseLine,
+    page:
+      Number.isFinite(rawPage) && rawPage > 0
+        ? rawPage
+        : DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE.page,
+    partner:
+      searchParams.get("partner")?.trim() ||
+      DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE.partner,
+    query:
+      searchParams.get("q") ?? DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE.query,
+    status: ADMISSIONS_STATUS_FILTER_VALUES.has(status as AdmissionsStatusFilter)
+      ? (status as AdmissionsStatusFilter)
+      : DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE.status,
+  };
+}
+
+export function buildAdmissionsQueueSearchParams(
+  state: AdmissionsQueueSearchState,
+): URLSearchParams {
+  const params = new URLSearchParams();
+
+  if (state.query.trim()) {
+    params.set("q", state.query.trim());
+  }
+
+  if (state.status !== DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE.status) {
+    params.set("status", state.status);
+  }
+
+  if (state.assignee !== DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE.assignee) {
+    params.set("assignee", state.assignee);
+  }
+
+  if (state.partner !== DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE.partner) {
+    params.set("partner", state.partner);
+  }
+
+  if (state.courseLine !== DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE.courseLine) {
+    params.set("course", state.courseLine);
+  }
+
+  if (state.page > DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE.page) {
+    params.set("page", String(state.page));
+  }
+
+  return params;
+}
+
+export function filterAdmissionsQueueRecords(
+  records: AdmissionsQueueRecord[],
+  input: {
+    actor: string;
+    searchState: AdmissionsQueueSearchState;
+  },
+): AdmissionsQueueRecord[] {
+  const normalizedQuery = input.searchState.query.trim().toLowerCase();
+
+  return cloneAdmissionsRecords(records)
+    .filter((record) =>
+      input.searchState.status === "all"
+        ? true
+        : record.status === input.searchState.status,
+    )
+    .filter((record) => {
+      if (input.searchState.assignee === "all") {
+        return true;
+      }
+
+      if (input.searchState.assignee === "mine") {
+        return record.assignee === input.actor;
+      }
+
+      return !record.assignee;
+    })
+    .filter((record) =>
+      input.searchState.partner === "all"
+        ? true
+        : record.application.selectedCourse.providerName === input.searchState.partner,
+    )
+    .filter((record) =>
+      input.searchState.courseLine === "all"
+        ? true
+        : record.application.selectedCourse.courseCode === input.searchState.courseLine,
+    )
+    .filter((record) =>
+      normalizedQuery ? getAdmissionsSearchText(record).includes(normalizedQuery) : true,
+    )
+    .sort((left, right) => right.lastActivityAt.localeCompare(left.lastActivityAt));
+}
+
+export function paginateAdmissionsQueueRecords(
+  records: AdmissionsQueueRecord[],
+  page: number,
+  pageSize = ADMISSIONS_QUEUE_PAGE_SIZE,
+): AdmissionsQueuePage {
+  const safePageSize = Math.max(1, pageSize);
+  const totalRecords = records.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / safePageSize));
+  const normalizedPage = Math.min(Math.max(1, page), totalPages);
+  const startIndex = (normalizedPage - 1) * safePageSize;
+  const pagedRecords = records.slice(startIndex, startIndex + safePageSize);
+
+  return {
+    endRecord: totalRecords === 0 ? 0 : startIndex + pagedRecords.length,
+    page: normalizedPage,
+    pageSize: safePageSize,
+    records: pagedRecords,
+    startRecord: totalRecords === 0 ? 0 : startIndex + 1,
+    totalPages,
+    totalRecords,
+  };
 }
 
 function createAuditEvent(input: {
@@ -198,42 +450,173 @@ function createSeedRecord(
 }
 
 export function createSeedAdmissionsRecords(): AdmissionsQueueRecord[] {
-  const seedConfigs: SeedConfig[] = [
+  const seedRows: Array<
+    SeedConfig & {
+      applicantId: string;
+      applicationId: string;
+      baseIndex: number;
+      email: string;
+      firstName: string;
+      lastName: string;
+      submittedAt: string;
+    }
+  > = [
     {
+      applicantId: "applicant-scu-001",
+      applicationId: "app-scu-001",
+      baseIndex: 0,
+      email: "morgan.lee@example.com",
+      firstName: "Morgan",
+      lastName: "Lee",
       lastActivityAt: "2026-03-10T09:05:00Z",
       priority: "high",
       status: "new",
+      submittedAt: "2026-03-10T08:55:00Z",
     },
     {
+      applicantId: "applicant-tiu-002",
+      applicationId: "app-tiu-002",
       assignee: "samira.chen@keypath.com.au",
       assignedAt: "2026-03-10T09:20:00Z",
       assignedBy: "ops.lead@keypath.com.au",
+      baseIndex: 1,
+      email: "priya.nair@example.com",
+      firstName: "Priya",
       initialNote: {
         author: "samira.chen@keypath.com.au",
         body: "Flagged for language-evidence review before decisioning.",
         createdAt: "2026-03-10T09:24:00Z",
       },
       lastActivityAt: "2026-03-10T09:24:00Z",
+      lastName: "Nair",
       priority: "high",
       status: "assigned",
+      submittedAt: "2026-03-10T09:10:00Z",
     },
     {
+      applicantId: "applicant-hhi-003",
+      applicationId: "app-hhi-003",
       assignee: "alex.wong@keypath.com.au",
       assignedAt: "2026-03-10T09:40:00Z",
       assignedBy: "ops.lead@keypath.com.au",
+      baseIndex: 2,
+      email: "liam.carter@example.com",
+      firstName: "Liam",
       initialNote: {
         author: "alex.wong@keypath.com.au",
         body: "Clinical placement evidence looks complete. Ready for final review.",
         createdAt: "2026-03-10T09:48:00Z",
       },
       lastActivityAt: "2026-03-10T09:48:00Z",
+      lastName: "Carter",
       priority: "medium",
       status: "under-review",
+      submittedAt: "2026-03-10T09:30:00Z",
+    },
+    {
+      applicantId: "applicant-scu-004",
+      applicationId: "app-scu-004",
+      assignee: "samira.chen@keypath.com.au",
+      assignedAt: "2026-03-10T10:05:00Z",
+      assignedBy: "ops.lead@keypath.com.au",
+      baseIndex: 0,
+      email: "ava.thompson@example.com",
+      firstName: "Ava",
+      lastActivityAt: "2026-03-10T10:12:00Z",
+      lastName: "Thompson",
+      priority: "medium",
+      status: "ready-for-decision",
+      submittedAt: "2026-03-10T09:58:00Z",
+    },
+    {
+      applicantId: "applicant-tiu-005",
+      applicationId: "app-tiu-005",
+      baseIndex: 1,
+      email: "noah.kim@example.com",
+      firstName: "Noah",
+      lastActivityAt: "2026-03-10T10:18:00Z",
+      lastName: "Kim",
+      priority: "normal",
+      status: "new",
+      submittedAt: "2026-03-10T10:12:00Z",
+    },
+    {
+      applicantId: "applicant-hhi-006",
+      applicationId: "app-hhi-006",
+      assignee: "casey.ng@keypath.com.au",
+      assignedAt: "2026-03-10T10:28:00Z",
+      assignedBy: "ops.lead@keypath.com.au",
+      baseIndex: 2,
+      email: "mia.patel@example.com",
+      firstName: "Mia",
+      initialNote: {
+        author: "casey.ng@keypath.com.au",
+        body: "Need one more cross-check on nursing registration evidence.",
+        createdAt: "2026-03-10T10:33:00Z",
+      },
+      lastActivityAt: "2026-03-10T10:33:00Z",
+      lastName: "Patel",
+      priority: "high",
+      status: "assigned",
+      submittedAt: "2026-03-10T10:24:00Z",
+    },
+    {
+      applicantId: "applicant-scu-007",
+      applicationId: "app-scu-007",
+      assignee: "alex.wong@keypath.com.au",
+      assignedAt: "2026-03-10T10:42:00Z",
+      assignedBy: "ops.lead@keypath.com.au",
+      baseIndex: 0,
+      email: "ethan.clarke@example.com",
+      firstName: "Ethan",
+      lastActivityAt: "2026-03-10T10:48:00Z",
+      lastName: "Clarke",
+      priority: "normal",
+      status: "under-review",
+      submittedAt: "2026-03-10T10:39:00Z",
+    },
+    {
+      applicantId: "applicant-tiu-008",
+      applicationId: "app-tiu-008",
+      assignee: "samira.chen@keypath.com.au",
+      assignedAt: "2026-03-10T10:56:00Z",
+      assignedBy: "ops.lead@keypath.com.au",
+      baseIndex: 1,
+      email: "sophie.nguyen@example.com",
+      firstName: "Sophie",
+      lastActivityAt: "2026-03-10T11:02:00Z",
+      lastName: "Nguyen",
+      priority: "medium",
+      status: "ready-for-decision",
+      submittedAt: "2026-03-10T10:52:00Z",
+    },
+    {
+      applicantId: "applicant-hhi-009",
+      applicationId: "app-hhi-009",
+      baseIndex: 2,
+      email: "grace.wilson@example.com",
+      firstName: "Grace",
+      lastActivityAt: "2026-03-10T11:12:00Z",
+      lastName: "Wilson",
+      priority: "high",
+      status: "new",
+      submittedAt: "2026-03-10T11:06:00Z",
     },
   ];
 
-  return canonicalApplicationSamples.map((application, index) =>
-    createSeedRecord(application, seedConfigs[index] ?? seedConfigs[0]),
+  return seedRows.map((row) =>
+    createSeedRecord(
+      createAdmissionsSeedApplication({
+        applicantId: row.applicantId,
+        applicationId: row.applicationId,
+        baseApplication: canonicalApplicationSamples[row.baseIndex],
+        email: row.email,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        submittedAt: row.submittedAt,
+      }),
+      row,
+    ),
   );
 }
 

@@ -2,28 +2,36 @@ import {
   ArrowRight,
   ClipboardList,
   Eye,
+  ChevronLeft,
+  ChevronRight,
   Search,
   UserRoundCheck,
   Users,
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { StatusPill } from "../components/StatusPill";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../context/AuthContext";
 import {
+  ADMISSIONS_QUEUE_PAGE_SIZE,
   assignAdmissionsRecord,
+  buildAdmissionsQueueSearchParams,
+  filterAdmissionsQueueRecords,
+  getAdmissionsQueueCourseLineOptions,
+  getAdmissionsQueuePartnerOptions,
   loadAdmissionsWorkspaceRecords,
+  paginateAdmissionsQueueRecords,
+  readAdmissionsQueueSearchState,
   saveAdmissionsWorkspaceRecords,
+  type AdmissionsAssigneeFilter,
   type AdmissionsQueueRecord,
   type AdmissionsQueueStatus,
+  type AdmissionsStatusFilter,
 } from "../lib/admissionsWorkspace";
 import { capturePostHogEvent } from "../lib/posthog";
-
-type StatusFilter = "all" | AdmissionsQueueStatus;
-type AssigneeFilter = "all" | "mine" | "unassigned";
 
 function formatTimestamp(value: string | undefined): string {
   if (!value) {
@@ -79,7 +87,7 @@ function useAdmissionsWorkspaceRecords() {
   };
 }
 
-const statusFilterOptions: Array<{ label: string; value: StatusFilter }> = [
+const statusFilterOptions: Array<{ label: string; value: AdmissionsStatusFilter }> = [
   { label: "All statuses", value: "all" },
   { label: "New", value: "new" },
   { label: "Assigned", value: "assigned" },
@@ -87,7 +95,7 @@ const statusFilterOptions: Array<{ label: string; value: StatusFilter }> = [
   { label: "Ready for decision", value: "ready-for-decision" },
 ];
 
-const assigneeFilterOptions: Array<{ label: string; value: AssigneeFilter }> = [
+const assigneeFilterOptions: Array<{ label: string; value: AdmissionsAssigneeFilter }> = [
   { label: "All assignments", value: "all" },
   { label: "Assigned to me", value: "mine" },
   { label: "Unassigned", value: "unassigned" },
@@ -95,45 +103,75 @@ const assigneeFilterOptions: Array<{ label: string; value: AssigneeFilter }> = [
 
 export default function AdmissionsWorkspace() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { companyUserDisplayName, companyUserEmail, signOut } = useAuth();
   const actor = companyUserEmail ?? "admissions.user@keypath.com.au";
   const { records, updateRecords } = useAdmissionsWorkspaceRecords();
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [assigneeFilter, setAssigneeFilter] = useState<AssigneeFilter>("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchState = useMemo(
+    () => readAdmissionsQueueSearchState(searchParams),
+    [searchParams],
+  );
 
   const filteredRecords = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-
-    return records.filter((record) => {
-      if (statusFilter !== "all" && record.status !== statusFilter) {
-        return false;
-      }
-
-      if (assigneeFilter === "mine" && record.assignee !== actor) {
-        return false;
-      }
-
-      if (assigneeFilter === "unassigned" && record.assignee) {
-        return false;
-      }
-
-      if (!normalizedQuery) {
-        return true;
-      }
-
-      const haystack = [
-        getApplicantName(record),
-        record.application.personalDetails.email,
-        record.application.selectedCourse.providerName,
-        record.application.selectedCourse.courseTitle,
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(normalizedQuery);
+    return filterAdmissionsQueueRecords(records, {
+      actor,
+      searchState,
     });
-  }, [actor, assigneeFilter, records, searchQuery, statusFilter]);
+  }, [actor, records, searchState]);
+
+  const pagination = useMemo(
+    () => paginateAdmissionsQueueRecords(filteredRecords, searchState.page),
+    [filteredRecords, searchState.page],
+  );
+
+  const partnerFilterOptions = useMemo(
+    () => [
+      { label: "All partners", value: "all" },
+      ...getAdmissionsQueuePartnerOptions(records),
+    ],
+    [records],
+  );
+
+  const courseLineFilterOptions = useMemo(
+    () => [
+      { label: "All course lines", value: "all" },
+      ...getAdmissionsQueueCourseLineOptions(records),
+    ],
+    [records],
+  );
+
+  useEffect(() => {
+    if (pagination.page === searchState.page) {
+      return;
+    }
+
+    setSearchParams(
+      buildAdmissionsQueueSearchParams({
+        ...searchState,
+        page: pagination.page,
+      }),
+      { replace: true },
+    );
+  }, [pagination.page, searchState, setSearchParams]);
+
+  const pageNumbers = useMemo(
+    () => Array.from({ length: pagination.totalPages }, (_, index) => index + 1),
+    [pagination.totalPages],
+  );
+
+  const updateSearchState = (
+    patch: Partial<typeof searchState>,
+    options: { resetPage?: boolean } = {},
+  ) => {
+    const nextState = {
+      ...searchState,
+      ...patch,
+      page: options.resetPage === false ? patch.page ?? searchState.page : 1,
+    };
+    setSearchParams(buildAdmissionsQueueSearchParams(nextState), {
+      replace: true,
+    });
+  };
 
   const metrics = useMemo(
     () => ({
@@ -194,20 +232,28 @@ export default function AdmissionsWorkspace() {
         </div>
 
         <SurfaceCard className="mt-8 rounded-[32px] p-6">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_220px_220px]">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(0,190px))]">
             <label className="flex items-center gap-3 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3">
               <Search className="h-4 w-4 text-slate-500" />
               <input
                 className="w-full border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search applicant, provider, or course"
-                value={searchQuery}
+                onChange={(event) =>
+                  updateSearchState({
+                    query: event.target.value,
+                  })
+                }
+                placeholder="Search applicant, email, application ID, provider, or course"
+                value={searchState.query}
               />
             </label>
             <select
               className="rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
-              onChange={(event) => setStatusFilter(event.target.value as StatusFilter)}
-              value={statusFilter}
+              onChange={(event) =>
+                updateSearchState({
+                  status: event.target.value as AdmissionsStatusFilter,
+                })
+              }
+              value={searchState.status}
             >
               {statusFilterOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -217,8 +263,12 @@ export default function AdmissionsWorkspace() {
             </select>
             <select
               className="rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
-              onChange={(event) => setAssigneeFilter(event.target.value as AssigneeFilter)}
-              value={assigneeFilter}
+              onChange={(event) =>
+                updateSearchState({
+                  assignee: event.target.value as AdmissionsAssigneeFilter,
+                })
+              }
+              value={searchState.assignee}
             >
               {assigneeFilterOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -226,6 +276,44 @@ export default function AdmissionsWorkspace() {
                 </option>
               ))}
             </select>
+            <select
+              className="rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+              onChange={(event) =>
+                updateSearchState({
+                  partner: event.target.value,
+                })
+              }
+              value={searchState.partner}
+            >
+              {partnerFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <select
+              className="rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+              onChange={(event) =>
+                updateSearchState({
+                  courseLine: event.target.value,
+                })
+              }
+              value={searchState.courseLine}
+            >
+              {courseLineFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mt-4 flex flex-col gap-2 text-sm text-slate-600 md:flex-row md:items-center md:justify-between">
+            <p>
+              Showing {pagination.startRecord}-{pagination.endRecord} of{" "}
+              {pagination.totalRecords} applications. Page {pagination.page} of{" "}
+              {pagination.totalPages}. Page size {ADMISSIONS_QUEUE_PAGE_SIZE}.
+            </p>
+            <p>Queue filters and search state are preserved in the URL.</p>
           </div>
         </SurfaceCard>
 
@@ -238,7 +326,7 @@ export default function AdmissionsWorkspace() {
           </SurfaceCard>
         ) : (
           <div className="mt-6 grid gap-5">
-            {filteredRecords.map((record) => {
+            {pagination.records.map((record) => {
               const applicantName = getApplicantName(record);
               const isAssignedToMe = record.assignee === actor;
 
@@ -347,6 +435,65 @@ export default function AdmissionsWorkspace() {
                 </SurfaceCard>
               );
             })}
+
+            {pagination.totalPages > 1 ? (
+              <SurfaceCard className="rounded-[28px] p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-slate-600">
+                    Result window {pagination.startRecord}-{pagination.endRecord} of{" "}
+                    {pagination.totalRecords}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      disabled={pagination.page === 1}
+                      onClick={() =>
+                        updateSearchState(
+                          {
+                            page: pagination.page - 1,
+                          },
+                          { resetPage: false },
+                        )
+                      }
+                      variant="outline"
+                    >
+                      <ChevronLeft className="mr-2 h-4 w-4" />
+                      Previous
+                    </Button>
+                    {pageNumbers.map((pageNumber) => (
+                      <Button
+                        key={pageNumber}
+                        onClick={() =>
+                          updateSearchState(
+                            {
+                              page: pageNumber,
+                            },
+                            { resetPage: false },
+                          )
+                        }
+                        variant={pageNumber === pagination.page ? "default" : "outline"}
+                      >
+                        {pageNumber}
+                      </Button>
+                    ))}
+                    <Button
+                      disabled={pagination.page === pagination.totalPages}
+                      onClick={() =>
+                        updateSearchState(
+                          {
+                            page: pagination.page + 1,
+                          },
+                          { resetPage: false },
+                        )
+                      }
+                      variant="outline"
+                    >
+                      Next
+                      <ChevronRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </SurfaceCard>
+            ) : null}
           </div>
         )}
       </div>
