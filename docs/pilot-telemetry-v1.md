@@ -6,6 +6,7 @@ This note captures the `DIS-80` pilot telemetry baseline for the integration MVP
 - Define a shared metric schema for viability, feasibility, and desirability.
 - Standardize admissions workspace event dimensions so pilot slices are queryable by partner, course line, rollout mode, and adapter mode.
 - Add validation helpers that detect missing or malformed telemetry properties before rollups/dashboard work lands.
+- Persist a local pilot event log so admissions telemetry can be queried before downstream rollup automation is implemented.
 
 ## Shared Event Dimensions
 All pilot telemetry events in `src/lib/pilotTelemetry.ts` include:
@@ -79,5 +80,26 @@ Record-level admissions events also include:
 - non-empty string properties
 - finite numeric properties
 - enum validation for rollout mode, queue status, downstream action, document outcome, and related controlled fields
+
+`buildPilotTelemetryCoverageReport` adds flow-level checks for:
+- queue activity coverage
+- decision capture coverage
+- secure document-view coverage
+- handover/note coverage
+- schema validation coverage
+
+## Query Helpers
+`src/lib/pilotTelemetry.ts` now persists events to `application-prototype:pilot-telemetry:v1` and exposes:
+- `loadPilotTelemetryEvents`
+- `listPilotTelemetryEvents`
+- `buildAdmissionsPilotTelemetrySummary`
+- `buildPilotTelemetryCoverageReport`
+
+The admissions workspace uses those helpers to render a compact telemetry snapshot for the currently filtered cohort:
+- events logged
+- weekly active reviewers
+- decision-event count
+- median time to decision
+- coverage/validation status
 
 These helpers are the gate for later rollup, dashboard, and checkpoint-report work in `DIS-90`, `DIS-101`, `DIS-112`, and `DIS-113`.

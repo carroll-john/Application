@@ -13,6 +13,8 @@ import type {
 import { capturePostHogEvent } from "./posthog";
 
 export const PILOT_TELEMETRY_SCHEMA_VERSION = "v1";
+export const PILOT_TELEMETRY_STORAGE_KEY =
+  "application-prototype:pilot-telemetry:v1";
 
 const PILOT_SURFACE = "admissions-workspace";
 const ADMISSIONS_QUEUE_STATUSES: readonly AdmissionsQueueStatus[] = [
@@ -116,6 +118,53 @@ export interface PilotTelemetryValidationIssue {
   property: string;
 }
 
+export interface PilotTelemetryEventRecord {
+  eventId: string;
+  eventName: PilotTelemetryEventName;
+  occurredAt: string;
+  properties: PilotTelemetryProperties;
+}
+
+export interface PilotTelemetryEventFilter {
+  adapterMode?: string;
+  actorIdHash?: string;
+  courseCode?: string;
+  courseLineKey?: string;
+  eventNames?: PilotTelemetryEventName[];
+  partnerId?: string;
+  partnerName?: string;
+  rolloutMode?: PartnerCourseRolloutMode;
+  since?: string;
+  until?: string;
+}
+
+export interface PilotTelemetryCoverageCheck {
+  detail: string;
+  key:
+    | "queue-activity"
+    | "decision-flow"
+    | "document-flow"
+    | "handover-flow"
+    | "schema-validation";
+  passed: boolean;
+}
+
+export interface PilotTelemetryCoverageReport {
+  checks: PilotTelemetryCoverageCheck[];
+  issueCount: number;
+  passed: boolean;
+  validationIssues: PilotTelemetryValidationIssue[];
+}
+
+export interface AdmissionsPilotTelemetrySummary {
+  averageTimeToDecisionHours: number | null;
+  coverage: PilotTelemetryCoverageReport;
+  decisionCount: number;
+  medianTimeToDecisionHours: number | null;
+  totalEvents: number;
+  weeklyActiveReviewers: number;
+}
+
 type PilotTelemetryPropertyType = "boolean" | "number" | "string";
 
 interface PilotTelemetryPropertyRule {
@@ -129,6 +178,80 @@ interface PilotTelemetryEventDefinition {
   categories: readonly PilotMetricCategory[];
   description: string;
   properties: Record<string, PilotTelemetryPropertyRule>;
+}
+
+function clonePilotTelemetryEventRecord(
+  event: PilotTelemetryEventRecord,
+): PilotTelemetryEventRecord {
+  return {
+    ...event,
+    properties: { ...event.properties },
+  };
+}
+
+function createPilotTelemetryEventId(
+  eventName: PilotTelemetryEventName,
+  occurredAt: string,
+  properties: PilotTelemetryProperties,
+): string {
+  return [
+    "pilot-telemetry",
+    eventName,
+    String(Date.parse(occurredAt) || occurredAt),
+    String(properties.pilot_application_id ?? properties.pilot_course_line_key ?? "unknown"),
+    String(properties.pilot_actor_id_hash ?? "anonymous"),
+  ].join(":");
+}
+
+function isWithinRange(
+  value: string,
+  range: { since?: string; until?: string },
+): boolean {
+  const target = Date.parse(value);
+  if (!Number.isFinite(target)) {
+    return false;
+  }
+
+  if (range.since) {
+    const since = Date.parse(range.since);
+    if (Number.isFinite(since) && target < since) {
+      return false;
+    }
+  }
+
+  if (range.until) {
+    const until = Date.parse(range.until);
+    if (Number.isFinite(until) && target > until) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function calculateAverage(values: number[]): number | null {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return Number(
+    (values.reduce((total, value) => total + value, 0) / values.length).toFixed(2),
+  );
+}
+
+function calculateMedian(values: number[]): number | null {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+
+  if (sorted.length % 2 === 0) {
+    return Number(((sorted[middle - 1] + sorted[middle]) / 2).toFixed(2));
+  }
+
+  return Number(sorted[middle].toFixed(2));
 }
 
 const PILOT_METRIC_DEFINITIONS: readonly PilotMetricDefinition[] = [
@@ -717,36 +840,288 @@ export function validatePilotTelemetryBatch(
   );
 }
 
+export function loadPilotTelemetryEvents(): PilotTelemetryEventRecord[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const storedValue = window.localStorage.getItem(PILOT_TELEMETRY_STORAGE_KEY);
+    if (!storedValue) {
+      return [];
+    }
+
+    const parsed = JSON.parse(storedValue) as PilotTelemetryEventRecord[];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.map((event) => clonePilotTelemetryEventRecord(event));
+  } catch {
+    return [];
+  }
+}
+
+export function savePilotTelemetryEvents(
+  events: PilotTelemetryEventRecord[],
+): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      PILOT_TELEMETRY_STORAGE_KEY,
+      JSON.stringify(events),
+    );
+  } catch {
+    // Ignore storage failures and keep client telemetry best-effort.
+  }
+}
+
+export function clearPilotTelemetryEvents(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(PILOT_TELEMETRY_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures and keep client telemetry best-effort.
+  }
+}
+
+export function appendPilotTelemetryEvent(
+  event: PilotTelemetryEventRecord,
+): PilotTelemetryEventRecord[] {
+  const nextEvents = [
+    ...loadPilotTelemetryEvents().filter(
+      (candidate) => candidate.eventId !== event.eventId,
+    ),
+    clonePilotTelemetryEventRecord(event),
+  ];
+  savePilotTelemetryEvents(nextEvents);
+  return nextEvents;
+}
+
+export function filterPilotTelemetryEvents(
+  events: PilotTelemetryEventRecord[],
+  filters: PilotTelemetryEventFilter = {},
+): PilotTelemetryEventRecord[] {
+  const eventNames = filters.eventNames ? new Set(filters.eventNames) : null;
+
+  return events.filter((event) => {
+    const properties = event.properties;
+
+    return (
+      (eventNames ? eventNames.has(event.eventName) : true) &&
+      (filters.partnerId
+        ? properties.pilot_partner_id === filters.partnerId
+        : true) &&
+      (filters.partnerName
+        ? properties.pilot_partner_name === filters.partnerName
+        : true) &&
+      (filters.courseCode
+        ? properties.pilot_course_code === filters.courseCode
+        : true) &&
+      (filters.courseLineKey
+        ? properties.pilot_course_line_key === filters.courseLineKey
+        : true) &&
+      (filters.rolloutMode
+        ? properties.pilot_rollout_mode === filters.rolloutMode
+        : true) &&
+      (filters.adapterMode
+        ? properties.pilot_adapter_mode === filters.adapterMode
+        : true) &&
+      (filters.actorIdHash
+        ? properties.pilot_actor_id_hash === filters.actorIdHash
+        : true) &&
+      isWithinRange(event.occurredAt, {
+        since: filters.since,
+        until: filters.until,
+      })
+    );
+  });
+}
+
+export function listPilotTelemetryEvents(
+  filters: PilotTelemetryEventFilter = {},
+): PilotTelemetryEventRecord[] {
+  return filterPilotTelemetryEvents(loadPilotTelemetryEvents(), filters);
+}
+
+function buildPilotTelemetryCoverageChecks(
+  events: PilotTelemetryEventRecord[],
+): PilotTelemetryCoverageCheck[] {
+  const validationIssues = validatePilotTelemetryBatch(
+    events.map((event) => ({
+      eventName: event.eventName,
+      properties: event.properties,
+    })),
+  );
+
+  return [
+    {
+      detail:
+        "Queue activity should include review-open, assignment, or status transitions.",
+      key: "queue-activity",
+      passed: events.some((event) =>
+        [
+          "admissions_queue_review_opened",
+          "admissions_queue_assignment_updated",
+          "admissions_status_updated",
+        ].includes(event.eventName),
+      ),
+    },
+    {
+      detail:
+        "Decision flow should include immutable decision capture with time-to-decision dimensions.",
+      key: "decision-flow",
+      passed: events.some(
+        (event) => event.eventName === "admissions_decision_captured",
+      ),
+    },
+    {
+      detail:
+        "Document flow should include at least one secure preview outcome for admissions evidence.",
+      key: "document-flow",
+      passed: events.some((event) =>
+        [
+          "admissions_document_preview_opened",
+          "admissions_document_preview_blocked",
+        ].includes(event.eventName),
+      ),
+    },
+    {
+      detail:
+        "Handover flow should include operational note or assignment activity for reviewer collaboration.",
+      key: "handover-flow",
+      passed: events.some((event) =>
+        [
+          "admissions_note_added",
+          "admissions_queue_assignment_updated",
+        ].includes(event.eventName),
+      ),
+    },
+    {
+      detail:
+        "All stored events should satisfy the pilot telemetry schema validation rules.",
+      key: "schema-validation",
+      passed: validationIssues.length === 0,
+    },
+  ];
+}
+
+export function buildPilotTelemetryCoverageReport(
+  events: PilotTelemetryEventRecord[],
+  filters: PilotTelemetryEventFilter = {},
+): PilotTelemetryCoverageReport {
+  const filteredEvents = filterPilotTelemetryEvents(events, filters);
+  const validationIssues = validatePilotTelemetryBatch(
+    filteredEvents.map((event) => ({
+      eventName: event.eventName,
+      properties: event.properties,
+    })),
+  );
+  const checks = buildPilotTelemetryCoverageChecks(filteredEvents);
+
+  return {
+    checks,
+    issueCount: checks.filter((check) => !check.passed).length,
+    passed: checks.every((check) => check.passed),
+    validationIssues,
+  };
+}
+
+export function buildAdmissionsPilotTelemetrySummary(
+  events: PilotTelemetryEventRecord[],
+  filters: PilotTelemetryEventFilter = {},
+): AdmissionsPilotTelemetrySummary {
+  const filteredEvents = filterPilotTelemetryEvents(events, filters);
+  const decisionEvents = filteredEvents.filter(
+    (event) => event.eventName === "admissions_decision_captured",
+  );
+  const timeToDecisionHours = decisionEvents
+    .map((event) => event.properties.pilot_time_to_decision_hours)
+    .filter((value): value is number => typeof value === "number");
+  const referenceTimestamp =
+    filteredEvents.at(-1)?.occurredAt ?? new Date().toISOString();
+  const weeklyReviewerEvents = filteredEvents.filter((event) =>
+    [
+      "admissions_queue_review_opened",
+      "admissions_decision_captured",
+      "admissions_document_preview_opened",
+      "admissions_note_added",
+    ].includes(event.eventName),
+  );
+  const weeklyWindowStart = new Date(referenceTimestamp);
+  weeklyWindowStart.setDate(weeklyWindowStart.getDate() - 7);
+  const activeReviewers = new Set(
+    filterPilotTelemetryEvents(weeklyReviewerEvents, {
+      since: weeklyWindowStart.toISOString(),
+      until: referenceTimestamp,
+    })
+      .map((event) => event.properties.pilot_actor_id_hash)
+      .filter((value): value is string => typeof value === "string"),
+  );
+
+  return {
+    averageTimeToDecisionHours: calculateAverage(timeToDecisionHours),
+    coverage: buildPilotTelemetryCoverageReport(filteredEvents),
+    decisionCount: decisionEvents.length,
+    medianTimeToDecisionHours: calculateMedian(timeToDecisionHours),
+    totalEvents: filteredEvents.length,
+    weeklyActiveReviewers: activeReviewers.size,
+  };
+}
+
+function recordPilotTelemetryEvent(
+  eventName: PilotTelemetryEventName,
+  properties: PilotTelemetryProperties,
+  occurredAt = new Date().toISOString(),
+): PilotTelemetryValidationIssue[] {
+  const issues = validatePilotTelemetryEvent(eventName, properties);
+  const eventRecord: PilotTelemetryEventRecord = {
+    eventId: createPilotTelemetryEventId(eventName, occurredAt, properties),
+    eventName,
+    occurredAt,
+    properties: { ...properties },
+  };
+
+  appendPilotTelemetryEvent(eventRecord);
+  capturePostHogEvent(eventName, properties);
+  return issues;
+}
+
 export function captureAdmissionsPilotTelemetryEvent(
   eventName: AdmissionsPilotEventName,
   input: {
     actor: string;
+    occurredAt?: string;
     properties?: PilotTelemetryProperties;
     record: AdmissionsQueueRecord;
     rolloutMode: PartnerCourseRolloutMode;
   },
 ): PilotTelemetryValidationIssue[] {
   const properties = createAdmissionsPilotTelemetryProperties(eventName, input);
-  const issues = validatePilotTelemetryEvent(eventName, properties);
-  capturePostHogEvent(eventName, properties);
-  return issues;
+  return recordPilotTelemetryEvent(eventName, properties, input.occurredAt);
 }
 
 export function captureRolloutModePilotTelemetryEvent(input: {
   actor: string;
   config: PartnerCourseRolloutConfig;
   nextMode: PartnerCourseRolloutMode;
+  occurredAt?: string;
   outcome: PartnerCourseRolloutTransitionOutcome;
   previousMode: PartnerCourseRolloutMode;
   reason: string;
 }): PilotTelemetryValidationIssue[] {
   const properties = createRolloutModePilotTelemetryProperties(input);
-  const issues = validatePilotTelemetryEvent(
+  return recordPilotTelemetryEvent(
     "admissions_rollout_mode_updated",
     properties,
+    input.occurredAt,
   );
-  capturePostHogEvent("admissions_rollout_mode_updated", properties);
-  return issues;
 }
 
 export function buildAdmissionsDecisionTelemetryProperties(input: {

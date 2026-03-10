@@ -1,6 +1,8 @@
 import {
   ArrowRight,
+  BarChart3,
   ClipboardList,
+  Clock3,
   Eye,
   ChevronLeft,
   ChevronRight,
@@ -41,8 +43,10 @@ import {
   type PartnerCourseRolloutMode,
 } from "../lib/partnerCourseRollout";
 import {
+  buildAdmissionsPilotTelemetrySummary,
   captureAdmissionsPilotTelemetryEvent,
   captureRolloutModePilotTelemetryEvent,
+  loadPilotTelemetryEvents,
 } from "../lib/pilotTelemetry";
 
 function formatTimestamp(value: string | undefined): string {
@@ -148,6 +152,7 @@ export default function AdmissionsWorkspace() {
   const actor = companyUserEmail ?? "admissions.user@keypath.com.au";
   const { records, updateRecords } = useAdmissionsWorkspaceRecords();
   const { rolloutConfigs, updateRolloutConfigs } = usePartnerCourseRolloutConfigs();
+  const [telemetryRefreshKey, setTelemetryRefreshKey] = useState(0);
   const [rolloutDrafts, setRolloutDrafts] = useState<
     Record<string, { mode: PartnerCourseRolloutMode; reason: string }>
   >({});
@@ -166,6 +171,10 @@ export default function AdmissionsWorkspace() {
         ),
       ),
     [rolloutConfigs],
+  );
+  const telemetryEvents = useMemo(
+    () => loadPilotTelemetryEvents(),
+    [telemetryRefreshKey],
   );
 
   const filteredRecords = useMemo(() => {
@@ -238,6 +247,22 @@ export default function AdmissionsWorkspace() {
     }),
     [records],
   );
+  const telemetrySummary = useMemo(
+    () =>
+      buildAdmissionsPilotTelemetrySummary(telemetryEvents, {
+        courseCode:
+          searchState.courseLine !== "all" ? searchState.courseLine : undefined,
+        partnerName:
+          searchState.partner !== "all" ? searchState.partner : undefined,
+      }),
+    [searchState.courseLine, searchState.partner, telemetryEvents],
+  );
+  const telemetryCohortLabel =
+    searchState.partner !== "all" || searchState.courseLine !== "all"
+      ? [searchState.partner, searchState.courseLine]
+          .filter((value) => value && value !== "all")
+          .join(" · ")
+      : "All pilot cohorts";
 
   const getRolloutDraft = (config: PartnerCourseRolloutConfig) =>
     rolloutDrafts[config.configId] ?? {
@@ -303,6 +328,7 @@ export default function AdmissionsWorkspace() {
       previousMode,
       reason: draft.reason,
     });
+    setTelemetryRefreshKey((current) => current + 1);
   };
 
   return (
@@ -352,6 +378,84 @@ export default function AdmissionsWorkspace() {
             value={metrics.ready}
           />
         </div>
+
+        <SurfaceCard className="mt-6 rounded-[32px] p-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Pilot telemetry snapshot
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-950">
+                Adoption and decision-cycle instrumentation
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Local pilot telemetry is stored with cohort dimensions so weekly
+                active reviewers and time-to-decision can be queried before the
+                full evaluation dashboard lands.
+              </p>
+            </div>
+            <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              Cohort: <span className="font-medium text-slate-950">{telemetryCohortLabel}</span>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <TelemetryMetricCard
+              icon={<BarChart3 className="h-5 w-5" />}
+              label="Events logged"
+              value={String(telemetrySummary.totalEvents)}
+            />
+            <TelemetryMetricCard
+              icon={<Users className="h-5 w-5" />}
+              label="Weekly active reviewers"
+              value={String(telemetrySummary.weeklyActiveReviewers)}
+            />
+            <TelemetryMetricCard
+              icon={<ClipboardList className="h-5 w-5" />}
+              label="Decision events"
+              value={String(telemetrySummary.decisionCount)}
+            />
+            <TelemetryMetricCard
+              icon={<Clock3 className="h-5 w-5" />}
+              label="Median time to decision"
+              value={formatTelemetryHours(telemetrySummary.medianTimeToDecisionHours)}
+            />
+          </div>
+
+          <div
+            className={`mt-6 rounded-[24px] border px-4 py-4 text-sm ${
+              telemetrySummary.coverage.passed
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}
+          >
+            <p className="font-medium">
+              {telemetrySummary.coverage.passed
+                ? "Coverage checks passing"
+                : `${telemetrySummary.coverage.issueCount} coverage checks need attention`}
+            </p>
+            <p className="mt-1 leading-6">
+              Average time to decision:{" "}
+              <span className="font-medium">
+                {formatTelemetryHours(telemetrySummary.averageTimeToDecisionHours)}
+              </span>
+              . Validation issues in cohort:{" "}
+              <span className="font-medium">
+                {telemetrySummary.coverage.validationIssues.length}
+              </span>
+              .
+            </p>
+            {!telemetrySummary.coverage.passed ? (
+              <p className="mt-2 leading-6">
+                Next missing area:{" "}
+                {
+                  telemetrySummary.coverage.checks.find((check) => !check.passed)
+                    ?.detail
+                }
+              </p>
+            ) : null}
+          </div>
+        </SurfaceCard>
 
         <SurfaceCard className="mt-8 rounded-[32px] p-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
@@ -695,6 +799,7 @@ export default function AdmissionsWorkspace() {
                                 rolloutMode: rolloutSnapshot.mode,
                               },
                             );
+                            setTelemetryRefreshKey((current) => current + 1);
                           }}
                           variant="outline"
                         >
@@ -792,6 +897,36 @@ function MetricCard({
       </div>
     </SurfaceCard>
   );
+}
+
+function TelemetryMetricCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <SurfaceCard className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm text-slate-500">{label}</p>
+          <p className="mt-2 text-3xl font-bold text-slate-950">{value}</p>
+        </div>
+        <div className="rounded-full bg-white p-3 text-slate-600">{icon}</div>
+      </div>
+    </SurfaceCard>
+  );
+}
+
+function formatTelemetryHours(value: number | null): string {
+  if (value === null) {
+    return "No data";
+  }
+
+  return `${value.toFixed(1)} h`;
 }
 
 function QueueMeta({ label, value }: { label: string; value: string }) {
