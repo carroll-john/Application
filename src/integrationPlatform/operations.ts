@@ -145,6 +145,10 @@ function cloneJob(job: ProvisioningJobV1): ProvisioningJobV1 {
   return {
     ...job,
     attempts: job.attempts.map((attempt) => ({ ...attempt })),
+    transitionHistory: job.transitionHistory.map((transition) => ({
+      ...transition,
+      metadata: transition.metadata ? { ...transition.metadata } : undefined,
+    })),
   };
 }
 

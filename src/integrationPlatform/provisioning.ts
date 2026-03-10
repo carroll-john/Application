@@ -74,6 +74,17 @@ export interface ProvisioningAttemptV1 {
   errorMessage?: string;
 }
 
+export type ProvisioningJobTransitionOrigin = ProvisioningJobStatus | "none";
+
+export interface ProvisioningJobTransitionV1 {
+  transitionId: string;
+  fromStatus: ProvisioningJobTransitionOrigin;
+  toStatus: ProvisioningJobStatus;
+  transitionedAt: string;
+  reason: string;
+  metadata?: Record<string, string>;
+}
+
 export interface ProvisioningJobV1 {
   schema: "ProvisioningJobV1";
   schemaVersion: SchemaVersion;
@@ -92,6 +103,7 @@ export interface ProvisioningJobV1 {
   updatedAt: string;
   maxAttempts: number;
   attempts: ProvisioningAttemptV1[];
+  transitionHistory: ProvisioningJobTransitionV1[];
   lastErrorCode?: string;
   targetRecordRef?: string;
 }
@@ -182,13 +194,26 @@ export interface UniversityAdapter {
 
 export interface ProvisioningJobStore {
   getByIdempotencyKey(idempotencyKey: string): ProvisioningJobV1 | undefined;
+  listByStatus(status: ProvisioningJobStatus): ProvisioningJobV1[];
   save(job: ProvisioningJobV1): void;
+}
+
+function cloneProvisioningTransition(
+  transition: ProvisioningJobTransitionV1,
+): ProvisioningJobTransitionV1 {
+  return {
+    ...transition,
+    metadata: transition.metadata ? { ...transition.metadata } : undefined,
+  };
 }
 
 function cloneProvisioningJob(job: ProvisioningJobV1): ProvisioningJobV1 {
   return {
     ...job,
     attempts: job.attempts.map((attempt) => ({ ...attempt })),
+    transitionHistory: job.transitionHistory.map((transition) =>
+      cloneProvisioningTransition(transition),
+    ),
   };
 }
 
@@ -198,6 +223,12 @@ export class InMemoryProvisioningJobStore implements ProvisioningJobStore {
   getByIdempotencyKey(idempotencyKey: string): ProvisioningJobV1 | undefined {
     const job = this.jobs.get(idempotencyKey);
     return job ? cloneProvisioningJob(job) : undefined;
+  }
+
+  listByStatus(status: ProvisioningJobStatus): ProvisioningJobV1[] {
+    return Array.from(this.jobs.values())
+      .filter((job) => job.status === status)
+      .map((job) => cloneProvisioningJob(job));
   }
 
   save(job: ProvisioningJobV1): void {
@@ -238,6 +269,17 @@ function hasValue(value: string | undefined): boolean {
 function sanitizeToken(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
+
+const LEGAL_PROVISIONING_JOB_TRANSITIONS: Record<
+  ProvisioningJobStatus,
+  ProvisioningJobStatus[]
+> = {
+  pending: ["in_progress", "failed"],
+  in_progress: ["retry_pending", "completed", "failed"],
+  retry_pending: ["in_progress", "failed"],
+  completed: [],
+  failed: [],
+};
 
 function ensureCompatibleVersion(
   schemaVersion: SchemaVersion,
@@ -297,7 +339,62 @@ export function createProvisioningIdempotencyKey(
   decision: DecisionRecordV1,
   overlay: UniversityMappingOverlayV1,
 ): string {
-  return [decision.decisionId, overlay.partnerId, overlay.capabilityProfile.transportMode].join(":");
+  return [
+    decision.applicationId,
+    decision.decisionId,
+    overlay.partnerId,
+    overlay.capabilityProfile.transportMode,
+    overlay.mappingProfileId,
+    overlay.overlayId,
+  ].join(":");
+}
+
+function createProvisioningTransitionId(
+  jobId: string,
+  sequence: number,
+): string {
+  return [
+    "transition",
+    sanitizeToken(jobId),
+    String(sequence).padStart(3, "0"),
+  ].join("-");
+}
+
+export function canTransitionProvisioningJob(
+  fromStatus: ProvisioningJobStatus,
+  toStatus: ProvisioningJobStatus,
+): boolean {
+  return LEGAL_PROVISIONING_JOB_TRANSITIONS[fromStatus].includes(toStatus);
+}
+
+export function transitionProvisioningJob(input: {
+  job: ProvisioningJobV1;
+  toStatus: ProvisioningJobStatus;
+  transitionedAt: string;
+  reason: string;
+  metadata?: Record<string, string>;
+}): ProvisioningJobV1 {
+  const { job, toStatus, transitionedAt, reason, metadata } = input;
+  if (!canTransitionProvisioningJob(job.status, toStatus)) {
+    throw new Error(
+      `Invalid provisioning job transition from ${job.status} to ${toStatus}.`,
+    );
+  }
+
+  job.transitionHistory.push({
+    transitionId: createProvisioningTransitionId(
+      job.jobId,
+      job.transitionHistory.length + 1,
+    ),
+    fromStatus: job.status,
+    toStatus,
+    transitionedAt,
+    reason,
+    metadata: metadata ? { ...metadata } : undefined,
+  });
+  job.status = toStatus;
+  job.updatedAt = transitionedAt;
+  return job;
 }
 
 export function createProvisioningJob(
@@ -307,10 +404,17 @@ export function createProvisioningJob(
   maxAttempts = 3,
 ): ProvisioningJobV1 {
   const idempotencyKey = createProvisioningIdempotencyKey(decision, overlay);
+  const jobId = [
+    "prov",
+    sanitizeToken(decision.decisionId),
+    sanitizeToken(overlay.partnerId),
+    sanitizeToken(overlay.capabilityProfile.transportMode),
+    sanitizeToken(overlay.overlayId),
+  ].join("-");
 
   return {
     ...provisioningJobSchemaDefaults,
-    jobId: `prov-${sanitizeToken(decision.decisionId)}-${sanitizeToken(overlay.partnerId)}-${sanitizeToken(overlay.capabilityProfile.transportMode)}`,
+    jobId,
     idempotencyKey,
     decisionId: decision.decisionId,
     applicationId: decision.applicationId,
@@ -324,6 +428,15 @@ export function createProvisioningJob(
     updatedAt: createdAt,
     maxAttempts,
     attempts: [],
+    transitionHistory: [
+      {
+        transitionId: createProvisioningTransitionId(jobId, 1),
+        fromStatus: "none",
+        toStatus: "pending",
+        transitionedAt: createdAt,
+        reason: "Provisioning job created.",
+      },
+    ],
   };
 }
 
@@ -428,6 +541,14 @@ export class ProvisioningOrchestrator {
       };
     }
 
+    if (existingJob?.status === "failed" || existingJob?.status === "in_progress") {
+      return {
+        job: existingJob,
+        selectedAdapterMode,
+        attemptExecuted: false,
+      };
+    }
+
     if (existingJob && existingJob.attempts.length >= existingJob.maxAttempts) {
       return {
         job: existingJob,
@@ -446,8 +567,15 @@ export class ProvisioningOrchestrator {
       attemptNumber,
     };
 
-    job.status = "in_progress";
-    job.updatedAt = startedAt;
+    transitionProvisioningJob({
+      job,
+      toStatus: "in_progress",
+      transitionedAt: startedAt,
+      reason: `Attempt ${attemptNumber} started.`,
+      metadata: {
+        attemptNumber: String(attemptNumber),
+      },
+    });
     this.jobStore.save(job);
 
     let preparedPayload: PreparedProvisioningPayload | undefined;
@@ -483,19 +611,34 @@ export class ProvisioningOrchestrator {
         errorMessage = reconciliation.details ?? "Reconciliation found a downstream exception.";
       }
 
+      const completedAt = this.now();
       job.attempts.push({
         attemptNumber,
         startedAt,
-        completedAt: this.now(),
+        completedAt,
         outcome,
         externalReference: execution.externalReference,
         errorCode,
         errorMessage,
       });
-      job.status = status;
-      job.updatedAt = this.now();
       job.targetRecordRef = execution.externalReference;
       job.lastErrorCode = errorCode;
+      transitionProvisioningJob({
+        job,
+        toStatus: status,
+        transitionedAt: completedAt,
+        reason:
+          status === "completed"
+            ? `Attempt ${attemptNumber} completed successfully.`
+            : status === "retry_pending"
+              ? `Attempt ${attemptNumber} requires retry due to ${errorCode}.`
+              : `Attempt ${attemptNumber} failed due to ${errorCode}.`,
+        metadata: {
+          attemptNumber: String(attemptNumber),
+          outcome,
+          errorCode: errorCode ?? "",
+        },
+      });
       this.jobStore.save(job);
 
       return {
@@ -510,21 +653,35 @@ export class ProvisioningOrchestrator {
         adapterError.retryable && attemptNumber < job.maxAttempts
           ? "retryable_error"
           : "failed";
+      const nextStatus: ProvisioningJobStatus =
+        adapterError.retryable && attemptNumber < job.maxAttempts
+          ? "retry_pending"
+          : "failed";
+      const completedAt = this.now();
 
       job.attempts.push({
         attemptNumber,
         startedAt,
-        completedAt: this.now(),
+        completedAt,
         outcome,
         errorCode: adapterError.code,
         errorMessage: adapterError.message,
       });
-      job.status =
-        adapterError.retryable && attemptNumber < job.maxAttempts
-          ? "retry_pending"
-          : "failed";
-      job.updatedAt = this.now();
       job.lastErrorCode = adapterError.code;
+      transitionProvisioningJob({
+        job,
+        toStatus: nextStatus,
+        transitionedAt: completedAt,
+        reason:
+          nextStatus === "retry_pending"
+            ? `Attempt ${attemptNumber} requires retry due to ${adapterError.code}.`
+            : `Attempt ${attemptNumber} failed due to ${adapterError.code}.`,
+        metadata: {
+          attemptNumber: String(attemptNumber),
+          outcome,
+          errorCode: adapterError.code,
+        },
+      });
       this.jobStore.save(job);
 
       return {

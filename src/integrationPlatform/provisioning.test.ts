@@ -11,6 +11,7 @@ import {
   createProvisioningIdempotencyKey,
   createProvisioningJob,
   decisionRecordSchemaDefaults,
+  transitionProvisioningJob,
   type UniversityAdapter,
 } from "./provisioning";
 
@@ -81,12 +82,17 @@ describe("ProvisioningOrchestrator", () => {
       overlay,
     });
 
-    expect(result.job.jobId).toBe("prov-decision-001-scu-file");
+    expect(result.job.jobId).toBe("prov-decision-001-scu-file-overlay-001");
     expect(result.job.idempotencyKey).toBe(
       createProvisioningIdempotencyKey(decision, overlay),
     );
     expect(result.job.status).toBe("completed");
     expect(result.job.attempts).toHaveLength(1);
+    expect(result.job.transitionHistory.map((transition) => transition.toStatus)).toEqual([
+      "pending",
+      "in_progress",
+      "completed",
+    ]);
   });
 
   it("retries safely with the same idempotency key and without creating a second job", async () => {
@@ -160,6 +166,15 @@ describe("ProvisioningOrchestrator", () => {
       secondAttempt.job.idempotencyKey,
       secondAttempt.job.idempotencyKey,
     ]);
+    expect(
+      secondAttempt.job.transitionHistory.map((transition) => transition.toStatus),
+    ).toEqual([
+      "pending",
+      "in_progress",
+      "retry_pending",
+      "in_progress",
+      "completed",
+    ]);
     expect(completedAttempt.attemptExecuted).toBe(false);
     expect(callCount).toBe(2);
   });
@@ -221,6 +236,73 @@ describe("ProvisioningOrchestrator", () => {
     expect(calledModes).toEqual(["file", "portal-rpa"]);
   });
 
+  it("blocks duplicate triggers while a job is already in progress and exposes state queries", async () => {
+    const store = new InMemoryProvisioningJobStore();
+    let releaseExecution: (() => void) | undefined;
+    const executionGate = new Promise<void>((resolve) => {
+      releaseExecution = resolve;
+    });
+    const slowAdapter: UniversityAdapter = {
+      mode: "file",
+      prepare: ({ application, decision, job, overlay }) => ({
+        envelopeId: `${job.jobId}-attempt-${job.attempts.length + 1}`,
+        jobId: job.jobId,
+        applicationId: application.applicationId,
+        decisionId: decision.decisionId,
+        adapterMode: overlay.capabilityProfile.transportMode,
+        idempotencyKey: job.idempotencyKey,
+        fieldCount: overlay.fieldMappings.length,
+        documentCount: application.documents.length,
+      }),
+      execute: async (_prepared, context) => {
+        await executionGate;
+        return {
+          accepted: true,
+          externalReference: `file:${context.idempotencyKey}`,
+          submittedAt: "2026-03-10T12:20:00Z",
+        };
+      },
+      verify: (_prepared, execution) => ({
+        verified: true,
+        verifiedAt: "2026-03-10T12:21:00Z",
+        externalReference: execution.externalReference,
+      }),
+      reconcile: () => ({
+        status: "matched",
+        reconciledAt: "2026-03-10T12:22:00Z",
+      }),
+    };
+    const orchestrator = new ProvisioningOrchestrator({
+      adapters: [slowAdapter],
+      jobStore: store,
+      now: () => "2026-03-10T12:00:00Z",
+    });
+    const input = {
+      application: canonicalApplicationSamples[0],
+      decision: createDecisionRecord(),
+      overlay: universityMappingOverlaySamples[0],
+    };
+
+    const firstAttemptPromise = orchestrator.processDecision(input);
+    await Promise.resolve();
+
+    const inProgressJob = store.getByIdempotencyKey(
+      createProvisioningIdempotencyKey(input.decision, input.overlay),
+    );
+    expect(inProgressJob?.status).toBe("in_progress");
+    expect(store.listByStatus("in_progress")).toHaveLength(1);
+
+    const duplicateTrigger = await orchestrator.processDecision(input);
+    expect(duplicateTrigger.attemptExecuted).toBe(false);
+    expect(duplicateTrigger.job.status).toBe("in_progress");
+    expect(duplicateTrigger.job.attempts).toHaveLength(0);
+
+    releaseExecution?.();
+    const completed = await firstAttemptPromise;
+    expect(completed.job.status).toBe("completed");
+    expect(store.listByStatus("completed")).toHaveLength(1);
+  });
+
   it("builds deterministic jobs before execution for downstream planning", () => {
     const decision = createDecisionRecord();
     const job = createProvisioningJob(
@@ -231,11 +313,45 @@ describe("ProvisioningOrchestrator", () => {
     );
 
     expect(job).toMatchObject({
-      jobId: "prov-decision-001-scu-file",
-      idempotencyKey: "decision-001:SCU:file",
+      jobId: "prov-decision-001-scu-file-overlay-001",
+      idempotencyKey: [
+        canonicalApplicationSamples[0].applicationId,
+        "decision-001",
+        "SCU",
+        "file",
+        "southern-coast-online-v1",
+        "overlay-001",
+      ].join(":"),
       maxAttempts: 4,
       status: "pending",
       attempts: [],
     });
+    expect(job.transitionHistory).toEqual([
+      {
+        transitionId: "transition-prov-decision-001-scu-file-overlay-001-001",
+        fromStatus: "none",
+        toStatus: "pending",
+        transitionedAt: "2026-03-10T12:00:00Z",
+        reason: "Provisioning job created.",
+      },
+    ]);
+  });
+
+  it("blocks invalid state transitions with explicit diagnostics", () => {
+    const job = createProvisioningJob(
+      createDecisionRecord(),
+      universityMappingOverlaySamples[0],
+      "2026-03-10T12:00:00Z",
+    );
+
+    expect(() =>
+      transitionProvisioningJob({
+        job,
+        toStatus: "completed",
+        transitionedAt: "2026-03-10T12:01:00Z",
+        reason: "Skipped execution.",
+      }),
+    ).toThrow("Invalid provisioning job transition from pending to completed.");
+    expect(job.transitionHistory).toHaveLength(1);
   });
 });
