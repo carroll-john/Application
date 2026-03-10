@@ -22,31 +22,69 @@ Baseline event types:
 - `job.failed`
 - `job.reconciled`
 - `exception.queued`
+- `exception.triaged`
 - `exception.replayed`
 
 ## Reconciliation Outcomes
 
-The baseline reconciliation scanner classifies jobs as:
+The baseline reconciliation worker classifies jobs as:
 - `matched`
 - `missing_target_record`
 - `partial_delivery`
+- `invalid_target_record`
 - `job_not_terminal`
 
-The scanner uses the provisioning job status plus `targetRecordRef` to identify missing and partial downstream outcomes.
+The worker compares terminal provisioning jobs with downstream receipt evidence when available.
+
+Recorded reconciliation results include:
+- `resultId`
+- `runId`
+- `jobId`
+- `decisionId`
+- `partnerId`
+- `partnerName`
+- `adapterMode`
+- `jobStatus`
+- `status`
+- `details`
+- `checkedAt`
+- `escalationState`
+- optional expected and received target record references
+
+Escalation states:
+- `none`
+- `monitor`
+- `queue_exception`
+
+Latest reconciliation results are filterable by partner, adapter mode, status, and escalation state for operations-facing views.
 
 ## Exception Queue
 
 The exception queue stores:
 - `exceptionId`
 - `jobId`
+- `decisionId`
 - `correlationId`
+- `partnerId`
+- `partnerName`
+- `adapterMode`
+- `jobStatus`
 - `reasonCode`
+- `summary`
+- `escalationState`
 - `status`
 - timestamps
 - operator notes
+- triage actions with actor and timestamp
 - optional `lastReplayAt`
 
-Exceptions are queued for `missing_target_record` and `partial_delivery` outcomes.
+Exceptions are queued for `missing_target_record`, `partial_delivery`, and `invalid_target_record` outcomes.
+
+Queue listings support filters for:
+- `status`
+- `partnerId`
+- `adapterMode`
+- `reasonCode`
 
 ## Replay Rules
 
@@ -55,5 +93,14 @@ Replay uses the same underlying decision, application, and overlay inputs.
 Operator replay behavior:
 - preserves the original job idempotency key
 - appends the operator note to the exception record
+- records a replay triage action with actor and timestamp
 - records an `exception.replayed` audit event
 - marks the exception as `replayed` once reconciliation returns `matched`
+
+## Triage Rules
+
+Manual triage can:
+- add an operator note
+- update the exception status, including `resolved`
+- append a timestamped triage action with actor attribution
+- record an `exception.triaged` audit event

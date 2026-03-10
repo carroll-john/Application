@@ -3,6 +3,7 @@ import type {
   UniversityMappingOverlayV1,
 } from "./contracts";
 import {
+  type ProvisioningJobStatus,
   createProvisioningIdempotencyKey,
   type DecisionRecordV1,
   type OrchestrationResult,
@@ -19,6 +20,7 @@ export type AuditEventType =
   | "job.failed"
   | "job.reconciled"
   | "exception.queued"
+  | "exception.triaged"
   | "exception.replayed";
 
 export interface AuditLedgerEvent {
@@ -62,7 +64,50 @@ export type ReconciliationStatus =
   | "matched"
   | "missing_target_record"
   | "partial_delivery"
+  | "invalid_target_record"
   | "job_not_terminal";
+
+export type ReconciliationEscalationState =
+  | "none"
+  | "monitor"
+  | "queue_exception";
+
+export type DownstreamReceiptStatus = "received" | "partial" | "invalid";
+
+export interface DownstreamReceiptRecord {
+  jobId: string;
+  correlationId: string;
+  observedAt: string;
+  status: DownstreamReceiptStatus;
+  externalReference?: string;
+  details?: string;
+}
+
+export interface DownstreamReceiptStore {
+  getByJobId(jobId: string): DownstreamReceiptRecord | undefined;
+  save(receipt: DownstreamReceiptRecord): void;
+}
+
+function cloneDownstreamReceipt(
+  receipt: DownstreamReceiptRecord,
+): DownstreamReceiptRecord {
+  return {
+    ...receipt,
+  };
+}
+
+export class InMemoryDownstreamReceiptStore implements DownstreamReceiptStore {
+  private readonly receipts = new Map<string, DownstreamReceiptRecord>();
+
+  getByJobId(jobId: string): DownstreamReceiptRecord | undefined {
+    const receipt = this.receipts.get(jobId);
+    return receipt ? cloneDownstreamReceipt(receipt) : undefined;
+  }
+
+  save(receipt: DownstreamReceiptRecord): void {
+    this.receipts.set(receipt.jobId, cloneDownstreamReceipt(receipt));
+  }
+}
 
 export interface ReconciliationResult {
   jobId: string;
@@ -70,32 +115,142 @@ export interface ReconciliationResult {
   status: ReconciliationStatus;
   checkedAt: string;
   details: string;
+  escalationState: ReconciliationEscalationState;
+  expectedTargetRecordRef?: string;
+  receivedTargetRecordRef?: string;
+  receiptStatus?: DownstreamReceiptStatus;
+}
+
+export interface RecordedReconciliationResult extends ReconciliationResult {
+  resultId: string;
+  runId: string;
+  decisionId: string;
+  partnerId: string;
+  partnerName: string;
+  adapterMode: ProvisioningJobV1["adapterMode"];
+  jobStatus: ProvisioningJobStatus;
+}
+
+export interface ReconciliationResultFilters {
+  partnerId?: string;
+  adapterMode?: ProvisioningJobV1["adapterMode"];
+  status?: ReconciliationStatus;
+  escalationState?: ReconciliationEscalationState;
+}
+
+export interface ReconciliationResultStore {
+  getLatestByJobId(jobId: string): RecordedReconciliationResult | undefined;
+  listLatest(filters?: ReconciliationResultFilters): RecordedReconciliationResult[];
+  save(result: RecordedReconciliationResult): void;
+}
+
+function cloneRecordedReconciliationResult(
+  result: RecordedReconciliationResult,
+): RecordedReconciliationResult {
+  return {
+    ...result,
+  };
+}
+
+export class InMemoryReconciliationResultStore
+  implements ReconciliationResultStore
+{
+  private readonly latestByJobId = new Map<string, RecordedReconciliationResult>();
+
+  getLatestByJobId(jobId: string): RecordedReconciliationResult | undefined {
+    const result = this.latestByJobId.get(jobId);
+    return result ? cloneRecordedReconciliationResult(result) : undefined;
+  }
+
+  listLatest(
+    filters: ReconciliationResultFilters = {},
+  ): RecordedReconciliationResult[] {
+    return Array.from(this.latestByJobId.values())
+      .filter((result) =>
+        filters.partnerId ? result.partnerId === filters.partnerId : true,
+      )
+      .filter((result) =>
+        filters.adapterMode ? result.adapterMode === filters.adapterMode : true,
+      )
+      .filter((result) =>
+        filters.status ? result.status === filters.status : true,
+      )
+      .filter((result) =>
+        filters.escalationState
+          ? result.escalationState === filters.escalationState
+          : true,
+      )
+      .sort((left, right) => right.checkedAt.localeCompare(left.checkedAt))
+      .map((result) => cloneRecordedReconciliationResult(result));
+  }
+
+  save(result: RecordedReconciliationResult): void {
+    this.latestByJobId.set(result.jobId, cloneRecordedReconciliationResult(result));
+  }
 }
 
 export type ExceptionQueueStatus = "open" | "replayed" | "resolved";
 
+export type ExceptionQueueActionType =
+  | "note_added"
+  | "resolved"
+  | "replayed";
+
+export interface ExceptionQueueTriageAction {
+  actionId: string;
+  actionType: ExceptionQueueActionType;
+  actor: string;
+  actedAt: string;
+  note?: string;
+}
+
 export interface ExceptionQueueRecord {
   exceptionId: string;
   jobId: string;
+  decisionId: string;
   correlationId: string;
+  partnerId: string;
+  partnerName: string;
+  adapterMode: ProvisioningJobV1["adapterMode"];
+  jobStatus: ProvisioningJobStatus;
   reasonCode: ReconciliationStatus;
+  summary: string;
+  escalationState: ReconciliationEscalationState;
   status: ExceptionQueueStatus;
   createdAt: string;
   updatedAt: string;
   notes: string[];
+  triageActions: ExceptionQueueTriageAction[];
   lastReplayAt?: string;
+}
+
+export interface ExceptionQueueFilters {
+  status?: ExceptionQueueStatus;
+  partnerId?: string;
+  adapterMode?: ProvisioningJobV1["adapterMode"];
+  reasonCode?: ReconciliationStatus;
 }
 
 export interface ExceptionQueueStore {
   getById(exceptionId: string): ExceptionQueueRecord | undefined;
   getOpenByJobId(jobId: string): ExceptionQueueRecord | undefined;
+  list(filters?: ExceptionQueueFilters): ExceptionQueueRecord[];
   save(record: ExceptionQueueRecord): void;
+}
+
+function cloneTriageAction(
+  action: ExceptionQueueTriageAction,
+): ExceptionQueueTriageAction {
+  return {
+    ...action,
+  };
 }
 
 function cloneExceptionRecord(record: ExceptionQueueRecord): ExceptionQueueRecord {
   return {
     ...record,
     notes: [...record.notes],
+    triageActions: record.triageActions.map((action) => cloneTriageAction(action)),
   };
 }
 
@@ -117,9 +272,83 @@ export class InMemoryExceptionQueueStore implements ExceptionQueueStore {
     return undefined;
   }
 
+  list(filters: ExceptionQueueFilters = {}): ExceptionQueueRecord[] {
+    return Array.from(this.exceptions.values())
+      .filter((record) =>
+        filters.status ? record.status === filters.status : true,
+      )
+      .filter((record) =>
+        filters.partnerId ? record.partnerId === filters.partnerId : true,
+      )
+      .filter((record) =>
+        filters.adapterMode ? record.adapterMode === filters.adapterMode : true,
+      )
+      .filter((record) =>
+        filters.reasonCode ? record.reasonCode === filters.reasonCode : true,
+      )
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .map((record) => cloneExceptionRecord(record));
+  }
+
   save(record: ExceptionQueueRecord): void {
     this.exceptions.set(record.exceptionId, cloneExceptionRecord(record));
   }
+}
+
+function createExceptionActionId(
+  exceptionId: string,
+  sequence: number,
+): string {
+  return [
+    "triage",
+    sanitizeToken(exceptionId),
+    String(sequence).padStart(3, "0"),
+  ].join("-");
+}
+
+function shouldQueueException(
+  reconciliation: ReconciliationResult,
+): boolean {
+  return reconciliation.escalationState === "queue_exception";
+}
+
+function buildExceptionRecord(input: {
+  existing?: ExceptionQueueRecord;
+  job: ProvisioningJobV1;
+  reconciliation: ReconciliationResult;
+  timestamp: string;
+}): ExceptionQueueRecord {
+  const { existing, job, reconciliation, timestamp } = input;
+
+  if (existing) {
+    return {
+      ...existing,
+      jobStatus: job.status,
+      reasonCode: reconciliation.status,
+      summary: reconciliation.details,
+      escalationState: reconciliation.escalationState,
+      updatedAt: timestamp,
+    };
+  }
+
+  return {
+    exceptionId: `exception-${sanitizeToken(job.jobId)}`,
+    jobId: job.jobId,
+    decisionId: job.decisionId,
+    correlationId: job.correlationId,
+    partnerId: job.partnerId,
+    partnerName: job.partnerName,
+    adapterMode: job.adapterMode,
+    jobStatus: job.status,
+    reasonCode: reconciliation.status,
+    summary: reconciliation.details,
+    escalationState: reconciliation.escalationState,
+    status: "open",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    notes: [],
+    triageActions: [],
+  };
 }
 
 export interface AuditedProvisioningServiceOptions {
@@ -150,6 +379,277 @@ function cloneJob(job: ProvisioningJobV1): ProvisioningJobV1 {
       metadata: transition.metadata ? { ...transition.metadata } : undefined,
     })),
   };
+}
+
+function createRecordedReconciliationResult(input: {
+  job: ProvisioningJobV1;
+  reconciliation: ReconciliationResult;
+  runId: string;
+  sequence: number;
+}): RecordedReconciliationResult {
+  return {
+    resultId: [
+      "reconciliation",
+      sanitizeToken(input.job.jobId),
+      String(input.sequence).padStart(3, "0"),
+    ].join("-"),
+    runId: input.runId,
+    decisionId: input.job.decisionId,
+    partnerId: input.job.partnerId,
+    partnerName: input.job.partnerName,
+    adapterMode: input.job.adapterMode,
+    jobStatus: input.job.status,
+    ...input.reconciliation,
+  };
+}
+
+function classifyReconciliation(input: {
+  job: ProvisioningJobV1;
+  checkedAt: string;
+  receipt?: DownstreamReceiptRecord;
+  requireReceiptEvidence: boolean;
+}): ReconciliationResult {
+  const { job, checkedAt, receipt, requireReceiptEvidence } = input;
+  const expectedTargetRecordRef = job.targetRecordRef;
+
+  if (job.status === "pending" || job.status === "in_progress") {
+    return {
+      jobId: job.jobId,
+      correlationId: job.correlationId,
+      status: "job_not_terminal",
+      checkedAt,
+      details: "Provisioning job is still pending or in progress.",
+      escalationState: "none",
+      expectedTargetRecordRef,
+      receivedTargetRecordRef: receipt?.externalReference,
+      receiptStatus: receipt?.status,
+    };
+  }
+
+  if (receipt) {
+    if (receipt.status === "invalid") {
+      return {
+        jobId: job.jobId,
+        correlationId: job.correlationId,
+        status: "invalid_target_record",
+        checkedAt,
+        details:
+          receipt.details ??
+          "Downstream receipt was present but marked invalid by the destination.",
+        escalationState: "queue_exception",
+        expectedTargetRecordRef,
+        receivedTargetRecordRef: receipt.externalReference,
+        receiptStatus: receipt.status,
+      };
+    }
+
+    if (
+      expectedTargetRecordRef &&
+      receipt.externalReference &&
+      receipt.externalReference !== expectedTargetRecordRef
+    ) {
+      return {
+        jobId: job.jobId,
+        correlationId: job.correlationId,
+        status: "invalid_target_record",
+        checkedAt,
+        details:
+          `Downstream receipt ${receipt.externalReference} did not match expected target ${expectedTargetRecordRef}.`,
+        escalationState: "queue_exception",
+        expectedTargetRecordRef,
+        receivedTargetRecordRef: receipt.externalReference,
+        receiptStatus: receipt.status,
+      };
+    }
+
+    if (receipt.status === "partial") {
+      return {
+        jobId: job.jobId,
+        correlationId: job.correlationId,
+        status: "partial_delivery",
+        checkedAt,
+        details:
+          receipt.details ??
+          "Downstream receipt indicates a partial provisioning outcome.",
+        escalationState: "queue_exception",
+        expectedTargetRecordRef,
+        receivedTargetRecordRef: receipt.externalReference,
+        receiptStatus: receipt.status,
+      };
+    }
+
+    if (job.status === "completed" && receipt.status === "received") {
+      return {
+        jobId: job.jobId,
+        correlationId: job.correlationId,
+        status: "matched",
+        checkedAt,
+        details: `Matched downstream record ${receipt.externalReference ?? expectedTargetRecordRef ?? "unknown"}.`,
+        escalationState: "none",
+        expectedTargetRecordRef,
+        receivedTargetRecordRef: receipt.externalReference,
+        receiptStatus: receipt.status,
+      };
+    }
+
+    return {
+      jobId: job.jobId,
+      correlationId: job.correlationId,
+      status: "partial_delivery",
+      checkedAt,
+      details:
+        receipt.details ??
+        "Downstream receipt exists but the provisioning job did not complete cleanly.",
+      escalationState: "queue_exception",
+      expectedTargetRecordRef,
+      receivedTargetRecordRef: receipt.externalReference,
+      receiptStatus: receipt.status,
+    };
+  }
+
+  if (requireReceiptEvidence) {
+    if (job.status === "completed") {
+      return {
+        jobId: job.jobId,
+        correlationId: job.correlationId,
+        status: expectedTargetRecordRef ? "missing_target_record" : "partial_delivery",
+        checkedAt,
+        details: expectedTargetRecordRef
+          ? "No downstream receipt was found for the completed provisioning job."
+          : "Provisioning completed without a downstream target reference or receipt.",
+        escalationState: "queue_exception",
+        expectedTargetRecordRef,
+      };
+    }
+
+    if (job.status === "failed" || job.status === "retry_pending") {
+      return {
+        jobId: job.jobId,
+        correlationId: job.correlationId,
+        status: expectedTargetRecordRef ? "partial_delivery" : "missing_target_record",
+        checkedAt,
+        details: expectedTargetRecordRef
+          ? "Provisioning has a partial downstream footprint but no confirming receipt."
+          : "No downstream receipt was found for the failed provisioning job.",
+        escalationState: "queue_exception",
+        expectedTargetRecordRef,
+      };
+    }
+  }
+
+  if (job.status === "completed" && expectedTargetRecordRef) {
+    return {
+      jobId: job.jobId,
+      correlationId: job.correlationId,
+      status: "matched",
+      checkedAt,
+      details: `Matched downstream record ${expectedTargetRecordRef}.`,
+      escalationState: "none",
+      expectedTargetRecordRef,
+    };
+  }
+
+  if (job.status === "completed" && !expectedTargetRecordRef) {
+    return {
+      jobId: job.jobId,
+      correlationId: job.correlationId,
+      status: "partial_delivery",
+      checkedAt,
+      details: "Provisioning completed without a downstream target reference.",
+      escalationState: "queue_exception",
+    };
+  }
+
+  return {
+    jobId: job.jobId,
+    correlationId: job.correlationId,
+    status: expectedTargetRecordRef ? "partial_delivery" : "missing_target_record",
+    checkedAt,
+    details: expectedTargetRecordRef
+      ? "Provisioning has a partial downstream footprint but did not complete cleanly."
+      : "No downstream target record could be verified for this job.",
+    escalationState: "queue_exception",
+    expectedTargetRecordRef,
+  };
+}
+
+export interface ReconciliationWorkerOptions {
+  jobStore: ProvisioningJobStore;
+  receiptStore: DownstreamReceiptStore;
+  resultStore: ReconciliationResultStore;
+  exceptionQueue: ExceptionQueueStore;
+  now?: () => string;
+}
+
+export interface ReconciliationWorkerRun {
+  runId: string;
+  checkedAt: string;
+  results: RecordedReconciliationResult[];
+  exceptions: ExceptionQueueRecord[];
+}
+
+export class ReconciliationWorker {
+  private readonly jobStore: ProvisioningJobStore;
+  private readonly receiptStore: DownstreamReceiptStore;
+  private readonly resultStore: ReconciliationResultStore;
+  private readonly exceptionQueue: ExceptionQueueStore;
+  private readonly now: () => string;
+
+  constructor(options: ReconciliationWorkerOptions) {
+    this.jobStore = options.jobStore;
+    this.receiptStore = options.receiptStore;
+    this.resultStore = options.resultStore;
+    this.exceptionQueue = options.exceptionQueue;
+    this.now = options.now ?? (() => new Date().toISOString());
+  }
+
+  scanJobs(
+    statuses: ProvisioningJobStatus[] = ["completed", "retry_pending", "failed"],
+  ): ReconciliationWorkerRun {
+    const checkedAt = this.now();
+    const runId = ["reconciliation-run", checkedAt].join("-");
+    const jobs = statuses.flatMap((status) => this.jobStore.listByStatus(status));
+    const results: RecordedReconciliationResult[] = [];
+    const exceptions: ExceptionQueueRecord[] = [];
+
+    jobs.forEach((job, index) => {
+      const receipt = this.receiptStore.getByJobId(job.jobId);
+      const reconciliation = classifyReconciliation({
+        job,
+        checkedAt,
+        receipt,
+        requireReceiptEvidence: true,
+      });
+      const recorded = createRecordedReconciliationResult({
+        job,
+        reconciliation,
+        runId,
+        sequence: index + 1,
+      });
+      this.resultStore.save(recorded);
+      results.push(recorded);
+
+      if (shouldQueueException(reconciliation)) {
+        const timestamp = this.now();
+        const existing = this.exceptionQueue.getOpenByJobId(job.jobId);
+        const exception = buildExceptionRecord({
+          existing,
+          job,
+          reconciliation,
+          timestamp,
+        });
+        this.exceptionQueue.save(exception);
+        exceptions.push(exception);
+      }
+    });
+
+    return {
+      runId,
+      checkedAt,
+      results,
+      exceptions,
+    };
+  }
 }
 
 export class AuditedProvisioningService {
@@ -194,77 +694,102 @@ export class AuditedProvisioningService {
     return event;
   }
 
-  runReconciliation(job: ProvisioningJobV1): ReconciliationResult {
-    if (job.status === "completed" && job.targetRecordRef) {
-      return {
-        jobId: job.jobId,
-        correlationId: job.correlationId,
-        status: "matched",
-        checkedAt: this.now(),
-        details: `Matched downstream record ${job.targetRecordRef}.`,
-      };
-    }
-
-    if (job.status === "completed" && !job.targetRecordRef) {
-      return {
-        jobId: job.jobId,
-        correlationId: job.correlationId,
-        status: "partial_delivery",
-        checkedAt: this.now(),
-        details: "Provisioning completed without a downstream target reference.",
-      };
-    }
-
-    if (job.status === "failed" || job.status === "retry_pending") {
-      return {
-        jobId: job.jobId,
-        correlationId: job.correlationId,
-        status: job.targetRecordRef ? "partial_delivery" : "missing_target_record",
-        checkedAt: this.now(),
-        details: job.targetRecordRef
-          ? "Provisioning has a partial downstream footprint but did not complete cleanly."
-          : "No downstream target record could be verified for this job.",
-      };
-    }
-
-    return {
-      jobId: job.jobId,
-      correlationId: job.correlationId,
-      status: "job_not_terminal",
+  runReconciliation(
+    job: ProvisioningJobV1,
+    receipt?: DownstreamReceiptRecord,
+  ): ReconciliationResult {
+    return classifyReconciliation({
+      job,
       checkedAt: this.now(),
-      details: "Provisioning job is still pending or in progress.",
-    };
+      receipt,
+      requireReceiptEvidence: false,
+    });
   }
 
   private upsertException(
     job: ProvisioningJobV1,
     reconciliation: ReconciliationResult,
   ): ExceptionQueueRecord | undefined {
-    if (
-      reconciliation.status === "matched" ||
-      reconciliation.status === "job_not_terminal"
-    ) {
+    if (!shouldQueueException(reconciliation)) {
       return undefined;
     }
 
-    const existing = this.exceptionQueue.getOpenByJobId(job.jobId);
-    if (existing) {
-      return existing;
-    }
-
     const timestamp = this.now();
-    const record: ExceptionQueueRecord = {
-      exceptionId: `exception-${sanitizeToken(job.jobId)}`,
-      jobId: job.jobId,
-      correlationId: job.correlationId,
-      reasonCode: reconciliation.status,
-      status: "open",
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      notes: [],
-    };
+    const existing = this.exceptionQueue.getOpenByJobId(job.jobId);
+    const record = buildExceptionRecord({
+      existing,
+      job,
+      reconciliation,
+      timestamp,
+    });
     this.exceptionQueue.save(record);
     return record;
+  }
+
+  listExceptions(filters: ExceptionQueueFilters = {}): ExceptionQueueRecord[] {
+    return this.exceptionQueue.list(filters);
+  }
+
+  triageException(input: {
+    exceptionId: string;
+    actor: string;
+    note: string;
+    status?: ExceptionQueueStatus;
+  }): ExceptionQueueRecord {
+    const existing = this.exceptionQueue.getById(input.exceptionId);
+    if (!existing) {
+      throw new Error("Exception record was not found.");
+    }
+
+    const actedAt = this.now();
+    const nextStatus = input.status ?? existing.status;
+    const actionType: ExceptionQueueActionType =
+      nextStatus === "resolved" ? "resolved" : "note_added";
+    const updated: ExceptionQueueRecord = {
+      ...existing,
+      status: nextStatus,
+      updatedAt: actedAt,
+      notes: [...existing.notes, input.note],
+      triageActions: [
+        ...existing.triageActions,
+        {
+          actionId: createExceptionActionId(
+            existing.exceptionId,
+            existing.triageActions.length + 1,
+          ),
+          actionType,
+          actor: input.actor,
+          actedAt,
+          note: input.note,
+        },
+      ],
+    };
+    this.exceptionQueue.save(updated);
+
+    this.auditLedger.append({
+      eventId: [
+        "audit",
+        sanitizeToken(updated.jobId),
+        String(this.auditLedger.listByJobId(updated.jobId).length + 1).padStart(
+          3,
+          "0",
+        ),
+        "exception-triaged",
+      ].join("-"),
+      occurredAt: actedAt,
+      correlationId: updated.correlationId,
+      jobId: updated.jobId,
+      decisionId: updated.decisionId,
+      type: "exception.triaged",
+      summary: `Exception ${updated.exceptionId} triaged as ${nextStatus}.`,
+      metadata: {
+        actor: input.actor,
+        status: nextStatus,
+        note: input.note,
+      },
+    });
+
+    return updated;
   }
 
   async processDecision(input: {
@@ -364,6 +889,7 @@ export class AuditedProvisioningService {
   async replayException(input: {
     exceptionId: string;
     operatorNote: string;
+    operatorId?: string;
     application: CanonicalApplicationV1;
     decision: DecisionRecordV1;
     overlay: UniversityMappingOverlayV1;
@@ -374,11 +900,25 @@ export class AuditedProvisioningService {
     }
 
     const replayTimestamp = this.now();
+    const operatorId = input.operatorId ?? "operations-operator";
     const replayedRecord: ExceptionQueueRecord = {
       ...existing,
       updatedAt: replayTimestamp,
       lastReplayAt: replayTimestamp,
       notes: [...existing.notes, input.operatorNote],
+      triageActions: [
+        ...existing.triageActions,
+        {
+          actionId: createExceptionActionId(
+            existing.exceptionId,
+            existing.triageActions.length + 1,
+          ),
+          actionType: "replayed",
+          actor: operatorId,
+          actedAt: replayTimestamp,
+          note: input.operatorNote,
+        },
+      ],
     };
     this.exceptionQueue.save(replayedRecord);
 
@@ -402,6 +942,7 @@ export class AuditedProvisioningService {
         summary: `Exception ${reconciledException.exceptionId} replayed by operator.`,
         metadata: {
           exceptionId: reconciledException.exceptionId,
+          actor: operatorId,
           note: input.operatorNote,
         },
       }),
