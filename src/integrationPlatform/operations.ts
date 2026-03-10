@@ -384,6 +384,12 @@ function sanitizeToken(value: string): string {
 function cloneJob(job: ProvisioningJobV1): ProvisioningJobV1 {
   return {
     ...job,
+    routingDecision: {
+      ...job.routingDecision,
+      capabilitySnapshot: {
+        ...job.routingDecision.capabilitySnapshot,
+      },
+    },
     attempts: job.attempts.map((attempt) => ({ ...attempt })),
     transitionHistory: job.transitionHistory.map((transition) => ({
       ...transition,
@@ -938,6 +944,7 @@ export class AuditedProvisioningService {
     application: CanonicalApplicationV1;
     decision: DecisionRecordV1;
     overlay: UniversityMappingOverlayV1;
+    ignoreRetrySchedule?: boolean;
   }): Promise<AuditedProvisioningOutcome> {
     const existingJob = this.jobStore.getByIdempotencyKey(
       createProvisioningIdempotencyKey(input.decision, input.overlay),
@@ -1109,6 +1116,7 @@ export class AuditedProvisioningService {
         application: input.application,
         decision: input.decision,
         overlay: input.overlay,
+        ignoreRetrySchedule: true,
       });
       const reconciledException: ExceptionQueueRecord = {
         ...replayedRecord,

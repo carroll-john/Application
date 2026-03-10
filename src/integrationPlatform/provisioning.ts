@@ -64,6 +64,20 @@ export type ProvisioningAttemptOutcome =
   | "retryable_error"
   | "failed";
 
+export type ProvisioningFailureClass =
+  | "connectivity"
+  | "rate_limit"
+  | "partner_system"
+  | "verification"
+  | "reconciliation"
+  | "data_quality"
+  | "duplicate_record"
+  | "authorization"
+  | "configuration"
+  | "unexpected";
+
+export type FailureDisposition = "retry" | "terminal";
+
 export interface ProvisioningAttemptV1 {
   attemptNumber: number;
   startedAt: string;
@@ -72,6 +86,10 @@ export interface ProvisioningAttemptV1 {
   externalReference?: string;
   errorCode?: string;
   errorMessage?: string;
+  failureClass?: ProvisioningFailureClass;
+  failureDisposition?: FailureDisposition;
+  retryDelayMinutes?: number;
+  retryScheduledAt?: string;
 }
 
 export type ProvisioningJobTransitionOrigin = ProvisioningJobStatus | "none";
@@ -83,6 +101,19 @@ export interface ProvisioningJobTransitionV1 {
   transitionedAt: string;
   reason: string;
   metadata?: Record<string, string>;
+}
+
+export interface ProvisioningRoutingDecisionV1 {
+  routeKey: string;
+  selectedAt: string;
+  priority: number;
+  reason: string;
+  capabilitySnapshot: {
+    transportMode: AdapterMode;
+    manifestFormat: UniversityCapabilityProfile["manifestFormat"];
+    acceptsDocumentsInline: string;
+    duplicateCheckStrategy: UniversityCapabilityProfile["duplicateCheckStrategy"];
+  };
 }
 
 export interface ProvisioningJobV1 {
@@ -98,13 +129,17 @@ export interface ProvisioningJobV1 {
   partnerName: string;
   correlationId: string;
   adapterMode: AdapterMode;
+  routingDecision: ProvisioningRoutingDecisionV1;
   status: ProvisioningJobStatus;
   createdAt: string;
   updatedAt: string;
   maxAttempts: number;
   attempts: ProvisioningAttemptV1[];
   transitionHistory: ProvisioningJobTransitionV1[];
+  nextRetryAt?: string;
   lastErrorCode?: string;
+  terminalFailureCode?: string;
+  terminalFailureClass?: ProvisioningFailureClass;
   targetRecordRef?: string;
 }
 
@@ -168,8 +203,23 @@ export interface AdapterReconciliationResult {
   details?: string;
 }
 
+export interface AdapterRoutingProfile {
+  routeKey: string;
+  priority?: number;
+  supportedManifestFormats?: UniversityCapabilityProfile["manifestFormat"][];
+  supportsInlineDocuments?: boolean;
+  supportedDuplicateCheckStrategies?: UniversityCapabilityProfile["duplicateCheckStrategy"][];
+}
+
+export interface AdapterFailureTaxonomy {
+  codeFailureClasses?: Partial<Record<string, ProvisioningFailureClass>>;
+  terminalCodes?: string[];
+}
+
 export interface UniversityAdapter {
   mode: AdapterMode;
+  routingProfile?: AdapterRoutingProfile;
+  failureTaxonomy?: AdapterFailureTaxonomy;
   prepare(input: {
     application: CanonicalApplicationV1;
     decision: DecisionRecordV1;
@@ -207,9 +257,21 @@ function cloneProvisioningTransition(
   };
 }
 
+function cloneProvisioningRoutingDecision(
+  decision: ProvisioningRoutingDecisionV1,
+): ProvisioningRoutingDecisionV1 {
+  return {
+    ...decision,
+    capabilitySnapshot: {
+      ...decision.capabilitySnapshot,
+    },
+  };
+}
+
 function cloneProvisioningJob(job: ProvisioningJobV1): ProvisioningJobV1 {
   return {
     ...job,
+    routingDecision: cloneProvisioningRoutingDecision(job.routingDecision),
     attempts: job.attempts.map((attempt) => ({ ...attempt })),
     transitionHistory: job.transitionHistory.map((transition) =>
       cloneProvisioningTransition(transition),
@@ -239,12 +301,25 @@ export class InMemoryProvisioningJobStore implements ProvisioningJobStore {
 export class AdapterExecutionError extends Error {
   readonly code: string;
   readonly retryable: boolean;
+  readonly failureClass?: ProvisioningFailureClass;
 
-  constructor(code: string, message: string, retryable = true) {
+  constructor(
+    code: string,
+    message: string,
+    options:
+      | boolean
+      | {
+          retryable?: boolean;
+          failureClass?: ProvisioningFailureClass;
+        } = true,
+  ) {
     super(message);
     this.name = "AdapterExecutionError";
     this.code = code;
-    this.retryable = retryable;
+    this.retryable =
+      typeof options === "boolean" ? options : options.retryable ?? true;
+    this.failureClass =
+      typeof options === "boolean" ? undefined : options.failureClass;
   }
 }
 
@@ -260,6 +335,28 @@ export interface ProvisioningOrchestratorOptions {
   jobStore: ProvisioningJobStore;
   maxAttempts?: number;
   now?: () => string;
+}
+
+export interface AdapterRouteSelection {
+  adapter: UniversityAdapter;
+  selectedAdapterMode: AdapterMode;
+  routingDecision: ProvisioningRoutingDecisionV1;
+}
+
+export interface FailureRetryPolicy {
+  disposition: FailureDisposition;
+  maxAttempts: number;
+  initialDelayMinutes: number;
+  backoffMultiplier: number;
+}
+
+export interface ProvisioningFailureDecision {
+  code: string;
+  failureClass: ProvisioningFailureClass;
+  disposition: FailureDisposition;
+  maxAttempts: number;
+  retryDelayMinutes?: number;
+  retryScheduledAt?: string;
 }
 
 function hasValue(value: string | undefined): boolean {
@@ -279,6 +376,89 @@ const LEGAL_PROVISIONING_JOB_TRANSITIONS: Record<
   retry_pending: ["in_progress", "failed"],
   completed: [],
   failed: [],
+};
+
+export const DEFAULT_RETRY_POLICY_BY_FAILURE_CLASS: Record<
+  ProvisioningFailureClass,
+  FailureRetryPolicy
+> = {
+  connectivity: {
+    disposition: "retry",
+    maxAttempts: 3,
+    initialDelayMinutes: 5,
+    backoffMultiplier: 2,
+  },
+  rate_limit: {
+    disposition: "retry",
+    maxAttempts: 4,
+    initialDelayMinutes: 15,
+    backoffMultiplier: 2,
+  },
+  partner_system: {
+    disposition: "retry",
+    maxAttempts: 3,
+    initialDelayMinutes: 10,
+    backoffMultiplier: 2,
+  },
+  verification: {
+    disposition: "retry",
+    maxAttempts: 2,
+    initialDelayMinutes: 10,
+    backoffMultiplier: 1,
+  },
+  reconciliation: {
+    disposition: "retry",
+    maxAttempts: 2,
+    initialDelayMinutes: 15,
+    backoffMultiplier: 1,
+  },
+  data_quality: {
+    disposition: "terminal",
+    maxAttempts: 1,
+    initialDelayMinutes: 0,
+    backoffMultiplier: 1,
+  },
+  duplicate_record: {
+    disposition: "terminal",
+    maxAttempts: 1,
+    initialDelayMinutes: 0,
+    backoffMultiplier: 1,
+  },
+  authorization: {
+    disposition: "terminal",
+    maxAttempts: 1,
+    initialDelayMinutes: 0,
+    backoffMultiplier: 1,
+  },
+  configuration: {
+    disposition: "terminal",
+    maxAttempts: 1,
+    initialDelayMinutes: 0,
+    backoffMultiplier: 1,
+  },
+  unexpected: {
+    disposition: "terminal",
+    maxAttempts: 1,
+    initialDelayMinutes: 0,
+    backoffMultiplier: 1,
+  },
+};
+
+const DEFAULT_FAILURE_CLASS_BY_CODE: Record<string, ProvisioningFailureClass> = {
+  upstream_timeout: "connectivity",
+  partner_timeout: "connectivity",
+  network_unreachable: "connectivity",
+  rate_limited: "rate_limit",
+  partner_unavailable: "partner_system",
+  verification_failed: "verification",
+  reconciliation_pending: "reconciliation",
+  reconciliation_exception: "reconciliation",
+  invalid_payload: "data_quality",
+  validation_failed: "data_quality",
+  duplicate_record: "duplicate_record",
+  invalid_credentials: "authorization",
+  configuration_error: "configuration",
+  unexpected_error: "unexpected",
 };
 
 function ensureCompatibleVersion(
@@ -333,6 +513,198 @@ export function validateDecisionRecord(decision: DecisionRecordV1): string[] {
   );
 
   return errors;
+}
+
+function addMinutes(isoTimestamp: string, minutes: number): string {
+  return new Date(Date.parse(isoTimestamp) + minutes * 60_000).toISOString();
+}
+
+function buildCapabilitySnapshot(
+  profile: UniversityCapabilityProfile,
+): ProvisioningRoutingDecisionV1["capabilitySnapshot"] {
+  return {
+    transportMode: profile.transportMode,
+    manifestFormat: profile.manifestFormat,
+    acceptsDocumentsInline: String(profile.acceptsDocumentsInline),
+    duplicateCheckStrategy: profile.duplicateCheckStrategy,
+  };
+}
+
+function supportsRoutingProfile(
+  adapter: UniversityAdapter,
+  profile: UniversityCapabilityProfile,
+): boolean {
+  if (adapter.mode !== profile.transportMode) {
+    return false;
+  }
+
+  const routingProfile = adapter.routingProfile;
+  if (!routingProfile) {
+    return true;
+  }
+
+  if (
+    routingProfile.supportedManifestFormats &&
+    !routingProfile.supportedManifestFormats.includes(profile.manifestFormat)
+  ) {
+    return false;
+  }
+
+  if (
+    routingProfile.supportsInlineDocuments !== undefined &&
+    routingProfile.supportsInlineDocuments !== profile.acceptsDocumentsInline
+  ) {
+    return false;
+  }
+
+  if (
+    routingProfile.supportedDuplicateCheckStrategies &&
+    !routingProfile.supportedDuplicateCheckStrategies.includes(
+      profile.duplicateCheckStrategy,
+    )
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function createRoutingReason(
+  profile: UniversityCapabilityProfile,
+  adapter: UniversityAdapter,
+): string {
+  const matchedRules = [`transportMode=${profile.transportMode}`];
+  const routingProfile = adapter.routingProfile;
+
+  if (routingProfile?.supportedManifestFormats) {
+    matchedRules.push(`manifestFormat=${profile.manifestFormat}`);
+  }
+
+  if (routingProfile?.supportsInlineDocuments !== undefined) {
+    matchedRules.push(
+      `acceptsDocumentsInline=${String(profile.acceptsDocumentsInline)}`,
+    );
+  }
+
+  if (routingProfile?.supportedDuplicateCheckStrategies) {
+    matchedRules.push(
+      `duplicateCheckStrategy=${profile.duplicateCheckStrategy}`,
+    );
+  }
+
+  return `Selected route ${routingProfile?.routeKey ?? adapter.mode} using ${matchedRules.join(", ")}.`;
+}
+
+export function resolveAdapterRoute(input: {
+  adapters: UniversityAdapter[];
+  overlay: UniversityMappingOverlayV1;
+  selectedAt: string;
+  preferredRouteKey?: string;
+}): AdapterRouteSelection {
+  const candidates = input.adapters
+    .filter((adapter) =>
+      supportsRoutingProfile(adapter, input.overlay.capabilityProfile),
+    )
+    .sort((left, right) => {
+      const leftPriority = left.routingProfile?.priority ?? 0;
+      const rightPriority = right.routingProfile?.priority ?? 0;
+      if (leftPriority !== rightPriority) {
+        return rightPriority - leftPriority;
+      }
+
+      const leftKey = left.routingProfile?.routeKey ?? left.mode;
+      const rightKey = right.routingProfile?.routeKey ?? right.mode;
+      return leftKey.localeCompare(rightKey);
+    });
+
+  if (candidates.length === 0) {
+    throw new Error(
+      `No adapter route supports capability profile ${input.overlay.capabilityProfile.transportMode}/${input.overlay.capabilityProfile.manifestFormat}/${input.overlay.capabilityProfile.duplicateCheckStrategy}.`,
+    );
+  }
+
+  const selectedAdapter =
+    (input.preferredRouteKey
+      ? candidates.find(
+          (candidate) =>
+            (candidate.routingProfile?.routeKey ?? candidate.mode) ===
+            input.preferredRouteKey,
+        )
+      : undefined) ?? candidates[0];
+
+  return {
+    adapter: selectedAdapter,
+    selectedAdapterMode: selectedAdapter.mode,
+    routingDecision: {
+      routeKey:
+        selectedAdapter.routingProfile?.routeKey ?? selectedAdapter.mode,
+      selectedAt: input.selectedAt,
+      priority: selectedAdapter.routingProfile?.priority ?? 0,
+      reason: createRoutingReason(
+        input.overlay.capabilityProfile,
+        selectedAdapter,
+      ),
+      capabilitySnapshot: buildCapabilitySnapshot(
+        input.overlay.capabilityProfile,
+      ),
+    },
+  };
+}
+
+function calculateRetryDelayMinutes(
+  policy: FailureRetryPolicy,
+  attemptNumber: number,
+): number {
+  return Math.max(
+    0,
+    policy.initialDelayMinutes *
+      policy.backoffMultiplier ** Math.max(0, attemptNumber - 1),
+  );
+}
+
+export function classifyProvisioningFailure(input: {
+  code: string;
+  adapter?: UniversityAdapter;
+  adapterError?: AdapterExecutionError;
+  occurredAt: string;
+  attemptNumber: number;
+  jobMaxAttempts: number;
+}): ProvisioningFailureDecision {
+  const adapterTaxonomy = input.adapter?.failureTaxonomy;
+  const failureClass =
+    input.adapterError?.failureClass ??
+    adapterTaxonomy?.codeFailureClasses?.[input.code] ??
+    DEFAULT_FAILURE_CLASS_BY_CODE[input.code] ??
+    "unexpected";
+  const policy = DEFAULT_RETRY_POLICY_BY_FAILURE_CLASS[failureClass];
+  const attemptsAllowed = Math.min(policy.maxAttempts, input.jobMaxAttempts);
+  const disposition: FailureDisposition =
+    input.adapterError?.retryable === false ||
+    adapterTaxonomy?.terminalCodes?.includes(input.code)
+      ? "terminal"
+      : policy.disposition;
+
+  if (disposition === "retry" && input.attemptNumber < attemptsAllowed) {
+    const retryDelayMinutes = calculateRetryDelayMinutes(
+      policy,
+      input.attemptNumber,
+    );
+    return {
+      code: input.code,
+      failureClass,
+      disposition,
+      maxAttempts: attemptsAllowed,
+      retryDelayMinutes,
+      retryScheduledAt: addMinutes(input.occurredAt, retryDelayMinutes),
+    };
+  }
+
+  return {
+    code: input.code,
+    failureClass,
+    disposition: "terminal",
+    maxAttempts: attemptsAllowed,
+  };
 }
 
 export function createProvisioningIdempotencyKey(
@@ -401,6 +773,7 @@ export function createProvisioningJob(
   decision: DecisionRecordV1,
   overlay: UniversityMappingOverlayV1,
   createdAt: string,
+  routingDecision: ProvisioningRoutingDecisionV1,
   maxAttempts = 3,
 ): ProvisioningJobV1 {
   const idempotencyKey = createProvisioningIdempotencyKey(decision, overlay);
@@ -423,6 +796,7 @@ export function createProvisioningJob(
     partnerName: decision.partnerName,
     correlationId: decision.correlationId,
     adapterMode: overlay.capabilityProfile.transportMode,
+    routingDecision: cloneProvisioningRoutingDecision(routingDecision),
     status: "pending",
     createdAt,
     updatedAt: createdAt,
@@ -435,6 +809,9 @@ export function createProvisioningJob(
         toStatus: "pending",
         transitionedAt: createdAt,
         reason: "Provisioning job created.",
+        metadata: {
+          routeKey: routingDecision.routeKey,
+        },
       },
     ],
   };
@@ -470,34 +847,38 @@ function normalizeAdapterError(error: unknown): AdapterExecutionError {
   }
 
   if (error instanceof Error) {
-    return new AdapterExecutionError("unexpected_error", error.message, false);
+    return new AdapterExecutionError("unexpected_error", error.message, {
+      retryable: false,
+      failureClass: "unexpected",
+    });
   }
 
-  return new AdapterExecutionError("unexpected_error", "Unknown adapter failure", false);
+  return new AdapterExecutionError("unexpected_error", "Unknown adapter failure", {
+    retryable: false,
+    failureClass: "unexpected",
+  });
 }
 
 export class ProvisioningOrchestrator {
-  private readonly adapterRegistry = new Map<AdapterMode, UniversityAdapter>();
+  private readonly adapters: UniversityAdapter[];
   private readonly jobStore: ProvisioningJobStore;
   private readonly maxAttempts: number;
   private readonly now: () => string;
 
   constructor(options: ProvisioningOrchestratorOptions) {
+    this.adapters = [...options.adapters];
     this.jobStore = options.jobStore;
     this.maxAttempts = options.maxAttempts ?? 3;
     this.now = options.now ?? (() => new Date().toISOString());
-
-    options.adapters.forEach((adapter) => {
-      this.adapterRegistry.set(adapter.mode, adapter);
-    });
   }
 
   async processDecision(input: {
     application: CanonicalApplicationV1;
     decision: DecisionRecordV1;
     overlay: UniversityMappingOverlayV1;
+    ignoreRetrySchedule?: boolean;
   }): Promise<OrchestrationResult> {
-    const { application, decision, overlay } = input;
+    const { application, decision, overlay, ignoreRetrySchedule } = input;
     const applicationValidation = validateCanonicalApplication(application);
     const overlayValidation = validateUniversityMappingOverlay(overlay);
     const decisionValidation = validateDecisionRecord(decision);
@@ -523,20 +904,13 @@ export class ProvisioningOrchestrator {
       throw new Error(errors.join(" "));
     }
 
-    const selectedAdapterMode = overlay.capabilityProfile.transportMode;
-    const adapter = this.adapterRegistry.get(selectedAdapterMode);
-
-    if (!adapter) {
-      throw new Error(`No adapter registered for mode ${selectedAdapterMode}.`);
-    }
-
     const idempotencyKey = createProvisioningIdempotencyKey(decision, overlay);
     const existingJob = this.jobStore.getByIdempotencyKey(idempotencyKey);
 
     if (existingJob?.status === "completed") {
       return {
         job: existingJob,
-        selectedAdapterMode,
+        selectedAdapterMode: existingJob.adapterMode,
         attemptExecuted: false,
       };
     }
@@ -544,7 +918,7 @@ export class ProvisioningOrchestrator {
     if (existingJob?.status === "failed" || existingJob?.status === "in_progress") {
       return {
         job: existingJob,
-        selectedAdapterMode,
+        selectedAdapterMode: existingJob.adapterMode,
         attemptExecuted: false,
       };
     }
@@ -552,13 +926,42 @@ export class ProvisioningOrchestrator {
     if (existingJob && existingJob.attempts.length >= existingJob.maxAttempts) {
       return {
         job: existingJob,
-        selectedAdapterMode,
+        selectedAdapterMode: existingJob.adapterMode,
         attemptExecuted: false,
       };
     }
 
     const startedAt = this.now();
-    const job = existingJob ?? createProvisioningJob(decision, overlay, startedAt, this.maxAttempts);
+    if (
+      !ignoreRetrySchedule &&
+      existingJob?.status === "retry_pending" &&
+      existingJob.nextRetryAt &&
+      existingJob.nextRetryAt > startedAt
+    ) {
+      return {
+        job: existingJob,
+        selectedAdapterMode: existingJob.adapterMode,
+        attemptExecuted: false,
+      };
+    }
+
+    const adapterSelection = resolveAdapterRoute({
+      adapters: this.adapters,
+      overlay,
+      selectedAt: startedAt,
+      preferredRouteKey: existingJob?.routingDecision.routeKey,
+    });
+    const selectedAdapterMode = adapterSelection.selectedAdapterMode;
+    const adapter = adapterSelection.adapter;
+    const job =
+      existingJob ??
+      createProvisioningJob(
+        decision,
+        overlay,
+        startedAt,
+        adapterSelection.routingDecision,
+        this.maxAttempts,
+      );
     const attemptNumber = job.attempts.length + 1;
     const context: AdapterContext = {
       jobId: job.jobId,
@@ -566,6 +969,9 @@ export class ProvisioningOrchestrator {
       idempotencyKey: job.idempotencyKey,
       attemptNumber,
     };
+    job.nextRetryAt = undefined;
+    job.terminalFailureClass = undefined;
+    job.terminalFailureCode = undefined;
 
     transitionProvisioningJob({
       job,
@@ -574,6 +980,8 @@ export class ProvisioningOrchestrator {
       reason: `Attempt ${attemptNumber} started.`,
       metadata: {
         attemptNumber: String(attemptNumber),
+        routeKey: job.routingDecision.routeKey,
+        routePriority: String(job.routingDecision.priority),
       },
     });
     this.jobStore.save(job);
@@ -591,27 +999,40 @@ export class ProvisioningOrchestrator {
 
       let outcome: ProvisioningAttemptOutcome = "succeeded";
       let status: ProvisioningJobStatus = "completed";
+      let failureDecision: ProvisioningFailureDecision | undefined;
       let errorCode: string | undefined;
       let errorMessage: string | undefined;
 
       if (!verification.verified) {
-        outcome = attemptNumber < job.maxAttempts ? "retryable_error" : "failed";
-        status = attemptNumber < job.maxAttempts ? "retry_pending" : "failed";
         errorCode = "verification_failed";
         errorMessage = "Adapter verification did not confirm the downstream record.";
       } else if (reconciliation.status === "pending") {
-        outcome = attemptNumber < job.maxAttempts ? "retryable_error" : "failed";
-        status = attemptNumber < job.maxAttempts ? "retry_pending" : "failed";
         errorCode = "reconciliation_pending";
         errorMessage = reconciliation.details ?? "Reconciliation remains pending.";
       } else if (reconciliation.status === "exception") {
-        outcome = attemptNumber < job.maxAttempts ? "retryable_error" : "failed";
-        status = attemptNumber < job.maxAttempts ? "retry_pending" : "failed";
         errorCode = "reconciliation_exception";
         errorMessage = reconciliation.details ?? "Reconciliation found a downstream exception.";
       }
 
       const completedAt = this.now();
+      if (errorCode) {
+        failureDecision = classifyProvisioningFailure({
+          code: errorCode,
+          adapter,
+          occurredAt: completedAt,
+          attemptNumber,
+          jobMaxAttempts: job.maxAttempts,
+        });
+        outcome =
+          failureDecision.disposition === "retry"
+            ? "retryable_error"
+            : "failed";
+        status =
+          failureDecision.disposition === "retry"
+            ? "retry_pending"
+            : "failed";
+      }
+
       job.attempts.push({
         attemptNumber,
         startedAt,
@@ -620,9 +1041,22 @@ export class ProvisioningOrchestrator {
         externalReference: execution.externalReference,
         errorCode,
         errorMessage,
+        failureClass: failureDecision?.failureClass,
+        failureDisposition: failureDecision?.disposition,
+        retryDelayMinutes: failureDecision?.retryDelayMinutes,
+        retryScheduledAt: failureDecision?.retryScheduledAt,
       });
       job.targetRecordRef = execution.externalReference;
       job.lastErrorCode = errorCode;
+      job.nextRetryAt = failureDecision?.retryScheduledAt;
+      job.terminalFailureCode =
+        failureDecision?.disposition === "terminal"
+          ? failureDecision.code
+          : undefined;
+      job.terminalFailureClass =
+        failureDecision?.disposition === "terminal"
+          ? failureDecision.failureClass
+          : undefined;
       transitionProvisioningJob({
         job,
         toStatus: status,
@@ -637,6 +1071,9 @@ export class ProvisioningOrchestrator {
           attemptNumber: String(attemptNumber),
           outcome,
           errorCode: errorCode ?? "",
+          failureClass: failureDecision?.failureClass ?? "",
+          failureDisposition: failureDecision?.disposition ?? "",
+          retryScheduledAt: failureDecision?.retryScheduledAt ?? "",
         },
       });
       this.jobStore.save(job);
@@ -649,15 +1086,23 @@ export class ProvisioningOrchestrator {
       };
     } catch (error) {
       const adapterError = normalizeAdapterError(error);
+      const completedAt = this.now();
+      const failureDecision = classifyProvisioningFailure({
+        code: adapterError.code,
+        adapter,
+        adapterError,
+        occurredAt: completedAt,
+        attemptNumber,
+        jobMaxAttempts: job.maxAttempts,
+      });
       const outcome: ProvisioningAttemptOutcome =
-        adapterError.retryable && attemptNumber < job.maxAttempts
+        failureDecision.disposition === "retry"
           ? "retryable_error"
           : "failed";
       const nextStatus: ProvisioningJobStatus =
-        adapterError.retryable && attemptNumber < job.maxAttempts
+        failureDecision.disposition === "retry"
           ? "retry_pending"
           : "failed";
-      const completedAt = this.now();
 
       job.attempts.push({
         attemptNumber,
@@ -666,8 +1111,21 @@ export class ProvisioningOrchestrator {
         outcome,
         errorCode: adapterError.code,
         errorMessage: adapterError.message,
+        failureClass: failureDecision.failureClass,
+        failureDisposition: failureDecision.disposition,
+        retryDelayMinutes: failureDecision.retryDelayMinutes,
+        retryScheduledAt: failureDecision.retryScheduledAt,
       });
       job.lastErrorCode = adapterError.code;
+      job.nextRetryAt = failureDecision.retryScheduledAt;
+      job.terminalFailureCode =
+        failureDecision.disposition === "terminal"
+          ? failureDecision.code
+          : undefined;
+      job.terminalFailureClass =
+        failureDecision.disposition === "terminal"
+          ? failureDecision.failureClass
+          : undefined;
       transitionProvisioningJob({
         job,
         toStatus: nextStatus,
@@ -680,6 +1138,9 @@ export class ProvisioningOrchestrator {
           attemptNumber: String(attemptNumber),
           outcome,
           errorCode: adapterError.code,
+          failureClass: failureDecision.failureClass,
+          failureDisposition: failureDecision.disposition,
+          retryScheduledAt: failureDecision.retryScheduledAt ?? "",
         },
       });
       this.jobStore.save(job);

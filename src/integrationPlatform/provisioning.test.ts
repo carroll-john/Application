@@ -5,12 +5,14 @@ import {
 } from "./examples";
 import {
   AdapterExecutionError,
+  classifyProvisioningFailure,
   type DecisionRecordV1,
   InMemoryProvisioningJobStore,
   ProvisioningOrchestrator,
   createProvisioningIdempotencyKey,
   createProvisioningJob,
   decisionRecordSchemaDefaults,
+  resolveAdapterRoute,
   transitionProvisioningJob,
   type UniversityAdapter,
 } from "./provisioning";
@@ -88,6 +90,16 @@ describe("ProvisioningOrchestrator", () => {
     );
     expect(result.job.status).toBe("completed");
     expect(result.job.attempts).toHaveLength(1);
+    expect(result.job.routingDecision).toMatchObject({
+      routeKey: "file",
+      priority: 0,
+      capabilitySnapshot: {
+        transportMode: "file",
+        manifestFormat: "json",
+        acceptsDocumentsInline: "false",
+        duplicateCheckStrategy: "source-application-id",
+      },
+    });
     expect(result.job.transitionHistory.map((transition) => transition.toStatus)).toEqual([
       "pending",
       "in_progress",
@@ -141,11 +153,19 @@ describe("ProvisioningOrchestrator", () => {
       }),
     };
 
+    const timestamps = [
+      "2026-03-10T12:00:00Z",
+      "2026-03-10T12:00:00Z",
+      "2026-03-10T12:00:00Z",
+      "2026-03-10T12:05:00Z",
+      "2026-03-10T12:05:00Z",
+      "2026-03-10T12:05:00Z",
+    ];
     const orchestrator = new ProvisioningOrchestrator({
       adapters: [flakyAdapter],
       jobStore: store,
       maxAttempts: 3,
-      now: () => "2026-03-10T12:00:00Z",
+      now: () => timestamps.shift() ?? "2026-03-10T12:05:00Z",
     });
 
     const input = {
@@ -159,15 +179,23 @@ describe("ProvisioningOrchestrator", () => {
     const completedAttempt = await orchestrator.processDecision(input);
 
     expect(firstAttempt.job.status).toBe("retry_pending");
-    expect(secondAttempt.job.status).toBe("completed");
+    expect(secondAttempt.job.status).toBe("retry_pending");
+    expect(secondAttempt.attemptExecuted).toBe(false);
     expect(secondAttempt.job.jobId).toBe(firstAttempt.job.jobId);
-    expect(secondAttempt.job.attempts).toHaveLength(2);
+    expect(secondAttempt.job.attempts).toHaveLength(1);
     expect(executionKeys).toEqual([
-      secondAttempt.job.idempotencyKey,
-      secondAttempt.job.idempotencyKey,
+      firstAttempt.job.idempotencyKey,
+      completedAttempt.job.idempotencyKey,
     ]);
+    expect(firstAttempt.job.nextRetryAt).toBe("2026-03-10T12:05:00.000Z");
+    expect(firstAttempt.job.attempts[0]).toMatchObject({
+      failureClass: "connectivity",
+      failureDisposition: "retry",
+      retryDelayMinutes: 5,
+      retryScheduledAt: "2026-03-10T12:05:00.000Z",
+    });
     expect(
-      secondAttempt.job.transitionHistory.map((transition) => transition.toStatus),
+      completedAttempt.job.transitionHistory.map((transition) => transition.toStatus),
     ).toEqual([
       "pending",
       "in_progress",
@@ -175,7 +203,8 @@ describe("ProvisioningOrchestrator", () => {
       "in_progress",
       "completed",
     ]);
-    expect(completedAttempt.attemptExecuted).toBe(false);
+    expect(completedAttempt.job.attempts).toHaveLength(2);
+    expect(completedAttempt.attemptExecuted).toBe(true);
     expect(callCount).toBe(2);
   });
 
@@ -234,6 +263,82 @@ describe("ProvisioningOrchestrator", () => {
     expect(fileResult.selectedAdapterMode).toBe("file");
     expect(portalResult.selectedAdapterMode).toBe("portal-rpa");
     expect(calledModes).toEqual(["file", "portal-rpa"]);
+  });
+
+  it("routes same-mode adapters by capability profile priority and support rules", async () => {
+    const store = new InMemoryProvisioningJobStore();
+    const selectedRoutes: string[] = [];
+    const standardFileAdapter: UniversityAdapter = {
+      ...createStubAdapter("file"),
+      routingProfile: {
+        routeKey: "file-standard-json",
+        priority: 10,
+        supportedManifestFormats: ["json"],
+        supportsInlineDocuments: false,
+        supportedDuplicateCheckStrategies: ["source-application-id"],
+      },
+      execute: (_prepared, context) => {
+        selectedRoutes.push("file-standard-json");
+        return {
+          accepted: true,
+          externalReference: `file-standard:${context.idempotencyKey}`,
+          submittedAt: "2026-03-10T12:10:00Z",
+        };
+      },
+    };
+    const inlineFileAdapter: UniversityAdapter = {
+      ...createStubAdapter("file"),
+      routingProfile: {
+        routeKey: "file-inline-json",
+        priority: 20,
+        supportedManifestFormats: ["json"],
+        supportsInlineDocuments: true,
+        supportedDuplicateCheckStrategies: ["email-and-course"],
+      },
+      execute: (_prepared, context) => {
+        selectedRoutes.push("file-inline-json");
+        return {
+          accepted: true,
+          externalReference: `file-inline:${context.idempotencyKey}`,
+          submittedAt: "2026-03-10T12:11:00Z",
+        };
+      },
+    };
+    const orchestrator = new ProvisioningOrchestrator({
+      adapters: [standardFileAdapter, inlineFileAdapter],
+      jobStore: store,
+      now: () => "2026-03-10T12:00:00Z",
+    });
+    const standardOverlay = universityMappingOverlaySamples[0];
+    const inlineOverlay = {
+      ...universityMappingOverlaySamples[0],
+      overlayId: "overlay-010",
+      mappingProfileId: "southern-coast-inline-v1",
+      capabilityProfile: {
+        transportMode: "file" as const,
+        acceptsDocumentsInline: true,
+        manifestFormat: "json" as const,
+        duplicateCheckStrategy: "email-and-course" as const,
+      },
+    };
+
+    const standardResult = await orchestrator.processDecision({
+      application: canonicalApplicationSamples[0],
+      decision: createDecisionRecord(),
+      overlay: standardOverlay,
+    });
+    const inlineResult = await orchestrator.processDecision({
+      application: canonicalApplicationSamples[0],
+      decision: createDecisionRecord({
+        decisionId: "decision-010",
+        correlationId: "corr-010",
+      }),
+      overlay: inlineOverlay,
+    });
+
+    expect(standardResult.job.routingDecision.routeKey).toBe("file-standard-json");
+    expect(inlineResult.job.routingDecision.routeKey).toBe("file-inline-json");
+    expect(selectedRoutes).toEqual(["file-standard-json", "file-inline-json"]);
   });
 
   it("blocks duplicate triggers while a job is already in progress and exposes state queries", async () => {
@@ -309,6 +414,11 @@ describe("ProvisioningOrchestrator", () => {
       decision,
       universityMappingOverlaySamples[0],
       "2026-03-10T12:00:00Z",
+      resolveAdapterRoute({
+        adapters: [createStubAdapter("file")],
+        overlay: universityMappingOverlaySamples[0],
+        selectedAt: "2026-03-10T12:00:00Z",
+      }).routingDecision,
       4,
     );
 
@@ -325,6 +435,9 @@ describe("ProvisioningOrchestrator", () => {
       maxAttempts: 4,
       status: "pending",
       attempts: [],
+      routingDecision: {
+        routeKey: "file",
+      },
     });
     expect(job.transitionHistory).toEqual([
       {
@@ -333,6 +446,9 @@ describe("ProvisioningOrchestrator", () => {
         toStatus: "pending",
         transitionedAt: "2026-03-10T12:00:00Z",
         reason: "Provisioning job created.",
+        metadata: {
+          routeKey: "file",
+        },
       },
     ]);
   });
@@ -342,6 +458,11 @@ describe("ProvisioningOrchestrator", () => {
       createDecisionRecord(),
       universityMappingOverlaySamples[0],
       "2026-03-10T12:00:00Z",
+      resolveAdapterRoute({
+        adapters: [createStubAdapter("file")],
+        overlay: universityMappingOverlaySamples[0],
+        selectedAt: "2026-03-10T12:00:00Z",
+      }).routingDecision,
     );
 
     expect(() =>
@@ -353,5 +474,67 @@ describe("ProvisioningOrchestrator", () => {
       }),
     ).toThrow("Invalid provisioning job transition from pending to completed.");
     expect(job.transitionHistory).toHaveLength(1);
+  });
+
+  it("classifies terminal failures consistently and stops retries at the configured threshold", async () => {
+    const store = new InMemoryProvisioningJobStore();
+    const authAdapter: UniversityAdapter = {
+      ...createStubAdapter("file"),
+      failureTaxonomy: {
+        codeFailureClasses: {
+          invalid_credentials: "authorization",
+        },
+        terminalCodes: ["invalid_credentials"],
+      },
+      execute: () => {
+        throw new AdapterExecutionError("invalid_credentials", "Credentials rejected.", {
+          retryable: false,
+          failureClass: "authorization",
+        });
+      },
+    };
+    const orchestrator = new ProvisioningOrchestrator({
+      adapters: [authAdapter],
+      jobStore: store,
+      maxAttempts: 5,
+      now: () => "2026-03-10T12:30:00Z",
+    });
+
+    const result = await orchestrator.processDecision({
+      application: canonicalApplicationSamples[0],
+      decision: createDecisionRecord({
+        decisionId: "decision-auth-001",
+        correlationId: "corr-auth-001",
+      }),
+      overlay: universityMappingOverlaySamples[0],
+    });
+
+    expect(result.job.status).toBe("failed");
+    expect(result.job.terminalFailureCode).toBe("invalid_credentials");
+    expect(result.job.terminalFailureClass).toBe("authorization");
+    expect(result.job.nextRetryAt).toBeUndefined();
+    expect(result.job.attempts[0]).toMatchObject({
+      failureClass: "authorization",
+      failureDisposition: "terminal",
+      errorCode: "invalid_credentials",
+    });
+  });
+
+  it("exports retry policy decisions by failure class", () => {
+    const decision = classifyProvisioningFailure({
+      code: "rate_limited",
+      occurredAt: "2026-03-10T12:40:00Z",
+      attemptNumber: 2,
+      jobMaxAttempts: 6,
+    });
+
+    expect(decision).toEqual({
+      code: "rate_limited",
+      failureClass: "rate_limit",
+      disposition: "retry",
+      maxAttempts: 4,
+      retryDelayMinutes: 30,
+      retryScheduledAt: "2026-03-10T13:10:00.000Z",
+    });
   });
 });

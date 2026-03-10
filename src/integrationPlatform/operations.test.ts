@@ -90,6 +90,21 @@ function createStoredTerminalJob(input: {
     input.decision,
     input.overlay,
     "2026-03-10T15:00:00Z",
+    {
+      routeKey: input.overlay.capabilityProfile.transportMode,
+      selectedAt: "2026-03-10T15:00:00Z",
+      priority: 0,
+      reason: `Selected route ${input.overlay.capabilityProfile.transportMode}.`,
+      capabilitySnapshot: {
+        transportMode: input.overlay.capabilityProfile.transportMode,
+        manifestFormat: input.overlay.capabilityProfile.manifestFormat,
+        acceptsDocumentsInline: String(
+          input.overlay.capabilityProfile.acceptsDocumentsInline,
+        ),
+        duplicateCheckStrategy:
+          input.overlay.capabilityProfile.duplicateCheckStrategy,
+      },
+    },
     3,
   );
   transitionProvisioningJob({

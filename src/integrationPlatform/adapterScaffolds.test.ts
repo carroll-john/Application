@@ -55,12 +55,11 @@ describe("adapter scaffolds", () => {
   });
 
   it("captures import-workflow execution metadata and verification hooks consistently", async () => {
-    const registry = createScaffoldedAdapterRegistry([
-      createImportWorkflowAdapter({
-        workflowId: "tiu-managed-import",
-        dropLocation: "s3://partner-import/tiu-managed-import",
-      }),
-    ]);
+    const adapter = createImportWorkflowAdapter({
+      workflowId: "tiu-managed-import",
+      dropLocation: "s3://partner-import/tiu-managed-import",
+    });
+    const registry = createScaffoldedAdapterRegistry([adapter]);
     const jobStore = new InMemoryProvisioningJobStore();
     const orchestrator = new ProvisioningOrchestrator({
       adapters: registry.toAdapters(),
@@ -83,6 +82,21 @@ describe("adapter scaffolds", () => {
     });
 
     expect(result.selectedAdapterMode).toBe("import-workflow");
+    expect(result.job.routingDecision.routeKey).toBe(
+      "import-workflow:tiu-managed-import",
+    );
+    expect(adapter.failureTaxonomy).toMatchObject({
+      codeFailureClasses: {
+        invalid_credentials: "authorization",
+        invalid_payload: "data_quality",
+        duplicate_record: "duplicate_record",
+      },
+      terminalCodes: [
+        "invalid_credentials",
+        "invalid_payload",
+        "duplicate_record",
+      ],
+    });
     expect(result.preparedPayload?.executionMetadata).toMatchObject({
       dispatchChannel: "managed-import",
       dispatchTarget: "s3://partner-import/tiu-managed-import",
@@ -109,12 +123,13 @@ describe("adapter scaffolds", () => {
   });
 
   it("runs an edge-configured pilot partner without custom orchestration logic", async () => {
+    const edgeAdapter = createEdgeConnectorAdapter({
+      connectorId: "northbridge-edge-01",
+      endpointRef: "edge://northbridge/private-network",
+    });
     const registry = createScaffoldedAdapterRegistry([
       createImportWorkflowAdapter(),
-      createEdgeConnectorAdapter({
-        connectorId: "northbridge-edge-01",
-        endpointRef: "edge://northbridge/private-network",
-      }),
+      edgeAdapter,
     ]);
     const jobStore = new InMemoryProvisioningJobStore();
     const orchestrator = new ProvisioningOrchestrator({
@@ -137,6 +152,17 @@ describe("adapter scaffolds", () => {
 
     expect(result.selectedAdapterMode).toBe("edge");
     expect(result.job.status).toBe("completed");
+    expect(result.job.routingDecision.routeKey).toBe(
+      "edge:northbridge-edge-01",
+    );
+    expect(edgeAdapter.failureTaxonomy).toMatchObject({
+      codeFailureClasses: {
+        invalid_credentials: "authorization",
+        configuration_error: "configuration",
+        network_unreachable: "connectivity",
+      },
+      terminalCodes: ["invalid_credentials", "configuration_error"],
+    });
     expect(result.preparedPayload?.executionMetadata).toMatchObject({
       dispatchChannel: "edge-connector",
       dispatchTarget: "edge://northbridge/private-network",

@@ -186,6 +186,21 @@ export function createImportWorkflowAdapter(
 
   return {
     mode: "import-workflow",
+    routingProfile: {
+      routeKey: `import-workflow:${workflowId}`,
+      priority: 20,
+      supportedManifestFormats: ["xml"],
+      supportsInlineDocuments: true,
+      supportedDuplicateCheckStrategies: ["email-and-course"],
+    },
+    failureTaxonomy: {
+      codeFailureClasses: {
+        invalid_credentials: "authorization",
+        invalid_payload: "data_quality",
+        duplicate_record: "duplicate_record",
+      },
+      terminalCodes: ["invalid_credentials", "invalid_payload", "duplicate_record"],
+    },
     descriptor,
     prepare: ({ application, decision, overlay, job }) =>
       createPreparedPayload({
@@ -264,6 +279,21 @@ export function createEdgeConnectorAdapter(
 
   return {
     mode: "edge",
+    routingProfile: {
+      routeKey: `edge:${connectorId}`,
+      priority: 20,
+      supportedManifestFormats: ["json"],
+      supportsInlineDocuments: false,
+      supportedDuplicateCheckStrategies: ["source-application-id"],
+    },
+    failureTaxonomy: {
+      codeFailureClasses: {
+        invalid_credentials: "authorization",
+        configuration_error: "configuration",
+        network_unreachable: "connectivity",
+      },
+      terminalCodes: ["invalid_credentials", "configuration_error"],
+    },
     descriptor,
     prepare: ({ application, decision, overlay, job }) =>
       createPreparedPayload({
