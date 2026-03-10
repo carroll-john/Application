@@ -7,7 +7,7 @@ import {
   ShieldCheck,
   UserRoundCheck,
 } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { ModalShell } from "../components/ModalShell";
@@ -29,6 +29,19 @@ import {
   type AdmissionsQueueRecord,
   type AdmissionsQueueStatus,
 } from "../lib/admissionsWorkspace";
+import {
+  captureAdmissionsDecision,
+  evaluateAdmissionsDecisionReadiness,
+  formatAdmissionsDecisionOutcome,
+  getAdmissionsDecisionReasonLabel,
+  getAdmissionsDecisionReasonOptions,
+  getLatestAdmissionsDecision,
+  getLatestAdmissionsProvisioningJob,
+  getLatestAdmissionsReconciliation,
+  getOpenAdmissionsException,
+  listAdmissionsProvisioningAuditEvents,
+  type AdmissionsDecisionOutcome,
+} from "../lib/admissionsDecisioning";
 import { capturePostHogEvent } from "../lib/posthog";
 
 function formatTimestamp(value: string | undefined): string {
@@ -60,6 +73,14 @@ function getStatusTone(status: AdmissionsQueueStatus) {
       return "info" as const;
     case "ready-for-decision":
       return "success" as const;
+    case "decisioned":
+      return "neutral" as const;
+    case "provisioning":
+      return "info" as const;
+    case "provisioned":
+      return "success" as const;
+    case "provisioning-exception":
+      return "warning" as const;
   }
 }
 
@@ -110,6 +131,17 @@ export default function AdmissionsApplicationReview() {
     body: string;
     tone: "info" | "warning";
   } | null>(null);
+  const [decisionOutcome, setDecisionOutcome] =
+    useState<AdmissionsDecisionOutcome>("admit");
+  const [decisionReasonCode, setDecisionReasonCode] = useState(
+    getAdmissionsDecisionReasonOptions("admit")[0]?.value ?? "",
+  );
+  const [decisionNotes, setDecisionNotes] = useState("");
+  const [decisionMessage, setDecisionMessage] = useState<{
+    body: string;
+    tone: "info" | "warning";
+  } | null>(null);
+  const [isCapturingDecision, setIsCapturingDecision] = useState(false);
 
   if (!record) {
     return (
@@ -152,6 +184,38 @@ export default function AdmissionsApplicationReview() {
     .filter(Boolean)
     .join(" ");
   const documentAccessPolicy = evaluateAdmissionsDocumentAccess(record, actor);
+  const decisionReadiness = evaluateAdmissionsDecisionReadiness(record, actor);
+  const reasonOptions = useMemo(
+    () => getAdmissionsDecisionReasonOptions(decisionOutcome),
+    [decisionOutcome],
+  );
+  const latestDecision = useMemo(() => getLatestAdmissionsDecision(record), [record]);
+  const latestProvisioningJob = useMemo(
+    () => getLatestAdmissionsProvisioningJob(record),
+    [record],
+  );
+  const latestReconciliation = useMemo(
+    () =>
+      getLatestAdmissionsReconciliation(record, latestProvisioningJob?.jobId),
+    [latestProvisioningJob?.jobId, record],
+  );
+  const openException = useMemo(
+    () => getOpenAdmissionsException(record, latestProvisioningJob?.jobId),
+    [latestProvisioningJob?.jobId, record],
+  );
+  const provisioningEvents = useMemo(
+    () => listAdmissionsProvisioningAuditEvents(record, latestProvisioningJob?.jobId),
+    [latestProvisioningJob?.jobId, record],
+  );
+  const isWorkflowLocked = Boolean(latestDecision);
+
+  useEffect(() => {
+    if (reasonOptions.some((option) => option.value === decisionReasonCode)) {
+      return;
+    }
+
+    setDecisionReasonCode(reasonOptions[0]?.value ?? "");
+  }, [decisionReasonCode, reasonOptions]);
 
   const previewMarkup = activeDocumentSession
     ? buildAdmissionsDocumentPreview(record, activeDocumentSession.document, {
@@ -159,6 +223,51 @@ export default function AdmissionsApplicationReview() {
         accessedAt: activeDocumentSession.accessedAt,
       })
     : "";
+
+  const handleCaptureDecision = async () => {
+    try {
+      setIsCapturingDecision(true);
+      setDecisionMessage(null);
+
+      const result = await captureAdmissionsDecision(records, {
+        actor,
+        applicationId: record.applicationId,
+        notes: decisionNotes,
+        outcome: decisionOutcome,
+        reasonCode: decisionReasonCode,
+      });
+      const nextRecord = result.records.find(
+        (candidate) => candidate.applicationId === record.applicationId,
+      );
+      const nextJob = nextRecord ? getLatestAdmissionsProvisioningJob(nextRecord) : undefined;
+
+      updateRecords(() => result.records);
+      setDecisionNotes("");
+      setDecisionMessage({
+        body: result.triggeredProvisioning
+          ? `Decision captured and provisioning is now ${nextJob?.status ?? "queued"}.`
+          : "Decision captured. This outcome does not trigger downstream provisioning.",
+        tone: "info",
+      });
+      capturePostHogEvent("admissions_decision_captured", {
+        admissions_application_id: record.applicationId,
+        admissions_decision_outcome: decisionOutcome,
+        admissions_decision_reason_code: decisionReasonCode,
+        admissions_provisioning_triggered: result.triggeredProvisioning,
+        admissions_provisioning_status: nextJob?.status ?? "not-triggered",
+      });
+    } catch (error) {
+      setDecisionMessage({
+        body:
+          error instanceof Error
+            ? error.message
+            : "Decision capture could not be completed.",
+        tone: "warning",
+      });
+    } finally {
+      setIsCapturingDecision(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f7f7f4]">
@@ -402,9 +511,253 @@ export default function AdmissionsApplicationReview() {
           <div className="grid gap-6">
             <SurfaceCard className="rounded-[32px] p-6">
               <SectionHeader
+                title="Decision capture"
+                body="Capture an immutable admissions outcome with reviewer attribution. Admit and conditional decisions automatically trigger downstream provisioning."
+              />
+              {latestDecision ? (
+                <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                  Decision capture is locked because an immutable decision record has
+                  already been stored for this review item. The latest outcome and
+                  downstream trace remain visible below.
+                </div>
+              ) : (
+                <div className="mt-5 grid gap-3">
+                  {decisionReadiness.flags.map((flag) => (
+                    <div
+                      key={flag.code}
+                      className={`rounded-[24px] border px-4 py-3 ${
+                        flag.satisfied
+                          ? "border-emerald-200 bg-emerald-50"
+                          : "border-amber-200 bg-amber-50"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-950">{flag.label}</p>
+                          <p className="mt-1 text-sm text-slate-600">{flag.detail}</p>
+                        </div>
+                        <StatusPill tone={flag.satisfied ? "success" : "warning"}>
+                          {flag.satisfied ? "Ready" : "Blocked"}
+                        </StatusPill>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {decisionMessage ? (
+                <div
+                  className={`mt-4 rounded-[24px] border px-4 py-3 text-sm ${
+                    decisionMessage.tone === "warning"
+                      ? "border-amber-200 bg-amber-50 text-amber-900"
+                      : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                  }`}
+                >
+                  {decisionMessage.body}
+                </div>
+              ) : null}
+              {!latestDecision ? (
+                <>
+                  <div className="mt-5 grid gap-3">
+                    <select
+                      className="rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                      onChange={(event) =>
+                        setDecisionOutcome(event.target.value as AdmissionsDecisionOutcome)
+                      }
+                      value={decisionOutcome}
+                    >
+                      <option value="admit">Admit</option>
+                      <option value="conditional">Conditional</option>
+                      <option value="waitlist">Waitlist</option>
+                      <option value="reject">Reject</option>
+                    </select>
+                    <select
+                      className="rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                      onChange={(event) => setDecisionReasonCode(event.target.value)}
+                      value={decisionReasonCode}
+                    >
+                      {reasonOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <textarea
+                      className="min-h-24 rounded-[24px] border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#0B4F74]"
+                      onChange={(event) => setDecisionNotes(event.target.value)}
+                      placeholder="Optional reviewer rationale or handover note attached to the immutable decision record"
+                      value={decisionNotes}
+                    />
+                  </div>
+                  <Button
+                    className="mt-4 w-full"
+                    disabled={!decisionReadiness.ready || isCapturingDecision}
+                    onClick={() => {
+                      void handleCaptureDecision();
+                    }}
+                  >
+                    {isCapturingDecision ? "Capturing decision..." : "Capture decision"}
+                  </Button>
+                </>
+              ) : null}
+              {record.decisionTrace.decisions.length > 0 ? (
+                <div className="mt-5 grid gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    Decision history
+                  </p>
+                  {record.decisionTrace.decisions
+                    .slice()
+                    .reverse()
+                    .map((decision) => (
+                      <div
+                        key={decision.decisionId}
+                        className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <StatusPill tone="neutral">
+                            {formatAdmissionsDecisionOutcome(decision.outcome.status)}
+                          </StatusPill>
+                          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                            {decision.decidedBy} | {formatTimestamp(decision.decidedAt)}
+                          </p>
+                        </div>
+                        <p className="mt-3 text-sm font-medium text-slate-900">
+                          {getAdmissionsDecisionReasonLabel(
+                            decision.outcome.reasonCode ?? "unspecified",
+                          )}
+                        </p>
+                        {decision.outcome.notes ? (
+                          <p className="mt-2 text-sm leading-6 text-slate-600">
+                            {decision.outcome.notes}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                </div>
+              ) : null}
+            </SurfaceCard>
+
+            <SurfaceCard className="rounded-[32px] p-6">
+              <SectionHeader
+                title="Provisioning trace"
+                body="Follow the latest decision into its downstream provisioning route, job status, and reconciliation result."
+              />
+              {latestDecision ? (
+                <div className="mt-5 grid gap-4">
+                  <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <StatusPill tone="neutral">
+                        {formatAdmissionsDecisionOutcome(latestDecision.outcome.status)}
+                      </StatusPill>
+                      <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                        {latestDecision.decisionId}
+                      </p>
+                    </div>
+                    <p className="mt-3 text-sm text-slate-700">
+                      Reason:{" "}
+                      <span className="font-medium text-slate-950">
+                        {getAdmissionsDecisionReasonLabel(
+                          latestDecision.outcome.reasonCode ?? "unspecified",
+                        )}
+                      </span>
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      Decided by {latestDecision.decidedBy} at{" "}
+                      {formatTimestamp(latestDecision.decidedAt)}.
+                    </p>
+                  </div>
+
+                  {latestProvisioningJob ? (
+                    <>
+                      <div className="rounded-[24px] border border-slate-200 bg-white p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <StatusPill tone={getStatusTone(record.status)}>
+                            {latestProvisioningJob.status.replaceAll("-", " ")}
+                          </StatusPill>
+                          <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                            {latestProvisioningJob.adapterMode} |{" "}
+                            {latestProvisioningJob.routingDecision.routeKey}
+                          </p>
+                        </div>
+                        <dl className="mt-4 grid gap-3 text-sm text-slate-700">
+                          <MetadataRow
+                            label="Provisioning job"
+                            value={latestProvisioningJob.jobId}
+                          />
+                          <MetadataRow
+                            label="Correlation ID"
+                            value={latestProvisioningJob.correlationId}
+                          />
+                          <MetadataRow
+                            label="Target record"
+                            value={latestProvisioningJob.targetRecordRef ?? "Pending"}
+                          />
+                          <MetadataRow
+                            label="Attempts"
+                            value={String(latestProvisioningJob.attempts.length)}
+                          />
+                          <MetadataRow
+                            label="Reconciliation"
+                            value={
+                              latestReconciliation
+                                ? latestReconciliation.status.replaceAll("-", " ")
+                                : "Pending"
+                            }
+                          />
+                        </dl>
+                        {latestReconciliation ? (
+                          <p className="mt-4 text-sm leading-6 text-slate-600">
+                            {latestReconciliation.details}
+                          </p>
+                        ) : null}
+                        {openException ? (
+                          <div className="mt-4 rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            Exception queued: {openException.summary}
+                          </div>
+                        ) : null}
+                      </div>
+
+                      <div className="grid gap-3">
+                        {provisioningEvents.map((event) => (
+                          <div
+                            key={event.eventId}
+                            className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
+                          >
+                            <p className="text-sm font-medium text-slate-900">
+                              {event.summary}
+                            </p>
+                            <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-500">
+                              {event.type} | {formatTimestamp(event.occurredAt)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                      This decision does not require provisioning. Waitlist and reject
+                      outcomes stop at the immutable decision record.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                  Capture a decision to populate the downstream trace.
+                </div>
+              )}
+            </SurfaceCard>
+
+            <SurfaceCard className="rounded-[32px] p-6">
+              <SectionHeader
                 title="Workflow controls"
                 body="Queue assignment and handover state changes are logged with actor and timestamp."
               />
+              {isWorkflowLocked ? (
+                <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  Workflow controls are locked after decision capture. Post-decision
+                  state now follows the immutable decision record and provisioning
+                  outcome.
+                </div>
+              ) : null}
               <div className="mt-5 flex flex-wrap gap-2">
                 {statusOptions.map((status) => (
                   <Button
@@ -414,6 +767,7 @@ export default function AdmissionsApplicationReview() {
                         ? "border-[#0B4F74] bg-[#0B4F74] text-white hover:bg-[#083a55]"
                         : ""
                     }
+                    disabled={isWorkflowLocked}
                     onClick={() => {
                       updateRecords((current) =>
                         updateAdmissionsStatus(current, {
@@ -533,7 +887,7 @@ export default function AdmissionsApplicationReview() {
             <SurfaceCard className="rounded-[32px] p-6">
               <SectionHeader
                 title="Audit trail"
-                body="Assignment, queue-state, note, and document-access events remain visible by user and timestamp."
+                body="Assignment, queue-state, decision, provisioning, note, and document-access events remain visible by user and timestamp."
               />
               <div className="mt-5 grid gap-3">
                 {record.auditEvents
@@ -549,6 +903,10 @@ export default function AdmissionsApplicationReview() {
                           {event.type === "note" ? (
                             <FileText className="h-4 w-4" />
                           ) : event.type === "status" ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                          ) : event.type === "decision" ? (
+                            <ShieldCheck className="h-4 w-4" />
+                          ) : event.type === "provisioning" ? (
                             <CheckCircle2 className="h-4 w-4" />
                           ) : event.type === "document-access" ? (
                             event.metadata?.outcome === "blocked" ? (

@@ -63,6 +63,14 @@ function getStatusTone(status: AdmissionsQueueStatus) {
       return "info" as const;
     case "ready-for-decision":
       return "success" as const;
+    case "decisioned":
+      return "neutral" as const;
+    case "provisioning":
+      return "info" as const;
+    case "provisioned":
+      return "success" as const;
+    case "provisioning-exception":
+      return "warning" as const;
   }
 }
 
@@ -93,6 +101,10 @@ const statusFilterOptions: Array<{ label: string; value: AdmissionsStatusFilter 
   { label: "Assigned", value: "assigned" },
   { label: "Under review", value: "under-review" },
   { label: "Ready for decision", value: "ready-for-decision" },
+  { label: "Decisioned", value: "decisioned" },
+  { label: "Provisioning", value: "provisioning" },
+  { label: "Provisioned", value: "provisioned" },
+  { label: "Provisioning exception", value: "provisioning-exception" },
 ];
 
 const assigneeFilterOptions: Array<{ label: string; value: AdmissionsAssigneeFilter }> = [

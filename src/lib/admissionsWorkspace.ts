@@ -2,10 +2,19 @@ import type {
   CanonicalApplicationV1,
   CanonicalDocumentReference,
 } from "../integrationPlatform/contracts";
+import type {
+  AuditLedgerEvent,
+  ExceptionQueueRecord,
+  ReconciliationResult,
+} from "../integrationPlatform/operations";
+import type {
+  DecisionRecordV1,
+  ProvisioningJobV1,
+} from "../integrationPlatform/provisioning";
 import { canonicalApplicationSamples } from "../integrationPlatform/examples";
 
 export const ADMISSIONS_WORKSPACE_STORAGE_KEY =
-  "application-prototype:admissions-workspace:v2";
+  "application-prototype:admissions-workspace:v3";
 
 export const ADMISSIONS_QUEUE_PAGE_SIZE = 6;
 
@@ -13,7 +22,11 @@ export type AdmissionsQueueStatus =
   | "new"
   | "assigned"
   | "under-review"
-  | "ready-for-decision";
+  | "ready-for-decision"
+  | "decisioned"
+  | "provisioning"
+  | "provisioned"
+  | "provisioning-exception";
 
 export type AdmissionsPriority = "high" | "medium" | "normal";
 
@@ -21,7 +34,9 @@ export type AdmissionsAuditEventType =
   | "assignment"
   | "status"
   | "note"
-  | "document-access";
+  | "document-access"
+  | "decision"
+  | "provisioning";
 
 export type AdmissionsStatusFilter = "all" | AdmissionsQueueStatus;
 
@@ -51,6 +66,14 @@ export interface AdmissionsQueuePage {
   totalRecords: number;
 }
 
+export interface AdmissionsDecisionTrace {
+  auditEvents: AuditLedgerEvent[];
+  decisions: DecisionRecordV1[];
+  exceptions: ExceptionQueueRecord[];
+  provisioningJobs: ProvisioningJobV1[];
+  reconciliations: ReconciliationResult[];
+}
+
 export const DEFAULT_ADMISSIONS_QUEUE_SEARCH_STATE: AdmissionsQueueSearchState = {
   assignee: "all",
   courseLine: "all",
@@ -66,6 +89,10 @@ const ADMISSIONS_STATUS_FILTER_VALUES = new Set<AdmissionsStatusFilter>([
   "assigned",
   "under-review",
   "ready-for-decision",
+  "decisioned",
+  "provisioning",
+  "provisioned",
+  "provisioning-exception",
 ]);
 
 const ADMISSIONS_ASSIGNEE_FILTER_VALUES = new Set<AdmissionsAssigneeFilter>([
@@ -120,6 +147,7 @@ export interface AdmissionsQueueRecord {
   assignedBy?: string;
   assignee?: string;
   auditEvents: AdmissionsAuditEvent[];
+  decisionTrace: AdmissionsDecisionTrace;
   lastActivityAt: string;
   notes: AdmissionsNote[];
   priority: AdmissionsPriority;
@@ -149,11 +177,114 @@ function cloneAuditEvent(event: AdmissionsAuditEvent): AdmissionsAuditEvent {
   };
 }
 
+function cloneProvisioningAuditEvent(event: AuditLedgerEvent): AuditLedgerEvent {
+  return {
+    ...event,
+    metadata: event.metadata ? { ...event.metadata } : undefined,
+  };
+}
+
+function cloneProvisioningException(
+  record: ExceptionQueueRecord,
+): ExceptionQueueRecord {
+  return {
+    ...record,
+    notes: [...record.notes],
+    triageActions: record.triageActions.map((action) => ({
+      ...action,
+    })),
+  };
+}
+
+function cloneProvisioningJob(job: ProvisioningJobV1): ProvisioningJobV1 {
+  return {
+    ...job,
+    routingDecision: {
+      ...job.routingDecision,
+      capabilitySnapshot: {
+        ...job.routingDecision.capabilitySnapshot,
+      },
+    },
+    attempts: job.attempts.map((attempt) => ({
+      ...attempt,
+    })),
+    transitionHistory: job.transitionHistory.map((transition) => ({
+      ...transition,
+      metadata: transition.metadata ? { ...transition.metadata } : undefined,
+    })),
+  };
+}
+
+function cloneReconciliationResult(
+  result: ReconciliationResult,
+): ReconciliationResult {
+  return {
+    ...result,
+  };
+}
+
+export function createEmptyAdmissionsDecisionTrace(): AdmissionsDecisionTrace {
+  return {
+    auditEvents: [],
+    decisions: [],
+    exceptions: [],
+    provisioningJobs: [],
+    reconciliations: [],
+  };
+}
+
+function cloneDecisionTrace(trace: AdmissionsDecisionTrace): AdmissionsDecisionTrace {
+  return {
+    auditEvents: trace.auditEvents.map((event) => cloneProvisioningAuditEvent(event)),
+    decisions: trace.decisions.map((decision) => ({
+      ...decision,
+      outcome: {
+        ...decision.outcome,
+      },
+      metadata: decision.metadata ? { ...decision.metadata } : undefined,
+    })),
+    exceptions: trace.exceptions.map((record) => cloneProvisioningException(record)),
+    provisioningJobs: trace.provisioningJobs.map((job) => cloneProvisioningJob(job)),
+    reconciliations: trace.reconciliations.map((result) =>
+      cloneReconciliationResult(result),
+    ),
+  };
+}
+
+function normalizeAdmissionsDecisionTrace(
+  trace: Partial<AdmissionsDecisionTrace> | undefined,
+): AdmissionsDecisionTrace {
+  return cloneDecisionTrace({
+    ...createEmptyAdmissionsDecisionTrace(),
+    ...trace,
+    auditEvents: (trace?.auditEvents ?? []).map((event) =>
+      cloneProvisioningAuditEvent(event),
+    ),
+    decisions: (trace?.decisions ?? []).map((decision) => ({
+      ...decision,
+      outcome: {
+        ...decision.outcome,
+      },
+      metadata: decision.metadata ? { ...decision.metadata } : undefined,
+    })),
+    exceptions: (trace?.exceptions ?? []).map((record) =>
+      cloneProvisioningException(record),
+    ),
+    provisioningJobs: (trace?.provisioningJobs ?? []).map((job) =>
+      cloneProvisioningJob(job),
+    ),
+    reconciliations: (trace?.reconciliations ?? []).map((result) =>
+      cloneReconciliationResult(result),
+    ),
+  });
+}
+
 function cloneRecord(record: AdmissionsQueueRecord): AdmissionsQueueRecord {
   return {
     ...record,
     application: cloneApplication(record.application),
     auditEvents: record.auditEvents.map((event) => cloneAuditEvent(event)),
+    decisionTrace: cloneDecisionTrace(record.decisionTrace),
     notes: record.notes.map((note) => cloneNote(note)),
   };
 }
@@ -389,6 +520,17 @@ function createAuditEvent(input: {
   };
 }
 
+function normalizeAdmissionsRecord(
+  record: AdmissionsQueueRecord,
+): AdmissionsQueueRecord {
+  return {
+    ...record,
+    auditEvents: (record.auditEvents ?? []).map((event) => cloneAuditEvent(event)),
+    decisionTrace: normalizeAdmissionsDecisionTrace(record.decisionTrace),
+    notes: (record.notes ?? []).map((note) => cloneNote(note)),
+  };
+}
+
 function createNote(input: {
   applicationId: string;
   author: string;
@@ -476,6 +618,7 @@ function createSeedRecord(
     assignedBy: config.assignedBy,
     assignee: config.assignee,
     auditEvents,
+    decisionTrace: createEmptyAdmissionsDecisionTrace(),
     lastActivityAt: config.lastActivityAt,
     notes,
     priority: config.priority,
@@ -665,7 +808,7 @@ export function loadAdmissionsWorkspaceRecords(): AdmissionsQueueRecord[] {
     if (storedValue) {
       const parsed = JSON.parse(storedValue) as AdmissionsQueueRecord[];
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return cloneAdmissionsRecords(parsed);
+        return parsed.map((record) => normalizeAdmissionsRecord(record));
       }
     }
   } catch {
