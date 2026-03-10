@@ -56,6 +56,8 @@ Baseline assumptions:
 
 Prepared payload metadata includes:
 - connector id and dispatch endpoint
+- route key, ack target, and record-lookup target
+- connector availability status at dispatch planning time
 - private-network requirement flag
 - credential and deployment boundary markers
 
@@ -64,6 +66,12 @@ Default route and failure policy:
 - priority `20`
 - supports JSON manifests without inline documents and `source-application-id` duplicate detection
 - treats `invalid_credentials` and `configuration_error` as terminal failures
+
+Edge telemetry additions:
+- `InMemoryEdgeConnectorTelemetryStore` captures connector health snapshots plus per-run telemetry events without changing the shared orchestrator contract.
+- Telemetry events are emitted at `prepared`, `dispatched`, `verified`, and `reconciled` stages.
+- Operations-facing connector status views expose latest availability plus latest run stage/state per connector.
+- Connectivity failures can surface `offline` availability while successful runs keep `healthy` status and a final `completed` run state.
 
 ## Shared Contract Additions
 

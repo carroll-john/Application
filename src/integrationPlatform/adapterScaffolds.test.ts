@@ -7,6 +7,7 @@ import {
   createEdgeConnectorAdapter,
   createImportWorkflowAdapter,
   createScaffoldedAdapterRegistry,
+  InMemoryEdgeConnectorTelemetryStore,
 } from "./adapterScaffolds";
 import {
   validateImportWorkflowDispatchPayload,
@@ -135,9 +136,11 @@ describe("adapter scaffolds", () => {
   });
 
   it("runs an edge-configured pilot partner without custom orchestration logic", async () => {
+    const telemetryStore = new InMemoryEdgeConnectorTelemetryStore();
     const edgeAdapter = createEdgeConnectorAdapter({
       connectorId: "northbridge-edge-01",
       endpointRef: "edge://northbridge/private-network",
+      telemetryStore,
     });
     const registry = createScaffoldedAdapterRegistry([
       createImportWorkflowAdapter(),
@@ -182,10 +185,101 @@ describe("adapter scaffolds", () => {
       deploymentBoundary: "private-edge-node",
       credentialBoundary: "edge-local",
       requiresPrivateNetwork: "true",
+      routeKey: "edge:northbridge-edge-01",
+      ackTarget: "edge://northbridge/private-network/acks",
+      recordLookupTarget: "edge://northbridge/private-network/records",
+      connectorAvailabilityStatus: "healthy",
     });
     expect(result.preparedPayload?.verificationHooks?.map((hook) => hook.kind)).toEqual([
       "edge-ack",
       "record-lookup",
+    ]);
+    expect(
+      telemetryStore
+        .listRunEvents({ connectorId: "northbridge-edge-01" })
+        .map((event) => [event.stage, event.runState]),
+    ).toEqual([
+      ["prepared", "in_progress"],
+      ["dispatched", "in_progress"],
+      ["verified", "in_progress"],
+      ["reconciled", "completed"],
+    ]);
+    expect(
+      telemetryStore.getLatestHealth("northbridge-edge-01"),
+    ).toMatchObject({
+      availabilityStatus: "healthy",
+      routeKey: "edge:northbridge-edge-01",
+      endpointRef: "edge://northbridge/private-network",
+      requiresPrivateNetwork: true,
+    });
+    expect(telemetryStore.listConnectorStatuses()).toMatchObject([
+      {
+        connectorId: "northbridge-edge-01",
+        availabilityStatus: "healthy",
+        latestRunStage: "reconciled",
+        latestRunState: "completed",
+        latestJobId: result.job.jobId,
+      },
+    ]);
+  });
+
+  it("surfaces offline edge connector availability and exception run state for operations telemetry", async () => {
+    const telemetryStore = new InMemoryEdgeConnectorTelemetryStore();
+    const edgeAdapter = createEdgeConnectorAdapter({
+      connectorId: "northbridge-edge-offline",
+      endpointRef: "edge://northbridge/offline-network",
+      telemetryStore,
+      healthStatus: "offline",
+      healthDetails: "Connector heartbeat is unavailable from the partner network.",
+      executionErrorCode: "network_unreachable",
+      executionErrorMessage: "Connector heartbeat is unavailable from the partner network.",
+      executionErrorRetryable: true,
+      executionErrorFailureClass: "connectivity",
+    });
+    const jobStore = new InMemoryProvisioningJobStore();
+    const orchestrator = new ProvisioningOrchestrator({
+      adapters: [edgeAdapter],
+      jobStore,
+      now: () => "2026-03-10T16:40:00Z",
+    });
+    const overlay = universityMappingOverlaySamples[3];
+
+    const result = await orchestrator.processDecision({
+      application: canonicalApplicationSamples[0],
+      decision: createDecisionRecord({
+        decisionId: "decision-edge-offline-001",
+        partnerId: overlay.partnerId,
+        partnerName: overlay.partnerName,
+        correlationId: "corr-edge-offline-001",
+      }),
+      overlay,
+    });
+
+    expect(result.selectedAdapterMode).toBe("edge");
+    expect(result.job.status).toBe("retry_pending");
+    expect(result.job.lastErrorCode).toBe("network_unreachable");
+    expect(result.job.attempts.at(-1)).toMatchObject({
+      failureClass: "connectivity",
+      failureDisposition: "retry",
+    });
+    expect(
+      telemetryStore
+        .listRunEvents({ connectorId: "northbridge-edge-offline" })
+        .map((event) => [event.stage, event.runState, event.availabilityStatus]),
+    ).toEqual([
+      ["prepared", "in_progress", "offline"],
+      ["dispatched", "exception", "offline"],
+    ]);
+    expect(telemetryStore.listConnectorStatuses()).toMatchObject([
+      {
+        connectorId: "northbridge-edge-offline",
+        availabilityStatus: "offline",
+        availabilityDetails:
+          "Connector heartbeat is unavailable from the partner network.",
+        latestRunStage: "dispatched",
+        latestRunState: "exception",
+        latestJobId: result.job.jobId,
+      },
     ]);
   });
 

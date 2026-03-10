@@ -14,6 +14,7 @@ import type {
   AdapterMode,
   DecisionRecordV1,
   PreparedProvisioningPayload,
+  ProvisioningFailureClass,
   UniversityAdapter,
   VerificationHookKind,
   VerificationHookV1,
@@ -33,6 +34,22 @@ export type CredentialBoundary = "partner-managed" | "edge-local";
 
 export type DispatchChannel = "managed-import" | "edge-connector";
 
+export type EdgeConnectorAvailabilityStatus =
+  | "healthy"
+  | "degraded"
+  | "offline";
+
+export type EdgeConnectorRunStage =
+  | "prepared"
+  | "dispatched"
+  | "verified"
+  | "reconciled";
+
+export type EdgeConnectorRunState =
+  | "in_progress"
+  | "completed"
+  | "exception";
+
 export interface AdapterCapabilityDescriptor {
   mode: ScaffoldedAdapterMode;
   dispatchChannel: DispatchChannel;
@@ -45,6 +62,64 @@ export interface AdapterCapabilityDescriptor {
 
 export interface ScaffoldedUniversityAdapter extends UniversityAdapter {
   readonly descriptor: AdapterCapabilityDescriptor;
+}
+
+export interface EdgeConnectorHealthSnapshot {
+  connectorId: string;
+  routeKey: string;
+  endpointRef: string;
+  observedAt: string;
+  availabilityStatus: EdgeConnectorAvailabilityStatus;
+  details: string;
+  deploymentBoundary: DeploymentBoundary;
+  credentialBoundary: CredentialBoundary;
+  requiresPrivateNetwork: boolean;
+}
+
+export interface EdgeConnectorRunTelemetryEvent {
+  eventId: string;
+  connectorId: string;
+  routeKey: string;
+  endpointRef: string;
+  jobId: string;
+  correlationId: string;
+  observedAt: string;
+  stage: EdgeConnectorRunStage;
+  runState: EdgeConnectorRunState;
+  availabilityStatus: EdgeConnectorAvailabilityStatus;
+  details: string;
+  externalReference?: string;
+}
+
+export interface EdgeConnectorStatusView {
+  connectorId: string;
+  routeKey: string;
+  endpointRef: string;
+  availabilityStatus: EdgeConnectorAvailabilityStatus;
+  availabilityDetails: string;
+  lastHealthObservedAt?: string;
+  latestRunStage?: EdgeConnectorRunStage;
+  latestRunState?: EdgeConnectorRunState;
+  lastRunObservedAt?: string;
+  latestJobId?: string;
+  latestCorrelationId?: string;
+  requiresPrivateNetwork: boolean;
+}
+
+export interface EdgeConnectorTelemetryFilters {
+  connectorId?: string;
+  jobId?: string;
+  runState?: EdgeConnectorRunState;
+}
+
+export interface EdgeConnectorTelemetryStore {
+  getLatestHealth(connectorId: string): EdgeConnectorHealthSnapshot | undefined;
+  listConnectorStatuses(): EdgeConnectorStatusView[];
+  listRunEvents(
+    filters?: EdgeConnectorTelemetryFilters,
+  ): EdgeConnectorRunTelemetryEvent[];
+  recordHealth(snapshot: EdgeConnectorHealthSnapshot): void;
+  recordRun(event: EdgeConnectorRunTelemetryEvent): void;
 }
 
 export interface AdapterCapabilityRegistry {
@@ -73,6 +148,103 @@ function cloneDescriptor(
     verificationKinds: [...descriptor.verificationKinds],
     assumptions: [...descriptor.assumptions],
   };
+}
+
+function cloneHealthSnapshot(
+  snapshot: EdgeConnectorHealthSnapshot,
+): EdgeConnectorHealthSnapshot {
+  return {
+    ...snapshot,
+  };
+}
+
+function cloneRunTelemetryEvent(
+  event: EdgeConnectorRunTelemetryEvent,
+): EdgeConnectorRunTelemetryEvent {
+  return {
+    ...event,
+  };
+}
+
+function sanitizeToken(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+export class InMemoryEdgeConnectorTelemetryStore
+  implements EdgeConnectorTelemetryStore
+{
+  private readonly latestHealthByConnector = new Map<
+    string,
+    EdgeConnectorHealthSnapshot
+  >();
+  private readonly runEvents: EdgeConnectorRunTelemetryEvent[] = [];
+
+  getLatestHealth(connectorId: string): EdgeConnectorHealthSnapshot | undefined {
+    const snapshot = this.latestHealthByConnector.get(connectorId);
+    return snapshot ? cloneHealthSnapshot(snapshot) : undefined;
+  }
+
+  listConnectorStatuses(): EdgeConnectorStatusView[] {
+    const connectorIds = new Set<string>([
+      ...this.latestHealthByConnector.keys(),
+      ...this.runEvents.map((event) => event.connectorId),
+    ]);
+
+    return Array.from(connectorIds)
+      .flatMap((connectorId) => {
+        const latestHealth = this.latestHealthByConnector.get(connectorId);
+        const latestRun = [...this.runEvents]
+          .filter((event) => event.connectorId === connectorId)
+          .sort((left, right) => right.observedAt.localeCompare(left.observedAt))[0];
+
+        if (!latestHealth && !latestRun) {
+          return [];
+        }
+
+        return [{
+          connectorId,
+          routeKey: latestHealth?.routeKey ?? latestRun?.routeKey ?? `edge:${connectorId}`,
+          endpointRef: latestHealth?.endpointRef ?? latestRun?.endpointRef ?? "",
+          availabilityStatus: latestHealth?.availabilityStatus ?? "degraded",
+          availabilityDetails:
+            latestHealth?.details ?? "No connector health snapshot has been recorded.",
+          lastHealthObservedAt: latestHealth?.observedAt,
+          latestRunStage: latestRun?.stage,
+          latestRunState: latestRun?.runState,
+          lastRunObservedAt: latestRun?.observedAt,
+          latestJobId: latestRun?.jobId,
+          latestCorrelationId: latestRun?.correlationId,
+          requiresPrivateNetwork: latestHealth?.requiresPrivateNetwork ?? true,
+        } satisfies EdgeConnectorStatusView];
+      })
+      .sort((left, right) => left.connectorId.localeCompare(right.connectorId));
+  }
+
+  listRunEvents(
+    filters: EdgeConnectorTelemetryFilters = {},
+  ): EdgeConnectorRunTelemetryEvent[] {
+    return this.runEvents
+      .filter((event) =>
+        filters.connectorId ? event.connectorId === filters.connectorId : true,
+      )
+      .filter((event) => (filters.jobId ? event.jobId === filters.jobId : true))
+      .filter((event) =>
+        filters.runState ? event.runState === filters.runState : true,
+      )
+      .sort((left, right) => left.observedAt.localeCompare(right.observedAt))
+      .map((event) => cloneRunTelemetryEvent(event));
+  }
+
+  recordHealth(snapshot: EdgeConnectorHealthSnapshot): void {
+    this.latestHealthByConnector.set(
+      snapshot.connectorId,
+      cloneHealthSnapshot(snapshot),
+    );
+  }
+
+  recordRun(event: EdgeConnectorRunTelemetryEvent): void {
+    this.runEvents.push(cloneRunTelemetryEvent(event));
+  }
 }
 
 function createPreparedPayload(input: {
@@ -163,9 +335,17 @@ export interface EdgeConnectorAdapterOptions {
   endpointRef?: string;
   ackTarget?: string;
   recordLookupTarget?: string;
+  preparedAt?: string;
   submittedAt?: string;
   verifiedAt?: string;
   reconciledAt?: string;
+  telemetryStore?: EdgeConnectorTelemetryStore;
+  healthStatus?: EdgeConnectorAvailabilityStatus;
+  healthDetails?: string;
+  executionErrorCode?: string;
+  executionErrorMessage?: string;
+  executionErrorRetryable?: boolean;
+  executionErrorFailureClass?: ProvisioningFailureClass;
 }
 
 export function createImportWorkflowAdapter(
@@ -369,9 +549,11 @@ export function createEdgeConnectorAdapter(
   const connectorId = options.connectorId ?? "edge-connector-01";
   const endpointRef =
     options.endpointRef ?? `edge://${connectorId}/private-network`;
+  const routeKey = `edge:${connectorId}`;
   const ackTarget = options.ackTarget ?? `${endpointRef}/acks`;
   const recordLookupTarget =
     options.recordLookupTarget ?? `${endpointRef}/records`;
+  const telemetryStore = options.telemetryStore;
   const verificationHooks: VerificationHookV1[] = [
     {
       kind: "edge-ack",
@@ -399,10 +581,110 @@ export function createEdgeConnectorAdapter(
     ],
   };
 
+  function resolveAvailabilityStatus(
+    failureClass?: ProvisioningFailureClass,
+  ): EdgeConnectorAvailabilityStatus {
+    if (options.healthStatus) {
+      return options.healthStatus;
+    }
+
+    if (failureClass === "connectivity") {
+      return "offline";
+    }
+
+    if (failureClass) {
+      return "degraded";
+    }
+
+    return "healthy";
+  }
+
+  function resolveAvailabilityDetails(
+    availabilityStatus: EdgeConnectorAvailabilityStatus,
+    detailOverride?: string,
+  ): string {
+    if (detailOverride) {
+      return detailOverride;
+    }
+
+    if (options.healthDetails) {
+      return options.healthDetails;
+    }
+
+    if (availabilityStatus === "healthy") {
+      return "Connector heartbeat and dispatch checks are within the expected SLA.";
+    }
+
+    if (availabilityStatus === "offline") {
+      return "Connector heartbeat is unavailable from the private-network edge runtime.";
+    }
+
+    return "Connector is reachable but reporting degraded runtime health.";
+  }
+
+  function recordHealth(input: {
+    observedAt: string;
+    failureClass?: ProvisioningFailureClass;
+    details?: string;
+  }): void {
+    if (!telemetryStore) {
+      return;
+    }
+
+    const availabilityStatus = resolveAvailabilityStatus(input.failureClass);
+    telemetryStore.recordHealth({
+      connectorId,
+      routeKey,
+      endpointRef,
+      observedAt: input.observedAt,
+      availabilityStatus,
+      details: resolveAvailabilityDetails(availabilityStatus, input.details),
+      deploymentBoundary: descriptor.deploymentBoundary,
+      credentialBoundary: descriptor.credentialBoundary,
+      requiresPrivateNetwork: descriptor.requiresPrivateNetwork,
+    });
+  }
+
+  function recordRun(input: {
+    observedAt: string;
+    stage: EdgeConnectorRunStage;
+    runState: EdgeConnectorRunState;
+    jobId: string;
+    correlationId: string;
+    externalReference?: string;
+    failureClass?: ProvisioningFailureClass;
+    details: string;
+  }): void {
+    if (!telemetryStore) {
+      return;
+    }
+
+    const availabilityStatus = resolveAvailabilityStatus(input.failureClass);
+    telemetryStore.recordRun({
+      eventId: [
+        "edge-run",
+        sanitizeToken(connectorId),
+        sanitizeToken(input.jobId),
+        sanitizeToken(input.stage),
+      ].join("-"),
+      connectorId,
+      routeKey,
+      endpointRef,
+      jobId: input.jobId,
+      correlationId: input.correlationId,
+      observedAt: input.observedAt,
+      stage: input.stage,
+      runState: input.runState,
+      availabilityStatus,
+      details: input.details,
+      externalReference: input.externalReference,
+    });
+  }
+
   return {
     mode: "edge",
     routingProfile: {
-      routeKey: `edge:${connectorId}`,
+      routeKey,
       priority: 20,
       supportedManifestFormats: ["json"],
       supportsInlineDocuments: false,
@@ -417,8 +699,21 @@ export function createEdgeConnectorAdapter(
       terminalCodes: ["invalid_credentials", "configuration_error"],
     },
     descriptor,
-    prepare: ({ application, decision, overlay, job }) =>
-      createPreparedPayload({
+    prepare: ({ application, decision, overlay, job }) => {
+      const preparedAt = options.preparedAt ?? "2026-03-10T16:09:00Z";
+      recordHealth({
+        observedAt: preparedAt,
+      });
+      recordRun({
+        observedAt: preparedAt,
+        stage: "prepared",
+        runState: "in_progress",
+        jobId: job.jobId,
+        correlationId: job.correlationId,
+        details: "Prepared edge connector dispatch payload and verification hooks.",
+      });
+
+      return createPreparedPayload({
         application,
         decision,
         overlay,
@@ -430,6 +725,10 @@ export function createEdgeConnectorAdapter(
           deploymentBoundary: descriptor.deploymentBoundary,
           credentialBoundary: descriptor.credentialBoundary,
           requiresPrivateNetwork: String(descriptor.requiresPrivateNetwork),
+          routeKey,
+          ackTarget,
+          recordLookupTarget,
+          connectorAvailabilityStatus: resolveAvailabilityStatus(),
           manifestFormat: overlay.capabilityProfile.manifestFormat,
           acceptsDocumentsInline: String(
             overlay.capabilityProfile.acceptsDocumentsInline,
@@ -438,21 +737,101 @@ export function createEdgeConnectorAdapter(
             overlay.capabilityProfile.duplicateCheckStrategy,
         },
         verificationHooks,
-      }),
-    execute: (_prepared, context) => ({
-      accepted: true,
-      externalReference: `edge:${connectorId}:${context.idempotencyKey}`,
-      submittedAt: options.submittedAt ?? "2026-03-10T16:10:00Z",
-    }),
-    verify: (prepared, execution) => ({
-      verified: Boolean(prepared.verificationHooks?.length),
-      verifiedAt: options.verifiedAt ?? "2026-03-10T16:11:00Z",
-      externalReference: execution.externalReference,
-    }),
-    reconcile: () => ({
-      status: "matched",
-      reconciledAt: options.reconciledAt ?? "2026-03-10T16:12:00Z",
-    }),
+      });
+    },
+    execute: (_prepared, context) => {
+      const submittedAt = options.submittedAt ?? "2026-03-10T16:10:00Z";
+      if (options.executionErrorCode) {
+        recordHealth({
+          observedAt: submittedAt,
+          failureClass: options.executionErrorFailureClass,
+          details: options.executionErrorMessage,
+        });
+        recordRun({
+          observedAt: submittedAt,
+          stage: "dispatched",
+          runState: "exception",
+          jobId: context.jobId,
+          correlationId: context.correlationId,
+          failureClass: options.executionErrorFailureClass,
+          details:
+            options.executionErrorMessage ??
+            `Edge dispatch failed with ${options.executionErrorCode}.`,
+        });
+        throw new AdapterExecutionErrorClass(
+          options.executionErrorCode,
+          options.executionErrorMessage ??
+            `Edge dispatch failed with ${options.executionErrorCode}.`,
+          {
+            retryable: options.executionErrorRetryable,
+            failureClass: options.executionErrorFailureClass,
+          },
+        );
+      }
+
+      const externalReference = `edge:${connectorId}:${context.idempotencyKey}`;
+      recordHealth({
+        observedAt: submittedAt,
+      });
+      recordRun({
+        observedAt: submittedAt,
+        stage: "dispatched",
+        runState: "in_progress",
+        jobId: context.jobId,
+        correlationId: context.correlationId,
+        externalReference,
+        details: "Edge connector accepted dispatch for private-network execution.",
+      });
+      return {
+        accepted: true,
+        externalReference,
+        submittedAt,
+      };
+    },
+    verify: (prepared, execution, context) => {
+      const verified = Boolean(prepared.verificationHooks?.length);
+      const verifiedAt = options.verifiedAt ?? "2026-03-10T16:11:00Z";
+      recordHealth({
+        observedAt: verifiedAt,
+      });
+      recordRun({
+        observedAt: verifiedAt,
+        stage: "verified",
+        runState: verified ? "in_progress" : "exception",
+        jobId: context.jobId,
+        correlationId: context.correlationId,
+        externalReference: execution.externalReference,
+        failureClass: verified ? undefined : "verification",
+        details: verified
+          ? "Edge acknowledgement and downstream lookup hooks were registered."
+          : "Edge verification hooks were missing or incomplete.",
+      });
+      return {
+        verified,
+        verifiedAt,
+        externalReference: execution.externalReference,
+      };
+    },
+    reconcile: (_prepared, execution, context) => {
+      const reconciledAt = options.reconciledAt ?? "2026-03-10T16:12:00Z";
+      recordHealth({
+        observedAt: reconciledAt,
+      });
+      recordRun({
+        observedAt: reconciledAt,
+        stage: "reconciled",
+        runState: "completed",
+        jobId: context.jobId,
+        correlationId: context.correlationId,
+        externalReference: execution.externalReference,
+        details:
+          "Edge connector reconciliation confirmed the downstream record lookup.",
+      });
+      return {
+        status: "matched",
+        reconciledAt,
+      };
+    },
   };
 }
 
