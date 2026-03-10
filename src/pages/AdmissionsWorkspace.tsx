@@ -31,6 +31,15 @@ import {
   type AdmissionsQueueStatus,
   type AdmissionsStatusFilter,
 } from "../lib/admissionsWorkspace";
+import {
+  getPartnerCourseRolloutModeDefinition,
+  getPartnerCourseRolloutSnapshot,
+  loadPartnerCourseRolloutConfigs,
+  savePartnerCourseRolloutConfigs,
+  transitionPartnerCourseRolloutMode,
+  type PartnerCourseRolloutConfig,
+  type PartnerCourseRolloutMode,
+} from "../lib/partnerCourseRollout";
 import { capturePostHogEvent } from "../lib/posthog";
 
 function formatTimestamp(value: string | undefined): string {
@@ -95,6 +104,22 @@ function useAdmissionsWorkspaceRecords() {
   };
 }
 
+function usePartnerCourseRolloutConfigs() {
+  const [rolloutConfigs, setRolloutConfigs] = useState<PartnerCourseRolloutConfig[]>(() =>
+    loadPartnerCourseRolloutConfigs(),
+  );
+
+  const updateRolloutConfigs = (nextConfigs: PartnerCourseRolloutConfig[]) => {
+    setRolloutConfigs(nextConfigs);
+    savePartnerCourseRolloutConfigs(nextConfigs);
+  };
+
+  return {
+    rolloutConfigs,
+    updateRolloutConfigs,
+  };
+}
+
 const statusFilterOptions: Array<{ label: string; value: AdmissionsStatusFilter }> = [
   { label: "All statuses", value: "all" },
   { label: "New", value: "new" },
@@ -119,9 +144,25 @@ export default function AdmissionsWorkspace() {
   const { companyUserDisplayName, companyUserEmail, signOut } = useAuth();
   const actor = companyUserEmail ?? "admissions.user@keypath.com.au";
   const { records, updateRecords } = useAdmissionsWorkspaceRecords();
+  const { rolloutConfigs, updateRolloutConfigs } = usePartnerCourseRolloutConfigs();
+  const [rolloutDrafts, setRolloutDrafts] = useState<
+    Record<string, { mode: PartnerCourseRolloutMode; reason: string }>
+  >({});
+  const [rolloutMessages, setRolloutMessages] = useState<
+    Record<string, { body: string; tone: "info" | "warning" }>
+  >({});
   const searchState = useMemo(
     () => readAdmissionsQueueSearchState(searchParams),
     [searchParams],
+  );
+  const rolloutConfigRows = useMemo(
+    () =>
+      [...rolloutConfigs].sort((left, right) =>
+        `${left.partnerName}-${left.courseTitle}`.localeCompare(
+          `${right.partnerName}-${right.courseTitle}`,
+        ),
+      ),
+    [rolloutConfigs],
   );
 
   const filteredRecords = useMemo(() => {
@@ -195,6 +236,69 @@ export default function AdmissionsWorkspace() {
     [records],
   );
 
+  const getRolloutDraft = (config: PartnerCourseRolloutConfig) =>
+    rolloutDrafts[config.configId] ?? {
+      mode: config.activeMode,
+      reason: "",
+    };
+
+  const setRolloutDraft = (
+    configId: string,
+    patch: Partial<{ mode: PartnerCourseRolloutMode; reason: string }>,
+  ) => {
+    const activeMode =
+      rolloutConfigRows.find((config) => config.configId === configId)?.activeMode ??
+      "mode-1-review-only";
+    setRolloutDrafts((current) => ({
+      ...current,
+      [configId]: {
+        ...(current[configId] ?? { mode: activeMode, reason: "" }),
+        ...patch,
+      },
+    }));
+  };
+
+  const applyRolloutModeChange = (config: PartnerCourseRolloutConfig) => {
+    const draft = getRolloutDraft(config);
+    const result = transitionPartnerCourseRolloutMode(rolloutConfigs, {
+      actor,
+      courseCode: config.courseCode,
+      courseTitle: config.courseTitle,
+      nextMode: draft.mode,
+      partnerId: config.partnerId,
+      partnerName: config.partnerName,
+      reason: draft.reason,
+    });
+
+    updateRolloutConfigs(result.configs);
+    setRolloutMessages((current) => ({
+      ...current,
+      [config.configId]: {
+        body: result.valid
+          ? `${getPartnerCourseRolloutModeDefinition(draft.mode).label} is now active for ${config.partnerName} ${config.courseCode}.`
+          : result.validationErrors.join(" "),
+        tone: result.valid ? "info" : "warning",
+      },
+    }));
+
+    if (result.valid) {
+      setRolloutDrafts((current) => ({
+        ...current,
+        [config.configId]: {
+          mode: draft.mode,
+          reason: "",
+        },
+      }));
+    }
+
+    capturePostHogEvent("admissions_rollout_mode_updated", {
+      admissions_rollout_mode: draft.mode,
+      admissions_rollout_partner_id: config.partnerId,
+      admissions_rollout_course_code: config.courseCode,
+      admissions_rollout_update_outcome: result.valid ? "applied" : "rejected",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#f7f7f4]">
       <AppBrandHeader variant="admissions">
@@ -242,6 +346,121 @@ export default function AdmissionsWorkspace() {
             value={metrics.ready}
           />
         </div>
+
+        <SurfaceCard className="mt-8 rounded-[32px] p-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Rollout registry
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-950">
+                Partner-course coexistence modes
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Change pilot course lines between review-only, decision plus export,
+                and automated provisioning without touching code. Every change is
+                logged with actor, timestamp, and reason.
+              </p>
+            </div>
+            <p className="text-sm text-slate-500">
+              Changes persist locally in the demo environment.
+            </p>
+          </div>
+          <div className="mt-6 grid gap-4 xl:grid-cols-3">
+            {rolloutConfigRows.map((config) => {
+              const definition = getPartnerCourseRolloutModeDefinition(config.activeMode);
+              const draft = getRolloutDraft(config);
+              const latestTransition = config.transitions.at(-1);
+              const message = rolloutMessages[config.configId];
+
+              return (
+                <div
+                  key={config.configId}
+                  className="rounded-[28px] border border-slate-200 bg-slate-50 p-5"
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <StatusPill tone={definition.tone}>{definition.shortLabel}</StatusPill>
+                    <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                      {config.partnerId} · {config.courseCode}
+                    </p>
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold text-slate-950">
+                    {config.partnerName}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-600">{config.courseTitle}</p>
+                  <p className="mt-4 text-sm leading-6 text-slate-700">
+                    {definition.operatorSummary}
+                  </p>
+                  <p className="mt-4 text-xs uppercase tracking-[0.14em] text-slate-500">
+                    Updated {formatTimestamp(config.updatedAt)} by {config.updatedBy}
+                  </p>
+                  {latestTransition ? (
+                    <div
+                      className={`mt-4 rounded-[20px] border px-4 py-3 text-sm ${
+                        latestTransition.outcome === "applied"
+                          ? "border-slate-200 bg-white text-slate-700"
+                          : "border-amber-200 bg-amber-50 text-amber-900"
+                      }`}
+                    >
+                      <p className="font-medium text-slate-950">{latestTransition.reason}</p>
+                      {latestTransition.validationErrors?.length ? (
+                        <p className="mt-1 leading-6">
+                          {latestTransition.validationErrors.join(" ")}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {message ? (
+                    <div
+                      className={`mt-4 rounded-[20px] border px-4 py-3 text-sm ${
+                        message.tone === "warning"
+                          ? "border-amber-200 bg-amber-50 text-amber-900"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-900"
+                      }`}
+                    >
+                      {message.body}
+                    </div>
+                  ) : null}
+                  <div className="mt-4 grid gap-3">
+                    <select
+                      className="rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                      onChange={(event) =>
+                        setRolloutDraft(config.configId, {
+                          mode: event.target.value as PartnerCourseRolloutMode,
+                        })
+                      }
+                      value={draft.mode}
+                    >
+                      <option value="mode-1-review-only">Mode 1 · Review only</option>
+                      <option value="mode-2-decision-export">
+                        Mode 2 · Decision and export
+                      </option>
+                      <option value="mode-3-automated-provisioning">
+                        Mode 3 · Automated provisioning
+                      </option>
+                    </select>
+                    <textarea
+                      className="min-h-24 rounded-[24px] border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#0B4F74]"
+                      onChange={(event) =>
+                        setRolloutDraft(config.configId, {
+                          reason: event.target.value,
+                        })
+                      }
+                      placeholder="Reason for changing the rollout mode"
+                      value={draft.reason}
+                    />
+                    <Button
+                      onClick={() => applyRolloutModeChange(config)}
+                      variant="outline"
+                    >
+                      Apply rollout mode
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </SurfaceCard>
 
         <SurfaceCard className="mt-8 rounded-[32px] p-6">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(0,190px))]">
@@ -341,6 +560,13 @@ export default function AdmissionsWorkspace() {
             {pagination.records.map((record) => {
               const applicantName = getApplicantName(record);
               const isAssignedToMe = record.assignee === actor;
+              const rolloutSnapshot = getPartnerCourseRolloutSnapshot(
+                record.application,
+                rolloutConfigs,
+              );
+              const rolloutDefinition = getPartnerCourseRolloutModeDefinition(
+                rolloutSnapshot.mode,
+              );
 
               return (
                 <SurfaceCard
@@ -352,6 +578,9 @@ export default function AdmissionsWorkspace() {
                       <div className="flex flex-wrap items-center gap-3">
                         <StatusPill tone={getStatusTone(record.status)}>
                           {record.status.replaceAll("-", " ")}
+                        </StatusPill>
+                        <StatusPill tone={rolloutDefinition.tone}>
+                          {rolloutDefinition.shortLabel}
                         </StatusPill>
                         <StatusPill tone={record.priority === "high" ? "warning" : "neutral"}>
                           {record.priority} priority
@@ -388,6 +617,15 @@ export default function AdmissionsWorkspace() {
                         Assignment and activity
                       </p>
                       <dl className="mt-4 grid gap-3 text-sm text-slate-700">
+                        <div>
+                          <dt className="text-slate-500">Rollout mode</dt>
+                          <dd className="mt-1 font-medium text-slate-950">
+                            {rolloutDefinition.label}
+                          </dd>
+                          <p className="mt-1 text-xs leading-5 text-slate-500">
+                            {rolloutDefinition.operatorSummary}
+                          </p>
+                        </div>
                         <div>
                           <dt className="text-slate-500">Assignee</dt>
                           <dd className="mt-1 font-medium text-slate-950">

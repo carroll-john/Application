@@ -38,10 +38,16 @@ import {
   getLatestAdmissionsDecision,
   getLatestAdmissionsProvisioningJob,
   getLatestAdmissionsReconciliation,
+  getLatestAdmissionsStructuredExport,
   getOpenAdmissionsException,
   listAdmissionsProvisioningAuditEvents,
   type AdmissionsDecisionOutcome,
 } from "../lib/admissionsDecisioning";
+import {
+  getPartnerCourseRolloutModeDefinition,
+  getPartnerCourseRolloutSnapshot,
+  loadPartnerCourseRolloutConfigs,
+} from "../lib/partnerCourseRollout";
 import { capturePostHogEvent } from "../lib/posthog";
 
 function formatTimestamp(value: string | undefined): string {
@@ -118,6 +124,7 @@ export default function AdmissionsApplicationReview() {
   const { companyUserDisplayName, companyUserEmail, signOut } = useAuth();
   const actor = companyUserEmail ?? "admissions.user@keypath.com.au";
   const { records, updateRecords } = useAdmissionsWorkspaceRecords();
+  const rolloutConfigs = useMemo(() => loadPartnerCourseRolloutConfigs(), []);
   const record = useMemo(
     () => (applicationId ? findAdmissionsRecord(records, applicationId) : undefined),
     [applicationId, records],
@@ -183,13 +190,26 @@ export default function AdmissionsApplicationReview() {
   ]
     .filter(Boolean)
     .join(" ");
+  const rolloutSnapshot = getPartnerCourseRolloutSnapshot(
+    record.application,
+    rolloutConfigs,
+  );
+  const rolloutDefinition = getPartnerCourseRolloutModeDefinition(rolloutSnapshot.mode);
   const documentAccessPolicy = evaluateAdmissionsDocumentAccess(record, actor);
-  const decisionReadiness = evaluateAdmissionsDecisionReadiness(record, actor);
+  const decisionReadiness = evaluateAdmissionsDecisionReadiness(
+    record,
+    actor,
+    rolloutConfigs,
+  );
   const reasonOptions = useMemo(
     () => getAdmissionsDecisionReasonOptions(decisionOutcome),
     [decisionOutcome],
   );
   const latestDecision = useMemo(() => getLatestAdmissionsDecision(record), [record]);
+  const latestExportArtifact = useMemo(
+    () => getLatestAdmissionsStructuredExport(record),
+    [record],
+  );
   const latestProvisioningJob = useMemo(
     () => getLatestAdmissionsProvisioningJob(record),
     [record],
@@ -235,24 +255,31 @@ export default function AdmissionsApplicationReview() {
         notes: decisionNotes,
         outcome: decisionOutcome,
         reasonCode: decisionReasonCode,
+        rolloutConfigs,
       });
       const nextRecord = result.records.find(
         (candidate) => candidate.applicationId === record.applicationId,
       );
       const nextJob = nextRecord ? getLatestAdmissionsProvisioningJob(nextRecord) : undefined;
+      const nextExport = nextRecord ? getLatestAdmissionsStructuredExport(nextRecord) : undefined;
 
       updateRecords(() => result.records);
       setDecisionNotes("");
       setDecisionMessage({
-        body: result.triggeredProvisioning
-          ? `Decision captured and provisioning is now ${nextJob?.status ?? "queued"}.`
-          : "Decision captured. This outcome does not trigger downstream provisioning.",
+        body:
+          result.downstreamAction === "automated-provisioning"
+            ? `Decision captured and provisioning is now ${nextJob?.status ?? "queued"}.`
+            : result.downstreamAction === "export"
+              ? `Decision captured and structured export handoff is ready as ${nextExport?.filename ?? "the latest export package"}.`
+              : "Decision captured. This outcome does not trigger downstream automation for the active rollout mode.",
         tone: "info",
       });
       capturePostHogEvent("admissions_decision_captured", {
         admissions_application_id: record.applicationId,
         admissions_decision_outcome: decisionOutcome,
         admissions_decision_reason_code: decisionReasonCode,
+        admissions_downstream_action: result.downstreamAction,
+        admissions_rollout_mode: result.rolloutMode,
         admissions_provisioning_triggered: result.triggeredProvisioning,
         admissions_provisioning_status: nextJob?.status ?? "not-triggered",
       });
@@ -308,6 +335,9 @@ export default function AdmissionsApplicationReview() {
           <div className="flex flex-wrap items-center gap-3">
             <StatusPill tone={getStatusTone(record.status)}>
               {record.status.replaceAll("-", " ")}
+            </StatusPill>
+            <StatusPill tone={rolloutDefinition.tone}>
+              {rolloutDefinition.shortLabel}
             </StatusPill>
             <StatusPill tone={record.priority === "high" ? "warning" : "neutral"}>
               {record.priority} priority
@@ -511,8 +541,71 @@ export default function AdmissionsApplicationReview() {
           <div className="grid gap-6">
             <SurfaceCard className="rounded-[32px] p-6">
               <SectionHeader
+                title="Rollout mode"
+                body="Each partner course line can run in a different coexistence mode while SIS remains system-of-record."
+              />
+              <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <StatusPill tone={rolloutDefinition.tone}>
+                    {rolloutDefinition.label}
+                  </StatusPill>
+                  <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                    {record.application.selectedCourse.providerCode} ·{" "}
+                    {record.application.selectedCourse.courseCode}
+                  </p>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-700">
+                  {rolloutDefinition.operatorSummary}
+                </p>
+                {rolloutSnapshot.isFallback ? (
+                  <div className="mt-4 rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    No explicit rollout config is stored for this course line, so the
+                    portal is safely defaulting to Mode 1 review-only.
+                  </div>
+                ) : null}
+              </div>
+              {rolloutSnapshot.config?.transitions?.length ? (
+                <div className="mt-5 grid gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    Transition history
+                  </p>
+                  {rolloutSnapshot.config.transitions
+                    .slice()
+                    .reverse()
+                    .slice(0, 3)
+                    .map((transition) => (
+                      <div
+                        key={transition.eventId}
+                        className={`rounded-[24px] border px-4 py-3 text-sm ${
+                          transition.outcome === "applied"
+                            ? "border-slate-200 bg-white text-slate-700"
+                            : "border-amber-200 bg-amber-50 text-amber-900"
+                        }`}
+                      >
+                        <p className="font-medium text-slate-950">
+                          {transition.outcome === "applied"
+                            ? `Mode changed to ${getPartnerCourseRolloutModeDefinition(transition.toMode).label}.`
+                            : `Blocked mode change to ${getPartnerCourseRolloutModeDefinition(transition.toMode).label}.`}
+                        </p>
+                        <p className="mt-1 leading-6">{transition.reason}</p>
+                        {transition.validationErrors?.length ? (
+                          <p className="mt-1 leading-6">
+                            {transition.validationErrors.join(" ")}
+                          </p>
+                        ) : null}
+                        <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-500">
+                          {transition.actor} | {formatTimestamp(transition.occurredAt)}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              ) : null}
+            </SurfaceCard>
+
+            <SurfaceCard className="rounded-[32px] p-6">
+              <SectionHeader
                 title="Decision capture"
-                body="Capture an immutable admissions outcome with reviewer attribution. Admit and conditional decisions automatically trigger downstream provisioning."
+                body="Capture an immutable admissions outcome with reviewer attribution. Approved outcomes follow the active rollout mode for this partner course line."
               />
               {latestDecision ? (
                 <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
@@ -555,11 +648,19 @@ export default function AdmissionsApplicationReview() {
                   {decisionMessage.body}
                 </div>
               ) : null}
+              {!latestDecision && !rolloutDefinition.decisionCaptureEnabled ? (
+                <div className="mt-4 rounded-[24px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  Decision capture is disabled because this course line is operating in{" "}
+                  {rolloutDefinition.label}. Move it to Mode 2 or Mode 3 in the
+                  workspace rollout registry before capturing an outcome here.
+                </div>
+              ) : null}
               {!latestDecision ? (
                 <>
                   <div className="mt-5 grid gap-3">
                     <select
                       className="rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                      disabled={!rolloutDefinition.decisionCaptureEnabled}
                       onChange={(event) =>
                         setDecisionOutcome(event.target.value as AdmissionsDecisionOutcome)
                       }
@@ -572,6 +673,7 @@ export default function AdmissionsApplicationReview() {
                     </select>
                     <select
                       className="rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900"
+                      disabled={!rolloutDefinition.decisionCaptureEnabled}
                       onChange={(event) => setDecisionReasonCode(event.target.value)}
                       value={decisionReasonCode}
                     >
@@ -583,6 +685,7 @@ export default function AdmissionsApplicationReview() {
                     </select>
                     <textarea
                       className="min-h-24 rounded-[24px] border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-[#0B4F74]"
+                      disabled={!rolloutDefinition.decisionCaptureEnabled}
                       onChange={(event) => setDecisionNotes(event.target.value)}
                       placeholder="Optional reviewer rationale or handover note attached to the immutable decision record"
                       value={decisionNotes}
@@ -590,7 +693,11 @@ export default function AdmissionsApplicationReview() {
                   </div>
                   <Button
                     className="mt-4 w-full"
-                    disabled={!decisionReadiness.ready || isCapturingDecision}
+                    disabled={
+                      !decisionReadiness.ready ||
+                      isCapturingDecision ||
+                      !rolloutDefinition.decisionCaptureEnabled
+                    }
                     onClick={() => {
                       void handleCaptureDecision();
                     }}
@@ -638,8 +745,8 @@ export default function AdmissionsApplicationReview() {
 
             <SurfaceCard className="rounded-[32px] p-6">
               <SectionHeader
-                title="Provisioning trace"
-                body="Follow the latest decision into its downstream provisioning route, job status, and reconciliation result."
+                title="Downstream trace"
+                body="Follow the latest decision into its rollout-mode boundary, export handoff, or automated provisioning route."
               />
               {latestDecision ? (
                 <div className="mt-5 grid gap-4">
@@ -664,7 +771,48 @@ export default function AdmissionsApplicationReview() {
                       Decided by {latestDecision.decidedBy} at{" "}
                       {formatTimestamp(latestDecision.decidedAt)}.
                     </p>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <StatusPill tone={rolloutDefinition.tone}>
+                        {rolloutDefinition.label}
+                      </StatusPill>
+                      <p className="text-sm text-slate-600">
+                        {rolloutDefinition.operatorSummary}
+                      </p>
+                    </div>
                   </div>
+
+                  {latestExportArtifact ? (
+                    <div className="rounded-[24px] border border-slate-200 bg-white p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <StatusPill tone="info">Structured export ready</StatusPill>
+                        <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+                          {latestExportArtifact.manifest.handoff.handoffMode}
+                        </p>
+                      </div>
+                      <dl className="mt-4 grid gap-3 text-sm text-slate-700">
+                        <MetadataRow
+                          label="Export file"
+                          value={latestExportArtifact.filename}
+                        />
+                        <MetadataRow
+                          label="Manifest"
+                          value={latestExportArtifact.manifest.manifestId}
+                        />
+                        <MetadataRow
+                          label="Destination"
+                          value={latestExportArtifact.manifest.handoff.destinationRef}
+                        />
+                        <MetadataRow
+                          label="Idempotency key"
+                          value={latestExportArtifact.idempotencyKey}
+                        />
+                        <MetadataRow
+                          label="Generated"
+                          value={formatTimestamp(latestExportArtifact.manifest.generatedAt)}
+                        />
+                      </dl>
+                    </div>
+                  ) : null}
 
                   {latestProvisioningJob ? (
                     <>
@@ -732,12 +880,16 @@ export default function AdmissionsApplicationReview() {
                         ))}
                       </div>
                     </>
-                  ) : (
+                  ) : !latestExportArtifact ? (
                     <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                      This decision does not require provisioning. Waitlist and reject
-                      outcomes stop at the immutable decision record.
+                      {rolloutSnapshot.mode === "mode-1-review-only"
+                        ? "Mode 1 stops inside the admissions workspace. Review evidence and operational notes remain visible here, but no downstream export or automated provisioning is triggered."
+                        : latestDecision.outcome.status === "offer-made" ||
+                            latestDecision.outcome.status === "conditional-offer"
+                          ? "This approved decision does not yet have a downstream trace for the active mode."
+                          : "This decision does not trigger downstream automation for the selected outcome."}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               ) : (
                 <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
@@ -754,8 +906,8 @@ export default function AdmissionsApplicationReview() {
               {isWorkflowLocked ? (
                 <div className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
                   Workflow controls are locked after decision capture. Post-decision
-                  state now follows the immutable decision record and provisioning
-                  outcome.
+                  state now follows the immutable decision record and the active
+                  rollout-mode handoff path.
                 </div>
               ) : null}
               <div className="mt-5 flex flex-wrap gap-2">

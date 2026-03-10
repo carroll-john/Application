@@ -11,6 +11,7 @@ import type {
   DecisionRecordV1,
   ProvisioningJobV1,
 } from "../integrationPlatform/provisioning";
+import type { StructuredExportArtifactReference } from "../integrationPlatform/exporters";
 import { canonicalApplicationSamples } from "../integrationPlatform/examples";
 
 export const ADMISSIONS_WORKSPACE_STORAGE_KEY =
@@ -36,6 +37,7 @@ export type AdmissionsAuditEventType =
   | "note"
   | "document-access"
   | "decision"
+  | "export"
   | "provisioning";
 
 export type AdmissionsStatusFilter = "all" | AdmissionsQueueStatus;
@@ -70,6 +72,7 @@ export interface AdmissionsDecisionTrace {
   auditEvents: AuditLedgerEvent[];
   decisions: DecisionRecordV1[];
   exceptions: ExceptionQueueRecord[];
+  exports: StructuredExportArtifactReference[];
   provisioningJobs: ProvisioningJobV1[];
   reconciliations: ReconciliationResult[];
 }
@@ -215,6 +218,35 @@ function cloneProvisioningJob(job: ProvisioningJobV1): ProvisioningJobV1 {
   };
 }
 
+function cloneStructuredExportArtifactReference(
+  reference: StructuredExportArtifactReference,
+): StructuredExportArtifactReference {
+  return {
+    ...reference,
+    artifact: {
+      ...reference.artifact,
+    },
+    manifest: {
+      ...reference.manifest,
+      artifacts: reference.manifest.artifacts.map((artifact) => ({
+        ...artifact,
+      })),
+      documents: reference.manifest.documents.map((document) => ({
+        ...document,
+      })),
+      handoff: {
+        ...reference.manifest.handoff,
+      },
+      metadata: reference.manifest.metadata
+        ? { ...reference.manifest.metadata }
+        : undefined,
+    },
+    traceability: {
+      ...reference.traceability,
+    },
+  };
+}
+
 function cloneReconciliationResult(
   result: ReconciliationResult,
 ): ReconciliationResult {
@@ -228,6 +260,7 @@ export function createEmptyAdmissionsDecisionTrace(): AdmissionsDecisionTrace {
     auditEvents: [],
     decisions: [],
     exceptions: [],
+    exports: [],
     provisioningJobs: [],
     reconciliations: [],
   };
@@ -244,6 +277,9 @@ function cloneDecisionTrace(trace: AdmissionsDecisionTrace): AdmissionsDecisionT
       metadata: decision.metadata ? { ...decision.metadata } : undefined,
     })),
     exceptions: trace.exceptions.map((record) => cloneProvisioningException(record)),
+    exports: trace.exports.map((reference) =>
+      cloneStructuredExportArtifactReference(reference),
+    ),
     provisioningJobs: trace.provisioningJobs.map((job) => cloneProvisioningJob(job)),
     reconciliations: trace.reconciliations.map((result) =>
       cloneReconciliationResult(result),
@@ -269,6 +305,9 @@ function normalizeAdmissionsDecisionTrace(
     })),
     exceptions: (trace?.exceptions ?? []).map((record) =>
       cloneProvisioningException(record),
+    ),
+    exports: (trace?.exports ?? []).map((reference) =>
+      cloneStructuredExportArtifactReference(reference),
     ),
     provisioningJobs: (trace?.provisioningJobs ?? []).map((job) =>
       cloneProvisioningJob(job),

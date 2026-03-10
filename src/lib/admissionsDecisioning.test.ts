@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { createSeedAdmissionsRecords } from "./admissionsWorkspace";
+import {
+  assignAdmissionsRecord,
+  createSeedAdmissionsRecords,
+  updateAdmissionsStatus,
+} from "./admissionsWorkspace";
 import {
   captureAdmissionsDecision,
   evaluateAdmissionsDecisionReadiness,
   getLatestAdmissionsDecision,
   getLatestAdmissionsProvisioningJob,
+  getLatestAdmissionsStructuredExport,
 } from "./admissionsDecisioning";
 
 describe("admissionsDecisioning", () => {
@@ -75,7 +80,30 @@ describe("admissionsDecisioning", () => {
     });
   });
 
-  it("stores waitlist decisions without triggering provisioning", async () => {
+  it("generates a structured export in mode 2 without triggering automated provisioning", async () => {
+    const result = await captureAdmissionsDecision(createSeedAdmissionsRecords(), {
+      actor: "samira.chen@keypath.com.au",
+      applicationId: "app-tiu-008",
+      outcome: "admit",
+      reasonCode: "competitive-profile",
+    });
+    const updated = result.records.find((record) => record.applicationId === "app-tiu-008");
+
+    expect(result.downstreamAction).toBe("export");
+    expect(result.rolloutMode).toBe("mode-2-decision-export");
+    expect(result.triggeredProvisioning).toBe(false);
+    expect(updated?.status).toBe("decisioned");
+    expect(updated?.decisionTrace.provisioningJobs).toHaveLength(0);
+    expect(getLatestAdmissionsStructuredExport(updated!)).toMatchObject({
+      partnerId: "TIU",
+    });
+    expect(updated?.auditEvents.at(-1)).toMatchObject({
+      summary: expect.stringContaining("Structured export handoff prepared"),
+      type: "export",
+    });
+  });
+
+  it("stores waitlist decisions without triggering downstream automation", async () => {
     const result = await captureAdmissionsDecision(createSeedAdmissionsRecords(), {
       actor: "samira.chen@keypath.com.au",
       applicationId: "app-tiu-008",
@@ -93,6 +121,30 @@ describe("admissionsDecisioning", () => {
         reasonCode: "capacity-hold",
       },
     });
+  });
+
+  it("blocks decision capture when the rollout mode is still review-only", async () => {
+    const assigned = assignAdmissionsRecord(createSeedAdmissionsRecords(), {
+      actor: "alex.wong@keypath.com.au",
+      applicationId: "app-hhi-003",
+      assignee: "alex.wong@keypath.com.au",
+      occurredAt: "2026-03-10T12:10:00Z",
+    });
+    const ready = updateAdmissionsStatus(assigned, {
+      actor: "alex.wong@keypath.com.au",
+      applicationId: "app-hhi-003",
+      occurredAt: "2026-03-10T12:12:00Z",
+      status: "ready-for-decision",
+    });
+
+    await expect(
+      captureAdmissionsDecision(ready, {
+        actor: "alex.wong@keypath.com.au",
+        applicationId: "app-hhi-003",
+        outcome: "reject",
+        reasonCode: "academic-not-met",
+      }),
+    ).rejects.toThrow(/Mode 1|review-only/i);
   });
 
   it("rejects decision capture when readiness checks fail", async () => {

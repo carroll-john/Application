@@ -9,7 +9,15 @@ import {
 import {
   createImportWorkflowAdapter,
 } from "../integrationPlatform/adapterScaffolds";
-import { universityMappingOverlaySamples } from "../integrationPlatform/examples";
+import {
+  universityExportMappingConfigSamples,
+  universityMappingOverlaySamples,
+} from "../integrationPlatform/examples";
+import {
+  generateStructuredExport,
+  InMemoryStructuredExportArtifactStore,
+  type StructuredExportArtifactReference,
+} from "../integrationPlatform/exporters";
 import {
   decisionRecordSchemaDefaults,
   InMemoryProvisioningJobStore,
@@ -28,6 +36,12 @@ import {
   type AdmissionsQueueRecord,
   type AdmissionsQueueStatus,
 } from "./admissionsWorkspace";
+import {
+  createSeedPartnerCourseRolloutConfigs,
+  getPartnerCourseRolloutSnapshot,
+  type PartnerCourseRolloutConfig,
+  type PartnerCourseRolloutMode,
+} from "./partnerCourseRollout";
 
 export type AdmissionsDecisionOutcome =
   | "admit"
@@ -44,6 +58,7 @@ export interface AdmissionsDecisionReasonOption {
 
 export interface AdmissionsDecisionReadinessFlag {
   code:
+    | "mode_allows_decision"
     | "status_ready"
     | "assignee_confirmed"
     | "evidence_available"
@@ -65,14 +80,18 @@ export interface CaptureAdmissionsDecisionInput {
   notes?: string;
   outcome: AdmissionsDecisionOutcome;
   reasonCode: string;
+  rolloutConfigs?: PartnerCourseRolloutConfig[];
 }
 
 export interface CaptureAdmissionsDecisionResult {
   decision: DecisionRecordV1;
+  downstreamAction: "none" | "export" | "automated-provisioning";
   exception?: ExceptionQueueRecord;
+  exportArtifact?: StructuredExportArtifactReference;
   readiness: AdmissionsDecisionReadiness;
   reconciliation?: ReconciliationResult;
   records: AdmissionsQueueRecord[];
+  rolloutMode: PartnerCourseRolloutMode;
   triggeredProvisioning: boolean;
 }
 
@@ -277,8 +296,24 @@ function mapDecisionOutcomeStatus(
   }
 }
 
-function shouldTriggerProvisioning(outcome: AdmissionsDecisionOutcome): boolean {
-  return outcome === "admit" || outcome === "conditional";
+function shouldTriggerStructuredExport(
+  outcome: AdmissionsDecisionOutcome,
+  rolloutMode: PartnerCourseRolloutMode,
+): boolean {
+  return (
+    (outcome === "admit" || outcome === "conditional") &&
+    rolloutMode === "mode-2-decision-export"
+  );
+}
+
+function shouldTriggerProvisioning(
+  outcome: AdmissionsDecisionOutcome,
+  rolloutMode: PartnerCourseRolloutMode,
+): boolean {
+  return (
+    (outcome === "admit" || outcome === "conditional") &&
+    rolloutMode === "mode-3-automated-provisioning"
+  );
 }
 
 function upsertByKey<T>(
@@ -312,6 +347,56 @@ function mergeProvisioningAuditEvents(
 function findAdmissionsOverlay(record: AdmissionsQueueRecord) {
   const partnerId = record.application.selectedCourse.providerCode;
   return universityMappingOverlaySamples.find((overlay) => overlay.partnerId === partnerId);
+}
+
+function findAdmissionsExportTemplate(record: AdmissionsQueueRecord) {
+  const partnerId = record.application.selectedCourse.providerCode;
+  return universityExportMappingConfigSamples.find(
+    (template) => template.partnerId === partnerId,
+  );
+}
+
+function createAdmissionsExportArtifactStore(record: AdmissionsQueueRecord) {
+  const artifactStore = new InMemoryStructuredExportArtifactStore();
+  record.decisionTrace.exports.forEach((reference) => artifactStore.save(reference));
+  return artifactStore;
+}
+
+function toStructuredExportArtifactReference(input: {
+  applicationId: string;
+  decisionId: string;
+  generatedExport: Awaited<ReturnType<typeof generateStructuredExport>>;
+  partnerId: string;
+}): StructuredExportArtifactReference {
+  return {
+    applicationId: input.applicationId,
+    artifact: {
+      ...input.generatedExport.artifact,
+    },
+    content: input.generatedExport.content,
+    decisionId: input.decisionId,
+    filename: input.generatedExport.filename,
+    idempotencyKey: input.generatedExport.idempotencyKey,
+    manifest: {
+      ...input.generatedExport.manifest,
+      artifacts: input.generatedExport.manifest.artifacts.map((artifact) => ({
+        ...artifact,
+      })),
+      documents: input.generatedExport.manifest.documents.map((document) => ({
+        ...document,
+      })),
+      handoff: {
+        ...input.generatedExport.manifest.handoff,
+      },
+      metadata: input.generatedExport.manifest.metadata
+        ? { ...input.generatedExport.manifest.metadata }
+        : undefined,
+    },
+    partnerId: input.partnerId,
+    traceability: {
+      ...input.generatedExport.traceability,
+    },
+  };
 }
 
 export function getAdmissionsDecisionReasonOptions(
@@ -364,6 +449,14 @@ export function getLatestAdmissionsProvisioningJob(
   ).at(-1);
 }
 
+export function getLatestAdmissionsStructuredExport(
+  record: AdmissionsQueueRecord,
+): StructuredExportArtifactReference | undefined {
+  return [...record.decisionTrace.exports].sort((left, right) =>
+    left.manifest.generatedAt.localeCompare(right.manifest.generatedAt),
+  ).at(-1);
+}
+
 export function listAdmissionsProvisioningAuditEvents(
   record: AdmissionsQueueRecord,
   jobId?: string,
@@ -397,11 +490,16 @@ export function getOpenAdmissionsException(
 export function evaluateAdmissionsDecisionReadiness(
   record: AdmissionsQueueRecord,
   actor: string,
+  rolloutConfigs = createSeedPartnerCourseRolloutConfigs(),
 ): AdmissionsDecisionReadiness {
   const normalizedActor = normalizeActor(actor);
   const documentIds = getReferencedDocumentIds(record);
   const availableDocuments = new Set(
     record.application.documents.map((document) => document.documentId),
+  );
+  const rolloutSnapshot = getPartnerCourseRolloutSnapshot(
+    record.application,
+    rolloutConfigs,
   );
   const latestJob = getLatestAdmissionsProvisioningJob(record);
   const hasActiveProvisioning = latestJob
@@ -410,6 +508,16 @@ export function evaluateAdmissionsDecisionReadiness(
       )
     : false;
   const flags: AdmissionsDecisionReadinessFlag[] = [
+    {
+      code: "mode_allows_decision",
+      label: "Rollout mode allows decision capture",
+      detail: rolloutSnapshot.definition.decisionCaptureEnabled
+        ? `${rolloutSnapshot.definition.label} is active for this partner course line.`
+        : rolloutSnapshot.isFallback
+          ? "No rollout config is assigned for this partner course line, so the portal defaults to Mode 1 review-only."
+          : `${rolloutSnapshot.definition.label} is active. Decision capture is blocked until this course line moves to Mode 2 or Mode 3.`,
+      satisfied: rolloutSnapshot.definition.decisionCaptureEnabled,
+    },
     {
       code: "status_ready",
       label: "Queue status is ready for decision",
@@ -471,6 +579,8 @@ function buildDecisionRecord(input: {
   notes?: string;
   occurredAt: string;
   record: AdmissionsQueueRecord;
+  rolloutMode: PartnerCourseRolloutMode;
+  downstreamAction: "none" | "export" | "automated-provisioning";
 }): DecisionRecordV1 {
   const application = input.record.application;
   return {
@@ -499,6 +609,8 @@ function buildDecisionRecord(input: {
     metadata: {
       admissionsQueueStatus: input.record.status,
       applicationStatusAtDecision: application.status,
+      downstreamAction: input.downstreamAction,
+      rolloutMode: input.rolloutMode,
       selectedCourseCode: application.selectedCourse.courseCode,
     },
   };
@@ -506,9 +618,10 @@ function buildDecisionRecord(input: {
 
 function derivePostDecisionQueueStatus(input: {
   outcome: AdmissionsDecisionOutcome;
+  rolloutMode: PartnerCourseRolloutMode;
   provisioningJob?: ProvisioningJobV1;
 }): AdmissionsQueueStatus {
-  if (!shouldTriggerProvisioning(input.outcome)) {
+  if (!shouldTriggerProvisioning(input.outcome, input.rolloutMode)) {
     return "decisioned";
   }
 
@@ -535,7 +648,29 @@ export async function captureAdmissionsDecision(
     throw new Error("Admissions record not found.");
   }
 
-  const readiness = evaluateAdmissionsDecisionReadiness(record, input.actor);
+  const rolloutConfigs = input.rolloutConfigs ?? createSeedPartnerCourseRolloutConfigs();
+  const rolloutSnapshot = getPartnerCourseRolloutSnapshot(
+    record.application,
+    rolloutConfigs,
+  );
+  const triggeredExport = shouldTriggerStructuredExport(
+    input.outcome,
+    rolloutSnapshot.mode,
+  );
+  const triggeredProvisioning = shouldTriggerProvisioning(
+    input.outcome,
+    rolloutSnapshot.mode,
+  );
+  const downstreamAction = triggeredProvisioning
+    ? "automated-provisioning"
+    : triggeredExport
+      ? "export"
+      : "none";
+  const readiness = evaluateAdmissionsDecisionReadiness(
+    record,
+    input.actor,
+    rolloutConfigs,
+  );
   if (!readiness.ready) {
     throw new Error(
       readiness.flags
@@ -552,17 +687,46 @@ export async function captureAdmissionsDecision(
   const occurredAt = input.decidedAt ?? new Date().toISOString();
   const decision = buildDecisionRecord({
     actor: input.actor,
+    downstreamAction,
     outcome: input.outcome,
     reasonCode: input.reasonCode,
     notes: input.notes,
     occurredAt,
     record,
+    rolloutMode: rolloutSnapshot.mode,
   });
+  let exportArtifact: StructuredExportArtifactReference | undefined;
   let provisioningJob: ProvisioningJobV1 | undefined;
   let reconciliation: ReconciliationResult | undefined;
   let exception: ExceptionQueueRecord | undefined;
 
-  if (shouldTriggerProvisioning(input.outcome)) {
+  if (triggeredExport) {
+    const template = findAdmissionsExportTemplate(record);
+    if (!template) {
+      throw new Error("No structured export template is registered for this partner.");
+    }
+
+    const generatedExport = await generateStructuredExport({
+      application: record.application,
+      artifactStore: createAdmissionsExportArtifactStore(record),
+      decision,
+      generatedAt: occurredAt,
+      template,
+    });
+    exportArtifact = toStructuredExportArtifactReference({
+      applicationId: record.application.applicationId,
+      decisionId: decision.decisionId,
+      generatedExport,
+      partnerId: record.application.selectedCourse.providerCode,
+    });
+    record.decisionTrace.exports = upsertByKey(
+      record.decisionTrace.exports,
+      exportArtifact,
+      (reference) => reference.idempotencyKey,
+    );
+  }
+
+  if (triggeredProvisioning) {
     const overlay = findAdmissionsOverlay(record);
     if (!overlay) {
       throw new Error("No mapping overlay is registered for this partner.");
@@ -625,6 +789,7 @@ export async function captureAdmissionsDecision(
   record.lastActivityAt = occurredAt;
   record.status = derivePostDecisionQueueStatus({
     outcome: input.outcome,
+    rolloutMode: rolloutSnapshot.mode,
     provisioningJob,
   });
   record.auditEvents = [
@@ -645,6 +810,18 @@ export async function captureAdmissionsDecision(
     }),
   ];
 
+  if (exportArtifact) {
+    record.auditEvents.push(
+      createAdmissionsAuditEvent({
+        applicationId: record.applicationId,
+        actor: input.actor,
+        occurredAt,
+        summary: `Structured export handoff prepared: ${exportArtifact.filename}.`,
+        type: "export",
+      }),
+    );
+  }
+
   if (provisioningJob) {
     record.auditEvents.push(
       createAdmissionsAuditEvent({
@@ -659,10 +836,13 @@ export async function captureAdmissionsDecision(
 
   return {
     decision,
+    downstreamAction,
     exception,
+    exportArtifact,
     readiness,
     reconciliation,
     records: nextRecords,
-    triggeredProvisioning: shouldTriggerProvisioning(input.outcome),
+    rolloutMode: rolloutSnapshot.mode,
+    triggeredProvisioning,
   };
 }

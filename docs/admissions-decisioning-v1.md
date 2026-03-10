@@ -2,6 +2,8 @@
 
 This note captures the `DIS-65` admissions decisioning baseline in the prototype workspace.
 
+Rollout-mode coexistence behavior is documented separately in `docs/rollout-modes-v1.md`.
+
 ## Decision outcomes
 
 Supported reviewer outcomes:
@@ -20,6 +22,7 @@ Every captured outcome creates an immutable `DecisionRecordV1` with:
 ## Readiness rules
 
 Decision capture is enabled only when all of the following are true:
+- the active rollout mode allows decision capture
 - queue status is `ready-for-decision`
 - the application is assigned to the active reviewer
 - structured evidence references resolve to attached admissions documents
@@ -41,11 +44,15 @@ Post-decision workflow:
 
 ## Provisioning trigger rule
 
-Only approved outcomes trigger downstream provisioning:
+Only approved outcomes trigger downstream automation:
 - `admit`
 - `conditional`
 
-`waitlist` and `reject` stop at the immutable decision record and do not create a provisioning job.
+The active rollout mode decides whether those approved outcomes create:
+- a structured export handoff (`Mode 2`)
+- an automated provisioning job (`Mode 3`)
+
+`waitlist` and `reject` stop at the immutable decision record and do not create downstream automation.
 
 ## Visible trace
 
