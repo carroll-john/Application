@@ -5,12 +5,14 @@ import type {
   AdmissionsQueueStatus,
 } from "./admissionsWorkspace";
 import { hashAnalyticsIdentifierSync } from "./analyticsIdentity";
+import { universityMappingOverlaySamples } from "../integrationPlatform/examples";
 import type {
   PartnerCourseRolloutConfig,
   PartnerCourseRolloutMode,
   PartnerCourseRolloutTransitionOutcome,
 } from "./partnerCourseRollout";
 import { capturePostHogEvent } from "./posthog";
+import { syncScheduledPilotTelemetryRollups } from "./pilotTelemetryRollups";
 
 export const PILOT_TELEMETRY_SCHEMA_VERSION = "v1";
 export const PILOT_TELEMETRY_STORAGE_KEY =
@@ -554,10 +556,39 @@ function getLatestProvisioningStatus(
   return record.decisionTrace.provisioningJobs.at(-1)?.status ?? "not-triggered";
 }
 
-function getLatestProvisioningAdapterMode(
+function getConfiguredProvisioningAdapterMode(
   record: AdmissionsQueueRecord,
 ): string {
-  return record.decisionTrace.provisioningJobs.at(-1)?.adapterMode ?? "not-triggered";
+  return (
+    universityMappingOverlaySamples.find(
+      (overlay) =>
+        overlay.partnerId === record.application.selectedCourse.providerCode,
+    )?.capabilityProfile.transportMode ?? "not-triggered"
+  );
+}
+
+function resolveDecisionAdapterMode(
+  record: AdmissionsQueueRecord,
+  downstreamAction: (typeof PILOT_DOWNSTREAM_ACTIONS)[number],
+  rolloutMode: PartnerCourseRolloutMode,
+): string {
+  if (record.decisionTrace.provisioningJobs.at(-1)?.adapterMode) {
+    return record.decisionTrace.provisioningJobs.at(-1)!.adapterMode;
+  }
+
+  if (
+    downstreamAction === "export" ||
+    rolloutMode === "mode-2-decision-export" ||
+    record.decisionTrace.exports.length > 0
+  ) {
+    return "file";
+  }
+
+  if (rolloutMode === "mode-3-automated-provisioning") {
+    return getConfiguredProvisioningAdapterMode(record);
+  }
+
+  return "review-only";
 }
 
 function getLatestReconciliationStatus(
@@ -1088,7 +1119,11 @@ function recordPilotTelemetryEvent(
     properties: { ...properties },
   };
 
-  appendPilotTelemetryEvent(eventRecord);
+  const nextEvents = appendPilotTelemetryEvent(eventRecord);
+  syncScheduledPilotTelemetryRollups({
+    events: nextEvents,
+    now: occurredAt,
+  });
   capturePostHogEvent(eventName, properties);
   return issues;
 }
@@ -1130,12 +1165,17 @@ export function buildAdmissionsDecisionTelemetryProperties(input: {
   provisioningTriggered: boolean;
   reasonCode: string;
   record: AdmissionsQueueRecord;
+  rolloutMode: PartnerCourseRolloutMode;
 }): PilotTelemetryProperties {
   const latestDecision = input.record.decisionTrace.decisions.at(-1);
   const baseline = resolveDecisionTimingBaseline(input.record);
 
   return {
-    pilot_adapter_mode: getLatestProvisioningAdapterMode(input.record),
+    pilot_adapter_mode: resolveDecisionAdapterMode(
+      input.record,
+      input.downstreamAction,
+      input.rolloutMode,
+    ),
     pilot_decision_outcome: input.decisionOutcome,
     pilot_decision_reason_code: input.reasonCode,
     pilot_downstream_action: input.downstreamAction,

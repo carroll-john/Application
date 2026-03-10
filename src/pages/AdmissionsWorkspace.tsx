@@ -48,6 +48,15 @@ import {
   captureRolloutModePilotTelemetryEvent,
   loadPilotTelemetryEvents,
 } from "../lib/pilotTelemetry";
+import {
+  getPilotTelemetryRollupMetric,
+  listPilotTelemetryRollupSegments,
+  loadLatestPilotTelemetryRollup,
+  syncScheduledPilotTelemetryRollups,
+  type PilotTelemetryRollupMetricValue,
+  type PilotTelemetryRollupSegment,
+  type PilotTelemetryRollupSnapshot,
+} from "../lib/pilotTelemetryRollups";
 
 function formatTimestamp(value: string | undefined): string {
   if (!value) {
@@ -153,6 +162,9 @@ export default function AdmissionsWorkspace() {
   const { records, updateRecords } = useAdmissionsWorkspaceRecords();
   const { rolloutConfigs, updateRolloutConfigs } = usePartnerCourseRolloutConfigs();
   const [telemetryRefreshKey, setTelemetryRefreshKey] = useState(0);
+  const [rollupSnapshot, setRollupSnapshot] = useState<
+    PilotTelemetryRollupSnapshot | undefined
+  >(() => loadLatestPilotTelemetryRollup());
   const [rolloutDrafts, setRolloutDrafts] = useState<
     Record<string, { mode: PartnerCourseRolloutMode; reason: string }>
   >({});
@@ -219,6 +231,14 @@ export default function AdmissionsWorkspace() {
     );
   }, [pagination.page, searchState, setSearchParams]);
 
+  useEffect(() => {
+    setRollupSnapshot(
+      syncScheduledPilotTelemetryRollups({
+        events: telemetryEvents,
+      }),
+    );
+  }, [telemetryEvents]);
+
   const pageNumbers = useMemo(
     () => Array.from({ length: pagination.totalPages }, (_, index) => index + 1),
     [pagination.totalPages],
@@ -263,6 +283,16 @@ export default function AdmissionsWorkspace() {
           .filter((value) => value && value !== "all")
           .join(" · ")
       : "All pilot cohorts";
+  const rollupSegments = useMemo(
+    () =>
+      listPilotTelemetryRollupSegments(rollupSnapshot, {
+        courseCode:
+          searchState.courseLine !== "all" ? searchState.courseLine : undefined,
+        partnerName:
+          searchState.partner !== "all" ? searchState.partner : undefined,
+      }),
+    [rollupSnapshot, searchState.courseLine, searchState.partner],
+  );
 
   const getRolloutDraft = (config: PartnerCourseRolloutConfig) =>
     rolloutDrafts[config.configId] ?? {
@@ -454,6 +484,90 @@ export default function AdmissionsWorkspace() {
                 }
               </p>
             ) : null}
+          </div>
+
+          <div className="mt-6 border-t border-slate-200 pt-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  Automated rollups
+                </p>
+                <h3 className="mt-2 text-xl font-bold text-slate-950">
+                  University and adapter segments
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  Hourly snapshots materialize partner-course KPI rollups directly
+                  from the pilot event log so dashboard work can consume a stable,
+                  consistency-checked dataset.
+                </p>
+              </div>
+              <div className="rounded-[20px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                Last run:{" "}
+                <span className="font-medium text-slate-950">
+                  {formatTimestamp(rollupSnapshot?.generatedAt)}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <TelemetryMetricCard
+                icon={<BarChart3 className="h-5 w-5" />}
+                label="Segments"
+                value={String(rollupSegments.length)}
+              />
+              <TelemetryMetricCard
+                icon={<ClipboardList className="h-5 w-5" />}
+                label="Source events"
+                value={String(rollupSnapshot?.sourceEventCount ?? 0)}
+              />
+              <TelemetryMetricCard
+                icon={<Clock3 className="h-5 w-5" />}
+                label="Next scheduled run"
+                value={formatRollupTime(rollupSnapshot?.nextScheduledAt)}
+              />
+              <TelemetryMetricCard
+                icon={<Users className="h-5 w-5" />}
+                label="Consistency"
+                value={
+                  rollupSnapshot?.consistency.passed
+                    ? "Passing"
+                    : `${rollupSnapshot?.consistency.issueCount ?? 0} issues`
+                }
+              />
+            </div>
+
+            {rollupSnapshot ? (
+              <div
+                className={`mt-6 rounded-[24px] border px-4 py-4 text-sm ${
+                  rollupSnapshot.consistency.passed
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                    : "border-amber-200 bg-amber-50 text-amber-900"
+                }`}
+              >
+                <p className="font-medium">
+                  {rollupSnapshot.consistency.passed
+                    ? "Rollup consistency checks are passing"
+                    : `${rollupSnapshot.consistency.issueCount} rollup consistency checks need attention`}
+                </p>
+                <p className="mt-1 leading-6">
+                  Schedule window opened {formatTimestamp(rollupSnapshot.scheduleWindowStart)}
+                  . Latest source event{" "}
+                  {formatTimestamp(rollupSnapshot.sourceWindowEnd)}.
+                </p>
+              </div>
+            ) : null}
+
+            {rollupSegments.length > 0 ? (
+              <div className="mt-6 grid gap-4 xl:grid-cols-3">
+                {rollupSegments.map((segment) => (
+                  <RollupSegmentCard key={segment.segmentId} segment={segment} />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                No rollup segments match the current cohort filters yet.
+              </div>
+            )}
           </div>
         </SurfaceCard>
 
@@ -927,6 +1041,206 @@ function formatTelemetryHours(value: number | null): string {
   }
 
   return `${value.toFixed(1)} h`;
+}
+
+function formatRollupTime(value: string | undefined): string {
+  if (!value) {
+    return "Not scheduled";
+  }
+
+  return new Intl.DateTimeFormat("en-AU", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
+function formatRollupMetricValue(
+  metric: PilotTelemetryRollupMetricValue | undefined,
+): string {
+  if (!metric || metric.value === null) {
+    return "No data";
+  }
+
+  if (metric.unit === "rate") {
+    return `${Math.round(metric.value * 100)}%`;
+  }
+
+  if (metric.unit === "hours") {
+    return `${metric.value.toFixed(1)} h`;
+  }
+
+  return String(metric.value);
+}
+
+function formatRollupMetricDetail(
+  metric: PilotTelemetryRollupMetricValue | undefined,
+): string {
+  if (!metric) {
+    return "No samples yet";
+  }
+
+  if (
+    metric.unit === "rate" &&
+    metric.numerator !== undefined &&
+    metric.denominator !== undefined
+  ) {
+    return `${metric.numerator}/${metric.denominator}`;
+  }
+
+  if (metric.sampleSize !== undefined) {
+    return `${metric.sampleSize} sample${metric.sampleSize === 1 ? "" : "s"}`;
+  }
+
+  return "No samples yet";
+}
+
+function formatAdapterModeLabel(adapterMode: string): string {
+  switch (adapterMode) {
+    case "file":
+      return "File adapter";
+    case "portal-rpa":
+      return "Portal RPA";
+    case "api":
+      return "API adapter";
+    case "import-workflow":
+      return "Import workflow";
+    case "edge-local":
+      return "Edge connector";
+    case "not-applicable":
+      return "Upstream-only";
+    default:
+      return adapterMode;
+  }
+}
+
+function getAdapterModeTone(adapterMode: string) {
+  switch (adapterMode) {
+    case "portal-rpa":
+      return "warning" as const;
+    case "file":
+    case "api":
+    case "import-workflow":
+    case "edge-local":
+      return "info" as const;
+    default:
+      return "neutral" as const;
+  }
+}
+
+function RollupSegmentCard({ segment }: { segment: PilotTelemetryRollupSegment }) {
+  const decisionCycleMetric = getPilotTelemetryRollupMetric(
+    segment,
+    "decision_cycle_time_hours",
+  );
+  const handoffMetric = getPilotTelemetryRollupMetric(
+    segment,
+    "approved_decision_handoff_rate",
+  );
+  const provisioningMetric = getPilotTelemetryRollupMetric(
+    segment,
+    "provisioning_success_rate_by_adapter",
+  );
+  const reconciliationMetric = getPilotTelemetryRollupMetric(
+    segment,
+    "reconciliation_match_rate",
+  );
+  const wauMetric = getPilotTelemetryRollupMetric(
+    segment,
+    "weekly_active_reviewers",
+  );
+  const documentMetric = getPilotTelemetryRollupMetric(
+    segment,
+    "secure_document_view_success_rate",
+  );
+
+  return (
+    <SurfaceCard className="rounded-[28px] border border-slate-200 bg-slate-50 p-5">
+      <div className="flex flex-wrap items-center gap-3">
+        <StatusPill tone={getAdapterModeTone(segment.adapterMode)}>
+          {formatAdapterModeLabel(segment.adapterMode)}
+        </StatusPill>
+        <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
+          {segment.partnerId} · {segment.courseCode}
+        </p>
+      </div>
+      <h4 className="mt-4 text-lg font-semibold text-slate-950">{segment.partnerName}</h4>
+      <p className="mt-1 text-sm text-slate-600">{segment.courseTitle}</p>
+
+      <dl className="mt-4 grid gap-3 text-sm text-slate-700">
+        <div className="flex items-center justify-between gap-4">
+          <dt>Decision cycle</dt>
+          <dd className="text-right">
+            <span className="block font-medium text-slate-950">
+              {formatRollupMetricValue(decisionCycleMetric)}
+            </span>
+            <span className="block text-xs font-normal text-slate-500">
+              {formatRollupMetricDetail(decisionCycleMetric)}
+            </span>
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <dt>Approved handoff</dt>
+          <dd className="text-right">
+            <span className="block font-medium text-slate-950">
+              {formatRollupMetricValue(handoffMetric)}
+            </span>
+            <span className="block text-xs font-normal text-slate-500">
+              {formatRollupMetricDetail(handoffMetric)}
+            </span>
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <dt>Provisioning success</dt>
+          <dd className="text-right">
+            <span className="block font-medium text-slate-950">
+              {formatRollupMetricValue(provisioningMetric)}
+            </span>
+            <span className="block text-xs font-normal text-slate-500">
+              {formatRollupMetricDetail(provisioningMetric)}
+            </span>
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <dt>Reconciliation match</dt>
+          <dd className="text-right">
+            <span className="block font-medium text-slate-950">
+              {formatRollupMetricValue(reconciliationMetric)}
+            </span>
+            <span className="block text-xs font-normal text-slate-500">
+              {formatRollupMetricDetail(reconciliationMetric)}
+            </span>
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <dt>Weekly active reviewers</dt>
+          <dd className="text-right">
+            <span className="block font-medium text-slate-950">
+              {formatRollupMetricValue(wauMetric)}
+            </span>
+            <span className="block text-xs font-normal text-slate-500">
+              {formatRollupMetricDetail(wauMetric)}
+            </span>
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <dt>Secure document view</dt>
+          <dd className="text-right">
+            <span className="block font-medium text-slate-950">
+              {formatRollupMetricValue(documentMetric)}
+            </span>
+            <span className="block text-xs font-normal text-slate-500">
+              {formatRollupMetricDetail(documentMetric)}
+            </span>
+          </dd>
+        </div>
+      </dl>
+
+      <p className="mt-4 text-xs uppercase tracking-[0.14em] text-slate-500">
+        {segment.eventCount} source event{segment.eventCount === 1 ? "" : "s"} ·{" "}
+        {segment.decisionCount} decision{segment.decisionCount === 1 ? "" : "s"}
+      </p>
+    </SurfaceCard>
+  );
 }
 
 function QueueMeta({ label, value }: { label: string; value: string }) {

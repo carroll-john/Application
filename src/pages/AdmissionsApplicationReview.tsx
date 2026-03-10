@@ -301,6 +301,7 @@ export default function AdmissionsApplicationReview() {
             provisioningTriggered: result.triggeredProvisioning,
             reasonCode: decisionReasonCode,
             record: nextRecord,
+            rolloutMode: result.rolloutMode,
           }),
           record: nextRecord,
           rolloutMode: result.rolloutMode,

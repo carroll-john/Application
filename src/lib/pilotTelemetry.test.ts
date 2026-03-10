@@ -82,6 +82,7 @@ describe("pilotTelemetry", () => {
           provisioningTriggered: result.triggeredProvisioning,
           reasonCode: "academic-qualified",
           record: updatedRecord!,
+          rolloutMode: result.rolloutMode,
         }),
         record: updatedRecord!,
         rolloutMode: result.rolloutMode,
@@ -130,6 +131,32 @@ describe("pilotTelemetry", () => {
     expect(
       validatePilotTelemetryEvent("admissions_rollout_mode_updated", properties),
     ).toEqual([]);
+  });
+
+  it("attributes mode 2 export decisions to the file adapter", async () => {
+    const result = await captureAdmissionsDecision(createSeedAdmissionsRecords(), {
+      actor: "samira.chen@keypath.com.au",
+      applicationId: "app-tiu-008",
+      outcome: "admit",
+      reasonCode: "competitive-profile",
+    });
+    const updatedRecord = result.records.find(
+      (record) => record.applicationId === "app-tiu-008",
+    );
+
+    expect(updatedRecord).toBeDefined();
+
+    const properties = buildAdmissionsDecisionTelemetryProperties({
+      decisionOutcome: "admit",
+      downstreamAction: result.downstreamAction,
+      provisioningTriggered: result.triggeredProvisioning,
+      reasonCode: "competitive-profile",
+      record: updatedRecord!,
+      rolloutMode: result.rolloutMode,
+    });
+
+    expect(properties.pilot_adapter_mode).toBe("file");
+    expect(properties.pilot_downstream_action).toBe("export");
   });
 
   it("detects missing and malformed telemetry properties", () => {
@@ -232,6 +259,7 @@ describe("pilotTelemetry", () => {
         provisioningTriggered: result.triggeredProvisioning,
         reasonCode: "academic-qualified",
         record: updatedRecord!,
+        rolloutMode: result.rolloutMode,
       }),
       record: updatedRecord!,
       rolloutMode: result.rolloutMode,

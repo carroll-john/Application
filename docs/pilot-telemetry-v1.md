@@ -7,6 +7,7 @@ This note captures the `DIS-80` pilot telemetry baseline for the integration MVP
 - Standardize admissions workspace event dimensions so pilot slices are queryable by partner, course line, rollout mode, and adapter mode.
 - Add validation helpers that detect missing or malformed telemetry properties before rollups/dashboard work lands.
 - Persist a local pilot event log so admissions telemetry can be queried before downstream rollup automation is implemented.
+- Materialize hourly KPI rollups segmented by partner/course line and adapter mode for downstream dashboard consumption.
 
 ## Shared Event Dimensions
 All pilot telemetry events in `src/lib/pilotTelemetry.ts` include:
@@ -102,4 +103,17 @@ The admissions workspace uses those helpers to render a compact telemetry snapsh
 - median time to decision
 - coverage/validation status
 
-These helpers are the gate for later rollup, dashboard, and checkpoint-report work in `DIS-90`, `DIS-101`, `DIS-112`, and `DIS-113`.
+## Automated Rollups
+`src/lib/pilotTelemetryRollups.ts` now:
+- persists hourly rollup snapshots to `application-prototype:pilot-telemetry-rollups:v1`
+- groups KPI slices by partner, course line, and adapter mode
+- records source fingerprint and schedule metadata for each rollup window
+- validates stored rollups back against the source event log before marking them consistent
+
+The admissions workspace now exposes the latest automated rollup run with:
+- last run and next scheduled run
+- source event count
+- consistency status
+- segmented KPI cards for partner/adaptor combinations
+
+These helpers are the gate for later dashboard and checkpoint-report work in `DIS-101`, `DIS-112`, and `DIS-113`.
