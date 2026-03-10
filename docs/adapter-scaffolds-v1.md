@@ -73,6 +73,12 @@ Edge telemetry additions:
 - Operations-facing connector status views expose latest availability plus latest run stage/state per connector.
 - Connectivity failures can surface `offline` availability while successful runs keep `healthy` status and a final `completed` run state.
 
+Edge credential-control additions:
+- `InMemoryEdgeConnectorSecretProvider` mediates scoped secret retrieval for `dispatch`, `edge-ack`, and `record-lookup` actions.
+- The edge scaffold enforces `credentialBoundary = edge-local`; partner-managed or cross-connector secrets are blocked before connector execution.
+- `InMemoryEdgeConnectorSecurityAuditStore` records `secret.rotation.checked`, `secret.access.granted`, and `secret.access.blocked` events without exposing secret values.
+- Overdue rotation windows are blocked as `invalid_credentials`, while boundary/scope mismatches are blocked as `configuration_error`.
+
 ## Shared Contract Additions
 
 `PreparedProvisioningPayload` now supports two optional fields for scaffolded adapters:

@@ -8,6 +8,10 @@ import {
   createImportWorkflowAdapter,
   createScaffoldedAdapterRegistry,
   InMemoryEdgeConnectorTelemetryStore,
+  InMemoryEdgeConnectorSecretProvider,
+  InMemoryEdgeConnectorSecurityAuditStore,
+  type CredentialBoundary,
+  type EdgeConnectorScopedSecret,
 } from "./adapterScaffolds";
 import {
   validateImportWorkflowDispatchPayload,
@@ -38,6 +42,46 @@ function createDecisionRecord(
     },
     ...overrides,
   };
+}
+
+function createEdgeScopedSecrets(input: {
+  connectorId: string;
+  credentialBoundary?: CredentialBoundary;
+  nextRotationDueAt?: string;
+}): EdgeConnectorScopedSecret[] {
+  const credentialBoundary = input.credentialBoundary ?? "edge-local";
+  return [
+    {
+      connectorId: input.connectorId,
+      scope: "dispatch",
+      credentialBoundary,
+      secretId: `${input.connectorId}-dispatch-secret`,
+      secretVersion: "v7",
+      value: `dispatch-secret-value-${input.connectorId}`,
+      lastRotatedAt: "2026-03-01T00:00:00Z",
+      nextRotationDueAt: input.nextRotationDueAt ?? "2026-04-01T00:00:00Z",
+    },
+    {
+      connectorId: input.connectorId,
+      scope: "edge-ack",
+      credentialBoundary,
+      secretId: `${input.connectorId}-ack-secret`,
+      secretVersion: "v7",
+      value: `ack-secret-value-${input.connectorId}`,
+      lastRotatedAt: "2026-03-01T00:00:00Z",
+      nextRotationDueAt: input.nextRotationDueAt ?? "2026-04-01T00:00:00Z",
+    },
+    {
+      connectorId: input.connectorId,
+      scope: "record-lookup",
+      credentialBoundary,
+      secretId: `${input.connectorId}-lookup-secret`,
+      secretVersion: "v7",
+      value: `lookup-secret-value-${input.connectorId}`,
+      lastRotatedAt: "2026-03-01T00:00:00Z",
+      nextRotationDueAt: input.nextRotationDueAt ?? "2026-04-01T00:00:00Z",
+    },
+  ];
 }
 
 describe("adapter scaffolds", () => {
@@ -137,10 +181,16 @@ describe("adapter scaffolds", () => {
 
   it("runs an edge-configured pilot partner without custom orchestration logic", async () => {
     const telemetryStore = new InMemoryEdgeConnectorTelemetryStore();
+    const securityAuditStore = new InMemoryEdgeConnectorSecurityAuditStore();
+    const secretProvider = new InMemoryEdgeConnectorSecretProvider(
+      createEdgeScopedSecrets({ connectorId: "northbridge-edge-01" }),
+    );
     const edgeAdapter = createEdgeConnectorAdapter({
       connectorId: "northbridge-edge-01",
       endpointRef: "edge://northbridge/private-network",
       telemetryStore,
+      securityAuditStore,
+      secretProvider,
     });
     const registry = createScaffoldedAdapterRegistry([
       createImportWorkflowAdapter(),
@@ -184,12 +234,20 @@ describe("adapter scaffolds", () => {
       connectorId: "northbridge-edge-01",
       deploymentBoundary: "private-edge-node",
       credentialBoundary: "edge-local",
+      credentialBoundaryPolicy: "edge-local-only",
+      secretAccessMode: "provider-mediated",
+      dispatchCredentialScope: "dispatch",
+      verificationCredentialScope: "edge-ack",
+      reconciliationCredentialScope: "record-lookup",
       requiresPrivateNetwork: "true",
       routeKey: "edge:northbridge-edge-01",
       ackTarget: "edge://northbridge/private-network/acks",
       recordLookupTarget: "edge://northbridge/private-network/records",
       connectorAvailabilityStatus: "healthy",
     });
+    expect(
+      JSON.stringify(result.preparedPayload?.executionMetadata),
+    ).not.toContain("dispatch-secret-value-northbridge-edge-01");
     expect(result.preparedPayload?.verificationHooks?.map((hook) => hook.kind)).toEqual([
       "edge-ack",
       "record-lookup",
@@ -220,6 +278,18 @@ describe("adapter scaffolds", () => {
         latestRunState: "completed",
         latestJobId: result.job.jobId,
       },
+    ]);
+    expect(
+      securityAuditStore
+        .list({ connectorId: "northbridge-edge-01" })
+        .map((event) => [event.type, event.scope, event.rotationStatus]),
+    ).toEqual([
+      ["secret.rotation.checked", "dispatch", "healthy"],
+      ["secret.access.granted", "dispatch", "healthy"],
+      ["secret.rotation.checked", "edge-ack", "healthy"],
+      ["secret.access.granted", "edge-ack", "healthy"],
+      ["secret.rotation.checked", "record-lookup", "healthy"],
+      ["secret.access.granted", "record-lookup", "healthy"],
     ]);
   });
 
@@ -279,6 +349,56 @@ describe("adapter scaffolds", () => {
         latestRunStage: "dispatched",
         latestRunState: "exception",
         latestJobId: result.job.jobId,
+      },
+    ]);
+  });
+
+  it("blocks edge connector runs when a secret violates the enforced credential boundary", async () => {
+    const securityAuditStore = new InMemoryEdgeConnectorSecurityAuditStore();
+    const edgeAdapter = createEdgeConnectorAdapter({
+      connectorId: "northbridge-edge-misconfigured",
+      endpointRef: "edge://northbridge/misconfigured-network",
+      securityAuditStore,
+      secretProvider: new InMemoryEdgeConnectorSecretProvider(
+        createEdgeScopedSecrets({
+          connectorId: "northbridge-edge-misconfigured",
+          credentialBoundary: "partner-managed",
+        }),
+      ),
+    });
+    const jobStore = new InMemoryProvisioningJobStore();
+    const orchestrator = new ProvisioningOrchestrator({
+      adapters: [edgeAdapter],
+      jobStore,
+      now: () => "2026-03-10T16:50:00Z",
+    });
+    const overlay = universityMappingOverlaySamples[3];
+
+    const result = await orchestrator.processDecision({
+      application: canonicalApplicationSamples[0],
+      decision: createDecisionRecord({
+        decisionId: "decision-edge-misconfigured-001",
+        partnerId: overlay.partnerId,
+        partnerName: overlay.partnerName,
+        correlationId: "corr-edge-misconfigured-001",
+      }),
+      overlay,
+    });
+
+    expect(result.selectedAdapterMode).toBe("edge");
+    expect(result.job.status).toBe("failed");
+    expect(result.job.terminalFailureCode).toBe("configuration_error");
+    expect(result.job.terminalFailureClass).toBe("configuration");
+    expect(result.job.attempts.at(-1)).toMatchObject({
+      failureClass: "configuration",
+      failureDisposition: "terminal",
+    });
+    expect(securityAuditStore.list()).toMatchObject([
+      {
+        type: "secret.access.blocked",
+        scope: "dispatch",
+        details:
+          "No scoped secret registered for northbridge-edge-misconfigured dispatch edge-local.",
       },
     ]);
   });

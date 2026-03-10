@@ -50,6 +50,16 @@ export type EdgeConnectorRunState =
   | "completed"
   | "exception";
 
+export type EdgeConnectorSecretScope =
+  | "dispatch"
+  | "edge-ack"
+  | "record-lookup";
+
+export type EdgeConnectorSecretRotationStatus =
+  | "healthy"
+  | "due_soon"
+  | "overdue";
+
 export interface AdapterCapabilityDescriptor {
   mode: ScaffoldedAdapterMode;
   dispatchChannel: DispatchChannel;
@@ -104,6 +114,63 @@ export interface EdgeConnectorStatusView {
   latestJobId?: string;
   latestCorrelationId?: string;
   requiresPrivateNetwork: boolean;
+}
+
+export interface EdgeConnectorScopedSecret {
+  connectorId: string;
+  scope: EdgeConnectorSecretScope;
+  credentialBoundary: CredentialBoundary;
+  secretId: string;
+  secretVersion: string;
+  value: string;
+  lastRotatedAt: string;
+  nextRotationDueAt?: string;
+}
+
+export interface EdgeConnectorSecretAccessRequest {
+  connectorId: string;
+  scope: EdgeConnectorSecretScope;
+  credentialBoundary: CredentialBoundary;
+  routeKey: string;
+  endpointRef: string;
+}
+
+export interface EdgeConnectorSecretProvider {
+  getSecret(request: EdgeConnectorSecretAccessRequest): EdgeConnectorScopedSecret;
+}
+
+export type EdgeConnectorSecurityAuditEventType =
+  | "secret.rotation.checked"
+  | "secret.access.granted"
+  | "secret.access.blocked";
+
+export interface EdgeConnectorSecurityAuditEvent {
+  eventId: string;
+  connectorId: string;
+  routeKey: string;
+  endpointRef: string;
+  occurredAt: string;
+  type: EdgeConnectorSecurityAuditEventType;
+  scope: EdgeConnectorSecretScope;
+  credentialBoundary: CredentialBoundary;
+  jobId: string;
+  correlationId: string;
+  details: string;
+  secretId?: string;
+  secretVersion?: string;
+  rotationStatus?: EdgeConnectorSecretRotationStatus;
+}
+
+export interface EdgeConnectorSecurityAuditFilters {
+  connectorId?: string;
+  jobId?: string;
+  type?: EdgeConnectorSecurityAuditEventType;
+  scope?: EdgeConnectorSecretScope;
+}
+
+export interface EdgeConnectorSecurityAuditStore {
+  append(event: EdgeConnectorSecurityAuditEvent): void;
+  list(filters?: EdgeConnectorSecurityAuditFilters): EdgeConnectorSecurityAuditEvent[];
 }
 
 export interface EdgeConnectorTelemetryFilters {
@@ -161,6 +228,22 @@ function cloneHealthSnapshot(
 function cloneRunTelemetryEvent(
   event: EdgeConnectorRunTelemetryEvent,
 ): EdgeConnectorRunTelemetryEvent {
+  return {
+    ...event,
+  };
+}
+
+function cloneScopedSecret(
+  secret: EdgeConnectorScopedSecret,
+): EdgeConnectorScopedSecret {
+  return {
+    ...secret,
+  };
+}
+
+function cloneSecurityAuditEvent(
+  event: EdgeConnectorSecurityAuditEvent,
+): EdgeConnectorSecurityAuditEvent {
   return {
     ...event,
   };
@@ -244,6 +327,62 @@ export class InMemoryEdgeConnectorTelemetryStore
 
   recordRun(event: EdgeConnectorRunTelemetryEvent): void {
     this.runEvents.push(cloneRunTelemetryEvent(event));
+  }
+}
+
+export class InMemoryEdgeConnectorSecretProvider
+  implements EdgeConnectorSecretProvider
+{
+  private readonly secrets = new Map<string, EdgeConnectorScopedSecret>();
+
+  constructor(secrets: EdgeConnectorScopedSecret[]) {
+    secrets.forEach((secret) => {
+      this.secrets.set(
+        [
+          secret.connectorId,
+          secret.scope,
+          secret.credentialBoundary,
+        ].join(":"),
+        cloneScopedSecret(secret),
+      );
+    });
+  }
+
+  getSecret(request: EdgeConnectorSecretAccessRequest): EdgeConnectorScopedSecret {
+    const secret = this.secrets.get(
+      [request.connectorId, request.scope, request.credentialBoundary].join(":"),
+    );
+    if (!secret) {
+      throw new Error(
+        `No scoped secret registered for ${request.connectorId} ${request.scope} ${request.credentialBoundary}.`,
+      );
+    }
+
+    return cloneScopedSecret(secret);
+  }
+}
+
+export class InMemoryEdgeConnectorSecurityAuditStore
+  implements EdgeConnectorSecurityAuditStore
+{
+  private readonly events: EdgeConnectorSecurityAuditEvent[] = [];
+
+  append(event: EdgeConnectorSecurityAuditEvent): void {
+    this.events.push(cloneSecurityAuditEvent(event));
+  }
+
+  list(
+    filters: EdgeConnectorSecurityAuditFilters = {},
+  ): EdgeConnectorSecurityAuditEvent[] {
+    return this.events
+      .filter((event) =>
+        filters.connectorId ? event.connectorId === filters.connectorId : true,
+      )
+      .filter((event) => (filters.jobId ? event.jobId === filters.jobId : true))
+      .filter((event) => (filters.type ? event.type === filters.type : true))
+      .filter((event) => (filters.scope ? event.scope === filters.scope : true))
+      .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt))
+      .map((event) => cloneSecurityAuditEvent(event));
   }
 }
 
@@ -346,6 +485,9 @@ export interface EdgeConnectorAdapterOptions {
   executionErrorMessage?: string;
   executionErrorRetryable?: boolean;
   executionErrorFailureClass?: ProvisioningFailureClass;
+  secretProvider?: EdgeConnectorSecretProvider;
+  securityAuditStore?: EdgeConnectorSecurityAuditStore;
+  secretRotationWarningDays?: number;
 }
 
 export function createImportWorkflowAdapter(
@@ -554,6 +696,42 @@ export function createEdgeConnectorAdapter(
   const recordLookupTarget =
     options.recordLookupTarget ?? `${endpointRef}/records`;
   const telemetryStore = options.telemetryStore;
+  const securityAuditStore = options.securityAuditStore;
+  const secretProvider =
+    options.secretProvider ??
+    new InMemoryEdgeConnectorSecretProvider([
+      {
+        connectorId,
+        scope: "dispatch",
+        credentialBoundary: "edge-local",
+        secretId: `${connectorId}-dispatch-secret`,
+        secretVersion: "v1",
+        value: `dispatch-token-${connectorId}`,
+        lastRotatedAt: "2026-03-01T00:00:00Z",
+        nextRotationDueAt: "2026-04-01T00:00:00Z",
+      },
+      {
+        connectorId,
+        scope: "edge-ack",
+        credentialBoundary: "edge-local",
+        secretId: `${connectorId}-ack-secret`,
+        secretVersion: "v1",
+        value: `ack-token-${connectorId}`,
+        lastRotatedAt: "2026-03-01T00:00:00Z",
+        nextRotationDueAt: "2026-04-01T00:00:00Z",
+      },
+      {
+        connectorId,
+        scope: "record-lookup",
+        credentialBoundary: "edge-local",
+        secretId: `${connectorId}-lookup-secret`,
+        secretVersion: "v1",
+        value: `lookup-token-${connectorId}`,
+        lastRotatedAt: "2026-03-01T00:00:00Z",
+        nextRotationDueAt: "2026-04-01T00:00:00Z",
+      },
+    ]);
+  const secretRotationWarningDays = options.secretRotationWarningDays ?? 7;
   const verificationHooks: VerificationHookV1[] = [
     {
       kind: "edge-ack",
@@ -580,6 +758,194 @@ export function createEdgeConnectorAdapter(
       "Secrets remain local to the edge runtime and are not replayed from the control plane.",
     ],
   };
+
+  function appendSecurityAudit(input: {
+    occurredAt: string;
+    type: EdgeConnectorSecurityAuditEventType;
+    scope: EdgeConnectorSecretScope;
+    jobId: string;
+    correlationId: string;
+    details: string;
+    secretId?: string;
+    secretVersion?: string;
+    rotationStatus?: EdgeConnectorSecretRotationStatus;
+  }): void {
+    if (!securityAuditStore) {
+      return;
+    }
+
+    securityAuditStore.append({
+      eventId: [
+        "edge-security",
+        sanitizeToken(connectorId),
+        sanitizeToken(input.jobId),
+        sanitizeToken(input.type),
+        sanitizeToken(input.scope),
+        sanitizeToken(input.occurredAt),
+      ].join("-"),
+      connectorId,
+      routeKey,
+      endpointRef,
+      occurredAt: input.occurredAt,
+      type: input.type,
+      scope: input.scope,
+      credentialBoundary: descriptor.credentialBoundary,
+      jobId: input.jobId,
+      correlationId: input.correlationId,
+      details: input.details,
+      secretId: input.secretId,
+      secretVersion: input.secretVersion,
+      rotationStatus: input.rotationStatus,
+    });
+  }
+
+  function classifyRotationStatus(
+    observedAt: string,
+    nextRotationDueAt?: string,
+  ): EdgeConnectorSecretRotationStatus {
+    if (!nextRotationDueAt) {
+      return "healthy";
+    }
+
+    const dueAt = Date.parse(nextRotationDueAt);
+    const now = Date.parse(observedAt);
+    if (Number.isNaN(dueAt) || Number.isNaN(now)) {
+      return "healthy";
+    }
+
+    if (now >= dueAt) {
+      return "overdue";
+    }
+
+    const warningWindowMs = secretRotationWarningDays * 24 * 60 * 60 * 1000;
+    if (dueAt - now <= warningWindowMs) {
+      return "due_soon";
+    }
+
+    return "healthy";
+  }
+
+  function resolveScopedSecret(input: {
+    scope: EdgeConnectorSecretScope;
+    observedAt: string;
+    jobId: string;
+    correlationId: string;
+  }): EdgeConnectorScopedSecret {
+    let secret: EdgeConnectorScopedSecret;
+    try {
+      secret = secretProvider.getSecret({
+        connectorId,
+        scope: input.scope,
+        credentialBoundary: descriptor.credentialBoundary,
+        routeKey,
+        endpointRef,
+      });
+    } catch (error) {
+      appendSecurityAudit({
+        occurredAt: input.observedAt,
+        type: "secret.access.blocked",
+        scope: input.scope,
+        jobId: input.jobId,
+        correlationId: input.correlationId,
+        details:
+          error instanceof Error
+            ? error.message
+            : "Secret provider did not return a scoped connector secret.",
+      });
+      throw new AdapterExecutionErrorClass(
+        "configuration_error",
+        "Secret provider did not return a scoped connector secret.",
+        {
+          retryable: false,
+          failureClass: "configuration",
+        },
+      );
+    }
+
+    if (
+      secret.connectorId !== connectorId ||
+      secret.scope !== input.scope ||
+      secret.credentialBoundary !== descriptor.credentialBoundary ||
+      !secret.value.trim()
+    ) {
+      appendSecurityAudit({
+        occurredAt: input.observedAt,
+        type: "secret.access.blocked",
+        scope: input.scope,
+        jobId: input.jobId,
+        correlationId: input.correlationId,
+        details:
+          "Connector secret did not satisfy the required connector, scope, boundary, or non-empty value constraints.",
+        secretId: secret.secretId,
+        secretVersion: secret.secretVersion,
+      });
+      throw new AdapterExecutionErrorClass(
+        "configuration_error",
+        "Connector secret failed scoped boundary validation.",
+        {
+          retryable: false,
+          failureClass: "configuration",
+        },
+      );
+    }
+
+    const rotationStatus = classifyRotationStatus(
+      input.observedAt,
+      secret.nextRotationDueAt,
+    );
+    appendSecurityAudit({
+      occurredAt: input.observedAt,
+      type: "secret.rotation.checked",
+      scope: input.scope,
+      jobId: input.jobId,
+      correlationId: input.correlationId,
+      details:
+        rotationStatus === "healthy"
+          ? "Secret rotation window is healthy."
+          : rotationStatus === "due_soon"
+            ? "Secret rotation window is approaching its due date."
+            : "Secret rotation window has expired and the secret is blocked from use.",
+      secretId: secret.secretId,
+      secretVersion: secret.secretVersion,
+      rotationStatus,
+    });
+
+    if (rotationStatus === "overdue") {
+      appendSecurityAudit({
+        occurredAt: input.observedAt,
+        type: "secret.access.blocked",
+        scope: input.scope,
+        jobId: input.jobId,
+        correlationId: input.correlationId,
+        details: "Connector secret rotation is overdue and the secret cannot be used.",
+        secretId: secret.secretId,
+        secretVersion: secret.secretVersion,
+        rotationStatus,
+      });
+      throw new AdapterExecutionErrorClass(
+        "invalid_credentials",
+        "Connector secret rotation is overdue and access has been blocked.",
+        {
+          retryable: false,
+          failureClass: "authorization",
+        },
+      );
+    }
+
+    appendSecurityAudit({
+      occurredAt: input.observedAt,
+      type: "secret.access.granted",
+      scope: input.scope,
+      jobId: input.jobId,
+      correlationId: input.correlationId,
+      details: "Connector secret access was granted through the mediated provider.",
+      secretId: secret.secretId,
+      secretVersion: secret.secretVersion,
+      rotationStatus,
+    });
+
+    return secret;
+  }
 
   function resolveAvailabilityStatus(
     failureClass?: ProvisioningFailureClass,
@@ -724,6 +1090,11 @@ export function createEdgeConnectorAdapter(
           connectorId,
           deploymentBoundary: descriptor.deploymentBoundary,
           credentialBoundary: descriptor.credentialBoundary,
+          credentialBoundaryPolicy: "edge-local-only",
+          secretAccessMode: "provider-mediated",
+          dispatchCredentialScope: "dispatch",
+          verificationCredentialScope: "edge-ack",
+          reconciliationCredentialScope: "record-lookup",
           requiresPrivateNetwork: String(descriptor.requiresPrivateNetwork),
           routeKey,
           ackTarget,
@@ -741,6 +1112,12 @@ export function createEdgeConnectorAdapter(
     },
     execute: (_prepared, context) => {
       const submittedAt = options.submittedAt ?? "2026-03-10T16:10:00Z";
+      const dispatchSecret = resolveScopedSecret({
+        scope: "dispatch",
+        observedAt: submittedAt,
+        jobId: context.jobId,
+        correlationId: context.correlationId,
+      });
       if (options.executionErrorCode) {
         recordHealth({
           observedAt: submittedAt,
@@ -780,7 +1157,8 @@ export function createEdgeConnectorAdapter(
         jobId: context.jobId,
         correlationId: context.correlationId,
         externalReference,
-        details: "Edge connector accepted dispatch for private-network execution.",
+        details:
+          `Edge connector accepted dispatch for private-network execution using ${dispatchSecret.secretId} ${dispatchSecret.secretVersion}.`,
       });
       return {
         accepted: true,
@@ -791,6 +1169,12 @@ export function createEdgeConnectorAdapter(
     verify: (prepared, execution, context) => {
       const verified = Boolean(prepared.verificationHooks?.length);
       const verifiedAt = options.verifiedAt ?? "2026-03-10T16:11:00Z";
+      const verificationSecret = resolveScopedSecret({
+        scope: "edge-ack",
+        observedAt: verifiedAt,
+        jobId: context.jobId,
+        correlationId: context.correlationId,
+      });
       recordHealth({
         observedAt: verifiedAt,
       });
@@ -803,7 +1187,7 @@ export function createEdgeConnectorAdapter(
         externalReference: execution.externalReference,
         failureClass: verified ? undefined : "verification",
         details: verified
-          ? "Edge acknowledgement and downstream lookup hooks were registered."
+          ? `Edge acknowledgement hooks were checked with ${verificationSecret.secretId} ${verificationSecret.secretVersion}.`
           : "Edge verification hooks were missing or incomplete.",
       });
       return {
@@ -814,6 +1198,12 @@ export function createEdgeConnectorAdapter(
     },
     reconcile: (_prepared, execution, context) => {
       const reconciledAt = options.reconciledAt ?? "2026-03-10T16:12:00Z";
+      const lookupSecret = resolveScopedSecret({
+        scope: "record-lookup",
+        observedAt: reconciledAt,
+        jobId: context.jobId,
+        correlationId: context.correlationId,
+      });
       recordHealth({
         observedAt: reconciledAt,
       });
@@ -825,7 +1215,7 @@ export function createEdgeConnectorAdapter(
         correlationId: context.correlationId,
         externalReference: execution.externalReference,
         details:
-          "Edge connector reconciliation confirmed the downstream record lookup.",
+          `Edge connector reconciliation confirmed the downstream record lookup with ${lookupSecret.secretId} ${lookupSecret.secretVersion}.`,
       });
       return {
         status: "matched",
