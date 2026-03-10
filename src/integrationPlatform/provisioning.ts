@@ -174,6 +174,7 @@ export interface PreparedProvisioningPayload {
   idempotencyKey: string;
   fieldCount: number;
   documentCount: number;
+  dispatchPayload?: unknown;
   executionMetadata?: Record<string, string>;
   verificationHooks?: VerificationHookV1[];
 }

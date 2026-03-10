@@ -2,6 +2,14 @@ import type {
   CanonicalApplicationV1,
   UniversityMappingOverlayV1,
 } from "./contracts";
+import {
+  createImportWorkflowDispatchPayload,
+  createImportWorkflowVerificationReceipt,
+  mapImportWorkflowVerificationReceipt,
+  validateImportWorkflowDispatchPayload,
+  validateImportWorkflowVerificationReceipt,
+  type ImportWorkflowVerificationStatus,
+} from "./importWorkflowContracts";
 import type {
   AdapterMode,
   DecisionRecordV1,
@@ -10,6 +18,7 @@ import type {
   VerificationHookKind,
   VerificationHookV1,
 } from "./provisioning";
+import { AdapterExecutionError as AdapterExecutionErrorClass } from "./provisioning";
 
 export type ScaffoldedAdapterMode = Extract<
   AdapterMode,
@@ -52,6 +61,10 @@ function cloneVerificationHook(hook: VerificationHookV1): VerificationHookV1 {
   };
 }
 
+function cloneJsonValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 function cloneDescriptor(
   descriptor: AdapterCapabilityDescriptor,
 ): AdapterCapabilityDescriptor {
@@ -73,6 +86,7 @@ function createPreparedPayload(input: {
   };
   executionMetadata: Record<string, string>;
   verificationHooks: VerificationHookV1[];
+  dispatchPayload?: unknown;
 }): PreparedProvisioningPayload {
   return {
     envelopeId: `${input.job.jobId}-attempt-${input.job.attempts.length + 1}`,
@@ -83,6 +97,9 @@ function createPreparedPayload(input: {
     idempotencyKey: input.job.idempotencyKey,
     fieldCount: input.overlay.fieldMappings.length,
     documentCount: input.application.documents.length,
+    dispatchPayload: input.dispatchPayload
+      ? cloneJsonValue(input.dispatchPayload)
+      : undefined,
     executionMetadata: { ...input.executionMetadata },
     verificationHooks: input.verificationHooks.map((hook) =>
       cloneVerificationHook(hook),
@@ -133,6 +150,9 @@ export interface ImportWorkflowAdapterOptions {
   dropLocation?: string;
   statusTarget?: string;
   receiptTarget?: string;
+  verificationStatus?: ImportWorkflowVerificationStatus;
+  verificationReasonCode?: string;
+  verificationDetails?: string;
   submittedAt?: string;
   verifiedAt?: string;
   reconciledAt?: string;
@@ -184,6 +204,37 @@ export function createImportWorkflowAdapter(
     ],
   };
 
+  function buildVerificationReceipt(input: {
+    prepared: PreparedProvisioningPayload;
+    externalReference: string;
+  }) {
+    return createImportWorkflowVerificationReceipt({
+      workflowId,
+      jobId: input.prepared.jobId,
+      envelopeId: input.prepared.envelopeId,
+      idempotencyKey: input.prepared.idempotencyKey,
+      externalReference: input.externalReference,
+      receiptTarget,
+      observedAt: options.verifiedAt ?? "2026-03-10T16:02:00Z",
+      status: options.verificationStatus ?? "imported",
+      reasonCode: options.verificationReasonCode,
+      details: options.verificationDetails,
+    });
+  }
+
+  function createInvalidPayloadError(
+    errors: string[],
+  ): AdapterExecutionErrorClass {
+    return new AdapterExecutionErrorClass(
+      "invalid_payload",
+      errors.join(" "),
+      {
+        retryable: false,
+        failureClass: "data_quality",
+      },
+    );
+  }
+
   return {
     mode: "import-workflow",
     routingProfile: {
@@ -202,12 +253,34 @@ export function createImportWorkflowAdapter(
       terminalCodes: ["invalid_credentials", "invalid_payload", "duplicate_record"],
     },
     descriptor,
-    prepare: ({ application, decision, overlay, job }) =>
-      createPreparedPayload({
+    prepare: ({ application, decision, overlay, job }) => {
+      const dispatchPayload = createImportWorkflowDispatchPayload({
+        workflowId,
+        dropLocation,
+        statusTarget,
+        receiptTarget,
+        routeKey: job.routingDecision.routeKey,
+        envelopeId: `${job.jobId}-attempt-${job.attempts.length + 1}`,
+        jobId: job.jobId,
+        idempotencyKey: job.idempotencyKey,
+        decisionId: decision.decisionId,
+        applicationId: application.applicationId,
+        overlay,
+        fieldCount: overlay.fieldMappings.length,
+        documentCount: application.documents.length,
+      });
+      const validation = validateImportWorkflowDispatchPayload(dispatchPayload);
+
+      if (!validation.valid) {
+        throw createInvalidPayloadError(validation.errors);
+      }
+
+      return createPreparedPayload({
         application,
         decision,
         overlay,
         job,
+        dispatchPayload,
         executionMetadata: {
           dispatchChannel: descriptor.dispatchChannel,
           dispatchTarget: dropLocation,
@@ -221,23 +294,72 @@ export function createImportWorkflowAdapter(
           ),
           duplicateCheckStrategy:
             overlay.capabilityProfile.duplicateCheckStrategy,
+          dispatchPayloadSchema: dispatchPayload.schema,
+          dispatchPayloadVersion: dispatchPayload.schemaVersion,
+          verificationReceiptSchema: "ImportWorkflowVerificationReceiptV1",
         },
         verificationHooks,
-      }),
+      });
+    },
     execute: (_prepared, context) => ({
       accepted: true,
       externalReference: `import:${workflowId}:${context.idempotencyKey}`,
       submittedAt: options.submittedAt ?? "2026-03-10T16:01:00Z",
     }),
-    verify: (prepared, execution) => ({
-      verified: Boolean(prepared.verificationHooks?.length),
-      verifiedAt: options.verifiedAt ?? "2026-03-10T16:02:00Z",
-      externalReference: execution.externalReference,
-    }),
-    reconcile: () => ({
-      status: "matched",
-      reconciledAt: options.reconciledAt ?? "2026-03-10T16:03:00Z",
-    }),
+    verify: (prepared, execution) => {
+      const receipt = buildVerificationReceipt({
+        prepared,
+        externalReference: execution.externalReference,
+      });
+      const validation = validateImportWorkflowVerificationReceipt(receipt);
+
+      if (!validation.valid) {
+        throw createInvalidPayloadError(validation.errors);
+      }
+
+      const outcome = mapImportWorkflowVerificationReceipt(receipt);
+      if (outcome.kind === "error") {
+        throw new AdapterExecutionErrorClass(
+          outcome.errorCode ?? "partner_unavailable",
+          outcome.errorMessage ?? "Import workflow receipt could not be mapped.",
+          {
+            retryable: outcome.retryable,
+            failureClass: outcome.failureClass,
+          },
+        );
+      }
+
+      return {
+        verified: true,
+        verifiedAt: receipt.observedAt,
+        externalReference: receipt.externalReference,
+      };
+    },
+    reconcile: (prepared, execution) => {
+      const receipt = buildVerificationReceipt({
+        prepared,
+        externalReference: execution.externalReference,
+      });
+      const validation = validateImportWorkflowVerificationReceipt(receipt);
+
+      if (!validation.valid) {
+        throw createInvalidPayloadError(validation.errors);
+      }
+
+      const outcome = mapImportWorkflowVerificationReceipt(receipt);
+      return {
+        status:
+          outcome.kind === "verified"
+            ? outcome.reconciliationStatus ?? "pending"
+            : "exception",
+        reconciledAt: options.reconciledAt ?? receipt.observedAt,
+        details:
+          receipt.details ??
+          (outcome.kind === "verified"
+            ? `Import workflow receipt reported ${receipt.status}.`
+            : outcome.errorMessage),
+      };
+    },
   };
 }
 

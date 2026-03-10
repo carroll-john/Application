@@ -31,6 +31,11 @@ Baseline assumptions:
 - Credentials stay within the partner workflow boundary.
 - Verification uses batch-status polling and delivery receipts.
 
+The scaffold now emits a structured dispatch contract and receipt contract:
+- `ImportWorkflowDispatchPayloadV1` defines the versioned handoff object sent to the partner import runner.
+- `ImportWorkflowVerificationReceiptV1` defines the receipt schema consumed by `verify` and `reconcile`.
+- Receipt statuses map to provisioning outcomes so `processing` stays retryable, `imported` completes, and `rejected` fails with explicit reason codes.
+
 Prepared payload metadata includes:
 - drop location and workflow id
 - manifest and document-inline flags from the overlay
@@ -63,6 +68,7 @@ Default route and failure policy:
 ## Shared Contract Additions
 
 `PreparedProvisioningPayload` now supports two optional fields for scaffolded adapters:
+- `dispatchPayload`
 - `executionMetadata`
 - `verificationHooks`
 

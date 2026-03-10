@@ -9,6 +9,10 @@ import {
   createScaffoldedAdapterRegistry,
 } from "./adapterScaffolds";
 import {
+  validateImportWorkflowDispatchPayload,
+  type ImportWorkflowDispatchPayloadV1,
+} from "./importWorkflowContracts";
+import {
   InMemoryProvisioningJobStore,
   ProvisioningOrchestrator,
   decisionRecordSchemaDefaults,
@@ -85,6 +89,11 @@ describe("adapter scaffolds", () => {
     expect(result.job.routingDecision.routeKey).toBe(
       "import-workflow:tiu-managed-import",
     );
+    expect(
+      validateImportWorkflowDispatchPayload(
+        result.preparedPayload?.dispatchPayload as ImportWorkflowDispatchPayloadV1,
+      ),
+    ).toMatchObject({ valid: true, errors: [] });
     expect(adapter.failureTaxonomy).toMatchObject({
       codeFailureClasses: {
         invalid_credentials: "authorization",
@@ -103,6 +112,9 @@ describe("adapter scaffolds", () => {
       workflowId: "tiu-managed-import",
       deploymentBoundary: "partner-import-runner",
       credentialBoundary: "partner-managed",
+      dispatchPayloadSchema: "ImportWorkflowDispatchPayloadV1",
+      dispatchPayloadVersion: "1.0.0",
+      verificationReceiptSchema: "ImportWorkflowVerificationReceiptV1",
       requiresPrivateNetwork: "false",
       acceptsDocumentsInline: "true",
     });
@@ -175,5 +187,83 @@ describe("adapter scaffolds", () => {
       "edge-ack",
       "record-lookup",
     ]);
+  });
+
+  it("maps import-workflow receipt states into provisioning outcomes", async () => {
+    const overlay = universityMappingOverlaySamples[1];
+
+    const pendingAdapter = createImportWorkflowAdapter({
+      workflowId: "pending-import",
+      verificationStatus: "processing",
+      verificationDetails: "Batch runner has accepted the handoff but not finished.",
+    });
+    const completedAdapter = createImportWorkflowAdapter({
+      workflowId: "completed-import",
+      verificationStatus: "imported",
+    });
+    const rejectedAdapter = createImportWorkflowAdapter({
+      workflowId: "rejected-import",
+      verificationStatus: "rejected",
+      verificationReasonCode: "invalid_payload",
+      verificationDetails: "Course line code was missing from the manifest.",
+    });
+
+    const pendingOrchestrator = new ProvisioningOrchestrator({
+      adapters: [pendingAdapter],
+      jobStore: new InMemoryProvisioningJobStore(),
+      now: () => "2026-03-10T16:20:00Z",
+    });
+    const completedOrchestrator = new ProvisioningOrchestrator({
+      adapters: [completedAdapter],
+      jobStore: new InMemoryProvisioningJobStore(),
+      now: () => "2026-03-10T16:20:00Z",
+    });
+    const rejectedOrchestrator = new ProvisioningOrchestrator({
+      adapters: [rejectedAdapter],
+      jobStore: new InMemoryProvisioningJobStore(),
+      now: () => "2026-03-10T16:20:00Z",
+    });
+
+    const baseDecision = createDecisionRecord({
+      applicationId: canonicalApplicationSamples[1].applicationId,
+      applicantId: canonicalApplicationSamples[1].applicantId,
+      partnerId: overlay.partnerId,
+      partnerName: overlay.partnerName,
+    });
+
+    const pendingResult = await pendingOrchestrator.processDecision({
+      application: canonicalApplicationSamples[1],
+      decision: {
+        ...baseDecision,
+        decisionId: "decision-import-pending",
+        correlationId: "corr-import-pending",
+      },
+      overlay,
+    });
+    const completedResult = await completedOrchestrator.processDecision({
+      application: canonicalApplicationSamples[1],
+      decision: {
+        ...baseDecision,
+        decisionId: "decision-import-completed",
+        correlationId: "corr-import-completed",
+      },
+      overlay,
+    });
+    const rejectedResult = await rejectedOrchestrator.processDecision({
+      application: canonicalApplicationSamples[1],
+      decision: {
+        ...baseDecision,
+        decisionId: "decision-import-rejected",
+        correlationId: "corr-import-rejected",
+      },
+      overlay,
+    });
+
+    expect(pendingResult.job.status).toBe("retry_pending");
+    expect(pendingResult.job.lastErrorCode).toBe("reconciliation_pending");
+    expect(completedResult.job.status).toBe("completed");
+    expect(rejectedResult.job.status).toBe("failed");
+    expect(rejectedResult.job.terminalFailureCode).toBe("invalid_payload");
+    expect(rejectedResult.job.terminalFailureClass).toBe("data_quality");
   });
 });
