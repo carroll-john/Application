@@ -21,6 +21,7 @@ export type AuditEventType =
   | "job.reconciled"
   | "exception.queued"
   | "exception.triaged"
+  | "exception.replay_blocked"
   | "exception.replayed";
 
 export interface AuditLedgerEvent {
@@ -356,6 +357,7 @@ export interface AuditedProvisioningServiceOptions {
   jobStore: ProvisioningJobStore;
   auditLedger: AuditLedgerStore;
   exceptionQueue: ExceptionQueueStore;
+  receiptStore?: DownstreamReceiptStore;
   now?: () => string;
 }
 
@@ -364,6 +366,15 @@ export interface AuditedProvisioningOutcome {
   auditEvents: AuditLedgerEvent[];
   reconciliation: ReconciliationResult;
   exception?: ExceptionQueueRecord;
+}
+
+export type ReplayCheckpoint = "execute" | "reconcile";
+
+export interface ReplayCheckpointEvaluation {
+  eligible: boolean;
+  checkpoint?: ReplayCheckpoint;
+  reason: string;
+  unsafeReasons: string[];
 }
 
 function sanitizeToken(value: string): string {
@@ -400,6 +411,23 @@ function createRecordedReconciliationResult(input: {
     adapterMode: input.job.adapterMode,
     jobStatus: input.job.status,
     ...input.reconciliation,
+  };
+}
+
+function createTriageAction(input: {
+  exceptionId: string;
+  sequence: number;
+  actionType: ExceptionQueueActionType;
+  actor: string;
+  actedAt: string;
+  note?: string;
+}): ExceptionQueueTriageAction {
+  return {
+    actionId: createExceptionActionId(input.exceptionId, input.sequence),
+    actionType: input.actionType,
+    actor: input.actor,
+    actedAt: input.actedAt,
+    note: input.note,
   };
 }
 
@@ -478,7 +506,7 @@ function classifyReconciliation(input: {
       };
     }
 
-    if (job.status === "completed" && receipt.status === "received") {
+    if (receipt.status === "received") {
       return {
         jobId: job.jobId,
         correlationId: job.correlationId,
@@ -573,6 +601,98 @@ function classifyReconciliation(input: {
   };
 }
 
+function evaluateReplayCheckpoint(input: {
+  job?: ProvisioningJobV1;
+  exception?: ExceptionQueueRecord;
+  receipt?: DownstreamReceiptRecord;
+}): ReplayCheckpointEvaluation {
+  if (!input.exception) {
+    return {
+      eligible: false,
+      reason: "Exception record was not found.",
+      unsafeReasons: ["missing_exception_record"],
+    };
+  }
+
+  if (input.exception.status !== "open") {
+    return {
+      eligible: false,
+      reason: "Exception record is not open for replay.",
+      unsafeReasons: ["exception_not_open"],
+    };
+  }
+
+  if (!input.job) {
+    return {
+      eligible: false,
+      reason: "Provisioning job was not found for the exception.",
+      unsafeReasons: ["missing_job_record"],
+    };
+  }
+
+  if (input.job.status === "pending" || input.job.status === "in_progress") {
+    return {
+      eligible: false,
+      reason: "Provisioning job is still active and cannot be replayed from a checkpoint.",
+      unsafeReasons: ["job_not_terminal"],
+    };
+  }
+
+  const remainingAttempts = input.job.maxAttempts - input.job.attempts.length;
+  const hasDownstreamFootprint = Boolean(
+    input.job.targetRecordRef || input.receipt?.externalReference,
+  );
+
+  if (hasDownstreamFootprint) {
+    if (!input.receipt) {
+      return {
+        eligible: false,
+        reason:
+          "Replay from reconcile checkpoint is blocked until a downstream receipt is available.",
+        unsafeReasons: ["missing_downstream_receipt"],
+      };
+    }
+
+    return {
+      eligible: true,
+      checkpoint: "reconcile",
+      reason:
+        "A downstream footprint already exists, so reconcile is the safe replay checkpoint.",
+      unsafeReasons: ["execute_would_risk_duplicate_side_effects"],
+    };
+  }
+
+  if (input.job.status === "retry_pending" && remainingAttempts > 0) {
+    return {
+      eligible: true,
+      checkpoint: "execute",
+      reason:
+        "The job is retry-pending with remaining attempt budget, so execute is the safe replay checkpoint.",
+      unsafeReasons: [],
+    };
+  }
+
+  if (input.job.status === "failed") {
+    return {
+      eligible: false,
+      reason:
+        remainingAttempts <= 0
+          ? "Replay from execute checkpoint is blocked because the retry budget is exhausted."
+          : "Replay from execute checkpoint is blocked because the failure was terminal.",
+      unsafeReasons:
+        remainingAttempts <= 0
+          ? ["retry_budget_exhausted"]
+          : ["terminal_failure_requires_manual_recovery"],
+    };
+  }
+
+  return {
+    eligible: false,
+    reason: "No safe replay checkpoint is available for this exception.",
+    unsafeReasons: ["no_safe_checkpoint"],
+  };
+}
+
 export interface ReconciliationWorkerOptions {
   jobStore: ProvisioningJobStore;
   receiptStore: DownstreamReceiptStore;
@@ -657,6 +777,7 @@ export class AuditedProvisioningService {
   private readonly jobStore: ProvisioningJobStore;
   private readonly auditLedger: AuditLedgerStore;
   private readonly exceptionQueue: ExceptionQueueStore;
+  private readonly receiptStore: DownstreamReceiptStore;
   private readonly now: () => string;
 
   constructor(options: AuditedProvisioningServiceOptions) {
@@ -664,6 +785,7 @@ export class AuditedProvisioningService {
     this.jobStore = options.jobStore;
     this.auditLedger = options.auditLedger;
     this.exceptionQueue = options.exceptionQueue;
+    this.receiptStore = options.receiptStore ?? new InMemoryDownstreamReceiptStore();
     this.now = options.now ?? (() => new Date().toISOString());
   }
 
@@ -692,6 +814,12 @@ export class AuditedProvisioningService {
     };
     this.auditLedger.append(event);
     return event;
+  }
+
+  private getJobById(jobId: string): ProvisioningJobV1 | undefined {
+    return ["pending", "in_progress", "retry_pending", "completed", "failed"]
+      .flatMap((status) => this.jobStore.listByStatus(status as ProvisioningJobStatus))
+      .find((job) => job.jobId === jobId);
   }
 
   runReconciliation(
@@ -730,6 +858,22 @@ export class AuditedProvisioningService {
     return this.exceptionQueue.list(filters);
   }
 
+  getReplayCheckpointEvaluation(input: {
+    exceptionId: string;
+  }): ReplayCheckpointEvaluation {
+    const exception = this.exceptionQueue.getById(input.exceptionId);
+    const job = exception ? this.getJobById(exception.jobId) : undefined;
+    const receipt = exception
+      ? this.receiptStore.getByJobId(exception.jobId)
+      : undefined;
+
+    return evaluateReplayCheckpoint({
+      exception,
+      job,
+      receipt,
+    });
+  }
+
   triageException(input: {
     exceptionId: string;
     actor: string;
@@ -752,16 +896,14 @@ export class AuditedProvisioningService {
       notes: [...existing.notes, input.note],
       triageActions: [
         ...existing.triageActions,
-        {
-          actionId: createExceptionActionId(
-            existing.exceptionId,
-            existing.triageActions.length + 1,
-          ),
+        createTriageAction({
+          exceptionId: existing.exceptionId,
+          sequence: existing.triageActions.length + 1,
           actionType,
           actor: input.actor,
           actedAt,
           note: input.note,
-        },
+        }),
       ],
     };
     this.exceptionQueue.save(updated);
@@ -890,13 +1032,55 @@ export class AuditedProvisioningService {
     exceptionId: string;
     operatorNote: string;
     operatorId?: string;
+    checkpoint?: ReplayCheckpoint;
     application: CanonicalApplicationV1;
     decision: DecisionRecordV1;
     overlay: UniversityMappingOverlayV1;
   }): Promise<AuditedProvisioningOutcome> {
     const existing = this.exceptionQueue.getById(input.exceptionId);
-    if (!existing || existing.status !== "open") {
-      throw new Error("Exception record is not open for replay.");
+    const job = existing ? this.getJobById(existing.jobId) : undefined;
+    const receipt = existing
+      ? this.receiptStore.getByJobId(existing.jobId)
+      : undefined;
+    const evaluation = evaluateReplayCheckpoint({
+      exception: existing,
+      job,
+      receipt,
+    });
+
+    if (!existing || !job) {
+      throw new Error(evaluation.reason);
+    }
+
+    if (!evaluation.eligible) {
+      this.appendEvent({
+        job,
+        type: "exception.replay_blocked",
+        summary: `Replay blocked for exception ${existing.exceptionId}. ${evaluation.reason}`,
+        metadata: {
+          exceptionId: existing.exceptionId,
+          unsafeReasons: evaluation.unsafeReasons.join(","),
+          requestedCheckpoint: input.checkpoint ?? "",
+        },
+      });
+      throw new Error(evaluation.reason);
+    }
+
+    if (input.checkpoint && input.checkpoint !== evaluation.checkpoint) {
+      this.appendEvent({
+        job,
+        type: "exception.replay_blocked",
+        summary:
+          `Replay blocked for exception ${existing.exceptionId}. Requested checkpoint ${input.checkpoint} is not safe.`,
+        metadata: {
+          exceptionId: existing.exceptionId,
+          requestedCheckpoint: input.checkpoint,
+          safeCheckpoint: evaluation.checkpoint ?? "",
+        },
+      });
+      throw new Error(
+        `Replay from checkpoint ${input.checkpoint} is not safe. Use ${evaluation.checkpoint} instead.`,
+      );
     }
 
     const replayTimestamp = this.now();
@@ -908,48 +1092,107 @@ export class AuditedProvisioningService {
       notes: [...existing.notes, input.operatorNote],
       triageActions: [
         ...existing.triageActions,
-        {
-          actionId: createExceptionActionId(
-            existing.exceptionId,
-            existing.triageActions.length + 1,
-          ),
+        createTriageAction({
+          exceptionId: existing.exceptionId,
+          sequence: existing.triageActions.length + 1,
           actionType: "replayed",
           actor: operatorId,
           actedAt: replayTimestamp,
           note: input.operatorNote,
-        },
+        }),
       ],
     };
     this.exceptionQueue.save(replayedRecord);
 
-    const outcome = await this.processDecision({
-      application: input.application,
-      decision: input.decision,
-      overlay: input.overlay,
-    });
-    const reconciledException: ExceptionQueueRecord = {
-      ...replayedRecord,
-      status: outcome.reconciliation.status === "matched" ? "replayed" : "open",
-      reasonCode: outcome.reconciliation.status,
-      updatedAt: this.now(),
-    };
+    if (evaluation.checkpoint === "execute") {
+      const outcome = await this.processDecision({
+        application: input.application,
+        decision: input.decision,
+        overlay: input.overlay,
+      });
+      const reconciledException: ExceptionQueueRecord = {
+        ...replayedRecord,
+        status: outcome.reconciliation.status === "matched" ? "replayed" : "open",
+        reasonCode: outcome.reconciliation.status,
+        summary: outcome.reconciliation.details,
+        escalationState: outcome.reconciliation.escalationState,
+        jobStatus: outcome.result.job.status,
+        updatedAt: this.now(),
+      };
+      this.exceptionQueue.save(reconciledException);
+
+      outcome.auditEvents.push(
+        this.appendEvent({
+          job: outcome.result.job,
+          type: "exception.replayed",
+          summary: `Exception ${reconciledException.exceptionId} replayed from execute checkpoint by operator.`,
+          metadata: {
+            exceptionId: reconciledException.exceptionId,
+            actor: operatorId,
+            note: input.operatorNote,
+            checkpoint: evaluation.checkpoint,
+          },
+        }),
+      );
+
+      return {
+        ...outcome,
+        exception: reconciledException,
+      };
+    }
+
+    const replayCheckpoint: ReplayCheckpoint = "reconcile";
+    const reconciliation = this.runReconciliation(job, receipt);
+    const reconciledException: ExceptionQueueRecord =
+      reconciliation.status === "matched"
+        ? {
+            ...replayedRecord,
+            status: "replayed",
+            reasonCode: reconciliation.status,
+            summary: reconciliation.details,
+            escalationState: reconciliation.escalationState,
+            jobStatus: job.status,
+            updatedAt: this.now(),
+          }
+        : buildExceptionRecord({
+            existing: replayedRecord,
+            job,
+            reconciliation,
+            timestamp: this.now(),
+          });
     this.exceptionQueue.save(reconciledException);
 
-    outcome.auditEvents.push(
+    const auditEvents = [
       this.appendEvent({
-        job: outcome.result.job,
+        job,
+        type: "job.reconciled",
+        summary: reconciliation.details,
+        metadata: {
+          reconciliationStatus: reconciliation.status,
+          replayCheckpoint,
+        },
+      }),
+      this.appendEvent({
+        job,
         type: "exception.replayed",
-        summary: `Exception ${reconciledException.exceptionId} replayed by operator.`,
+        summary: `Exception ${reconciledException.exceptionId} replayed from reconcile checkpoint by operator.`,
         metadata: {
           exceptionId: reconciledException.exceptionId,
           actor: operatorId,
           note: input.operatorNote,
+          checkpoint: replayCheckpoint,
         },
       }),
-    );
+    ];
 
     return {
-      ...outcome,
+      result: {
+        job,
+        selectedAdapterMode: job.adapterMode,
+        attemptExecuted: false,
+      },
+      auditEvents,
+      reconciliation,
       exception: reconciledException,
     };
   }

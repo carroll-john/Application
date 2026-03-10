@@ -23,6 +23,7 @@ Baseline event types:
 - `job.reconciled`
 - `exception.queued`
 - `exception.triaged`
+- `exception.replay_blocked`
 - `exception.replayed`
 
 ## Reconciliation Outcomes
@@ -89,6 +90,17 @@ Queue listings support filters for:
 ## Replay Rules
 
 Replay uses the same underlying decision, application, and overlay inputs.
+
+Replay checkpoints:
+- `execute` for retry-pending jobs with remaining attempt budget and no downstream footprint
+- `reconcile` when a downstream footprint or receipt already exists and a second execute would risk duplicate side effects
+
+Replay guardrails:
+- replay is blocked when the exception is not open
+- replay is blocked when the job is still active
+- `execute` replay is blocked after retry budget exhaustion or terminal failure
+- `reconcile` replay is blocked until downstream receipt evidence is available
+- blocked replay attempts record `exception.replay_blocked` audit events with explicit reasons
 
 Operator replay behavior:
 - preserves the original job idempotency key

@@ -290,6 +290,17 @@ describe("AuditedProvisioningService", () => {
     };
 
     const firstOutcome = await service.processDecision(input);
+    expect(
+      service.getReplayCheckpointEvaluation({
+        exceptionId: firstOutcome.exception!.exceptionId,
+      }),
+    ).toEqual({
+      eligible: true,
+      checkpoint: "execute",
+      reason:
+        "The job is retry-pending with remaining attempt budget, so execute is the safe replay checkpoint.",
+      unsafeReasons: [],
+    });
     const replayOutcome = await service.replayException({
       exceptionId: firstOutcome.exception!.exceptionId,
       operatorId: "ops.analyst@keypath.com",
@@ -310,6 +321,185 @@ describe("AuditedProvisioningService", () => {
     expect(replayOutcome.auditEvents.map((event) => event.type)).toContain(
       "exception.replayed",
     );
+  });
+
+  it("blocks unsafe checkpoint replay attempts with explicit reasons", async () => {
+    const jobStore = new InMemoryProvisioningJobStore();
+    const auditLedger = new InMemoryAuditLedgerStore();
+    const exceptionQueue = new InMemoryExceptionQueueStore();
+    const adapter: UniversityAdapter = {
+      mode: "file",
+      prepare: ({ application, decision, job, overlay }) => ({
+        envelopeId: `${job.jobId}-attempt-${job.attempts.length + 1}`,
+        jobId: job.jobId,
+        applicationId: application.applicationId,
+        decisionId: decision.decisionId,
+        adapterMode: overlay.capabilityProfile.transportMode,
+        idempotencyKey: job.idempotencyKey,
+        fieldCount: overlay.fieldMappings.length,
+        documentCount: application.documents.length,
+      }),
+      execute: () => ({
+        accepted: true,
+        externalReference: "record:block-720",
+        submittedAt: "2026-03-10T14:20:00Z",
+      }),
+      verify: (_prepared, execution) => ({
+        verified: false,
+        verifiedAt: "2026-03-10T14:21:00Z",
+        externalReference: execution.externalReference,
+      }),
+      reconcile: () => ({
+        status: "exception",
+        reconciledAt: "2026-03-10T14:22:00Z",
+        details: "Downstream receipt has not arrived yet.",
+      }),
+    };
+    const orchestrator = new ProvisioningOrchestrator({
+      adapters: [adapter],
+      jobStore,
+      maxAttempts: 1,
+      now: () => "2026-03-10T14:20:00Z",
+    });
+    const service = new AuditedProvisioningService({
+      orchestrator,
+      jobStore,
+      auditLedger,
+      exceptionQueue,
+      receiptStore: new InMemoryDownstreamReceiptStore(),
+      now: () => "2026-03-10T14:20:00Z",
+    });
+    const input = {
+      application: canonicalApplicationSamples[0],
+      decision: createDecisionRecord({
+        decisionId: "decision-720",
+        correlationId: "corr-720",
+      }),
+      overlay: universityMappingOverlaySamples[0],
+    };
+
+    const firstOutcome = await service.processDecision(input);
+
+    expect(
+      service.getReplayCheckpointEvaluation({
+        exceptionId: firstOutcome.exception!.exceptionId,
+      }),
+    ).toEqual({
+      eligible: false,
+      reason:
+        "Replay from reconcile checkpoint is blocked until a downstream receipt is available.",
+      unsafeReasons: ["missing_downstream_receipt"],
+    });
+
+    await expect(
+      service.replayException({
+        exceptionId: firstOutcome.exception!.exceptionId,
+        operatorId: "ops.lead@keypath.com",
+        operatorNote: "Tried to replay before receipt arrived.",
+        checkpoint: "execute",
+        ...input,
+      }),
+    ).rejects.toThrow(
+      "Replay from reconcile checkpoint is blocked until a downstream receipt is available.",
+    );
+    expect(
+      auditLedger.listByJobId(firstOutcome.result.job.jobId).map((event) => event.type),
+    ).toContain("exception.replay_blocked");
+  });
+
+  it("replays from reconcile checkpoint when downstream receipt evidence arrives", async () => {
+    const jobStore = new InMemoryProvisioningJobStore();
+    const auditLedger = new InMemoryAuditLedgerStore();
+    const exceptionQueue = new InMemoryExceptionQueueStore();
+    const receiptStore = new InMemoryDownstreamReceiptStore();
+    const adapter: UniversityAdapter = {
+      mode: "file",
+      prepare: ({ application, decision, job, overlay }) => ({
+        envelopeId: `${job.jobId}-attempt-${job.attempts.length + 1}`,
+        jobId: job.jobId,
+        applicationId: application.applicationId,
+        decisionId: decision.decisionId,
+        adapterMode: overlay.capabilityProfile.transportMode,
+        idempotencyKey: job.idempotencyKey,
+        fieldCount: overlay.fieldMappings.length,
+        documentCount: application.documents.length,
+      }),
+      execute: () => ({
+        accepted: true,
+        externalReference: "record:reconcile-730",
+        submittedAt: "2026-03-10T14:30:00Z",
+      }),
+      verify: (_prepared, execution) => ({
+        verified: false,
+        verifiedAt: "2026-03-10T14:31:00Z",
+        externalReference: execution.externalReference,
+      }),
+      reconcile: () => ({
+        status: "exception",
+        reconciledAt: "2026-03-10T14:32:00Z",
+        details: "Receipt confirmation is still pending.",
+      }),
+    };
+    const orchestrator = new ProvisioningOrchestrator({
+      adapters: [adapter],
+      jobStore,
+      maxAttempts: 1,
+      now: () => "2026-03-10T14:30:00Z",
+    });
+    const service = new AuditedProvisioningService({
+      orchestrator,
+      jobStore,
+      auditLedger,
+      exceptionQueue,
+      receiptStore,
+      now: () => "2026-03-10T14:30:00Z",
+    });
+    const input = {
+      application: canonicalApplicationSamples[0],
+      decision: createDecisionRecord({
+        decisionId: "decision-730",
+        correlationId: "corr-730",
+      }),
+      overlay: universityMappingOverlaySamples[0],
+    };
+
+    const firstOutcome = await service.processDecision(input);
+    receiptStore.save({
+      jobId: firstOutcome.result.job.jobId,
+      correlationId: firstOutcome.result.job.correlationId,
+      observedAt: "2026-03-10T14:35:00Z",
+      status: "received",
+      externalReference: "record:reconcile-730",
+    });
+
+    expect(
+      service.getReplayCheckpointEvaluation({
+        exceptionId: firstOutcome.exception!.exceptionId,
+      }),
+    ).toEqual({
+      eligible: true,
+      checkpoint: "reconcile",
+      reason:
+        "A downstream footprint already exists, so reconcile is the safe replay checkpoint.",
+      unsafeReasons: ["execute_would_risk_duplicate_side_effects"],
+    });
+
+    const replayOutcome = await service.replayException({
+      exceptionId: firstOutcome.exception!.exceptionId,
+      operatorId: "ops.lead@keypath.com",
+      operatorNote: "Receipt arrived from the partner runner.",
+      checkpoint: "reconcile",
+      ...input,
+    });
+
+    expect(replayOutcome.result.attemptExecuted).toBe(false);
+    expect(replayOutcome.result.job.attempts).toHaveLength(1);
+    expect(replayOutcome.reconciliation.status).toBe("matched");
+    expect(replayOutcome.exception?.status).toBe("replayed");
+    expect(replayOutcome.auditEvents.map((event) => event.type)).toEqual([
+      "job.reconciled",
+      "exception.replayed",
+    ]);
   });
 
   it("scans terminal jobs against downstream receipts and stores explicit reconciliation results", () => {
