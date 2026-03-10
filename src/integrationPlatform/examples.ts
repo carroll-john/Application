@@ -6,6 +6,10 @@ import {
   type TransferPackageManifestV1,
   type UniversityMappingOverlayV1,
 } from "./contracts";
+import {
+  universityExportMappingConfigSchemaDefaults,
+  type UniversityExportMappingConfigV1,
+} from "./exporters";
 
 const CHECKSUM_A =
   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -569,6 +573,122 @@ export const universityMappingOverlaySamples: UniversityMappingOverlayV1[] = [
     metadata: {
       connectorProfile: "northbridge-private-edge",
       deploymentBoundary: "partner-vpc",
+    },
+  },
+];
+
+export const universityExportMappingConfigSamples: UniversityExportMappingConfigV1[] = [
+  {
+    ...universityExportMappingConfigSchemaDefaults,
+    configId: "southern-coast-csv-v1",
+    configVersion: "1.0.0",
+    partnerId: "SCU",
+    partnerName: "Southern Coast University",
+    overlayId: "overlay-001",
+    mappingProfileId: "southern-coast-online-v1",
+    format: "csv",
+    filenameStem: "southern-coast-application",
+    fields: [
+      {
+        sourcePath: "personalDetails.firstName",
+        outputKey: "ApplicantFirstName",
+        required: true,
+      },
+      {
+        sourcePath: "personalDetails.lastName",
+        outputKey: "ApplicantLastName",
+        required: true,
+      },
+      {
+        sourcePath: "selectedCourse.courseCode",
+        outputKey: "CourseCode",
+        required: true,
+        transform: "uppercase",
+      },
+      {
+        sourcePath: "decision.outcome.status",
+        outputKey: "DecisionStatus",
+        required: true,
+      },
+    ],
+    handoff: {
+      handoffMode: "sftp",
+      destinationRef: "sftp://scu.example.edu/imports",
+      encryptionProfile: "zip-aes256",
+    },
+    metadata: {
+      deliveryProfile: "southern-coast-standard",
+    },
+  },
+  {
+    ...universityExportMappingConfigSchemaDefaults,
+    configId: "tasman-import-xml-v1",
+    configVersion: "1.0.0",
+    partnerId: "TIU",
+    partnerName: "Tasman Institute of Technology",
+    overlayId: "overlay-002",
+    mappingProfileId: "tasman-import-v1",
+    format: "xml",
+    filenameStem: "tasman-import-package",
+    rootElementName: "ImportPackage",
+    rowElementName: "ApplicationRecord",
+    documentBasePath: "attachments",
+    fields: [
+      {
+        sourcePath: "personalDetails.email",
+        outputKey: "ApplicantEmail",
+        required: true,
+        transform: "lowercase",
+      },
+      {
+        sourcePath: "selectedCourse.courseCode",
+        outputKey: "CourseCode",
+        required: true,
+      },
+      {
+        sourcePath: "languageTests[0].overallScore",
+        outputKey: "IELTSScore",
+        required: true,
+      },
+    ],
+    handoff: {
+      handoffMode: "manual-import",
+      destinationRef: "tasman-import-template-v3",
+      encryptionProfile: "none",
+    },
+  },
+  {
+    ...universityExportMappingConfigSchemaDefaults,
+    configId: "harbour-health-csv-v1",
+    configVersion: "1.0.0",
+    partnerId: "HHI",
+    partnerName: "Harbour Health Institute",
+    overlayId: "overlay-003",
+    mappingProfileId: "harbour-health-rpa-v1",
+    format: "csv",
+    filenameStem: "harbour-health-nursing",
+    fields: [
+      {
+        sourcePath: "personalDetails.middleName",
+        outputKey: "MiddleName",
+        required: true,
+        defaultValue: "NOT_PROVIDED",
+      },
+      {
+        sourcePath: "postalAddress.formattedAddress",
+        outputKey: "PostalAddress",
+        required: true,
+      },
+      {
+        sourcePath: "decision.outcome.status",
+        outputKey: "DecisionStatus",
+        required: true,
+      },
+    ],
+    handoff: {
+      handoffMode: "portal-upload",
+      destinationRef: "harbour-health-admissions-portal",
+      encryptionProfile: "pgp",
     },
   },
 ];
