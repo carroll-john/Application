@@ -6,9 +6,15 @@ import {
   mergeStoredApplicationData,
   saveLocalApplicationData,
   type ApplicationData,
+  type EmploymentExperience,
+  type LanguageTest,
+  type ProfessionalAccreditation,
+  type SecondaryQualification,
   type SelectedCourse,
+  type TertiaryQualification,
 } from "./applicationData";
 import type { StoredApplicantProfile } from "./applicantProfileStore";
+import { getStepCompletionSummary } from "./applicationValidationSchema";
 
 export const APPLICATIONS_STORAGE_KEY = "application-prototype:applications";
 export const ACTIVE_APPLICATION_ID_STORAGE_KEY =
@@ -16,11 +22,18 @@ export const ACTIVE_APPLICATION_ID_STORAGE_KEY =
 
 export interface ApplicationSummary {
   applicationNumber?: string;
+  completedStepCount: number;
+  completionPercentage: number;
   course: SelectedCourse;
   id: string;
   status: "draft" | "submitted";
   submittedAt?: string;
+  totalStepCount: number;
   updatedAt: string;
+}
+
+interface CreateApplicationDraftOptions {
+  includeSourceDocuments?: boolean;
 }
 
 function createLocalApplicationId() {
@@ -31,29 +44,170 @@ function createLocalApplicationId() {
   return `local-${Date.now()}`;
 }
 
+function createDraftItemId(prefix: string) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function cloneEmploymentExperiences(
+  experiences: EmploymentExperience[],
+): EmploymentExperience[] {
+  return experiences.map((experience) => ({
+    ...experience,
+    id: createDraftItemId("employment"),
+  }));
+}
+
+function cloneTertiaryQualifications(
+  qualifications: TertiaryQualification[],
+  includeDocuments: boolean,
+): TertiaryQualification[] {
+  return qualifications.map((qualification) => ({
+    ...qualification,
+    id: createDraftItemId("tertiary"),
+    certificateDocument: includeDocuments
+      ? qualification.certificateDocument
+      : undefined,
+    transcriptDocument: includeDocuments
+      ? qualification.transcriptDocument
+      : undefined,
+  }));
+}
+
+function cloneProfessionalAccreditations(
+  accreditations: ProfessionalAccreditation[],
+  includeDocuments: boolean,
+): ProfessionalAccreditation[] {
+  return accreditations.map((accreditation) => ({
+    ...accreditation,
+    document: includeDocuments ? accreditation.document : undefined,
+    id: createDraftItemId("accreditation"),
+  }));
+}
+
+function cloneSecondaryQualifications(
+  qualifications: SecondaryQualification[],
+): SecondaryQualification[] {
+  return qualifications.map((qualification) => ({
+    ...qualification,
+    id: createDraftItemId("secondary"),
+  }));
+}
+
+function cloneLanguageTests(
+  tests: LanguageTest[],
+  includeDocuments: boolean,
+): LanguageTest[] {
+  return tests.map((test) => ({
+    ...test,
+    document: includeDocuments ? test.document : undefined,
+    id: createDraftItemId("language-test"),
+  }));
+}
+
+function buildSeededPersonalDetails(
+  applicantProfile?: StoredApplicantProfile | null,
+  sourceApplication?: ApplicationData | null,
+) {
+  const sourcePersonalDetails = sourceApplication?.personalDetails;
+
+  return {
+    ...initialApplicationData.personalDetails,
+    ...sourcePersonalDetails,
+    email: applicantProfile?.email ?? sourcePersonalDetails?.email ?? "",
+    firstName:
+      applicantProfile?.firstName ?? sourcePersonalDetails?.firstName ?? "",
+    lastName: applicantProfile?.lastName ?? sourcePersonalDetails?.lastName ?? "",
+  };
+}
+
+function buildSeededContactDetails(sourceApplication?: ApplicationData | null) {
+  const sourceContactDetails = sourceApplication?.contactDetails;
+
+  return {
+    ...initialApplicationData.contactDetails,
+    ...sourceContactDetails,
+    postalAddress: {
+      ...initialApplicationData.contactDetails.postalAddress,
+      ...sourceContactDetails?.postalAddress,
+    },
+    residentialAddress: {
+      ...initialApplicationData.contactDetails.residentialAddress,
+      ...sourceContactDetails?.residentialAddress,
+    },
+  };
+}
+
+function buildPrefillSource(sourceApplication?: ApplicationData | null) {
+  const sourceApplicationId = sourceApplication?.applicationMeta.recordId;
+  const sourceCourse = sourceApplication?.applicationMeta.selectedCourse;
+
+  if (!sourceApplicationId || !sourceCourse) {
+    return undefined;
+  }
+
+  return {
+    applicationId: sourceApplicationId,
+    course: sourceCourse,
+  };
+}
+
 export function createApplicationDraft(
   course: SelectedCourse,
   applicantProfileId?: string,
   applicantProfile?: StoredApplicantProfile | null,
+  sourceApplication?: ApplicationData | null,
+  options: CreateApplicationDraftOptions = {},
 ): ApplicationData {
   const now = new Date().toISOString();
+  const hasSourceApplication = Boolean(sourceApplication);
+  const includeSourceDocuments =
+    options.includeSourceDocuments ?? hasSourceApplication;
 
   return {
     ...initialApplicationData,
     applicationMeta: {
       applicantProfileId,
       createdAt: now,
+      prefilledFrom: buildPrefillSource(sourceApplication),
       recordId: createLocalApplicationId(),
       selectedCourse: course,
       status: "draft",
       updatedAt: now,
     },
-    personalDetails: {
-      ...initialApplicationData.personalDetails,
-      email: applicantProfile?.email ?? "",
-      firstName: applicantProfile?.firstName ?? "",
-      lastName: applicantProfile?.lastName ?? "",
-    },
+    contactDetails: buildSeededContactDetails(sourceApplication),
+    cvDocument: includeSourceDocuments ? sourceApplication?.cvDocument : undefined,
+    cvFileName: sourceApplication?.cvFileName,
+    cvUploaded: Boolean(
+      sourceApplication?.cvUploaded ||
+        sourceApplication?.cvFileName ||
+        sourceApplication?.cvDocument,
+    ),
+    employmentExperiences: cloneEmploymentExperiences(
+      sourceApplication?.employmentExperiences ?? [],
+    ),
+    languageTests: cloneLanguageTests(
+      sourceApplication?.languageTests ?? [],
+      includeSourceDocuments,
+    ),
+    personalDetails: buildSeededPersonalDetails(
+      applicantProfile,
+      sourceApplication,
+    ),
+    professionalAccreditations: cloneProfessionalAccreditations(
+      sourceApplication?.professionalAccreditations ?? [],
+      includeSourceDocuments,
+    ),
+    secondaryQualifications: cloneSecondaryQualifications(
+      sourceApplication?.secondaryQualifications ?? [],
+    ),
+    tertiaryQualifications: cloneTertiaryQualifications(
+      sourceApplication?.tertiaryQualifications ?? [],
+      includeSourceDocuments,
+    ),
   };
 }
 
@@ -67,17 +221,57 @@ export function summarizeApplication(
     return null;
   }
 
+  const stepCompletionSummary = getStepCompletionSummary(application);
+
   return {
     applicationNumber: application.applicationMeta.applicationNumber,
+    completedStepCount: stepCompletionSummary.completedSteps,
+    completionPercentage: stepCompletionSummary.completionPercentage,
     course: selectedCourse,
     id: recordId,
     status: application.applicationMeta.submittedAt ? "submitted" : "draft",
     submittedAt: application.applicationMeta.submittedAt,
+    totalStepCount: stepCompletionSummary.totalSteps,
     updatedAt:
       application.applicationMeta.updatedAt ??
       application.applicationMeta.createdAt ??
       new Date().toISOString(),
   };
+}
+
+export function sortApplicationsForPrefillChooser(
+  applications: ApplicationSummary[],
+  targetCourseCode: string,
+  activeApplicationId?: string | null,
+) {
+  return applications
+    .filter((application) => application.course.code !== targetCourseCode)
+    .sort((left, right) => {
+      if (right.completionPercentage !== left.completionPercentage) {
+        return right.completionPercentage - left.completionPercentage;
+      }
+
+      if (right.completedStepCount !== left.completedStepCount) {
+        return right.completedStepCount - left.completedStepCount;
+      }
+
+      const leftSubmittedRank = Number(left.status === "submitted");
+      const rightSubmittedRank = Number(right.status === "submitted");
+
+      if (rightSubmittedRank !== leftSubmittedRank) {
+        return rightSubmittedRank - leftSubmittedRank;
+      }
+
+      if (left.id === activeApplicationId) {
+        return -1;
+      }
+
+      if (right.id === activeApplicationId) {
+        return 1;
+      }
+
+      return right.updatedAt.localeCompare(left.updatedAt);
+    });
 }
 
 export function loadLocalApplications(): ApplicationData[] {

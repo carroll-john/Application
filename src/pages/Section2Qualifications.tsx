@@ -20,8 +20,16 @@ import { StatusPill } from "../components/StatusPill";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
 import { useReviewReturn } from "../hooks/useReviewReturn";
-import { isTertiaryQualificationSubmissionReady } from "../lib/applicationValidationSchema";
-import { meetsSection2SubmissionRequirement } from "../lib/section2Requirements";
+import {
+  isEmploymentExperienceChronologyValid,
+  isTertiaryQualificationSubmissionReady,
+} from "../lib/applicationValidationSchema";
+import {
+  getSection2RequirementInput,
+  getSection2RequirementProfile,
+  getSection2SubmissionMissingFields,
+  meetsSection2SubmissionRequirement,
+} from "../lib/section2Requirements";
 
 type SectionStatus =
   | "locked"
@@ -74,11 +82,26 @@ export default function Section2Qualifications() {
     data.tertiaryQualifications.every(isTertiaryQualificationSubmissionReady);
   const hasCv = data.cvUploaded;
   const hasEmploymentExperience = data.employmentExperiences.length > 0;
-  const meetsSection2MinimumRequirement = meetsSection2SubmissionRequirement({
-    cvUploaded: hasCv,
-    employmentExperiencesCount: data.employmentExperiences.length,
-    tertiaryQualificationsCount: data.tertiaryQualifications.length,
-  });
+  const employmentRequirementsMet =
+    hasEmploymentExperience &&
+    data.employmentExperiences.every(isEmploymentExperienceChronologyValid);
+  const section2RequirementInput = getSection2RequirementInput(data);
+  const section2RequirementProfile = getSection2RequirementProfile(
+    section2RequirementInput.selectedCourse,
+  );
+  const section2MissingFields = getSection2SubmissionMissingFields(
+    section2RequirementInput,
+  );
+  const supportsExperienceAlternative =
+    section2RequirementProfile?.supportsExperienceAlternative ?? false;
+  const supportsSecondaryQualification =
+    section2RequirementProfile?.supportsSecondaryQualification ?? false;
+  const meetsSection2MinimumRequirement =
+    meetsSection2SubmissionRequirement(section2RequirementInput);
+  const section2WarningCopy =
+    section2MissingFields.length === 1
+      ? section2MissingFields[0]
+      : "Add either one tertiary qualification, or both a CV and employment experience.";
 
   useEffect(() => {
     const nextMessage =
@@ -119,6 +142,15 @@ export default function Section2Qualifications() {
   useEffect(() => {
     const next: SectionState = { ...initialSections };
 
+    if (supportsExperienceAlternative) {
+      next.cv = "active";
+      next.employment = "active";
+    }
+
+    if (supportsSecondaryQualification) {
+      next.secondary = "active";
+    }
+
     if (data.tertiaryQualifications.length > 0) {
       next.tertiary = tertiaryRequirementsMet ? "completed" : "needsAttention";
       next.cv = "active";
@@ -128,7 +160,7 @@ export default function Section2Qualifications() {
       next.employment = "active";
     }
     if (data.employmentExperiences.length > 0) {
-      next.employment = "completed";
+      next.employment = employmentRequirementsMet ? "completed" : "needsAttention";
       next.accreditation = "active";
     }
     if (data.professionalAccreditations.length > 0) {
@@ -168,7 +200,13 @@ export default function Section2Qualifications() {
           ? "skipped"
           : next.languageTest,
     }));
-  }, [data, tertiaryRequirementsMet]);
+  }, [
+    data,
+    employmentRequirementsMet,
+    supportsExperienceAlternative,
+    supportsSecondaryQualification,
+    tertiaryRequirementsMet,
+  ]);
 
   function handlePrevious() {
     navigate(returnPath("/section1/family-support"));
@@ -237,8 +275,7 @@ export default function Section2Qualifications() {
           </p>
           {!meetsSection2MinimumRequirement ? (
             <p className="mt-2 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] px-3 py-2 text-xs text-[var(--warning-text)] sm:text-sm">
-              <strong>Before submit:</strong> Add either one tertiary
-              qualification, or both a CV and employment experience.
+              <strong>Before submit:</strong> {section2WarningCopy}
             </p>
           ) : null}
         </div>

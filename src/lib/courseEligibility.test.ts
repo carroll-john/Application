@@ -63,4 +63,30 @@ describe("evaluateCourseEligibility", () => {
       reason: "You meet the entry criteria for this course.",
     });
   });
+
+  it("does not treat experience as an alternate path when the course requires education only", () => {
+    expect(
+      evaluateCourseEligibility(
+        {
+          ...mbaStyleEligibility,
+          ineligibleCopy:
+            "This course expects a bachelor degree or higher qualification.",
+          rules: [
+            {
+              type: "min_education",
+              minEducation: "Bachelor degree",
+            },
+          ],
+        },
+        {
+          educationLevel: "High school",
+          experienceRange: "5+ years",
+          goal: "Career advancement",
+        },
+      ),
+    ).toEqual({
+      eligible: false,
+      reason: "This course expects a bachelor degree or higher qualification.",
+    });
+  });
 });

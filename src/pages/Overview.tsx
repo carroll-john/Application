@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
+import { CopiedApplicationNotice } from "../components/CopiedApplicationNotice";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
@@ -38,6 +39,7 @@ export default function Overview() {
   const started = hasStartedApplication(data);
   const submitted = isApplicationSubmitted(data);
   const selectedCourse = getSelectedCourse(data.applicationMeta);
+  const prefilledFrom = data.applicationMeta.prefilledFrom;
   const nextPath = getOverviewActionPath(getNextIncompleteSection(), submitted);
   const primaryLabel = submitted
     ? "View Submitted Application"
@@ -79,6 +81,10 @@ export default function Overview() {
             </div>
           </div>
         </SurfaceCard>
+
+        {prefilledFrom ? (
+          <CopiedApplicationNotice className="mt-5" prefilledFrom={prefilledFrom} />
+        ) : null}
 
         <div className="mt-8">
           <h1 className="text-3xl font-bold text-slate-900">

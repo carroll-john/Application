@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, Edit, Paperclip } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { CopiedApplicationNotice } from "../components/CopiedApplicationNotice";
 import { FormActionBar } from "../components/FormActionBar";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { Button } from "../components/ui/button";
@@ -35,6 +36,7 @@ export default function ReviewAndSubmit() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const validationErrors = useMemo(() => validateApplication(data), [data]);
   const parentCount = Number(data.contactDetails.parentsCount || 0);
+  const prefilledFrom = data.applicationMeta.prefilledFrom;
 
   useEffect(() => {
     const shouldValidate = window.sessionStorage.getItem(REVIEW_VALIDATION_FLAG) === "1";
@@ -149,7 +151,13 @@ export default function ReviewAndSubmit() {
             Please review all information carefully before submitting your
             application
           </p>
-          {validationErrors.length === 0 ? (
+          {prefilledFrom ? (
+            <CopiedApplicationNotice
+              className="mt-4"
+              prefilledFrom={prefilledFrom}
+              readyToSubmit={validationErrors.length === 0}
+            />
+          ) : validationErrors.length === 0 ? (
             <div className="mt-4 rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3">
               <p className="text-sm font-medium text-[var(--info-text)]">
                 Review before submitting

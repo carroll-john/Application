@@ -351,6 +351,48 @@ async function loadLocalDocumentFile(id: string): Promise<File | null> {
   });
 }
 
+async function loadRemoteDocumentFile(
+  document: UploadedDocument,
+): Promise<File | null> {
+  try {
+    const proxyResponse = await requestRemoteDocumentProxy(document, "attachment");
+
+    if (proxyResponse) {
+      if (!proxyResponse.ok) {
+        throw new Error("Unable to load the remote document.");
+      }
+
+      const blob = await proxyResponse.blob();
+      return new File([blob], document.name, {
+        type: document.type || blob.type || "application/octet-stream",
+        lastModified: document.lastModified || Date.now(),
+      });
+    }
+  } catch (error) {
+    if (!isLocalhostRuntime()) {
+      throw error;
+    }
+  }
+
+  const signedUrl = await createRemoteDocumentSignedUrl(document);
+
+  if (!signedUrl) {
+    return null;
+  }
+
+  const response = await fetch(signedUrl, { method: "GET" });
+
+  if (!response.ok) {
+    throw new Error("Unable to load the remote document.");
+  }
+
+  const blob = await response.blob();
+  return new File([blob], document.name, {
+    type: document.type || blob.type || "application/octet-stream",
+    lastModified: document.lastModified || Date.now(),
+  });
+}
+
 async function saveRemoteDocumentFile(
   file: File,
   applicationId: string,
@@ -506,6 +548,25 @@ export async function replaceStoredDocument(
   }
 
   return savedDocument;
+}
+
+export async function duplicateStoredDocument(
+  document: UploadedDocument | undefined,
+  options: ReplaceStoredDocumentOptions = {},
+): Promise<UploadedDocument | undefined> {
+  if (!document?.id) {
+    return undefined;
+  }
+
+  const sourceFile = isRemoteDocument(document)
+    ? await loadRemoteDocumentFile(document)
+    : await loadLocalDocumentFile(document.id);
+
+  if (!sourceFile) {
+    throw new Error(`Unable to duplicate document: ${document.name}`);
+  }
+
+  return replaceStoredDocument(sourceFile, undefined, options);
 }
 
 export async function downloadStoredDocument(

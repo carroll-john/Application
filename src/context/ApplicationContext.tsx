@@ -21,7 +21,10 @@ import { createApplicationStorageAdapter } from "../lib/applicationStorageAdapte
 import { useApplicationAnalytics } from "./application/useApplicationAnalytics";
 import { useApplicationData } from "./application/useApplicationData";
 import { useApplicationProfile } from "./application/useApplicationProfile";
-import { useApplicationStorageOrchestration } from "./application/useApplicationStorageOrchestration";
+import {
+  useApplicationStorageOrchestration,
+  type BeginCourseApplicationOptions,
+} from "./application/useApplicationStorageOrchestration";
 import { useAuth } from "./AuthContext";
 
 interface ApplicationContextType {
@@ -29,7 +32,10 @@ interface ApplicationContextType {
   applicantProfile: StoredApplicantProfile | null;
   applications: ApplicationSummary[];
   data: ApplicationData;
-  beginCourseApplication: (course: SelectedCourse) => Promise<ApplicationData>;
+  beginCourseApplication: (
+    course: SelectedCourse,
+    options?: BeginCourseApplicationOptions,
+  ) => Promise<ApplicationData>;
   ensureRemoteRecordId: () => Promise<string>;
   getNextIncompleteSection: (application?: ApplicationData) => string | null;
   isHydrating: boolean;

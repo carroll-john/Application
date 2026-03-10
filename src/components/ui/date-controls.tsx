@@ -6,10 +6,18 @@ import {
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
-import { forwardRef, useEffect, useMemo, useState } from "react";
-import DatePicker from "react-datepicker";
+import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
+import ReactDatePicker, { CalendarContainer } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { NativeSelect } from "./native-select";
+import {
+  getBirthDateOpenToDate,
+  getYearRange,
+  getYearStart,
+  parseIsoDate,
+  sameDateValue,
+  toIsoDate,
+} from "../../lib/datePickerHelpers";
 import { cn } from "../../lib/utils";
 
 const monthNames = [
@@ -27,40 +35,11 @@ const monthNames = [
   "December",
 ];
 
-function parseIsoDate(value: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return null;
-  }
-
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(year, month - 1, day);
-
-  if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
-  ) {
-    return null;
-  }
-
-  return date;
-}
-
-function toIsoDate(date: Date) {
-  return format(date, "yyyy-MM-dd");
-}
-
-function getYearRange(maxYear: number, minYear = 1900) {
-  const years: string[] = [];
-
-  for (let year = maxYear; year >= minYear; year -= 1) {
-    years.push(String(year));
-  }
-
-  return years;
-}
-
 function parseMonthYear(month: string, months: string[], year: string) {
+  if (!year.trim()) {
+    return null;
+  }
+
   const monthIndex = months.indexOf(month);
   const yearValue = Number(year);
 
@@ -72,6 +51,10 @@ function parseMonthYear(month: string, months: string[], year: string) {
 }
 
 function parseYear(value: string) {
+  if (!value.trim()) {
+    return null;
+  }
+
   const year = Number(value);
   if (Number.isNaN(year)) {
     return null;
@@ -107,6 +90,7 @@ function useDatePickerPortal() {
 }
 
 type TriggerProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  displayValue?: string;
   icon?: LucideIcon;
   placeholder?: string;
   value?: string;
@@ -116,6 +100,7 @@ const PickerTrigger = forwardRef<HTMLButtonElement, TriggerProps>(
   (
     {
       className,
+      displayValue,
       icon: Icon = CalendarDays,
       placeholder = "Select date",
       value,
@@ -139,10 +124,10 @@ const PickerTrigger = forwardRef<HTMLButtonElement, TriggerProps>(
         <span
           className={cn(
             "truncate text-base font-medium",
-            value ? "text-slate-950" : "text-slate-500",
+            (displayValue ?? value) ? "text-slate-950" : "text-slate-500",
           )}
         >
-          {value || placeholder}
+          {(displayValue ?? value) || placeholder}
         </span>
       </span>
       <ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-slate-600" />
@@ -151,6 +136,111 @@ const PickerTrigger = forwardRef<HTMLButtonElement, TriggerProps>(
 );
 
 PickerTrigger.displayName = "PickerTrigger";
+
+type DatePickerInstance = InstanceType<typeof ReactDatePicker>;
+type CalendarContainerProps = React.ComponentProps<typeof CalendarContainer>;
+
+function useResponsivePicker({
+  committedDate,
+  onCommit,
+  withPortal,
+}: {
+  committedDate: Date | null;
+  onCommit: (date: Date | null) => void;
+  withPortal: boolean;
+}) {
+  const pickerRef = useRef<DatePickerInstance | null>(null);
+  const [draftDate, setDraftDate] = useState<Date | null>(committedDate);
+  const lastActionRef = useRef<"cancel" | "confirm" | null>(null);
+
+  useEffect(() => {
+    setDraftDate(committedDate);
+  }, [committedDate]);
+
+  const closePicker = () => pickerRef.current?.setOpen(false);
+
+  const handleCancel = () => {
+    lastActionRef.current = "cancel";
+    setDraftDate(committedDate);
+    closePicker();
+  };
+
+  const handleConfirm = () => {
+    lastActionRef.current = "confirm";
+
+    if (!sameDateValue(draftDate, committedDate)) {
+      onCommit(draftDate);
+    }
+
+    closePicker();
+  };
+
+  const handleChange = (nextDate: Date | null) => {
+    if (withPortal) {
+      setDraftDate(nextDate);
+      return;
+    }
+
+    onCommit(nextDate);
+  };
+
+  const handleCalendarOpen = () => {
+    if (!withPortal) {
+      return;
+    }
+
+    setDraftDate(committedDate);
+  };
+
+  const handleCalendarClose = () => {
+    if (!withPortal) {
+      return;
+    }
+
+    if (lastActionRef.current !== "confirm") {
+      setDraftDate(committedDate);
+    }
+
+    lastActionRef.current = null;
+  };
+
+  const calendarContainer = withPortal
+    ? ({ className, children, ...props }: CalendarContainerProps) => (
+        <CalendarContainer className={className} {...props}>
+          {children}
+          <div className="border-t border-slate-200 bg-white px-4 pb-4 pt-3">
+            <div className="flex gap-3">
+              <button
+                className="flex-1 rounded-full border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                type="button"
+                onClick={handleCancel}
+              >
+                Cancel
+              </button>
+              <button
+                className="flex-1 rounded-full bg-[#084E74] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#063a57]"
+                type="button"
+                onClick={handleConfirm}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </CalendarContainer>
+      )
+    : undefined;
+
+  return {
+    activeDate: withPortal ? draftDate : committedDate,
+    calendarContainer,
+    handleCalendarClose,
+    handleCalendarOpen,
+    handleChange,
+    handleClickOutside: withPortal ? handleCancel : undefined,
+    pickerRef,
+    shouldCloseOnSelect: !withPortal,
+  };
+}
 
 function CalendarHeader({
   changeMonth,
@@ -226,12 +316,14 @@ function CalendarHeader({
 export function DatePickerField({
   id,
   maxDate,
+  openToDate,
   onChange,
   placeholder = "DD / MM / YYYY",
   value,
 }: {
   id: string;
   maxDate?: string;
+  openToDate?: Date;
   onChange: (value: string) => void;
   placeholder?: string;
   value: string;
@@ -243,24 +335,59 @@ export function DatePickerField({
     [maxDate],
   );
   const maxYear = maxSelectableDate?.getFullYear() ?? new Date().getFullYear();
+  const defaultOpenToDate = useMemo(() => {
+    if (openToDate) {
+      return openToDate;
+    }
+
+    return getBirthDateOpenToDate(maxSelectableDate ?? new Date());
+  }, [maxSelectableDate, openToDate]);
+  const displayValue = useMemo(
+    () => (selectedDate ? format(selectedDate, "dd MMMM yyyy") : ""),
+    [selectedDate],
+  );
+  const {
+    activeDate,
+    calendarContainer,
+    handleCalendarClose,
+    handleCalendarOpen: handleResponsiveCalendarOpen,
+    handleChange,
+    handleClickOutside,
+    pickerRef,
+    shouldCloseOnSelect,
+  } = useResponsivePicker({
+    committedDate: selectedDate,
+    onCommit: (date) => onChange(date instanceof Date ? toIsoDate(date) : ""),
+    withPortal,
+  });
+  const handleCalendarOpen = () => {
+    pickerRef.current?.setPreSelection(selectedDate ?? defaultOpenToDate);
+    handleResponsiveCalendarOpen();
+  };
 
   return (
-    <DatePicker
+    <ReactDatePicker
+      key={withPortal ? "date-portal" : "date-desktop"}
       calendarClassName="app-datepicker-calendar"
-      customInput={<PickerTrigger id={id} />}
+      calendarContainer={calendarContainer}
+      customInput={<PickerTrigger displayValue={displayValue} id={id} />}
       dateFormat="dd/MM/yyyy"
       maxDate={maxSelectableDate ?? undefined}
+      openToDate={selectedDate ?? defaultOpenToDate}
       placeholderText={placeholder}
       popperClassName="app-datepicker-popper"
       popperPlacement="bottom-start"
       renderCustomHeader={(props) => (
         <CalendarHeader {...props} maxYear={maxYear} />
       )}
-      selected={selectedDate}
+      ref={pickerRef}
+      selected={activeDate}
+      shouldCloseOnSelect={shouldCloseOnSelect}
       withPortal={withPortal}
-      onChange={(date: Date | null) =>
-        onChange(date instanceof Date ? toIsoDate(date) : "")
-      }
+      onCalendarClose={handleCalendarClose}
+      onCalendarOpen={handleCalendarOpen}
+      onChange={handleChange}
+      onClickOutside={handleClickOutside}
     />
   );
 }
@@ -268,6 +395,7 @@ export function DatePickerField({
 export function MonthYearPickerField({
   month,
   months,
+  openToDate,
   onChange,
   placeholder = "Select month and year",
   year,
@@ -276,6 +404,7 @@ export function MonthYearPickerField({
   label: string;
   month: string;
   months: string[];
+  openToDate?: Date;
   onChange: (month: string, year: string) => void;
   placeholder?: string;
   title: string;
@@ -287,41 +416,76 @@ export function MonthYearPickerField({
     () => parseMonthYear(month, months, year),
     [month, months, year],
   );
-  const maxYear = Number(year || new Date().getFullYear());
+  const maxYear = new Date().getFullYear();
+  const defaultOpenToDate = useMemo(
+    () => openToDate ?? getYearStart(new Date()),
+    [openToDate],
+  );
+  const displayValue = month && year ? `${month} ${year}` : "";
+  const {
+    activeDate,
+    calendarContainer,
+    handleCalendarClose,
+    handleCalendarOpen: handleResponsiveCalendarOpen,
+    handleChange,
+    handleClickOutside,
+    pickerRef,
+    shouldCloseOnSelect,
+  } = useResponsivePicker({
+    committedDate: selectedDate,
+    onCommit: (date) => {
+      if (date instanceof Date) {
+        onChange(months[date.getMonth()], String(date.getFullYear()));
+        return;
+      }
+
+      onChange("", "");
+    },
+    withPortal,
+  });
+  const handleCalendarOpen = () => {
+    pickerRef.current?.setPreSelection(selectedDate ?? defaultOpenToDate);
+    handleResponsiveCalendarOpen();
+  };
 
   return (
-    <DatePicker
+    <ReactDatePicker
+      key={withPortal ? "month-year-portal" : "month-year-desktop"}
       calendarClassName="app-datepicker-calendar"
-      customInput={<PickerTrigger placeholder={placeholder} />}
+      calendarContainer={calendarContainer}
+      customInput={
+        <PickerTrigger displayValue={displayValue} placeholder={placeholder} />
+      }
       dateFormat="MMMM yyyy"
+      openToDate={selectedDate ?? defaultOpenToDate}
       placeholderText={placeholder}
       popperClassName="app-datepicker-popper"
       popperPlacement="bottom-start"
       renderCustomHeader={(props) => (
         <CalendarHeader {...props} maxYear={maxYear} />
       )}
-      selected={selectedDate}
+      ref={pickerRef}
+      selected={activeDate}
       showMonthYearPicker
+      shouldCloseOnSelect={shouldCloseOnSelect}
       withPortal={withPortal}
-      onChange={(date: Date | null) => {
-        if (date instanceof Date) {
-          onChange(months[date.getMonth()], String(date.getFullYear()));
-          return;
-        }
-
-        onChange("", "");
-      }}
+      onCalendarClose={handleCalendarClose}
+      onCalendarOpen={handleCalendarOpen}
+      onChange={handleChange}
+      onClickOutside={handleClickOutside}
     />
   );
 }
 
 export function YearPickerField({
+  openToDate,
   onChange,
   placeholder = "Select year",
   value,
 }: {
   description?: string;
   label: string;
+  openToDate?: Date;
   onChange: (value: string) => void;
   placeholder?: string;
   title: string;
@@ -330,22 +494,53 @@ export function YearPickerField({
 }) {
   const withPortal = useDatePickerPortal();
   const selectedDate = useMemo(() => parseYear(value), [value]);
+  const defaultOpenToDate = useMemo(
+    () => openToDate ?? getYearStart(new Date()),
+    [openToDate],
+  );
+  const displayValue = value;
+  const {
+    activeDate,
+    calendarContainer,
+    handleCalendarClose,
+    handleCalendarOpen: handleResponsiveCalendarOpen,
+    handleChange,
+    handleClickOutside,
+    pickerRef,
+    shouldCloseOnSelect,
+  } = useResponsivePicker({
+    committedDate: selectedDate,
+    onCommit: (date) => onChange(date instanceof Date ? String(date.getFullYear()) : ""),
+    withPortal,
+  });
+  const handleCalendarOpen = () => {
+    pickerRef.current?.setPreSelection(selectedDate ?? defaultOpenToDate);
+    handleResponsiveCalendarOpen();
+  };
 
   return (
-    <DatePicker
+    <ReactDatePicker
+      key={withPortal ? "year-portal" : "year-desktop"}
       calendarClassName="app-datepicker-calendar"
-      customInput={<PickerTrigger placeholder={placeholder} />}
+      calendarContainer={calendarContainer}
+      customInput={
+        <PickerTrigger displayValue={displayValue} placeholder={placeholder} />
+      }
       dateFormat="yyyy"
+      openToDate={selectedDate ?? defaultOpenToDate}
       placeholderText={placeholder}
       popperClassName="app-datepicker-popper"
       popperPlacement="bottom-start"
-      selected={selectedDate}
+      ref={pickerRef}
+      selected={activeDate ?? defaultOpenToDate}
       showYearPicker
+      shouldCloseOnSelect={shouldCloseOnSelect}
       withPortal={withPortal}
       yearItemNumber={12}
-      onChange={(date: Date | null) =>
-        onChange(date instanceof Date ? String(date.getFullYear()) : "")
-      }
+      onCalendarClose={handleCalendarClose}
+      onCalendarOpen={handleCalendarOpen}
+      onChange={handleChange}
+      onClickOutside={handleClickOutside}
     />
   );
 }

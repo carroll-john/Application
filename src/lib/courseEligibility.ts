@@ -21,11 +21,16 @@ export interface EligibilityResult {
   reason?: string;
 }
 
-export type EligibilityRule = {
-  type: "min_education_or_experience";
-  minEducation: CourseEducationLevel;
-  minExperienceYears: number;
-};
+export type EligibilityRule =
+  | {
+      type: "min_education";
+      minEducation: CourseEducationLevel;
+    }
+  | {
+      type: "min_education_or_experience";
+      minEducation: CourseEducationLevel;
+      minExperienceYears: number;
+    };
 
 export interface CourseEligibilityConfig {
   goalsOptions: string[];
@@ -81,6 +86,8 @@ function evaluateRule(
   answers: EligibilityAnswers,
 ) {
   switch (rule.type) {
+    case "min_education":
+      return meetsMinimumEducation(answers.educationLevel, rule.minEducation);
     case "min_education_or_experience":
       return (
         meetsMinimumEducation(answers.educationLevel, rule.minEducation) ||
@@ -101,4 +108,20 @@ export function evaluateCourseEligibility(
     eligible,
     reason: eligible ? config.successCopy : config.ineligibleCopy,
   };
+}
+
+export function getCourseMinimumEducation(
+  config: CourseEligibilityConfig,
+): CourseEducationLevel {
+  return config.rules[0]?.minEducation ?? "Bachelor degree";
+}
+
+export function hasCourseExperienceAlternative(
+  config: CourseEligibilityConfig,
+) {
+  return config.rules.some(
+    (rule) =>
+      rule.type === "min_education_or_experience" &&
+      rule.minExperienceYears > 0,
+  );
 }
