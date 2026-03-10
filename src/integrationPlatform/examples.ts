@@ -530,4 +530,45 @@ export const universityMappingOverlaySamples: UniversityMappingOverlayV1[] = [
       },
     ],
   },
+  {
+    ...universityMappingOverlaySchemaDefaults,
+    overlayId: "overlay-004",
+    partnerId: "NPU",
+    partnerName: "Northbridge Private University",
+    mappingProfileId: "northbridge-edge-v1",
+    activeFrom: "2026-03-10",
+    capabilityProfile: {
+      transportMode: "edge",
+      acceptsDocumentsInline: false,
+      manifestFormat: "json",
+      duplicateCheckStrategy: "source-application-id",
+    },
+    fieldMappings: [
+      {
+        canonicalPath: "personalDetails.firstName",
+        destinationPath: "Applicant.GivenName",
+        required: true,
+        transform: "identity",
+        defaultValue: "UNKNOWN",
+      },
+      {
+        canonicalPath: "personalDetails.lastName",
+        destinationPath: "Applicant.FamilyName",
+        required: true,
+        transform: "identity",
+        defaultValue: "UNKNOWN",
+      },
+      {
+        canonicalPath: "selectedCourse.courseCode",
+        destinationPath: "Offer.CourseCode",
+        required: true,
+        transform: "uppercase",
+        defaultValue: "UNKNOWN",
+      },
+    ],
+    metadata: {
+      connectorProfile: "northbridge-private-edge",
+      deploymentBoundary: "partner-vpc",
+    },
+  },
 ];

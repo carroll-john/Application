@@ -105,6 +105,19 @@ export const provisioningJobSchemaDefaults: Pick<
   compatibilityVersion: PROVISIONING_JOB_SCHEMA_VERSION,
 };
 
+export type VerificationHookKind =
+  | "batch-status-poll"
+  | "delivery-receipt"
+  | "edge-ack"
+  | "record-lookup";
+
+export interface VerificationHookV1 {
+  kind: VerificationHookKind;
+  target: string;
+  intervalMinutes: number;
+  timeoutMinutes: number;
+}
+
 export interface PreparedProvisioningPayload {
   envelopeId: string;
   jobId: string;
@@ -114,6 +127,8 @@ export interface PreparedProvisioningPayload {
   idempotencyKey: string;
   fieldCount: number;
   documentCount: number;
+  executionMetadata?: Record<string, string>;
+  verificationHooks?: VerificationHookV1[];
 }
 
 export interface AdapterContext {
@@ -282,7 +297,7 @@ export function createProvisioningIdempotencyKey(
   decision: DecisionRecordV1,
   overlay: UniversityMappingOverlayV1,
 ): string {
-  return [decision.decisionId, overlay.partnerId, overlay.capabilityProfile.transportMode].join(":" );
+  return [decision.decisionId, overlay.partnerId, overlay.capabilityProfile.transportMode].join(":");
 }
 
 export function createProvisioningJob(

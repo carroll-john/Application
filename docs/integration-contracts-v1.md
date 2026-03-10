@@ -136,9 +136,10 @@ Validation rules:
 
 ## Sample Payload Coverage
 
-The V1 baseline includes three partner/profile variants:
+The V1 baseline includes four partner/profile variants:
 - `southern-coast-online`: file-based online postgraduate flow
 - `tasman-import`: import-workflow partner with language-test evidence
 - `harbour-health-rpa`: portal or RPA-oriented health-course flow
+- `northbridge-edge`: private-network edge-connector pilot profile
 
 Source fixtures live in [src/integrationPlatform/examples.ts](/Users/jc/Documents/new-project-integration-mvp-build/src/integrationPlatform/examples.ts).
