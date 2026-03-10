@@ -3,6 +3,7 @@
 This note captures the `DIS-65` admissions decisioning baseline in the prototype workspace.
 
 Rollout-mode coexistence behavior is documented separately in `docs/rollout-modes-v1.md`.
+Portal fallback evidence and drift handling are documented in `docs/portal-rpa-fallback-v1.md`.
 
 ## Decision outcomes
 
@@ -62,4 +63,5 @@ The review workspace now exposes:
 - adapter route and correlation id
 - reconciliation result
 - immutable provisioning audit events
+- portal RPA action evidence and drift runbook when the selected route is `portal-rpa`
 - open exception summary when present

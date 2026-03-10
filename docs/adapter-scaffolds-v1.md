@@ -2,6 +2,8 @@
 
 This document captures the `DIS-63` baseline for `import-workflow` and `edge` adapter scaffolds.
 
+The experimental `portal-rpa` fallback path is documented separately in `docs/portal-rpa-fallback-v1.md`.
+
 ## Capability Registry
 
 The scaffold registry publishes adapter descriptors for the new transport modes:

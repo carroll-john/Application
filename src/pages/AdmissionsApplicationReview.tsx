@@ -36,10 +36,13 @@ import {
   getAdmissionsDecisionReasonLabel,
   getAdmissionsDecisionReasonOptions,
   getLatestAdmissionsDecision,
+  getLatestAdmissionsPortalRpaDriftSignal,
+  getLatestAdmissionsPortalRpaRun,
   getLatestAdmissionsProvisioningJob,
   getLatestAdmissionsReconciliation,
   getLatestAdmissionsStructuredExport,
   getOpenAdmissionsException,
+  listAdmissionsPortalRpaEvidence,
   listAdmissionsProvisioningAuditEvents,
   type AdmissionsDecisionOutcome,
 } from "../lib/admissionsDecisioning";
@@ -213,6 +216,18 @@ export default function AdmissionsApplicationReview() {
   const latestProvisioningJob = useMemo(
     () => getLatestAdmissionsProvisioningJob(record),
     [record],
+  );
+  const latestPortalRpaRun = useMemo(
+    () => getLatestAdmissionsPortalRpaRun(record, latestProvisioningJob?.jobId),
+    [latestProvisioningJob?.jobId, record],
+  );
+  const latestPortalRpaDriftSignal = useMemo(
+    () => getLatestAdmissionsPortalRpaDriftSignal(record, latestProvisioningJob?.jobId),
+    [latestProvisioningJob?.jobId, record],
+  );
+  const portalRpaEvidence = useMemo(
+    () => listAdmissionsPortalRpaEvidence(record, latestProvisioningJob?.jobId),
+    [latestProvisioningJob?.jobId, record],
   );
   const latestReconciliation = useMemo(
     () =>
@@ -857,12 +872,68 @@ export default function AdmissionsApplicationReview() {
                             {latestReconciliation.details}
                           </p>
                         ) : null}
+                        {latestPortalRpaRun ? (
+                          <div className="mt-4 rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                            <p className="font-medium text-slate-950">
+                              Portal RPA run: {latestPortalRpaRun.runState.replaceAll("-", " ")}
+                            </p>
+                            <p className="mt-1 leading-6">
+                              {latestPortalRpaRun.details}
+                            </p>
+                            {latestPortalRpaRun.runbookTitle ? (
+                              <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-500">
+                                {latestPortalRpaRun.runbookTitle}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        {latestPortalRpaDriftSignal ? (
+                          <div className="mt-4 rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                            Drift signal: {latestPortalRpaDriftSignal.summary} Use{" "}
+                            {latestPortalRpaDriftSignal.runbookTitle} before replaying
+                            this route.
+                          </div>
+                        ) : null}
                         {openException ? (
                           <div className="mt-4 rounded-[20px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                             Exception queued: {openException.summary}
                           </div>
                         ) : null}
                       </div>
+
+                      {portalRpaEvidence.length > 0 ? (
+                        <div className="grid gap-3">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                            Portal RPA evidence
+                          </p>
+                          {portalRpaEvidence.map((event) => (
+                            <div
+                              key={event.evidenceId}
+                              className="rounded-[24px] border border-slate-200 bg-slate-50 p-4"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <p className="text-sm font-medium text-slate-900">
+                                  {event.details}
+                                </p>
+                                <StatusPill
+                                  tone={
+                                    event.outcome === "completed"
+                                      ? "success"
+                                      : event.outcome === "selector_drift"
+                                        ? "warning"
+                                        : "warning"
+                                  }
+                                >
+                                  {event.outcome.replaceAll("_", " ")}
+                                </StatusPill>
+                              </div>
+                              <p className="mt-2 text-xs uppercase tracking-[0.14em] text-slate-500">
+                                {event.stepKey} | {formatTimestamp(event.occurredAt)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
 
                       <div className="grid gap-3">
                         {provisioningEvents.map((event) => (

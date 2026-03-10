@@ -19,6 +19,13 @@ import {
   type StructuredExportArtifactReference,
 } from "../integrationPlatform/exporters";
 import {
+  createPortalRpaFallbackAdapter,
+  InMemoryPortalRpaTelemetryStore,
+  type PortalRpaActionEvidence,
+  type PortalRpaDriftSignal,
+  type PortalRpaRunRecord,
+} from "../integrationPlatform/portalRpaFallback";
+import {
   decisionRecordSchemaDefaults,
   InMemoryProvisioningJobStore,
   ProvisioningOrchestrator,
@@ -224,40 +231,15 @@ function createFileAdapter(): UniversityAdapter {
   };
 }
 
-function createPortalRpaAdapter(): UniversityAdapter {
-  return {
-    mode: "portal-rpa",
-    routingProfile: {
-      routeKey: "portal-rpa:admissions-demo",
-      priority: 10,
-      supportedManifestFormats: ["json"],
-      supportsInlineDocuments: true,
-      supportedDuplicateCheckStrategies: ["email-and-course"],
-    },
-    prepare: createPreparedPayload("portal-rpa"),
-    execute: (_prepared, context) => ({
-      accepted: true,
-      externalReference: `portal:${context.idempotencyKey}`,
-      submittedAt: "2026-03-10T17:01:00Z",
-    }),
-    verify: (_prepared, execution) => ({
-      verified: true,
-      verifiedAt: "2026-03-10T17:02:00Z",
-      externalReference: execution.externalReference,
-    }),
-    reconcile: () => ({
-      status: "matched",
-      reconciledAt: "2026-03-10T17:03:00Z",
-      details: "Portal automation verified the created target record.",
-    }),
-  };
-}
-
-function createAdmissionsProvisioningAdapters(): UniversityAdapter[] {
+function createAdmissionsProvisioningAdapters(input: {
+  portalRpaTelemetryStore?: InMemoryPortalRpaTelemetryStore;
+} = {}): UniversityAdapter[] {
   return [
     createFileAdapter(),
     createImportWorkflowAdapter(),
-    createPortalRpaAdapter(),
+    createPortalRpaFallbackAdapter({
+      telemetryStore: input.portalRpaTelemetryStore,
+    }),
   ];
 }
 
@@ -326,6 +308,20 @@ function upsertByKey<T>(
   return [...remaining, nextItem];
 }
 
+function mergeByKey<T>(
+  current: T[],
+  next: T[],
+  getKey: (item: T) => string,
+): T[] {
+  const merged = new Map<string, T>();
+
+  [...current, ...next].forEach((item) => {
+    merged.set(getKey(item), item);
+  });
+
+  return Array.from(merged.values());
+}
+
 function mergeProvisioningAuditEvents(
   current: AuditLedgerEvent[],
   next: AuditLedgerEvent[],
@@ -360,6 +356,18 @@ function createAdmissionsExportArtifactStore(record: AdmissionsQueueRecord) {
   const artifactStore = new InMemoryStructuredExportArtifactStore();
   record.decisionTrace.exports.forEach((reference) => artifactStore.save(reference));
   return artifactStore;
+}
+
+function createAdmissionsPortalRpaTelemetryStore(record: AdmissionsQueueRecord) {
+  const telemetryStore = new InMemoryPortalRpaTelemetryStore();
+  record.decisionTrace.portalRpaEvidence.forEach((evidence) =>
+    telemetryStore.recordEvidence(evidence),
+  );
+  record.decisionTrace.portalRpaDriftSignals.forEach((signal) =>
+    telemetryStore.recordDriftSignal(signal),
+  );
+  record.decisionTrace.portalRpaRuns.forEach((run) => telemetryStore.recordRun(run));
+  return telemetryStore;
 }
 
 function toStructuredExportArtifactReference(input: {
@@ -455,6 +463,35 @@ export function getLatestAdmissionsStructuredExport(
   return [...record.decisionTrace.exports].sort((left, right) =>
     left.manifest.generatedAt.localeCompare(right.manifest.generatedAt),
   ).at(-1);
+}
+
+export function getLatestAdmissionsPortalRpaRun(
+  record: AdmissionsQueueRecord,
+  jobId?: string,
+): PortalRpaRunRecord | undefined {
+  return [...record.decisionTrace.portalRpaRuns]
+    .filter((run) => (jobId ? run.jobId === jobId : true))
+    .sort((left, right) => left.observedAt.localeCompare(right.observedAt))
+    .at(-1);
+}
+
+export function getLatestAdmissionsPortalRpaDriftSignal(
+  record: AdmissionsQueueRecord,
+  jobId?: string,
+): PortalRpaDriftSignal | undefined {
+  return [...record.decisionTrace.portalRpaDriftSignals]
+    .filter((signal) => (jobId ? signal.jobId === jobId : true))
+    .sort((left, right) => left.observedAt.localeCompare(right.observedAt))
+    .at(-1);
+}
+
+export function listAdmissionsPortalRpaEvidence(
+  record: AdmissionsQueueRecord,
+  jobId?: string,
+): PortalRpaActionEvidence[] {
+  return [...record.decisionTrace.portalRpaEvidence]
+    .filter((evidence) => (jobId ? evidence.jobId === jobId : true))
+    .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt));
 }
 
 export function listAdmissionsProvisioningAuditEvents(
@@ -699,6 +736,7 @@ export async function captureAdmissionsDecision(
   let provisioningJob: ProvisioningJobV1 | undefined;
   let reconciliation: ReconciliationResult | undefined;
   let exception: ExceptionQueueRecord | undefined;
+  const portalRpaTelemetryStore = createAdmissionsPortalRpaTelemetryStore(record);
 
   if (triggeredExport) {
     const template = findAdmissionsExportTemplate(record);
@@ -743,7 +781,9 @@ export async function captureAdmissionsDecision(
 
     const service = new AuditedProvisioningService({
       orchestrator: new ProvisioningOrchestrator({
-        adapters: createAdmissionsProvisioningAdapters(),
+        adapters: createAdmissionsProvisioningAdapters({
+          portalRpaTelemetryStore,
+        }),
         jobStore,
         now: () => occurredAt,
       }),
@@ -769,6 +809,21 @@ export async function captureAdmissionsDecision(
     record.decisionTrace.auditEvents = mergeProvisioningAuditEvents(
       record.decisionTrace.auditEvents,
       outcome.auditEvents,
+    );
+    record.decisionTrace.portalRpaEvidence = mergeByKey(
+      record.decisionTrace.portalRpaEvidence,
+      portalRpaTelemetryStore.listEvidence({ jobId: provisioningJob.jobId }),
+      (evidence) => evidence.evidenceId,
+    );
+    record.decisionTrace.portalRpaDriftSignals = mergeByKey(
+      record.decisionTrace.portalRpaDriftSignals,
+      portalRpaTelemetryStore.listDriftSignals({ jobId: provisioningJob.jobId }),
+      (signal) => signal.signalId,
+    );
+    record.decisionTrace.portalRpaRuns = mergeByKey(
+      record.decisionTrace.portalRpaRuns,
+      portalRpaTelemetryStore.listRunRecords({ jobId: provisioningJob.jobId }),
+      (run) => run.runId,
     );
     record.decisionTrace.reconciliations = upsertByKey(
       record.decisionTrace.reconciliations,

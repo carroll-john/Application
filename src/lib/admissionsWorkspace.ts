@@ -12,6 +12,11 @@ import type {
   ProvisioningJobV1,
 } from "../integrationPlatform/provisioning";
 import type { StructuredExportArtifactReference } from "../integrationPlatform/exporters";
+import type {
+  PortalRpaActionEvidence,
+  PortalRpaDriftSignal,
+  PortalRpaRunRecord,
+} from "../integrationPlatform/portalRpaFallback";
 import { canonicalApplicationSamples } from "../integrationPlatform/examples";
 
 export const ADMISSIONS_WORKSPACE_STORAGE_KEY =
@@ -73,6 +78,9 @@ export interface AdmissionsDecisionTrace {
   decisions: DecisionRecordV1[];
   exceptions: ExceptionQueueRecord[];
   exports: StructuredExportArtifactReference[];
+  portalRpaDriftSignals: PortalRpaDriftSignal[];
+  portalRpaEvidence: PortalRpaActionEvidence[];
+  portalRpaRuns: PortalRpaRunRecord[];
   provisioningJobs: ProvisioningJobV1[];
   reconciliations: ReconciliationResult[];
 }
@@ -247,6 +255,28 @@ function cloneStructuredExportArtifactReference(
   };
 }
 
+function clonePortalRpaActionEvidence(
+  evidence: PortalRpaActionEvidence,
+): PortalRpaActionEvidence {
+  return {
+    ...evidence,
+  };
+}
+
+function clonePortalRpaDriftSignal(
+  signal: PortalRpaDriftSignal,
+): PortalRpaDriftSignal {
+  return {
+    ...signal,
+  };
+}
+
+function clonePortalRpaRunRecord(run: PortalRpaRunRecord): PortalRpaRunRecord {
+  return {
+    ...run,
+  };
+}
+
 function cloneReconciliationResult(
   result: ReconciliationResult,
 ): ReconciliationResult {
@@ -261,6 +291,9 @@ export function createEmptyAdmissionsDecisionTrace(): AdmissionsDecisionTrace {
     decisions: [],
     exceptions: [],
     exports: [],
+    portalRpaDriftSignals: [],
+    portalRpaEvidence: [],
+    portalRpaRuns: [],
     provisioningJobs: [],
     reconciliations: [],
   };
@@ -280,6 +313,13 @@ function cloneDecisionTrace(trace: AdmissionsDecisionTrace): AdmissionsDecisionT
     exports: trace.exports.map((reference) =>
       cloneStructuredExportArtifactReference(reference),
     ),
+    portalRpaDriftSignals: trace.portalRpaDriftSignals.map((signal) =>
+      clonePortalRpaDriftSignal(signal),
+    ),
+    portalRpaEvidence: trace.portalRpaEvidence.map((evidence) =>
+      clonePortalRpaActionEvidence(evidence),
+    ),
+    portalRpaRuns: trace.portalRpaRuns.map((run) => clonePortalRpaRunRecord(run)),
     provisioningJobs: trace.provisioningJobs.map((job) => cloneProvisioningJob(job)),
     reconciliations: trace.reconciliations.map((result) =>
       cloneReconciliationResult(result),
@@ -308,6 +348,15 @@ function normalizeAdmissionsDecisionTrace(
     ),
     exports: (trace?.exports ?? []).map((reference) =>
       cloneStructuredExportArtifactReference(reference),
+    ),
+    portalRpaDriftSignals: (trace?.portalRpaDriftSignals ?? []).map((signal) =>
+      clonePortalRpaDriftSignal(signal),
+    ),
+    portalRpaEvidence: (trace?.portalRpaEvidence ?? []).map((evidence) =>
+      clonePortalRpaActionEvidence(evidence),
+    ),
+    portalRpaRuns: (trace?.portalRpaRuns ?? []).map((run) =>
+      clonePortalRpaRunRecord(run),
     ),
     provisioningJobs: (trace?.provisioningJobs ?? []).map((job) =>
       cloneProvisioningJob(job),
