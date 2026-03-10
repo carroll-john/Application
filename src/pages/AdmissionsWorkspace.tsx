@@ -40,7 +40,10 @@ import {
   type PartnerCourseRolloutConfig,
   type PartnerCourseRolloutMode,
 } from "../lib/partnerCourseRollout";
-import { capturePostHogEvent } from "../lib/posthog";
+import {
+  captureAdmissionsPilotTelemetryEvent,
+  captureRolloutModePilotTelemetryEvent,
+} from "../lib/pilotTelemetry";
 
 function formatTimestamp(value: string | undefined): string {
   if (!value) {
@@ -260,6 +263,7 @@ export default function AdmissionsWorkspace() {
 
   const applyRolloutModeChange = (config: PartnerCourseRolloutConfig) => {
     const draft = getRolloutDraft(config);
+    const previousMode = config.activeMode;
     const result = transitionPartnerCourseRolloutMode(rolloutConfigs, {
       actor,
       courseCode: config.courseCode,
@@ -291,11 +295,13 @@ export default function AdmissionsWorkspace() {
       }));
     }
 
-    capturePostHogEvent("admissions_rollout_mode_updated", {
-      admissions_rollout_mode: draft.mode,
-      admissions_rollout_partner_id: config.partnerId,
-      admissions_rollout_course_code: config.courseCode,
-      admissions_rollout_update_outcome: result.valid ? "applied" : "rejected",
+    captureRolloutModePilotTelemetryEvent({
+      actor,
+      config,
+      nextMode: draft.mode,
+      outcome: result.valid ? "applied" : "rejected",
+      previousMode,
+      reason: draft.reason,
     });
   };
 
@@ -648,11 +654,14 @@ export default function AdmissionsWorkspace() {
                       <div className="mt-5 flex flex-col gap-3">
                         <Button
                           onClick={() => {
-                            capturePostHogEvent("admissions_queue_review_opened", {
-                              admissions_application_id: record.applicationId,
-                              admissions_status: record.status,
-                              admissions_assignee: record.assignee ?? null,
-                            });
+                            captureAdmissionsPilotTelemetryEvent(
+                              "admissions_queue_review_opened",
+                              {
+                                actor,
+                                record,
+                                rolloutMode: rolloutSnapshot.mode,
+                              },
+                            );
                             navigate(`/admissions/applications/${record.applicationId}`);
                           }}
                         >
@@ -661,19 +670,31 @@ export default function AdmissionsWorkspace() {
                         </Button>
                         <Button
                           onClick={() => {
-                            updateRecords((current) =>
-                              assignAdmissionsRecord(current, {
-                                actor,
-                                applicationId: record.applicationId,
-                                assignee: isAssignedToMe ? undefined : actor,
-                              }),
-                            );
-                            capturePostHogEvent("admissions_queue_assignment_updated", {
-                              admissions_application_id: record.applicationId,
-                              admissions_assignment_action: isAssignedToMe
-                                ? "cleared"
-                                : "assigned_to_me",
+                            const nextRecords = assignAdmissionsRecord(records, {
+                              actor,
+                              applicationId: record.applicationId,
+                              assignee: isAssignedToMe ? undefined : actor,
                             });
+                            const nextRecord =
+                              nextRecords.find(
+                                (candidate) =>
+                                  candidate.applicationId === record.applicationId,
+                              ) ?? record;
+
+                            updateRecords(() => nextRecords);
+                            captureAdmissionsPilotTelemetryEvent(
+                              "admissions_queue_assignment_updated",
+                              {
+                                actor,
+                                properties: {
+                                  pilot_assignment_action: isAssignedToMe
+                                    ? "cleared"
+                                    : "assigned_to_me",
+                                },
+                                record: nextRecord,
+                                rolloutMode: rolloutSnapshot.mode,
+                              },
+                            );
                           }}
                           variant="outline"
                         >

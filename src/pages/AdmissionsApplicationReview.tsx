@@ -51,7 +51,10 @@ import {
   getPartnerCourseRolloutSnapshot,
   loadPartnerCourseRolloutConfigs,
 } from "../lib/partnerCourseRollout";
-import { capturePostHogEvent } from "../lib/posthog";
+import {
+  buildAdmissionsDecisionTelemetryProperties,
+  captureAdmissionsPilotTelemetryEvent,
+} from "../lib/pilotTelemetry";
 
 function formatTimestamp(value: string | undefined): string {
   if (!value) {
@@ -289,15 +292,20 @@ export default function AdmissionsApplicationReview() {
               : "Decision captured. This outcome does not trigger downstream automation for the active rollout mode.",
         tone: "info",
       });
-      capturePostHogEvent("admissions_decision_captured", {
-        admissions_application_id: record.applicationId,
-        admissions_decision_outcome: decisionOutcome,
-        admissions_decision_reason_code: decisionReasonCode,
-        admissions_downstream_action: result.downstreamAction,
-        admissions_rollout_mode: result.rolloutMode,
-        admissions_provisioning_triggered: result.triggeredProvisioning,
-        admissions_provisioning_status: nextJob?.status ?? "not-triggered",
-      });
+      if (nextRecord) {
+        captureAdmissionsPilotTelemetryEvent("admissions_decision_captured", {
+          actor,
+          properties: buildAdmissionsDecisionTelemetryProperties({
+            decisionOutcome,
+            downstreamAction: result.downstreamAction,
+            provisioningTriggered: result.triggeredProvisioning,
+            reasonCode: decisionReasonCode,
+            record: nextRecord,
+          }),
+          record: nextRecord,
+          rolloutMode: result.rolloutMode,
+        });
+      }
     } catch (error) {
       setDecisionMessage({
         body:
@@ -516,12 +524,21 @@ export default function AdmissionsApplicationReview() {
                                 "Protected evidence could not be opened for this reviewer.",
                               tone: "warning",
                             });
-                            capturePostHogEvent("admissions_document_preview_blocked", {
-                              admissions_application_id: record.applicationId,
-                              admissions_document_access_reason: accessDecision.reasonCode,
-                              admissions_document_category: document.category,
-                              admissions_document_id: document.documentId,
-                            });
+                            captureAdmissionsPilotTelemetryEvent(
+                              "admissions_document_preview_blocked",
+                              {
+                                actor,
+                                properties: {
+                                  pilot_document_access_outcome: "blocked",
+                                  pilot_document_access_reason:
+                                    accessDecision.reasonCode,
+                                  pilot_document_category: document.category,
+                                  pilot_document_id: document.documentId,
+                                },
+                                record,
+                                rolloutMode: rolloutSnapshot.mode,
+                              },
+                            );
                             return;
                           }
 
@@ -535,12 +552,19 @@ export default function AdmissionsApplicationReview() {
                             accessedAt: accessDecision.occurredAt,
                             document: accessDecision.document,
                           });
-                          capturePostHogEvent("admissions_document_preview_opened", {
-                            admissions_application_id: record.applicationId,
-                            admissions_document_access_outcome: "opened",
-                            admissions_document_category: document.category,
-                            admissions_document_id: document.documentId,
-                          });
+                          captureAdmissionsPilotTelemetryEvent(
+                            "admissions_document_preview_opened",
+                            {
+                              actor,
+                              properties: {
+                                pilot_document_access_outcome: "opened",
+                                pilot_document_category: document.category,
+                                pilot_document_id: document.documentId,
+                              },
+                              record,
+                              rolloutMode: rolloutSnapshot.mode,
+                            },
+                          );
                         }}
                         variant="outline"
                       >
@@ -992,17 +1016,30 @@ export default function AdmissionsApplicationReview() {
                     }
                     disabled={isWorkflowLocked}
                     onClick={() => {
-                      updateRecords((current) =>
-                        updateAdmissionsStatus(current, {
-                          actor,
-                          applicationId: record.applicationId,
-                          status,
-                        }),
-                      );
-                      capturePostHogEvent("admissions_status_updated", {
-                        admissions_application_id: record.applicationId,
-                        admissions_status: status,
+                      const nextRecords = updateAdmissionsStatus(records, {
+                        actor,
+                        applicationId: record.applicationId,
+                        status,
                       });
+                      const nextRecord =
+                        nextRecords.find(
+                          (candidate) =>
+                            candidate.applicationId === record.applicationId,
+                        ) ?? record;
+
+                      updateRecords(() => nextRecords);
+                      captureAdmissionsPilotTelemetryEvent(
+                        "admissions_status_updated",
+                        {
+                          actor,
+                          properties: {
+                            pilot_previous_queue_status: record.status,
+                            pilot_status_target: status,
+                          },
+                          record: nextRecord,
+                          rolloutMode: rolloutSnapshot.mode,
+                        },
+                      );
                     }}
                     variant={record.status === status ? "outline" : "outline"}
                   >
@@ -1075,19 +1112,29 @@ export default function AdmissionsApplicationReview() {
               <Button
                 className="mt-4 w-full"
                 onClick={() => {
-                  updateRecords((current) =>
-                    addAdmissionsNote(current, {
-                      applicationId: record.applicationId,
-                      author: actor,
-                      body: noteDraft,
-                    }),
-                  );
-                  if (noteDraft.trim()) {
-                    capturePostHogEvent("admissions_note_added", {
-                      admissions_application_id: record.applicationId,
-                    });
-                    setNoteDraft("");
+                  const trimmedNote = noteDraft.trim();
+                  if (!trimmedNote) {
+                    return;
                   }
+
+                  const nextRecords = addAdmissionsNote(records, {
+                    applicationId: record.applicationId,
+                    author: actor,
+                    body: trimmedNote,
+                  });
+                  const nextRecord =
+                    nextRecords.find(
+                      (candidate) =>
+                        candidate.applicationId === record.applicationId,
+                    ) ?? record;
+
+                  updateRecords(() => nextRecords);
+                  captureAdmissionsPilotTelemetryEvent("admissions_note_added", {
+                    actor,
+                    record: nextRecord,
+                    rolloutMode: rolloutSnapshot.mode,
+                  });
+                  setNoteDraft("");
                 }}
               >
                 Save handover note

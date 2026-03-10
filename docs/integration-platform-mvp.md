@@ -76,6 +76,15 @@
   - Independent pipelines and deployment cadence per repository.
   - Contract compatibility checks in CI to prevent breaking interface changes.
 
+## Evaluation Baseline
+- Pilot telemetry schema and event taxonomy:
+  - `docs/pilot-telemetry-v1.md`
+- This baseline feeds:
+  - segmented admissions/desirability instrumentation
+  - rollup automation
+  - pilot checkpoint templates
+  - recommendation dashboard work
+
 ## Ownership Model
 - Keep current team shipping core application flow in the existing repo.
 - Build integration platform in a dedicated repo with independent code ownership.
