@@ -240,6 +240,8 @@ describe("AuditedProvisioningService", () => {
     expect(outcome.exception?.status).toBe("open");
     expect(outcome.exception?.summary).toContain("partial downstream footprint");
     expect(outcome.exception?.partnerId).toBe("SCU");
+    expect(outcome.exception?.failureClass).toBe("verification");
+    expect(outcome.exception?.failureCode).toBe("verification_failed");
     expect(outcome.auditEvents.map((event) => event.type)).toContain("exception.queued");
   });
 
@@ -604,6 +606,23 @@ describe("AuditedProvisioningService", () => {
     expect(
       exceptionQueue.list({ status: "open" }).map((record) => record.reasonCode).sort(),
     ).toEqual(["invalid_target_record", "partial_delivery"]);
+    expect(
+      exceptionQueue.list({
+        status: "open",
+        failureClass: "reconciliation",
+      }),
+    ).toMatchObject([
+      {
+        failureClass: "reconciliation",
+        failureCode: "reconciliation_invalid_target_record",
+        reasonCode: "invalid_target_record",
+      },
+      {
+        failureClass: "reconciliation",
+        failureCode: "reconciliation_gap",
+        reasonCode: "partial_delivery",
+      },
+    ]);
   });
 
   it("lists exception queue records by operational filters and records triage actions", async () => {
@@ -663,9 +682,15 @@ describe("AuditedProvisioningService", () => {
         status: "open",
         partnerId: "SCU",
         adapterMode: "file",
+        failureClass: "verification",
         reasonCode: "partial_delivery",
       }),
     ).toHaveLength(1);
+    expect(outcome.exception).toMatchObject({
+      failureClass: "verification",
+      failureCode: "verification_failed",
+      reasonCode: "partial_delivery",
+    });
 
     const triaged = service.triageException({
       exceptionId: outcome.exception!.exceptionId,

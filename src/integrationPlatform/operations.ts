@@ -7,6 +7,7 @@ import {
   createProvisioningIdempotencyKey,
   type DecisionRecordV1,
   type OrchestrationResult,
+  type ProvisioningFailureClass,
   type ProvisioningJobStore,
   type ProvisioningJobV1,
   type ProvisioningOrchestrator,
@@ -214,6 +215,8 @@ export interface ExceptionQueueRecord {
   partnerName: string;
   adapterMode: ProvisioningJobV1["adapterMode"];
   jobStatus: ProvisioningJobStatus;
+  failureCode?: string;
+  failureClass?: ProvisioningFailureClass;
   reasonCode: ReconciliationStatus;
   summary: string;
   escalationState: ReconciliationEscalationState;
@@ -229,6 +232,7 @@ export interface ExceptionQueueFilters {
   status?: ExceptionQueueStatus;
   partnerId?: string;
   adapterMode?: ProvisioningJobV1["adapterMode"];
+  failureClass?: ProvisioningFailureClass;
   reasonCode?: ReconciliationStatus;
 }
 
@@ -285,6 +289,9 @@ export class InMemoryExceptionQueueStore implements ExceptionQueueStore {
         filters.adapterMode ? record.adapterMode === filters.adapterMode : true,
       )
       .filter((record) =>
+        filters.failureClass ? record.failureClass === filters.failureClass : true,
+      )
+      .filter((record) =>
         filters.reasonCode ? record.reasonCode === filters.reasonCode : true,
       )
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
@@ -313,6 +320,34 @@ function shouldQueueException(
   return reconciliation.escalationState === "queue_exception";
 }
 
+function deriveExceptionFailureContext(input: {
+  job: ProvisioningJobV1;
+  reconciliation: ReconciliationResult;
+}): Pick<ExceptionQueueRecord, "failureCode" | "failureClass"> {
+  const latestAttemptWithFailure = [...input.job.attempts]
+    .reverse()
+    .find((attempt) => attempt.failureClass || attempt.errorCode);
+  const failureClass =
+    input.job.terminalFailureClass ??
+    latestAttemptWithFailure?.failureClass ??
+    (input.reconciliation.status === "matched" ||
+    input.reconciliation.status === "job_not_terminal"
+      ? undefined
+      : "reconciliation");
+  const failureCode =
+    input.job.terminalFailureCode ??
+    input.job.lastErrorCode ??
+    latestAttemptWithFailure?.errorCode ??
+    (failureClass
+      ? `reconciliation_${input.reconciliation.status}`
+      : undefined);
+
+  return {
+    failureCode,
+    failureClass,
+  };
+}
+
 function buildExceptionRecord(input: {
   existing?: ExceptionQueueRecord;
   job: ProvisioningJobV1;
@@ -320,11 +355,17 @@ function buildExceptionRecord(input: {
   timestamp: string;
 }): ExceptionQueueRecord {
   const { existing, job, reconciliation, timestamp } = input;
+  const failureContext = deriveExceptionFailureContext({
+    job,
+    reconciliation,
+  });
 
   if (existing) {
     return {
       ...existing,
       jobStatus: job.status,
+      failureCode: failureContext.failureCode,
+      failureClass: failureContext.failureClass,
       reasonCode: reconciliation.status,
       summary: reconciliation.details,
       escalationState: reconciliation.escalationState,
@@ -341,6 +382,8 @@ function buildExceptionRecord(input: {
     partnerName: job.partnerName,
     adapterMode: job.adapterMode,
     jobStatus: job.status,
+    failureCode: failureContext.failureCode,
+    failureClass: failureContext.failureClass,
     reasonCode: reconciliation.status,
     summary: reconciliation.details,
     escalationState: reconciliation.escalationState,
@@ -1019,6 +1062,8 @@ export class AuditedProvisioningService {
           summary: `Exception queued for ${exception.reasonCode}.`,
           metadata: {
             exceptionId: exception.exceptionId,
+            failureClass: exception.failureClass ?? "",
+            failureCode: exception.failureCode ?? "",
           },
         }),
       );
@@ -1121,6 +1166,8 @@ export class AuditedProvisioningService {
       const reconciledException: ExceptionQueueRecord = {
         ...replayedRecord,
         status: outcome.reconciliation.status === "matched" ? "replayed" : "open",
+        failureCode: outcome.exception?.failureCode,
+        failureClass: outcome.exception?.failureClass,
         reasonCode: outcome.reconciliation.status,
         summary: outcome.reconciliation.details,
         escalationState: outcome.reconciliation.escalationState,
@@ -1156,6 +1203,8 @@ export class AuditedProvisioningService {
         ? {
             ...replayedRecord,
             status: "replayed",
+            failureCode: undefined,
+            failureClass: undefined,
             reasonCode: reconciliation.status,
             summary: reconciliation.details,
             escalationState: reconciliation.escalationState,

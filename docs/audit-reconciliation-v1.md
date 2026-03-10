@@ -70,6 +70,8 @@ The exception queue stores:
 - `partnerName`
 - `adapterMode`
 - `jobStatus`
+- optional `failureCode`
+- optional `failureClass`
 - `reasonCode`
 - `summary`
 - `escalationState`
@@ -85,6 +87,7 @@ Queue listings support filters for:
 - `status`
 - `partnerId`
 - `adapterMode`
+- `failureClass`
 - `reasonCode`
 
 ## Replay Rules
