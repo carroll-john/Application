@@ -83,8 +83,20 @@ This file stores durable product, UX, and implementation rules for the applicati
 - Server-backed submission depends on `supabase/migrations/0002_server_submit.sql`, `supabase/migrations/0004_submission_rpc_grants.sql`, and the `submit_application` RPC.
 - Business-user and applicant-profile separation depends on `supabase/migrations/0003_business_users_and_applicant_profiles.sql`.
 
+## Integration Platform Boundary
+- Strategy-learning university integration work should run as a separate repository/service, not inside the applicant UX codebase.
+- Keep the existing `application-prototype` repo focused on browse, apply, dashboard, and applicant-facing profile/flow UX.
+- The applicant app remains an active UX-improvement track after Tuesday demo completion; it is not in maintenance-only mode.
+- Integrate cross-repo behavior through versioned contracts and APIs/events, not shared tables or in-process imports.
+- Do not share databases across the applicant app and integration platform.
+- Use idempotency keys and correlation IDs on decision-to-provisioning handoff events.
+- Keep adapter architecture pluggable (`ApiAdapter`, `FileAdapter`, `ImportWorkflowAdapter`, `PortalRpaAdapter`, `EdgeConnectorAdapter`) with a shared `prepare -> execute -> verify -> reconcile` lifecycle.
+- Keep structured file/import delivery as a mandatory baseline capability.
+- Treat portal automation as optional fallback, not the core architecture.
+
 ## Operational Rules
 - Keep `docs/backend-rollout.md` aligned with backend assumptions and migration requirements.
+- Keep `docs/integration-platform-mvp.md` aligned with the active integration initiative scope, contracts, and Linear mapping.
 - Regenerate `src/lib/supabase.types.ts` after schema changes instead of adding manual row casts in remote-store code.
 - Use `supabase/reset_test_data.sql` plus a private/incognito browser session for clean hosted test runs.
 - If localhost behavior and source disagree, check for a stale Vite process and retest in a fresh browser tab before refactoring.

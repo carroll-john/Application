@@ -63,3 +63,31 @@
 ### Generated Supabase typing baseline
 - Generate `src/lib/supabase.types.ts` from the database schema and use it in Supabase client code.
 - Prefer typed rows over manual casts in remote application/document stores.
+
+### Strategy-learning integration platform boundary
+- Build the university integration platform in a separate repository/service from the current applicant app.
+- Keep the existing `application-prototype` repository focused on applicant UX and form journey delivery.
+- Use a decoupled system boundary with versioned contracts and APIs/events rather than shared database tables.
+
+### Integration architecture shape
+- Use a modular monolith inside the new integration repository for early delivery speed.
+- Keep API and worker runtime surfaces independently deployable within that repository.
+- Standardize adapter lifecycle to `prepare -> execute -> verify -> reconcile`.
+- Keep API/import/file delivery baseline mandatory; treat portal RPA as optional fallback.
+
+### Integration delivery and ownership model
+- Keep CI/CD, environments, and release cadence independent between the applicant app and integration platform.
+- Use contract compatibility checks to prevent cross-repo breaking changes.
+- Keep ownership boundaries service-level so a dedicated team can adopt the integration platform without splitting the applicant app.
+
+### Linear execution model for this initiative
+- Track this initiative under `DIS-58` (Team `Disco_Chicken`, Project `Applications`).
+- Execute baseline first: schema/contracts, orchestration, file export, audit/reconciliation, then workspace decisioning.
+- Move cards as work progresses: `Backlog -> In Progress -> In Review -> Done`.
+
+### Tuesday demo completion and dual-track execution
+- Tuesday demo scope is considered complete as of 2026-03-06.
+- Execute two active tracks in parallel:
+  - integration platform MVP (`DIS-58` and children) in a separate repository/service
+  - continued applicant-flow UX improvements in the existing `application-prototype` repo
+- Treat demo completion as a baseline milestone, not a freeze on UX iteration.
