@@ -6,17 +6,32 @@ interface AppBrandHeaderProps {
   children?: ReactNode;
   maxWidthClassName?: string;
   showApplicantProfileLink?: boolean;
+  variant?: "apply" | "admissions";
 }
 
 export function AppBrandHeader({
   children,
   maxWidthClassName = "max-w-7xl",
   showApplicantProfileLink = true,
+  variant = "apply",
 }: AppBrandHeaderProps) {
   const location = useLocation();
   const { isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
   const isSignedIn = isBypassedInDev || isAuthorizedCompanyUser;
+  const brandConfig =
+    variant === "admissions"
+      ? {
+          ariaLabel: "Go to admissions workspace",
+          secondaryLabel: "ADMISSIONS",
+          to: "/admissions",
+        }
+      : {
+          ariaLabel: "Go to course browse",
+          secondaryLabel: "APPLY",
+          to: "/",
+        };
   const canShowAccountLink =
+    variant === "apply" &&
     showApplicantProfileLink &&
     location.pathname !== "/profile" &&
     location.pathname !== "/applicant-profile" &&
@@ -30,15 +45,15 @@ export function AppBrandHeader({
         className={`mx-auto flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8 ${maxWidthClassName}`}
       >
         <NavLink
-          aria-label="Go to course browse"
+          aria-label={brandConfig.ariaLabel}
           className="inline-flex h-10 items-center rounded-2xl bg-[#084E74] px-4 text-white transition hover:bg-[#063d5a]"
-          to="/"
+          to={brandConfig.to}
         >
           <span className="text-[0.62rem] font-extrabold uppercase tracking-[0.24em]">
             KEYPATH
           </span>
           <span className="ml-2 hidden text-[0.62rem] font-semibold uppercase tracking-[0.14em] sm:inline">
-            APPLY
+            {brandConfig.secondaryLabel}
           </span>
         </NavLink>
         <div className="flex items-center gap-3">

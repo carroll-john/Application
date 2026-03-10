@@ -92,7 +92,7 @@ const statusOptions: AdmissionsQueueStatus[] = [
 export default function AdmissionsApplicationReview() {
   const navigate = useNavigate();
   const { applicationId } = useParams<{ applicationId: string }>();
-  const { companyUserDisplayName, companyUserEmail } = useAuth();
+  const { companyUserDisplayName, companyUserEmail, signOut } = useAuth();
   const actor = companyUserEmail ?? "admissions.user@keypath.com.au";
   const { records, updateRecords } = useAdmissionsWorkspaceRecords();
   const record = useMemo(
@@ -106,10 +106,21 @@ export default function AdmissionsApplicationReview() {
   if (!record) {
     return (
       <div className="min-h-screen bg-[#f7f7f4]">
-        <AppBrandHeader>
-          <Button onClick={() => navigate("/admissions")} variant="outline">
-            Back to queue
-          </Button>
+        <AppBrandHeader variant="admissions">
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => navigate("/admissions")} variant="outline">
+              Back to queue
+            </Button>
+            <Button
+              onClick={async () => {
+                await signOut();
+                navigate("/sign-in", { replace: true });
+              }}
+              variant="outline"
+            >
+              Log out
+            </Button>
+          </div>
         </AppBrandHeader>
         <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
           <SurfaceCard className="rounded-[32px] p-10 text-center">
@@ -139,10 +150,21 @@ export default function AdmissionsApplicationReview() {
 
   return (
     <div className="min-h-screen bg-[#f7f7f4]">
-      <AppBrandHeader>
-        <Button onClick={() => navigate("/admissions")} variant="outline">
-          Back to queue
-        </Button>
+      <AppBrandHeader variant="admissions">
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={() => navigate("/admissions")} variant="outline">
+            Back to queue
+          </Button>
+          <Button
+            onClick={async () => {
+              await signOut();
+              navigate("/sign-in", { replace: true });
+            }}
+            variant="outline"
+          >
+            Log out
+          </Button>
+        </div>
       </AppBrandHeader>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">

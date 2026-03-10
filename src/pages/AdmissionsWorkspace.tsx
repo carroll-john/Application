@@ -95,7 +95,7 @@ const assigneeFilterOptions: Array<{ label: string; value: AssigneeFilter }> = [
 
 export default function AdmissionsWorkspace() {
   const navigate = useNavigate();
-  const { companyUserDisplayName, companyUserEmail } = useAuth();
+  const { companyUserDisplayName, companyUserEmail, signOut } = useAuth();
   const actor = companyUserEmail ?? "admissions.user@keypath.com.au";
   const { records, updateRecords } = useAdmissionsWorkspaceRecords();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -147,28 +147,27 @@ export default function AdmissionsWorkspace() {
 
   return (
     <div className="min-h-screen bg-[#f7f7f4]">
-      <AppBrandHeader>
-        <Button onClick={() => navigate("/dashboard")} variant="outline">
-          Applicant dashboard
+      <AppBrandHeader variant="admissions">
+        <Button
+          onClick={async () => {
+            await signOut();
+            navigate("/sign-in", { replace: true });
+          }}
+          variant="outline"
+        >
+          Log out
         </Button>
       </AppBrandHeader>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <h1 className="text-3xl font-bold text-slate-950 sm:text-4xl">
-              Admissions workspace
-            </h1>
-            <p className="mt-3 text-base leading-7 text-slate-600">
-              Review queue assignment, applicant evidence, and operational handover
-              notes without leaving the platform. Signed in as {companyUserDisplayName}.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={() => navigate("/")} variant="outline">
-              Browse courses
-            </Button>
-          </div>
+        <div className="max-w-3xl">
+          <h1 className="text-3xl font-bold text-slate-950 sm:text-4xl">
+            Admissions workspace
+          </h1>
+          <p className="mt-3 text-base leading-7 text-slate-600">
+            Review queue assignment, applicant evidence, and operational handover
+            notes without leaving the portal. Signed in as {companyUserDisplayName}.
+          </p>
         </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
