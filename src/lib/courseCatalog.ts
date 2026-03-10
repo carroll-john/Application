@@ -717,13 +717,21 @@ function transformCourse(course: RawCourseEntry): CourseCatalogEntry {
         studyLevel === "Undergraduate" ? [...UNDERGRADUATE_GOALS] : [...DEFAULT_GOALS],
       educationOptions: [...DEFAULT_EDUCATION_OPTIONS],
       experienceOptions: [...DEFAULT_EXPERIENCE_OPTIONS],
-      rules: [
-        {
-          type: "min_education_or_experience",
-          minEducation: minimumEducation,
-          minExperienceYears: minimumExperienceYears,
-        },
-      ],
+      rules:
+        minimumExperienceYears > 0
+          ? [
+              {
+                type: "min_education_or_experience" as const,
+                minEducation: minimumEducation,
+                minExperienceYears: minimumExperienceYears,
+              },
+            ]
+          : [
+              {
+                type: "min_education" as const,
+                minEducation: minimumEducation,
+              },
+            ],
       successCopy: `You meet the entry criteria for ${title}.`,
       ineligibleCopy: buildIneligibleCopy(title, minimumEducation, minimumExperienceYears),
     },

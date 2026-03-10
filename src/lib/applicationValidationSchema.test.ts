@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   initialApplicationData,
   type ApplicationData,
+  type EmploymentExperience,
   type TertiaryQualification,
 } from "./applicationData";
 import {
   getNextIncompleteStep,
   getSubmissionValidationIssues,
+  isEmploymentExperienceChronologyValid,
   isSubmissionReady,
   isTertiaryQualificationSubmissionReady,
 } from "./applicationValidationSchema";
@@ -79,6 +81,24 @@ function makeTertiaryQualification(
   };
 }
 
+function makeEmploymentExperience(
+  overrides: Partial<EmploymentExperience> = {},
+): EmploymentExperience {
+  return {
+    id: "emp-1",
+    company: "Example Co",
+    position: "Coordinator",
+    type: "Full-time",
+    startMonth: "January",
+    startYear: "2022",
+    endMonth: "December",
+    endYear: "2022",
+    currentRole: false,
+    duties: "Managed day-to-day work.",
+    ...overrides,
+  };
+}
+
 describe("applicationValidationSchema", () => {
   it("uses the same schema to separate step completion from submission readiness", () => {
     const data = makeBaseApplication({
@@ -126,5 +146,37 @@ describe("applicationValidationSchema", () => {
         }),
       ),
     ).toBe(false);
+  });
+
+  it("flags out-of-order qualification and employment date ranges", () => {
+    const invalidQualification = makeTertiaryQualification({
+      startMonth: "December",
+      startYear: "2022",
+      endMonth: "January",
+      endYear: "2022",
+    });
+    const invalidEmployment = makeEmploymentExperience({
+      startMonth: "June",
+      startYear: "2023",
+      endMonth: "May",
+      endYear: "2023",
+    });
+    const data = makeBaseApplication({
+      employmentExperiences: [invalidEmployment],
+      tertiaryQualifications: [invalidQualification],
+    });
+
+    expect(isTertiaryQualificationSubmissionReady(invalidQualification)).toBe(false);
+    expect(isEmploymentExperienceChronologyValid(invalidEmployment)).toBe(false);
+    expect(getSubmissionValidationIssues(data)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "Qualification 1: Start date must be before or the same as end date",
+        }),
+        expect.objectContaining({
+          field: "Employment 1: Start date must be before or the same as end date",
+        }),
+      ]),
+    );
   });
 });

@@ -99,11 +99,17 @@ export interface SelectedCourse {
   intake: string;
 }
 
+export interface ApplicationPrefillSource {
+  applicationId: string;
+  course: SelectedCourse;
+}
+
 export interface ApplicationMeta {
   recordId?: string;
   applicantProfileId?: string;
   applicationNumber?: string;
   createdAt?: string;
+  prefilledFrom?: ApplicationPrefillSource;
   status?: "draft" | "submitted";
   submittedAt?: string;
   selectedCourse?: SelectedCourse;

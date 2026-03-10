@@ -1,4 +1,13 @@
-import type { ApplicationData, TertiaryQualification } from "./applicationData";
+import type {
+  ApplicationData,
+  EmploymentExperience,
+  TertiaryQualification,
+} from "./applicationData";
+import { isMonthYearRangeOutOfOrder } from "./monthYearValidation";
+import {
+  getSection2RequirementInput,
+  getSection2SubmissionMissingFields,
+} from "./section2Requirements";
 
 export type ValidationTarget = "stepComplete" | "submissionReady";
 
@@ -17,12 +26,6 @@ export interface ValidationIssue {
   field: string;
   path: string;
   stepLabel?: StepCompletionLabel;
-}
-
-export interface Section2RequirementInput {
-  cvUploaded: boolean;
-  employmentExperiencesCount: number;
-  tertiaryQualificationsCount: number;
 }
 
 interface ValidationRule {
@@ -170,38 +173,6 @@ const baseValidationRules: ValidationRule[] = [
     targets: ["submissionReady"],
     isMissing: (data) => !data.contactDetails.schoolLevel,
   },
-  {
-    section: SECTION_2,
-    subsection: "Submission requirements",
-    field: "CV upload or a tertiary qualification",
-    path: "/section2/qualifications?from=review",
-    stepLabel: "CV upload",
-    targets: ["stepComplete", "submissionReady"],
-    isMissing: (data) => {
-      const input = getSection2RequirementInput(data);
-      return input.tertiaryQualificationsCount === 0 && !input.cvUploaded;
-    },
-  },
-  {
-    section: SECTION_2,
-    subsection: "Submission requirements",
-    field: "Employment experience or a tertiary qualification",
-    path: "/section2/qualifications?from=review",
-    stepLabel: "Employment experience",
-    targets: ["stepComplete", "submissionReady"],
-    isMissing: (data, target) => {
-      const input = getSection2RequirementInput(data);
-      if (input.tertiaryQualificationsCount > 0) {
-        return false;
-      }
-
-      if (target === "stepComplete") {
-        return input.cvUploaded && input.employmentExperiencesCount === 0;
-      }
-
-      return input.employmentExperiencesCount === 0;
-    },
-  },
 ];
 
 const tertiaryFieldRules: TertiaryFieldRule[] = [
@@ -231,6 +202,16 @@ const tertiaryFieldRules: TertiaryFieldRule[] = [
     isMissing: (qualification) => !qualification.endMonth || !qualification.endYear,
   },
   {
+    field: "Start date must be before or the same as end date",
+    isMissing: (qualification) =>
+      isMonthYearRangeOutOfOrder(
+        qualification.startMonth,
+        qualification.startYear,
+        qualification.endMonth,
+        qualification.endYear,
+      ),
+  },
+  {
     field: "Academic Transcript",
     isMissing: (qualification) =>
       Boolean(qualification.courseName.trim()) &&
@@ -257,16 +238,6 @@ function hasStoredDocument(
   return Boolean(document || documentName);
 }
 
-function getSection2RequirementInput(
-  data: ApplicationData,
-): Section2RequirementInput {
-  return {
-    cvUploaded: data.cvUploaded,
-    employmentExperiencesCount: data.employmentExperiences.length,
-    tertiaryQualificationsCount: data.tertiaryQualifications.length,
-  };
-}
-
 function getValidationRules(data: ApplicationData): ValidationRule[] {
   const rules = [...baseValidationRules];
   const parentCount = Number(data.contactDetails.parentsCount || 0);
@@ -289,6 +260,20 @@ function getValidationRules(data: ApplicationData): ValidationRule[] {
     });
   });
 
+  getSection2SubmissionMissingFields(getSection2RequirementInput(data)).forEach(
+    (field) => {
+      rules.push({
+        section: SECTION_2,
+        subsection: "Submission requirements",
+        field,
+        path: "/section2/qualifications?from=review",
+        stepLabel: "Tertiary qualifications",
+        targets: ["stepComplete", "submissionReady"],
+        isMissing: () => true,
+      });
+    },
+  );
+
   data.tertiaryQualifications.forEach((qualification, index) => {
     const path = `/section2/edit-tertiary/${qualification.id}?from=review`;
 
@@ -304,38 +289,23 @@ function getValidationRules(data: ApplicationData): ValidationRule[] {
     });
   });
 
+  data.employmentExperiences.forEach((experience, index) => {
+    if (isEmploymentExperienceChronologyValid(experience)) {
+      return;
+    }
+
+    rules.push({
+      section: SECTION_2,
+      subsection: "Employment experience",
+      field: `Employment ${index + 1}: Start date must be before or the same as end date`,
+      path: `/section2/edit-employment/${experience.id}?from=review`,
+      targets: ["submissionReady"],
+      isMissing: () => true,
+    });
+  });
+
   return rules;
 }
-
-export function meetsSection2SubmissionRequirement(
-  input: Section2RequirementInput,
-) {
-  return (
-    input.tertiaryQualificationsCount > 0 ||
-    (input.cvUploaded && input.employmentExperiencesCount > 0)
-  );
-}
-
-export function getSection2SubmissionMissingFields(
-  input: Section2RequirementInput,
-) {
-  if (meetsSection2SubmissionRequirement(input)) {
-    return [];
-  }
-
-  const missingFields: string[] = [];
-
-  if (!input.cvUploaded) {
-    missingFields.push("CV upload or a tertiary qualification");
-  }
-
-  if (input.employmentExperiencesCount === 0) {
-    missingFields.push("Employment experience or a tertiary qualification");
-  }
-
-  return missingFields;
-}
-
 export function getTertiaryQualificationSubmissionMissingFields(
   qualification: TertiaryQualification,
 ) {
@@ -348,6 +318,21 @@ export function isTertiaryQualificationSubmissionReady(
   qualification: TertiaryQualification,
 ) {
   return getTertiaryQualificationSubmissionMissingFields(qualification).length === 0;
+}
+
+export function isEmploymentExperienceChronologyValid(
+  experience: EmploymentExperience,
+) {
+  if (experience.currentRole) {
+    return true;
+  }
+
+  return !isMonthYearRangeOutOfOrder(
+    experience.startMonth,
+    experience.startYear,
+    experience.endMonth,
+    experience.endYear,
+  );
 }
 
 export function getValidationIssues(
@@ -384,4 +369,21 @@ export function getNextIncompleteStep(data: ApplicationData) {
   return (
     stepCompletionOrder.find((stepLabel) => missingStepLabels.has(stepLabel)) ?? null
   );
+}
+
+export function getStepCompletionSummary(data: ApplicationData) {
+  const missingStepLabels = new Set(
+    getValidationIssues(data, "stepComplete")
+      .map((issue) => issue.stepLabel)
+      .filter((label): label is StepCompletionLabel => Boolean(label)),
+  );
+  const totalSteps = stepCompletionOrder.length;
+  const completedSteps = totalSteps - missingStepLabels.size;
+
+  return {
+    completedSteps,
+    completionPercentage:
+      totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0,
+    totalSteps,
+  };
 }
