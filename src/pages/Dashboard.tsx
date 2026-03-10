@@ -110,9 +110,14 @@ export default function Dashboard() {
                 : "Browse courses, pass eligibility, and start an application from the course page."}
             </p>
           </div>
-          <Button onClick={() => navigate("/")} variant="outline">
-            Browse courses
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={() => navigate("/")} variant="outline">
+              Browse courses
+            </Button>
+            <Button onClick={() => navigate("/admissions")} variant="outline">
+              Admissions workspace
+            </Button>
+          </div>
         </div>
 
         <div className="mb-8 grid gap-4 sm:grid-cols-3">

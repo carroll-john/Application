@@ -35,6 +35,7 @@ const CLARITY_PII_ROUTE_PATTERNS = [
   /^\/review$/,
   /^\/submitted$/,
   /^\/profile-recommendations$/,
+  /^\/admissions(?:\/|$)/,
 ];
 
 let clarityStarted = false;

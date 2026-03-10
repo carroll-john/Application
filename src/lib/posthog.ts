@@ -65,6 +65,7 @@ type RequiredFunnelStepDefinition = {
 
 type RouteAnalyticsDefinition = {
   group:
+    | "admissions"
     | "application"
     | "auth"
     | "catalog"
@@ -173,6 +174,18 @@ const routeAnalyticsDefinitions: RouteAnalyticsDefinition[] = [
     key: "dashboard",
     label: "Application dashboard",
     pattern: /^\/dashboard$/,
+  },
+  {
+    group: "admissions",
+    key: "admissions_queue",
+    label: "Admissions queue",
+    pattern: /^\/admissions$/,
+  },
+  {
+    group: "admissions",
+    key: "admissions_review_workspace",
+    label: "Admissions review workspace",
+    pattern: /^\/admissions\/applications\/[^/]+$/,
   },
   {
     group: "application",

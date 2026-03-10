@@ -46,6 +46,7 @@ describe("isClarityPiiRoute", () => {
     expect(isClarityPiiRoute("/section1/personal-contact")).toBe(true);
     expect(isClarityPiiRoute("/section2/add-cv")).toBe(true);
     expect(isClarityPiiRoute("/review")).toBe(true);
+    expect(isClarityPiiRoute("/admissions/applications/app-scu-001")).toBe(true);
   });
 
   it("does not mark catalog routes as PII routes", () => {

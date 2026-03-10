@@ -21,6 +21,14 @@ import { isSentryEnabled } from "./lib/sentry";
 import { lazyWithRetry } from "./lib/routeChunkRecovery";
 import RouteErrorBoundary from "./pages/RouteErrorBoundary";
 
+const AdmissionsApplicationReview = lazyWithRetry(
+  "admissions-application-review",
+  () => import("./pages/AdmissionsApplicationReview"),
+);
+const AdmissionsWorkspace = lazyWithRetry(
+  "admissions-workspace",
+  () => import("./pages/AdmissionsWorkspace"),
+);
 const ApplicationSubmitted = lazyWithRetry(
   "application-submitted",
   () => import("./pages/ApplicationSubmitted"),
@@ -291,6 +299,11 @@ export const router = createAppRouter([
           { path: "/review", element: <ReviewAndSubmit /> },
           { path: "/submitted", element: <ApplicationSubmitted /> },
           { path: "/dashboard", element: <Dashboard /> },
+          { path: "/admissions", element: <AdmissionsWorkspace /> },
+          {
+            path: "/admissions/applications/:applicationId",
+            element: <AdmissionsApplicationReview />,
+          },
           {
             path: "/profile-recommendations",
             element: <ProfileRecommendations />,
