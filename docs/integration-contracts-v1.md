@@ -11,6 +11,11 @@ This document defines the baseline V1 contracts for `DIS-59`. It is intentionall
   - Existing fields cannot be removed or reinterpreted without a major version bump.
   - Readers must ignore unknown metadata fields.
 
+Compatibility guardrails:
+- Frozen schema snapshots live in [canonical-application-v1.json](/Users/jc/Documents/new-project-integration-mvp-build/src/integrationPlatform/fixtures/schemaCompatibility/canonical-application-v1.json) and [transfer-package-manifest-v1.json](/Users/jc/Documents/new-project-integration-mvp-build/src/integrationPlatform/fixtures/schemaCompatibility/transfer-package-manifest-v1.json).
+- Run `npm run check:schema-compatibility` for the maintainer-facing compatibility report.
+- CI uploads the compatibility report artifact on every run so breaking contract changes are visible without reproducing locally.
+
 ## CanonicalApplicationV1
 
 Required top-level fields:

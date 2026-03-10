@@ -27,6 +27,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check schema compatibility
+        run: npm run check:schema-compatibility -- --report /tmp/schema-compatibility-report.txt
+
+      - name: Upload schema compatibility report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-compatibility-report
+          path: /tmp/schema-compatibility-report.txt
+
       - name: Run unit tests
         run: npm run test
 

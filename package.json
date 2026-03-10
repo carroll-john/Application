@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "check:schema-compatibility": "node --experimental-strip-types ./scripts/check-schema-compatibility.ts",
     "test:cv-parser": "node ./scripts/cv-parser-regression.mjs",
     "dev:cv-parser-api": "node --experimental-strip-types ./scripts/dev-cv-parser-server.mjs",
     "supabase:types": "supabase gen types typescript --project-id \"$(cat supabase/.temp/project-ref)\" --schema public > src/lib/supabase.types.ts",
