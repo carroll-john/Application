@@ -6,6 +6,7 @@ import {
   AddressAutocomplete,
   type AddressSuggestion,
 } from "../components/ui/address-autocomplete";
+import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useApplication } from "../context/ApplicationContext";
 import { useReviewReturn } from "../hooks/useReviewReturn";
@@ -44,7 +45,21 @@ export default function Section1ContactDetails() {
       ...previous,
       [key]: {
         ...createEmptyStructuredAddress(),
+        unitNumber: previous[key].unitNumber,
         formattedAddress,
+      },
+    }));
+  };
+
+  const updateUnitNumber = (
+    key: "residentialAddress" | "postalAddress",
+    unitNumber: string,
+  ) => {
+    setFormData((previous) => ({
+      ...previous,
+      [key]: {
+        ...previous[key],
+        unitNumber,
       },
     }));
   };
@@ -66,7 +81,10 @@ export default function Section1ContactDetails() {
 
       return {
         ...previous,
-        [key]: resolvedAddress,
+        [key]: {
+          ...resolvedAddress,
+          unitNumber: resolvedAddress.unitNumber || previous[key].unitNumber,
+        },
       };
     });
   };
@@ -77,6 +95,7 @@ export default function Section1ContactDetails() {
     }
 
     const meta = [
+      address.unitNumber && `Unit/apartment: ${address.unitNumber}`,
       address.suburb && `Suburb: ${address.suburb}`,
       address.state && `State: ${address.state}`,
       address.postcode && `Postcode: ${address.postcode}`,
@@ -127,28 +146,44 @@ export default function Section1ContactDetails() {
               </p>
             </div>
           </div>
-          <Label htmlFor="residentialAddress">Permanent residential address *</Label>
-          <AddressAutocomplete
-            id="residentialAddress"
-            searchSuggestions={
-              useGoogleAddressSearch
-                ? residentialLookup.searchSuggestions
-                : undefined
-            }
-            emptyMessage={
-              useGoogleAddressSearch
-                ? "No matching addresses found. Check the spelling or keep typing."
-                : unavailableLookupMessage
-            }
-            value={formData.residentialAddress.formattedAddress}
-            onSuggestionSelect={(suggestion) =>
-              applyResolvedAddress("residentialAddress", suggestion)
-            }
-            onValueChange={(residentialAddress) =>
-              updateManualAddress("residentialAddress", residentialAddress)
-            }
-            placeholder="Street, suburb, state and postcode"
-          />
+          <div className="grid gap-4 sm:grid-cols-[minmax(0,12rem)_1fr]">
+            <div>
+              <Label htmlFor="residentialUnitNumber">Unit / apartment</Label>
+              <Input
+                id="residentialUnitNumber"
+                autoComplete="address-line2"
+                placeholder="e.g. 12B"
+                value={formData.residentialAddress.unitNumber}
+                onChange={(event) =>
+                  updateUnitNumber("residentialAddress", event.target.value)
+                }
+              />
+            </div>
+            <div>
+              <Label htmlFor="residentialAddress">Permanent residential address *</Label>
+              <AddressAutocomplete
+                id="residentialAddress"
+                searchSuggestions={
+                  useGoogleAddressSearch
+                    ? residentialLookup.searchSuggestions
+                    : undefined
+                }
+                emptyMessage={
+                  useGoogleAddressSearch
+                    ? "No matching addresses found. Check the spelling or keep typing."
+                    : unavailableLookupMessage
+                }
+                value={formData.residentialAddress.formattedAddress}
+                onSuggestionSelect={(suggestion) =>
+                  applyResolvedAddress("residentialAddress", suggestion)
+                }
+                onValueChange={(residentialAddress) =>
+                  updateManualAddress("residentialAddress", residentialAddress)
+                }
+                placeholder="Street, suburb, state and postcode"
+              />
+            </div>
+          </div>
           {!useGoogleAddressSearch ? (
             <p className="mt-2 text-xs text-slate-500">
               Manual entry mode is active because live address lookup is unavailable.
@@ -183,26 +218,42 @@ export default function Section1ContactDetails() {
           </label>
           {formData.postalDifferent ? (
             <div className="mt-4">
-              <Label htmlFor="postalAddress">Postal address</Label>
-              <AddressAutocomplete
-                id="postalAddress"
-                searchSuggestions={
-                  useGoogleAddressSearch ? postalLookup.searchSuggestions : undefined
-                }
-                emptyMessage={
-                  useGoogleAddressSearch
-                    ? "No matching addresses found. Check the spelling or keep typing."
-                    : unavailableLookupMessage
-                }
-                value={formData.postalAddress.formattedAddress}
-                onSuggestionSelect={(suggestion) =>
-                  applyResolvedAddress("postalAddress", suggestion)
-                }
-                onValueChange={(postalAddress) =>
-                  updateManualAddress("postalAddress", postalAddress)
-                }
-                placeholder="Postal address"
-              />
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,12rem)_1fr]">
+                <div>
+                  <Label htmlFor="postalUnitNumber">Unit / apartment</Label>
+                  <Input
+                    id="postalUnitNumber"
+                    autoComplete="address-line2"
+                    placeholder="e.g. 5"
+                    value={formData.postalAddress.unitNumber}
+                    onChange={(event) =>
+                      updateUnitNumber("postalAddress", event.target.value)
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="postalAddress">Postal address</Label>
+                  <AddressAutocomplete
+                    id="postalAddress"
+                    searchSuggestions={
+                      useGoogleAddressSearch ? postalLookup.searchSuggestions : undefined
+                    }
+                    emptyMessage={
+                      useGoogleAddressSearch
+                        ? "No matching addresses found. Check the spelling or keep typing."
+                        : unavailableLookupMessage
+                    }
+                    value={formData.postalAddress.formattedAddress}
+                    onSuggestionSelect={(suggestion) =>
+                      applyResolvedAddress("postalAddress", suggestion)
+                    }
+                    onValueChange={(postalAddress) =>
+                      updateManualAddress("postalAddress", postalAddress)
+                    }
+                    placeholder="Postal address"
+                  />
+                </div>
+              </div>
               {!useGoogleAddressSearch ? (
                 <p className="mt-2 text-xs text-slate-500">
                   Manual entry mode is active because live address lookup has not been configured.

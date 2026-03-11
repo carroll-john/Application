@@ -15,6 +15,7 @@ import { SectionProgressHeader } from "../components/SectionProgressHeader";
 import { StatusMessage } from "../components/StatusMessage";
 import { MonthYearPickerField } from "../components/ui/date-controls";
 import { Input } from "../components/ui/input";
+import { InstitutionAutocomplete } from "../components/ui/institution-autocomplete";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
@@ -187,17 +188,21 @@ export default function Section2AddTertiary() {
             <div className="space-y-5">
               <div>
                 <Label>Institution Name <span className="text-red-500">*</span></Label>
-                <Input
+                <InstitutionAutocomplete
                   className="h-12 text-base"
-                  placeholder="Enter institution name"
+                  placeholder="Start typing institution name"
                   value={formData.institution}
-                  onChange={(event) =>
+                  onValueChange={(institution) =>
                     setFormData((previous) => ({
                       ...previous,
-                      institution: event.target.value,
+                      institution,
                     }))
                   }
                 />
+                <p className="mt-2 text-xs text-slate-500">
+                  Suggestions help keep institution names consistent. If yours
+                  is not listed, keep typing to enter it manually.
+                </p>
               </div>
               <div>
                 <Label>Country <span className="text-red-500">*</span></Label>

@@ -249,6 +249,35 @@ function getValidationRules(data: ApplicationData): ValidationRule[] {
     data.contactDetails.parent5Details,
   ];
 
+  rules.push({
+    section: SECTION_1,
+    subsection: "Family & support information",
+    field: "Number of parents/guardians",
+    path: "/section1/family-support?from=review",
+    targets: ["submissionReady"],
+    isMissing: (application) => !application.contactDetails.parentsCount,
+  });
+
+  rules.push({
+    section: SECTION_1,
+    subsection: "Family & support information",
+    field: "Disability, impairment or long-term condition",
+    path: "/section1/family-support?from=review",
+    targets: ["submissionReady"],
+    isMissing: (application) => application.contactDetails.hasDisability === null,
+  });
+
+  rules.push({
+    section: SECTION_1,
+    subsection: "Family & support information",
+    field: "Disability support details",
+    path: "/section1/family-support?from=review",
+    targets: ["submissionReady"],
+    isMissing: (application) =>
+      application.contactDetails.hasDisability === true &&
+      !application.contactDetails.disabilityDetails.trim(),
+  });
+
   parentValues.slice(0, parentCount).forEach((value, index) => {
     rules.push({
       section: SECTION_1,
@@ -359,7 +388,9 @@ export function isSubmissionReady(data: ApplicationData) {
   return getSubmissionValidationIssues(data).length === 0;
 }
 
-export function getNextIncompleteStep(data: ApplicationData) {
+export function getNextIncompleteStep(
+  data: ApplicationData,
+): StepCompletionLabel | null {
   const missingStepLabels = new Set(
     getValidationIssues(data, "stepComplete")
       .map((issue) => issue.stepLabel)

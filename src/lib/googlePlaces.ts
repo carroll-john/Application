@@ -76,12 +76,9 @@ function getAddressComponent(
 
 function joinStreetAddress(components: GoogleAddressComponent[]) {
   const streetNumber = getAddressComponent(components, ["street_number"])?.longText ?? "";
-  const subpremise = getAddressComponent(components, ["subpremise"])?.longText ?? "";
   const route = getAddressComponent(components, ["route"])?.longText ?? "";
   const premise = getAddressComponent(components, ["premise"])?.longText ?? "";
-
-  const buildingNumber =
-    subpremise && streetNumber ? `${subpremise}/${streetNumber}` : subpremise || streetNumber;
+  const buildingNumber = streetNumber || premise;
 
   return [buildingNumber, route].filter(Boolean).join(" ").trim() || premise.trim();
 }
@@ -102,11 +99,13 @@ function mapPlaceToStructuredAddress(place: GooglePlace, fallbackLabel: string) 
     "";
   const postcode = getAddressComponent(components, ["postal_code"])?.longText ?? "";
   const country = getAddressComponent(components, ["country"])?.longText ?? "";
+  const unitNumber = getAddressComponent(components, ["subpremise"])?.longText ?? "";
   const streetAddress = joinStreetAddress(components);
 
   const structuredAddress: StructuredAddress = {
     ...createEmptyStructuredAddress(),
     formattedAddress: place.formattedAddress?.trim() || fallbackLabel,
+    unitNumber,
     streetAddress,
     suburb,
     state,

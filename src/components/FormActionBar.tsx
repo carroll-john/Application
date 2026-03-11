@@ -4,8 +4,8 @@ import { captureApplicationStepEvent, getApplicationStepDefinition } from "../li
 import { Button, type ButtonProps } from "./ui/button";
 
 interface FormActionBarProps {
-  previousLabel: string;
-  onPrevious: () => void;
+  previousLabel?: string;
+  onPrevious?: () => void;
   previousDisabled?: boolean;
   secondaryLabel?: string;
   onSecondary?: () => void;
@@ -15,6 +15,8 @@ interface FormActionBarProps {
   onPrimary: () => void;
   primaryDisabled?: boolean;
   primaryVariant?: ButtonProps["variant"];
+  primaryTrackingProperties?: Record<string, unknown>;
+  secondaryTrackingProperties?: Record<string, unknown>;
 }
 
 export function FormActionBar({
@@ -29,11 +31,22 @@ export function FormActionBar({
   onPrimary,
   primaryDisabled = false,
   primaryVariant = "default",
+  primaryTrackingProperties,
+  secondaryTrackingProperties,
 }: FormActionBarProps) {
   const location = useLocation();
   const { data } = useApplication();
+  const hasPrevious = Boolean(previousLabel && onPrevious);
   const hasSecondary = Boolean(secondaryLabel && onSecondary);
   const stepDefinition = getApplicationStepDefinition(location.pathname);
+
+  const gridClassName = hasPrevious
+    ? hasSecondary
+      ? "grid gap-3 sm:grid-cols-3"
+      : "grid gap-3 sm:grid-cols-2"
+    : hasSecondary
+      ? "grid gap-3 sm:grid-cols-2"
+      : "grid gap-3";
 
   function handlePrimaryClick() {
     if (stepDefinition && stepDefinition.group !== "review") {
@@ -42,6 +55,7 @@ export function FormActionBar({
         pathname: location.pathname,
         properties: {
           action_label: primaryLabel,
+          ...primaryTrackingProperties,
         },
       });
     }
@@ -56,6 +70,7 @@ export function FormActionBar({
         pathname: location.pathname,
         properties: {
           action_label: secondaryLabel,
+          ...secondaryTrackingProperties,
         },
       });
     }
@@ -68,15 +83,17 @@ export function FormActionBar({
       className="mb-10 mt-6 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm"
       data-form-action-bar=""
     >
-      <div className={hasSecondary ? "grid gap-3 sm:grid-cols-3" : "grid gap-3 sm:grid-cols-2"}>
-        <Button
-          className="order-3 w-full sm:order-1"
-          disabled={previousDisabled}
-          onClick={onPrevious}
-          variant="outline"
-        >
-          {previousLabel}
-        </Button>
+      <div className={gridClassName}>
+        {hasPrevious ? (
+          <Button
+            className={hasSecondary ? "order-3 w-full sm:order-1" : "order-2 w-full sm:order-1"}
+            disabled={previousDisabled}
+            onClick={onPrevious}
+            variant="outline"
+          >
+            {previousLabel}
+          </Button>
+        ) : null}
         {hasSecondary ? (
           <Button
             className="order-2 w-full"
@@ -88,7 +105,13 @@ export function FormActionBar({
           </Button>
         ) : null}
         <Button
-          className={hasSecondary ? "order-1 w-full sm:order-3" : "order-1 w-full sm:order-2"}
+          className={
+            hasPrevious
+              ? hasSecondary
+                ? "order-1 w-full sm:order-3"
+                : "order-1 w-full sm:order-2"
+              : "order-1 w-full"
+          }
           disabled={primaryDisabled}
           onClick={handlePrimaryClick}
           variant={primaryVariant}

@@ -1,13 +1,14 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { CopiedApplicationNotice } from "../components/CopiedApplicationNotice";
+import { FormActionBar } from "../components/FormActionBar";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
+import { getOverviewActionDescriptor } from "../lib/overviewAction";
 import { captureApplicationStepEvent } from "../lib/posthog";
 import {
   getSelectedCourse,
-  hasStartedApplication,
   isApplicationSubmitted,
 } from "../lib/applicationProgress";
 
@@ -36,16 +37,25 @@ export default function Overview() {
   const navigate = useNavigate();
   const location = useLocation();
   const { data, getNextIncompleteSection } = useApplication();
-  const started = hasStartedApplication(data);
   const submitted = isApplicationSubmitted(data);
   const selectedCourse = getSelectedCourse(data.applicationMeta);
   const prefilledFrom = data.applicationMeta.prefilledFrom;
-  const nextPath = getOverviewActionPath(getNextIncompleteSection(), submitted);
-  const primaryLabel = submitted
-    ? "View Submitted Application"
-    : started
-      ? "Continue Application"
-      : "Start Application";
+  const nextAction = getOverviewActionDescriptor(
+    getNextIncompleteSection(),
+    submitted,
+  );
+
+  function handleTopActionClick() {
+    captureApplicationStepEvent("application_step_completed", {
+      application: data,
+      pathname: location.pathname,
+      properties: {
+        action_label: nextAction.primaryLabel,
+        next_path: nextAction.path,
+      },
+    });
+    navigate(nextAction.path);
+  }
 
   return (
     <div className="min-h-screen bg-[#f7f7f4] pb-10">
@@ -62,22 +72,6 @@ export default function Overview() {
               <div className="mt-4 max-w-xs rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700">
                 Desired course intake: {selectedCourse.intakeLabel}
               </div>
-              <Button
-                className="mt-5"
-                onClick={() => {
-                  captureApplicationStepEvent("application_step_completed", {
-                    application: data,
-                    pathname: location.pathname,
-                    properties: {
-                      action_label: primaryLabel,
-                      next_path: nextPath,
-                    },
-                  });
-                  navigate(nextPath);
-                }}
-              >
-                {primaryLabel}
-              </Button>
             </div>
           </div>
         </SurfaceCard>
@@ -96,6 +90,33 @@ export default function Overview() {
             save your progress at any stage and come back later.
           </p>
         </div>
+
+        <SurfaceCard className="mt-6 border-[#084E74]/10 bg-[#EAF1F5] p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#084E74]">
+                <span>{nextAction.label}</span>
+                {nextAction.sectionLabel ? (
+                  <span className="rounded-full border border-[#084E74]/20 bg-white px-3 py-1 tracking-[0.12em] text-[#084E74]">
+                    {nextAction.sectionLabel}
+                  </span>
+                ) : null}
+              </div>
+              <h2 className="mt-3 text-2xl font-bold text-slate-900">
+                {nextAction.title}
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700 sm:text-base">
+                {nextAction.description}
+              </p>
+            </div>
+            <Button
+              className="w-full shrink-0 sm:w-auto"
+              onClick={handleTopActionClick}
+            >
+              {nextAction.primaryLabel}
+            </Button>
+          </div>
+        </SurfaceCard>
 
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {overviewSections.map((section) => (
@@ -116,32 +137,15 @@ export default function Overview() {
             </SurfaceCard>
           ))}
         </div>
+
+        <FormActionBar
+          primaryLabel={nextAction.primaryLabel}
+          primaryTrackingProperties={{ next_path: nextAction.path }}
+          onPrimary={() => {
+            navigate(nextAction.path);
+          }}
+        />
       </div>
     </div>
   );
-}
-
-function getOverviewActionPath(
-  nextSection: string | null,
-  submitted: boolean,
-) {
-  if (submitted) {
-    return "/submitted";
-  }
-
-  if (!nextSection) {
-    return "/review";
-  }
-
-  const pathMap: Record<string, string> = {
-    "Basic information": "/section1/basic-info",
-    "Personal contact details": "/section1/personal-contact",
-    "Citizenship information": "/section1/contact-info",
-    "Address details": "/section1/address",
-    "Tertiary qualifications": "/section2/qualifications",
-    "CV upload": "/section2/add-cv",
-    "Employment experience": "/section2/add-employment",
-  };
-
-  return pathMap[nextSection] ?? "/section1/basic-info";
 }

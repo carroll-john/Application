@@ -39,6 +39,8 @@ function makeBaseApplication(
       language: "English",
       aboriginal: "No",
       schoolLevel: "Year 12 or equivalent",
+      parentsCount: "0",
+      hasDisability: false,
       ...overrides.contactDetails,
     },
     tertiaryQualifications:
@@ -175,6 +177,35 @@ describe("applicationValidationSchema", () => {
         }),
         expect.objectContaining({
           field: "Employment 1: Start date must be before or the same as end date",
+        }),
+      ]),
+    );
+  });
+
+  it("requires family background branches that are still unanswered", () => {
+    const data = makeBaseApplication({
+      contactDetails: {
+        ...initialApplicationData.contactDetails,
+        citizenshipStatus: "Australian Citizen",
+        residentialAddress: {
+          ...initialApplicationData.contactDetails.residentialAddress,
+          formattedAddress: "1 Test Street, Melbourne VIC 3000",
+        },
+        language: "English",
+        aboriginal: "No",
+        schoolLevel: "Year 12 or equivalent",
+        parentsCount: "",
+        hasDisability: null,
+      },
+    });
+
+    expect(getSubmissionValidationIssues(data)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "Number of parents/guardians",
+        }),
+        expect.objectContaining({
+          field: "Disability, impairment or long-term condition",
         }),
       ]),
     );

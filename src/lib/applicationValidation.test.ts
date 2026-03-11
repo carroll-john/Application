@@ -48,6 +48,8 @@ function makeValidApplication(
       language: "English",
       aboriginal: "No",
       schoolLevel: "Year 12 or equivalent",
+      parentsCount: "0",
+      hasDisability: false,
       residentialAddress: {
         ...initialApplicationData.contactDetails.residentialAddress,
         formattedAddress: "68 Barringo Way, Caroline Springs VIC 3023",
@@ -119,6 +121,36 @@ describe("validateApplication", () => {
       expect.arrayContaining([
         expect.objectContaining({
           field: "Parent/Guardian 2 Education Level",
+          path: "/section1/family-support?from=review",
+        }),
+      ]),
+    );
+  });
+
+  it("requires disability details when support needs are declared", () => {
+    const errors = validateApplication(
+      makeValidApplication({
+        contactDetails: {
+          ...initialApplicationData.contactDetails,
+          citizenshipStatus: "Australian Citizen",
+          language: "English",
+          aboriginal: "No",
+          schoolLevel: "Year 12 or equivalent",
+          parentsCount: "0",
+          hasDisability: true,
+          disabilityDetails: "",
+          residentialAddress: {
+            ...initialApplicationData.contactDetails.residentialAddress,
+            formattedAddress: "68 Barringo Way, Caroline Springs VIC 3023",
+          },
+        },
+      }),
+    );
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "Disability support details",
           path: "/section1/family-support?from=review",
         }),
       ]),

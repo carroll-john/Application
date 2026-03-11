@@ -26,7 +26,7 @@ export default function Section1CulturalBackground() {
       sectionLabel="Section 1 of 3"
       progress={67}
       title="Cultural and education background"
-      description="These questions support reporting requirements and help tailor your admissions experience."
+      description="These questions support government reporting and student support planning. They do not affect your admission outcome."
       onPrevious={() => {
         persist();
         navigate(returnPath("/section1/address"));
@@ -51,7 +51,7 @@ export default function Section1CulturalBackground() {
           className="rounded-[30px] border-slate-200 p-5 sm:p-6"
           icon={<Languages className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
           title="Language spoken at home"
-          description="Select the language you speak most often at home."
+          description="We use this for reporting and to understand whether support services may help. It does not replace any English language evidence your course may require."
         >
           <Label htmlFor="language">Language *</Label>
           <NativeSelect
@@ -77,7 +77,7 @@ export default function Section1CulturalBackground() {
           className="rounded-[30px] border-slate-200 p-5 sm:p-6"
           icon={<Users className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
           title="Aboriginal or Torres Strait Islander status"
-          description="This question is collected for government statistical reporting."
+          description="This is collected for government reporting only and does not affect admission decisions."
         >
           <Label htmlFor="aboriginal">Status *</Label>
           <NativeSelect
@@ -102,7 +102,7 @@ export default function Section1CulturalBackground() {
           className="rounded-[30px] border-slate-200 p-5 sm:p-6"
           icon={<BookOpen className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
           title="Highest school level completed"
-          description="Tell us the highest level of school you have completed."
+          description="This is separate from your qualifications history and helps us understand your education background for reporting."
         >
           <Label htmlFor="schoolLevel">School level *</Label>
           <NativeSelect
