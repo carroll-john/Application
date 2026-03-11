@@ -88,7 +88,7 @@ export interface ContactDetails {
   parent3Details: string;
   parent4Details: string;
   parent5Details: string;
-  hasDisability: boolean;
+  hasDisability: boolean | null;
   disabilityDetails: string;
 }
 
@@ -159,7 +159,7 @@ export const initialApplicationData: ApplicationData = {
     parent3Details: "",
     parent4Details: "",
     parent5Details: "",
-    hasDisability: false,
+    hasDisability: null,
     disabilityDetails: "",
   },
   tertiaryQualifications: [],
@@ -170,9 +170,39 @@ export const initialApplicationData: ApplicationData = {
   cvUploaded: false,
 };
 
+function isLegacyUnansweredSupportState(details: ContactDetails) {
+  return (
+    details.hasDisability === false &&
+    !details.parentsCount &&
+    !details.parent1Details &&
+    !details.parent2Details &&
+    !details.parent3Details &&
+    !details.parent4Details &&
+    !details.parent5Details &&
+    !details.disabilityDetails
+  );
+}
+
 export function mergeStoredApplicationData(
   storedData: Partial<ApplicationData> | null | undefined,
 ): ApplicationData {
+  const mergedContactDetails = normalizeConditionalContactDetails({
+    ...initialApplicationData.contactDetails,
+    ...storedData?.contactDetails,
+    residentialAddress: {
+      ...createEmptyStructuredAddress(),
+      ...storedData?.contactDetails?.residentialAddress,
+    },
+    postalAddress: {
+      ...createEmptyStructuredAddress(),
+      ...storedData?.contactDetails?.postalAddress,
+    },
+  });
+
+  if (isLegacyUnansweredSupportState(mergedContactDetails)) {
+    mergedContactDetails.hasDisability = null;
+  }
+
   return {
     ...initialApplicationData,
     ...storedData,
@@ -184,18 +214,7 @@ export function mergeStoredApplicationData(
       ...initialApplicationData.personalDetails,
       ...storedData?.personalDetails,
     },
-    contactDetails: {
-      ...initialApplicationData.contactDetails,
-      ...storedData?.contactDetails,
-      residentialAddress: {
-        ...createEmptyStructuredAddress(),
-        ...storedData?.contactDetails?.residentialAddress,
-      },
-      postalAddress: {
-        ...createEmptyStructuredAddress(),
-        ...storedData?.contactDetails?.postalAddress,
-      },
-    },
+    contactDetails: mergedContactDetails,
     tertiaryQualifications: Array.isArray(storedData?.tertiaryQualifications)
       ? storedData.tertiaryQualifications.map((qualification) => {
           const legacyQualification = qualification as TertiaryQualification & {
@@ -248,6 +267,36 @@ export function loadLocalApplicationData(): ApplicationData {
   } catch {
     return initialApplicationData;
   }
+}
+
+const conditionalParentFields = [
+  "parent1Details",
+  "parent2Details",
+  "parent3Details",
+  "parent4Details",
+  "parent5Details",
+] as const;
+
+export function normalizeConditionalContactDetails(
+  details: ContactDetails,
+): ContactDetails {
+  const nextDetails = { ...details };
+  const parsedParentCount = Number.parseInt(details.parentsCount, 10);
+  const visibleParentCount = Number.isFinite(parsedParentCount)
+    ? Math.max(0, Math.min(parsedParentCount, conditionalParentFields.length))
+    : 0;
+
+  conditionalParentFields.forEach((field, index) => {
+    if (index >= visibleParentCount) {
+      nextDetails[field] = "";
+    }
+  });
+
+  if (details.hasDisability !== true) {
+    nextDetails.disabilityDetails = "";
+  }
+
+  return nextDetails;
 }
 
 export function saveLocalApplicationData(data: ApplicationData) {

@@ -1,7 +1,6 @@
 import type { AddressSuggestion } from "../components/ui/address-autocomplete";
 import { createEmptyStructuredAddress } from "./address";
 import {
-  type GoogleAddressComponent,
   type GooglePlacePayload,
   mapPlaceToStructuredAddress,
 } from "./googlePlacesAddress";

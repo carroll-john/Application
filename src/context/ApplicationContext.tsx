@@ -17,6 +17,7 @@ import type {
   SelectedCourse,
   TertiaryQualification,
 } from "../lib/applicationData";
+import type { StepCompletionLabel } from "../lib/applicationValidationSchema";
 import { createApplicationStorageAdapter } from "../lib/applicationStorageAdapter";
 import { useApplicationAnalytics } from "./application/useApplicationAnalytics";
 import { useApplicationData } from "./application/useApplicationData";
@@ -37,7 +38,9 @@ interface ApplicationContextType {
     options?: BeginCourseApplicationOptions,
   ) => Promise<ApplicationData>;
   ensureRemoteRecordId: () => Promise<string>;
-  getNextIncompleteSection: (application?: ApplicationData) => string | null;
+  getNextIncompleteSection: (
+    application?: ApplicationData,
+  ) => StepCompletionLabel | null;
   isHydrating: boolean;
   markApplicationSubmitted: () => Promise<void>;
   openApplication: (applicationId: string) => Promise<void>;

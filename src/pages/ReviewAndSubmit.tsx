@@ -345,7 +345,11 @@ export default function ReviewAndSubmit() {
                   )),
                 [
                   "Do you have a disability, impairment or long-term condition?",
-                  data.contactDetails.hasDisability ? "Yes" : "No",
+                  data.contactDetails.hasDisability === null
+                    ? "Not provided"
+                    : data.contactDetails.hasDisability
+                      ? "Yes"
+                      : "No",
                 ],
                 ...(data.contactDetails.hasDisability
                   ? [[

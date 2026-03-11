@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mergeStoredApplicationData } from "./applicationData";
+import {
+  initialApplicationData,
+  mergeStoredApplicationData,
+  normalizeConditionalContactDetails,
+} from "./applicationData";
 
 interface LegacyTertiaryQualificationSeed {
   id: string;
@@ -68,6 +72,7 @@ describe("mergeStoredApplicationData", () => {
 
     expect(merged.contactDetails.residentialAddress).toEqual({
       formattedAddress: "1 Test St",
+      unitNumber: "",
       streetAddress: "",
       suburb: "",
       state: "",
@@ -92,5 +97,41 @@ describe("mergeStoredApplicationData", () => {
       title: "Master of Business Administration (MBA) online",
       intake: "12 May 2025",
     });
+  });
+
+  it("treats untouched legacy disability defaults as unanswered support state", () => {
+    const merged = mergeStoredApplicationData({
+      contactDetails: {
+        hasDisability: false,
+      },
+    } as never);
+
+    expect(merged.contactDetails.hasDisability).toBeNull();
+  });
+});
+
+describe("normalizeConditionalContactDetails", () => {
+  it("clears parent education details that are hidden by the selected parent count", () => {
+    const normalized = normalizeConditionalContactDetails({
+      ...initialApplicationData.contactDetails,
+      parentsCount: "1",
+      parent1Details: "Bachelor degree",
+      parent2Details: "Diploma",
+      parent3Details: "Unknown",
+    });
+
+    expect(normalized.parent1Details).toBe("Bachelor degree");
+    expect(normalized.parent2Details).toBe("");
+    expect(normalized.parent3Details).toBe("");
+  });
+
+  it("clears disability details when the applicant selects no support need", () => {
+    const normalized = normalizeConditionalContactDetails({
+      ...initialApplicationData.contactDetails,
+      hasDisability: false,
+      disabilityDetails: "Low vision support",
+    });
+
+    expect(normalized.disabilityDetails).toBe("");
   });
 });
