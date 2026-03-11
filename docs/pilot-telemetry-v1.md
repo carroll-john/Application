@@ -1,6 +1,6 @@
 # Pilot Telemetry V1
 
-This note captures the `DIS-80` pilot telemetry baseline for the integration MVP.
+This note captures the `DIS-80`, `DIS-90`, `DIS-101`, and `DIS-113` telemetry baseline for the integration MVP.
 
 ## Scope
 - Define a shared metric schema for viability, feasibility, and desirability.
@@ -116,4 +116,11 @@ The admissions workspace now exposes the latest automated rollup run with:
 - consistency status
 - segmented KPI cards for partner/adaptor combinations
 
-These helpers are the gate for later dashboard and checkpoint-report work in `DIS-101`, `DIS-112`, and `DIS-113`.
+## Evaluation Dashboard
+`/admissions/evaluation` now consumes the stored rollup history and current pilot event log to expose:
+- dedicated viability, feasibility, and desirability views
+- filters by university and adapter path
+- checkpoint trend rows backed by stored hourly snapshots
+- reviewer-safe aggregation for weekly active users across filtered cohorts
+
+These helpers now feed the live dashboard in `DIS-101` and the later checkpoint-report work in `DIS-112`.

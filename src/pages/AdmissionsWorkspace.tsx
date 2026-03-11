@@ -420,12 +420,25 @@ export default function AdmissionsWorkspace() {
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 Local pilot telemetry is stored with cohort dimensions so weekly
-                active reviewers and time-to-decision can be queried before the
-                full evaluation dashboard lands.
+                active reviewers, handoff health, and checkpoint trends can be
+                reviewed in the dedicated evaluation dashboard.
               </p>
             </div>
-            <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              Cohort: <span className="font-medium text-slate-950">{telemetryCohortLabel}</span>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-[20px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                Cohort:{" "}
+                <span className="font-medium text-slate-950">
+                  {telemetryCohortLabel}
+                </span>
+              </div>
+              <Button
+                onClick={() => navigate("/admissions/evaluation")}
+                size="sm"
+                variant="outline"
+              >
+                Evaluation dashboard
+                <ArrowRight className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 

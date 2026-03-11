@@ -183,6 +183,12 @@ const routeAnalyticsDefinitions: RouteAnalyticsDefinition[] = [
   },
   {
     group: "admissions",
+    key: "admissions_evaluation_dashboard",
+    label: "Admissions evaluation dashboard",
+    pattern: /^\/admissions\/evaluation$/,
+  },
+  {
+    group: "admissions",
     key: "admissions_review_workspace",
     label: "Admissions review workspace",
     pattern: /^\/admissions\/applications\/[^/]+$/,

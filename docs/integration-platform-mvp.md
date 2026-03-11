@@ -82,6 +82,7 @@
 - This baseline feeds:
   - segmented admissions/desirability instrumentation
   - rollup automation
+  - pilot evaluation dashboard
   - pilot checkpoint templates
   - recommendation dashboard work
 

@@ -25,6 +25,10 @@ const AdmissionsApplicationReview = lazyWithRetry(
   "admissions-application-review",
   () => import("./pages/AdmissionsApplicationReview"),
 );
+const AdmissionsPilotDashboard = lazyWithRetry(
+  "admissions-pilot-dashboard",
+  () => import("./pages/AdmissionsPilotDashboard"),
+);
 const AdmissionsWorkspace = lazyWithRetry(
   "admissions-workspace",
   () => import("./pages/AdmissionsWorkspace"),
@@ -300,6 +304,10 @@ export const router = createAppRouter([
           { path: "/submitted", element: <ApplicationSubmitted /> },
           { path: "/dashboard", element: <Dashboard /> },
           { path: "/admissions", element: <AdmissionsWorkspace /> },
+          {
+            path: "/admissions/evaluation",
+            element: <AdmissionsPilotDashboard />,
+          },
           {
             path: "/admissions/applications/:applicationId",
             element: <AdmissionsApplicationReview />,
