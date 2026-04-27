@@ -9,6 +9,34 @@ Run two active tracks in parallel:
 - Tuesday demo scope is complete.
 - Delivery is now dual-track: integration platform buildout plus ongoing UX improvements.
 
+## Status Update (2026-04-27)
+- Start a new project stream for eligibility-check backend and document-processing layers.
+- Keep this stream recommendation-focused (advisory eligibility), not admissions-decision processing.
+- Use `docs/eligibility-check-roadmap.md` as the execution and contract source for this stream.
+
+## Track C: Eligibility Check Backend (New Project)
+### Objectives
+- Accept transcript, optional completion certificate, and CV uploads.
+- Extract and normalize user evidence into a canonical eligibility profile.
+- Evaluate postgraduate program rules and return explainable eligibility results.
+
+### Delivery Setup
+- Run this as a separate project/workstream to avoid coupling with legacy application-processing assumptions.
+- Keep frontend integration through explicit APIs and versioned contracts.
+- Maintain frequent doc updates so agents can reconstruct intent from markdown state alone.
+- Publish date-stamped stakeholder notes in `docs/stakeholder-updates/` as milestones land.
+- Keep backend implementation and automation scripts in a dedicated eligibility repository per `docs/eligibility-repo-separation.md`.
+
+### Next 3 Tasks
+1. Create the dedicated eligibility backend repository and migrate implementation tooling there.
+2. Define canonical profile contract and output schema (`eligible`, `conditionally_eligible`, `ineligible`, `insufficient_data`).
+3. Implement ingestion + extraction skeleton with confidence/missing-evidence fields.
+
+### Known Risks
+- Variability in transcript formats can degrade extraction quality.
+- Eligibility policy changes can outpace hardcoded logic unless rules are data-driven.
+- Missing explainability can reduce user trust even when matches are technically correct.
+
 ## Track A: Integration Platform MVP
 ### Objectives
 - Deliver an adapter-first integration control plane with pluggable delivery adapters.

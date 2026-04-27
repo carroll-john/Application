@@ -3,6 +3,21 @@
 ## Purpose
 This file stores durable product, UX, and implementation rules for the application prototype. Keep it short. Put temporary phase state in `docs/current-phase.md` and one-off scope details in `docs/demo-scope-tuesday.md`.
 
+## Documentation Operating Rhythm
+- Treat docs as first-class project state. Update the relevant `.md` file in the same PR whenever scope, contracts, or priorities change.
+- Use this split:
+  - `docs/project-memory.md`: durable constraints and non-negotiable product contracts.
+  - `docs/current-phase.md`: current execution focus, active milestones, and immediate next tasks.
+  - `docs/decisions.md`: dated ADR-style decisions with short rationale.
+  - `docs/eligibility-check-roadmap.md`: eligibility-check backend scope, ingestion/extraction/rules plan, and implementation backlog.
+  - `docs/stakeholder-updates/`: date-stamped stakeholder notes formatted for Notion/chat sharing.
+- For every feature touching eligibility flow, document three things before or during implementation:
+  1. data contract changes (input/output fields)
+  2. rule or policy changes (eligibility logic)
+  3. operational impact (storage, queues, retries, cost, or risk)
+- Keep entries append-only where possible, especially in `docs/decisions.md`, to preserve historical context for future agents.
+- If code and docs disagree, treat docs as stale and update them immediately in the same branch.
+
 ## Core Product Rules
 - The app should follow the Figma Make prototype unless a newer documented decision overrides it.
 - Primary CTA is yellow and reserved for the main forward action.

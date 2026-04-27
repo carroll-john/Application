@@ -91,3 +91,33 @@
   - integration platform MVP (`DIS-58` and children) in a separate repository/service
   - continued applicant-flow UX improvements in the existing `application-prototype` repo
 - Treat demo completion as a baseline milestone, not a freeze on UX iteration.
+
+## 2026-04-27
+
+### Eligibility check is a distinct project stream
+- The next build stream is an eligibility-check flow, not a full admissions processing system.
+- Primary user objective is to learn eligible postgraduate programs from uploaded evidence.
+
+### Required document set for eligibility evaluation
+- Transcript is required.
+- Certificate of completion is conditionally required when completion status is not clear in transcript evidence.
+- CV is included in the core evidence set for eligibility matching.
+
+### Explainable advisory outcomes
+- Eligibility results are advisory and must return transparent reasons.
+- Each program result should include status, reason codes, and missing requirements.
+- Use explicit fallback status (`insufficient_data`) when extraction confidence is low or required evidence is missing.
+
+### Documentation cadence as project control plane
+- Markdown docs are the shared memory layer for agent continuity.
+- Every scope/contract/policy change must be documented in the same PR as implementation.
+- `docs/eligibility-check-roadmap.md` is the active scope and architecture ledger for this project stream.
+
+### Stakeholder update notes
+- Publish date-stamped stakeholder updates in `docs/stakeholder-updates/`.
+- Format updates for easy paste into Notion/chat with: what shipped, what is next, feedback request, and see/play links.
+
+### Keep eligibility implementation out of the applicant prototype repo
+- Do not keep production-bound eligibility backend code or operations automation scripts in `application-prototype`.
+- Keep this repo focused on applicant UX plus contract-level docs.
+- Move Notion publishing automation and backend utilities to the dedicated eligibility backend repository.
