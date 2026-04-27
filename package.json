@@ -13,7 +13,8 @@
     "dev:cv-parser-api": "node --experimental-strip-types ./scripts/dev-cv-parser-server.mjs",
     "supabase:types": "supabase gen types typescript --project-id \"$(cat supabase/.temp/project-ref)\" --schema public > src/lib/supabase.types.ts",
     "start-task": "bash ./scripts/start-task.sh",
-    "finish-task": "bash ./scripts/finish-task.sh"
+    "finish-task": "bash ./scripts/finish-task.sh",
+    "notion:publish-note": "node ./scripts/publish-stakeholder-note-to-notion.mjs"
   },
   "dependencies": {
     "@sentry/node": "^10.42.0",
