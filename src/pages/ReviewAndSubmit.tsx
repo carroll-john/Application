@@ -13,9 +13,9 @@ import {
   getCourseAnalyticsProperties,
 } from "../lib/posthog";
 import {
-  validateApplication,
-  type ValidationError,
-} from "../lib/applicationValidation";
+  getSubmissionValidationIssues,
+  type ValidationIssue,
+} from "../lib/applicationValidationSchema";
 import { captureSentryException } from "../lib/sentry";
 import { sleep } from "../lib/utils";
 
@@ -33,7 +33,7 @@ export default function ReviewAndSubmit() {
   const { data, markApplicationSubmitted } = useApplication();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const validationErrors = useMemo(() => validateApplication(data), [data]);
+  const validationErrors = useMemo(() => getSubmissionValidationIssues(data), [data]);
   const parentCount = Number(data.contactDetails.parentsCount || 0);
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function ReviewAndSubmit() {
 
   const groupedErrors = useMemo(
     () =>
-      validationErrors.reduce<Record<string, Record<string, ValidationError[]>>>(
+      validationErrors.reduce<Record<string, Record<string, ValidationIssue[]>>>(
         (accumulator, error) => {
           accumulator[error.section] ??= {};
           accumulator[error.section][error.subsection] ??= [];
