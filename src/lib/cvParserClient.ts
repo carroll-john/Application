@@ -1,4 +1,5 @@
 import { normalizeParsedEmploymentExperiences } from "./cvParser";
+import { supabase } from "./supabase";
 
 export class CvParserRequestError extends Error {
   status: number;
@@ -35,9 +36,26 @@ function isLocalhostRuntime() {
   return host === "localhost" || host === "127.0.0.1";
 }
 
+async function getAccessToken() {
+  if (!supabase) {
+    return null;
+  }
+
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? null;
+}
+
 async function requestParseCv(formData: FormData) {
+  const accessToken = await getAccessToken();
+  const headers: HeadersInit = {};
+
+  if (accessToken) {
+    headers.authorization = `Bearer ${accessToken}`;
+  }
+
   const requestInit: RequestInit = {
     body: formData,
+    headers,
     method: "POST",
   };
 

@@ -1,4 +1,6 @@
 import * as Sentry from "@sentry/node";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "../src/lib/supabase.types";
 
 const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -112,6 +114,8 @@ function jsonResponse(body: unknown, status = 200) {
 type CvParserErrorCode =
   | "CV_PARSER_METHOD_NOT_ALLOWED"
   | "CV_PARSER_NOT_CONFIGURED"
+  | "CV_PARSER_UNAUTHORIZED"
+  | "CV_PARSER_RATE_LIMITED"
   | "CV_PARSER_FILE_REQUIRED"
   | "CV_PARSER_FILE_UNSUPPORTED"
   | "CV_PARSER_FILE_TOO_LARGE"
@@ -137,6 +141,14 @@ const CV_PARSER_ERROR_DEFINITIONS: Record<
   CV_PARSER_NOT_CONFIGURED: {
     message: "AI CV parsing is not configured on this deployment.",
     status: 503,
+  },
+  CV_PARSER_UNAUTHORIZED: {
+    message: "Sign in before parsing a CV.",
+    status: 401,
+  },
+  CV_PARSER_RATE_LIMITED: {
+    message: "You've parsed too many CVs in a short window. Please wait a moment.",
+    status: 429,
   },
   CV_PARSER_FILE_REQUIRED: {
     message: "Attach a CV file before parsing.",
@@ -203,6 +215,92 @@ function errorResponse(code: CvParserErrorCode) {
     },
     definition.status,
   );
+}
+
+function getBearerToken(headers: Headers) {
+  const authorization = headers.get("authorization")?.trim() ?? "";
+
+  if (!authorization.toLowerCase().startsWith("bearer ")) {
+    return null;
+  }
+
+  const token = authorization.slice("bearer ".length).trim();
+  return token || null;
+}
+
+function getSupabaseProjectConfig() {
+  const url =
+    process.env.SUPABASE_URL?.trim() || process.env.VITE_SUPABASE_URL?.trim();
+  const anonKey =
+    process.env.SUPABASE_ANON_KEY?.trim() ||
+    process.env.VITE_SUPABASE_ANON_KEY?.trim();
+
+  if (!url || !anonKey) {
+    return null;
+  }
+
+  return { anonKey, url };
+}
+
+const PARSE_CV_RATE_LIMIT_MAX = 10;
+const PARSE_CV_RATE_LIMIT_WINDOW_MS = 60_000;
+const parseCvRecentRequests = new Map<string, number[]>();
+
+function isRateLimited(key: string) {
+  const now = Date.now();
+  const windowStart = now - PARSE_CV_RATE_LIMIT_WINDOW_MS;
+  const previous = parseCvRecentRequests.get(key) ?? [];
+  const recent = previous.filter((timestamp) => timestamp > windowStart);
+
+  if (recent.length >= PARSE_CV_RATE_LIMIT_MAX) {
+    parseCvRecentRequests.set(key, recent);
+    return true;
+  }
+
+  recent.push(now);
+  parseCvRecentRequests.set(key, recent);
+  return false;
+}
+
+async function authenticateRequest(request: Request): Promise<
+  | { kind: "unauthenticated" }
+  | { kind: "open" }
+  | { kind: "authenticated"; userId: string }
+> {
+  const supabaseConfig = getSupabaseProjectConfig();
+
+  if (!supabaseConfig) {
+    return { kind: "open" };
+  }
+
+  const accessToken = getBearerToken(request.headers);
+
+  if (!accessToken) {
+    return { kind: "unauthenticated" };
+  }
+
+  const supabase = createClient<Database>(
+    supabaseConfig.url,
+    supabaseConfig.anonKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+        persistSession: false,
+      },
+      global: {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+    },
+  );
+
+  const { data, error } = await supabase.auth.getUser(accessToken);
+
+  if (error || !data.user) {
+    return { kind: "unauthenticated" };
+  }
+
+  return { kind: "authenticated", userId: data.user.id };
 }
 
 function extractOpenAiErrorRecord(payload: unknown) {
@@ -608,6 +706,48 @@ function inferMimeType(file: ParsedUploadFile) {
   }
 
   return "application/octet-stream";
+}
+
+const PDF_SIGNATURE = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
+const ZIP_SIGNATURE = [0x50, 0x4b, 0x03, 0x04]; // DOCX is a ZIP container
+const OLE2_SIGNATURE = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]; // legacy DOC
+
+function startsWith(bytes: Uint8Array, signature: number[]) {
+  if (bytes.length < signature.length) {
+    return false;
+  }
+
+  for (let index = 0; index < signature.length; index += 1) {
+    if (bytes[index] !== signature[index]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+// Verify the file's first bytes match its claimed MIME type. Catches forged
+// extensions (e.g. .exe renamed to .pdf) before we forward to OpenAI.
+// Container signatures (ZIP, OLE2) are shared with sibling formats — this
+// blocks obvious forgeries, not deep cross-format spoofing.
+function isFileBufferConsistentWithMimeType(
+  buffer: ArrayBuffer,
+  mimeType: string,
+) {
+  const head = new Uint8Array(buffer.slice(0, 16));
+
+  switch (mimeType) {
+    case "application/pdf":
+      return startsWith(head, PDF_SIGNATURE);
+    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      return startsWith(head, ZIP_SIGNATURE);
+    case "application/msword":
+      return startsWith(head, OLE2_SIGNATURE);
+    case "text/plain":
+      return true;
+    default:
+      return false;
+  }
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer) {
@@ -1154,6 +1294,18 @@ async function handleWebRequest(request: Request) {
       return errorResponse("CV_PARSER_NOT_CONFIGURED");
     }
 
+    const authResult = await authenticateRequest(request);
+
+    if (authResult.kind === "unauthenticated") {
+      return errorResponse("CV_PARSER_UNAUTHORIZED");
+    }
+
+    if (authResult.kind === "authenticated") {
+      if (isRateLimited(`user:${authResult.userId}`)) {
+        return errorResponse("CV_PARSER_RATE_LIMITED");
+      }
+    }
+
     const formData = await request.formData();
     const file = toParsedUploadFile(formData.get("file"));
 
@@ -1172,6 +1324,11 @@ async function handleWebRequest(request: Request) {
     const fileBuffer = await file.arrayBuffer();
     const mimeType = inferMimeType(file);
     const isPlainTextFile = mimeType === "text/plain";
+
+    if (!isFileBufferConsistentWithMimeType(fileBuffer, mimeType)) {
+      return errorResponse("CV_PARSER_FILE_UNSUPPORTED");
+    }
+
     const model = process.env.OPENAI_CV_PARSER_MODEL?.trim() || DEFAULT_MODEL;
 
     const inputContent: Array<Record<string, string>> = [
