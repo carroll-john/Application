@@ -206,6 +206,16 @@ function getSupabaseProjectConfig() {
   return { anonKey, url };
 }
 
+// Loud warning if a deploy has OPENAI configured but no Supabase auth
+// settings: the route falls back to open mode in that state and would
+// burn tokens for any anonymous caller. Local dev / regression hits
+// the no-OPENAI path and stays silent.
+if (process.env.OPENAI_API_KEY?.trim() && !getSupabaseProjectConfig()) {
+  console.warn(
+    "[parse-cv] OPENAI_API_KEY is set but SUPABASE_URL/SUPABASE_ANON_KEY are missing — auth gating is disabled and the route accepts unauthenticated requests.",
+  );
+}
+
 const PARSE_CV_RATE_LIMIT_MAX = 10;
 const PARSE_CV_RATE_LIMIT_WINDOW_MS = 60_000;
 const parseCvRecentRequests = new Map<string, number[]>();
