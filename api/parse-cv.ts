@@ -1,14 +1,15 @@
 import * as Sentry from "@sentry/node";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../src/lib/supabase.types";
+import { callLlm, type LlmContent } from "./_ai/callLlm";
+import { cvEmploymentPromptV1 } from "./_ai/prompts/cvEmployment.v1";
+import { cvEmploymentSchemaV1 } from "./_ai/schemas/cvEmployment.v1";
 
-const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_MODEL = "gpt-4.1-mini";
 const MAX_INLINE_TEXT_CHARS = 60_000;
 const INITIAL_MAX_OUTPUT_TOKENS = 700;
 const RETRY_MAX_OUTPUT_TOKENS = 3_000;
-const MAX_AI_ATTRIBUTE_CHARS = 4_000;
 const LIST_DELIMITER_PATTERN = /\r?\n+|;|\||•|\u2022|\s\/\s/g;
 const LIST_WITH_COMMA_DELIMITER_PATTERN =
   /\r?\n+|;|\||•|\u2022|\s\/\s|,\s+(?=(?:[A-Za-z]{3,}|(?:19|20)\d{2}|Present|Current|Now))/g;
@@ -64,43 +65,6 @@ const SENTRY_SMOKE_MARKERS = [
   "dev_sentry_smoke",
   "/dev/sentry-smoke",
 ];
-
-const EMPLOYMENT_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: ["experiences"],
-  properties: {
-    experiences: {
-      type: "array",
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: [
-          "company",
-          "currentRole",
-          "duties",
-          "endMonth",
-          "endYear",
-          "position",
-          "startMonth",
-          "startYear",
-          "type",
-        ],
-        properties: {
-          company: { type: "string" },
-          currentRole: { type: "boolean" },
-          duties: { type: "string" },
-          endMonth: { type: "string" },
-          endYear: { type: "string" },
-          position: { type: "string" },
-          startMonth: { type: "string" },
-          startYear: { type: "string" },
-          type: { type: "string" },
-        },
-      },
-    },
-  },
-};
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -420,13 +384,6 @@ type SentryMessageContext = SentryEventContext & {
   level?: "debug" | "log" | "info" | "warning" | "error" | "fatal";
 };
 
-type OpenAiRequestTraceMeta = {
-  attempt: number;
-  hasFileInput: boolean;
-  inputItemCount: number;
-  model: string;
-};
-
 function parseSampleRate(value: string | undefined, fallback: number) {
   const parsed = Number.parseFloat(value ?? "");
 
@@ -560,98 +517,6 @@ async function captureApiMessage(message: string, context?: SentryMessageContext
   });
 }
 
-function truncateSpanText(value: string) {
-  const trimmed = value.trim();
-
-  if (!trimmed) {
-    return "";
-  }
-
-  if (trimmed.length <= MAX_AI_ATTRIBUTE_CHARS) {
-    return trimmed;
-  }
-
-  return `${trimmed.slice(0, MAX_AI_ATTRIBUTE_CHARS)}...`;
-}
-
-function setNumberSpanAttribute(span: Sentry.Span, key: string, value: unknown) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    span.setAttribute(key, value);
-  }
-}
-
-function setStringSpanAttribute(span: Sentry.Span, key: string, value: unknown) {
-  if (typeof value === "string" && value.trim()) {
-    span.setAttribute(key, value.trim());
-  }
-}
-
-function setOpenAiUsageAttributes(span: Sentry.Span, payload: unknown) {
-  if (!payload || typeof payload !== "object") {
-    return;
-  }
-
-  const usage = (payload as Record<string, unknown>).usage;
-
-  if (!usage || typeof usage !== "object") {
-    return;
-  }
-
-  const usageRecord = usage as Record<string, unknown>;
-  const inputTokens =
-    typeof usageRecord.input_tokens === "number"
-      ? usageRecord.input_tokens
-      : usageRecord.prompt_tokens;
-  const outputTokens =
-    typeof usageRecord.output_tokens === "number"
-      ? usageRecord.output_tokens
-      : usageRecord.completion_tokens;
-
-  setNumberSpanAttribute(span, "gen_ai.usage.input_tokens", inputTokens);
-  setNumberSpanAttribute(span, "gen_ai.usage.output_tokens", outputTokens);
-  setNumberSpanAttribute(span, "gen_ai.usage.total_tokens", usageRecord.total_tokens);
-}
-
-function buildOpenAiRequestAttributes(meta: OpenAiRequestTraceMeta) {
-  return {
-    "gen_ai.agent.name": SENTRY_AGENT_NAME,
-    "gen_ai.operation.name": "responses.create",
-    "gen_ai.request.model": meta.model,
-    "gen_ai.system": "openai",
-    "openai.request.attempt": meta.attempt,
-    "openai.request.has_file_input": meta.hasFileInput,
-    "openai.request.input_item_count": meta.inputItemCount,
-  };
-}
-
-async function withAgentSpan<T>(
-  model: string,
-  mimeType: string,
-  fileSize: number,
-  callback: () => Promise<T>,
-) {
-  if (!IS_API_SENTRY_TRACING_ENABLED) {
-    return callback();
-  }
-
-  return Sentry.startSpan(
-    {
-      name: "CV parser agent",
-      op: "gen_ai.invoke_agent",
-      forceTransaction: true,
-      attributes: {
-        "cv_parser.file_mime_type": mimeType,
-        "cv_parser.file_size_bytes": fileSize,
-        "gen_ai.agent.name": SENTRY_AGENT_NAME,
-        "gen_ai.operation.name": "parse_cv_employment_history",
-        "gen_ai.request.model": model,
-        "gen_ai.system": "openai",
-      },
-    },
-    callback,
-  );
-}
-
 function toParsedUploadFile(value: FormDataEntryValue | null): ParsedUploadFile | null {
   if (!value || typeof value === "string") {
     return null;
@@ -750,18 +615,6 @@ function isFileBufferConsistentWithMimeType(
   }
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer) {
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000;
-  let binary = "";
-
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
-  }
-
-  return btoa(binary);
-}
-
 function decodeTextFile(buffer: ArrayBuffer) {
   const decoded = new TextDecoder().decode(buffer).replace(/\0/g, "").trim();
 
@@ -774,109 +627,6 @@ function decodeTextFile(buffer: ArrayBuffer) {
   }
 
   return decoded.slice(0, MAX_INLINE_TEXT_CHARS);
-}
-
-function tryParseJsonText(candidate: string) {
-  const trimmed = candidate.trim();
-
-  if (!trimmed) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    // keep trying additional shapes below
-  }
-
-  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-
-  if (fencedMatch?.[1]) {
-    try {
-      return JSON.parse(fencedMatch[1].trim());
-    } catch {
-      // continue to next strategy
-    }
-  }
-
-  const firstObjectStart = trimmed.indexOf("{");
-  const lastObjectEnd = trimmed.lastIndexOf("}");
-
-  if (firstObjectStart >= 0 && lastObjectEnd > firstObjectStart) {
-    try {
-      return JSON.parse(trimmed.slice(firstObjectStart, lastObjectEnd + 1));
-    } catch {
-      // continue to next strategy
-    }
-  }
-
-  const firstArrayStart = trimmed.indexOf("[");
-  const lastArrayEnd = trimmed.lastIndexOf("]");
-
-  if (firstArrayStart >= 0 && lastArrayEnd > firstArrayStart) {
-    try {
-      return JSON.parse(trimmed.slice(firstArrayStart, lastArrayEnd + 1));
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
-}
-
-function extractJsonOutput(payload: any) {
-  if (payload?.output_parsed && typeof payload.output_parsed === "object") {
-    return payload.output_parsed;
-  }
-
-  const textCandidates: string[] = [];
-
-  if (typeof payload?.output_text === "string" && payload.output_text.trim()) {
-    textCandidates.push(payload.output_text);
-  }
-
-  if (
-    typeof payload?.response?.output_text === "string" &&
-    payload.response.output_text.trim()
-  ) {
-    textCandidates.push(payload.response.output_text);
-  }
-
-  if (Array.isArray(payload?.output)) {
-    for (const item of payload.output) {
-      if (item?.type !== "message" || !Array.isArray(item.content)) {
-        continue;
-      }
-
-      for (const contentItem of item.content) {
-        if (contentItem?.parsed && typeof contentItem.parsed === "object") {
-          return contentItem.parsed;
-        }
-
-        if (contentItem?.json && typeof contentItem.json === "object") {
-          return contentItem.json;
-        }
-
-        if (
-          (contentItem?.type === "output_text" || contentItem?.type === "text") &&
-          typeof contentItem.text === "string" &&
-          contentItem.text.trim()
-        ) {
-          textCandidates.push(contentItem.text);
-        }
-      }
-    }
-  }
-
-  for (const candidate of textCandidates) {
-    const parsed = tryParseJsonText(candidate);
-
-    if (parsed && typeof parsed === "object") {
-      return parsed;
-    }
-  }
-
-  return null;
 }
 
 function toStringValue(value: unknown) {
@@ -1201,87 +951,6 @@ function findExperienceArray(source: unknown): unknown[] | null {
   return null;
 }
 
-async function requestOpenAi(
-  apiKey: string,
-  requestBody: Record<string, unknown>,
-  traceMeta: OpenAiRequestTraceMeta,
-) {
-  const executeRequest = async (span?: Sentry.Span) => {
-    const response = await fetch(OPENAI_API_URL, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${apiKey}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
-
-    const payload = await response.json().catch(() => null);
-
-    if (span) {
-      Sentry.setHttpStatus(span, response.status);
-      setOpenAiUsageAttributes(span, payload);
-
-      if (payload && typeof payload === "object") {
-        const payloadRecord = payload as Record<string, unknown>;
-        setStringSpanAttribute(span, "gen_ai.response.id", payloadRecord.id);
-        setStringSpanAttribute(span, "gen_ai.response.model", payloadRecord.model);
-        setStringSpanAttribute(span, "openai.response.status", payloadRecord.status);
-
-        if (SENTRY_AI_RECORD_OUTPUTS && typeof payloadRecord.output_text === "string") {
-          const outputText = truncateSpanText(payloadRecord.output_text);
-
-          if (outputText) {
-            span.setAttribute("gen_ai.response.text", outputText);
-          }
-        }
-
-        if (payloadRecord.error && typeof payloadRecord.error === "object") {
-          const errorRecord = payloadRecord.error as Record<string, unknown>;
-          setStringSpanAttribute(span, "openai.error.type", errorRecord.type);
-          setStringSpanAttribute(span, "openai.error.message", errorRecord.message);
-
-          if (typeof errorRecord.code === "string" || typeof errorRecord.code === "number") {
-            span.setAttribute("openai.error.code", String(errorRecord.code));
-          }
-        }
-      }
-    }
-
-    return {
-      payload,
-      response,
-    };
-  };
-
-  if (!IS_API_SENTRY_TRACING_ENABLED) {
-    return executeRequest();
-  }
-
-  return Sentry.startSpan(
-    {
-      name:
-        traceMeta.attempt > 1
-          ? `OpenAI Responses API attempt ${traceMeta.attempt}`
-          : "OpenAI Responses API",
-      op: "gen_ai.response",
-      attributes: buildOpenAiRequestAttributes(traceMeta),
-    },
-    async (span) => {
-      if (SENTRY_AI_RECORD_INPUTS) {
-        const requestInput = (requestBody as Record<string, unknown>).input;
-        const inputText = truncateSpanText(JSON.stringify(requestInput ?? []));
-
-        if (inputText) {
-          span.setAttribute("gen_ai.input.messages", inputText);
-        }
-      }
-
-      return executeRequest(span);
-    },
-  );
-}
-
 async function handleWebRequest(request: Request) {
   try {
     if (request.method !== "POST") {
@@ -1331,12 +1000,7 @@ async function handleWebRequest(request: Request) {
 
     const model = process.env.OPENAI_CV_PARSER_MODEL?.trim() || DEFAULT_MODEL;
 
-    const inputContent: Array<Record<string, string>> = [
-      {
-        type: "input_text",
-        text: "Parse this CV and extract employment experience so the application form can be auto-filled. Return the most recent roles first.",
-      },
-    ];
+    const attachments: LlmContent[] = [];
 
     if (isPlainTextFile) {
       const cvText = decodeTextFile(fileBuffer);
@@ -1345,88 +1009,43 @@ async function handleWebRequest(request: Request) {
         return errorResponse("CV_PARSER_TEXT_FILE_EMPTY");
       }
 
-      inputContent.push({
-        type: "input_text",
-        text: `CV text:\n${cvText}`,
-      });
+      attachments.push({ kind: "text", text: `CV text:\n${cvText}` });
     } else {
-      const encodedFile = arrayBufferToBase64(fileBuffer);
-      inputContent.push({
-        type: "input_file",
+      attachments.push({
+        kind: "file",
         filename: file.name,
-        file_data: `data:${mimeType};base64,${encodedFile}`,
+        mimeType,
+        data: fileBuffer,
       });
     }
 
-    const openAiRequestBody: Record<string, unknown> = {
-      max_output_tokens: INITIAL_MAX_OUTPUT_TOKENS,
+    const llmResult = await callLlm({
+      provider: "openai",
+      apiKey,
       model,
-      instructions:
-        "Extract structured employment history from the CV or resume content provided by the user. Return only actual employment roles that are evidenced in the document. Never merge multiple job titles into one row. If a person was promoted at the same company, output one experience item per distinct title with that title's own start and end dates, and repeat the company name for each role. Use the exact employment type labels Full-time, Part-time, Contract, Casual, Internship, or an empty string when unclear. Use full month names and four-digit years where possible. If a role is current, set currentRole to true and leave endMonth and endYear empty. Summarize duties in plain sentences without bullet characters. Before returning, verify each experience row has only one role title.",
-      input: [
-        {
-          role: "user",
-          content: inputContent,
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "cv_employment_parse",
-          strict: true,
-          schema: EMPLOYMENT_SCHEMA,
+      prompt: cvEmploymentPromptV1,
+      schema: cvEmploymentSchemaV1,
+      attachments,
+      initialMaxOutputTokens: INITIAL_MAX_OUTPUT_TOKENS,
+      retryMaxOutputTokens: RETRY_MAX_OUTPUT_TOKENS,
+      enableCodeInterpreter: !isPlainTextFile,
+      trace: {
+        enabled: IS_API_SENTRY_TRACING_ENABLED,
+        agentName: SENTRY_AGENT_NAME,
+        recordInputs: SENTRY_AI_RECORD_INPUTS,
+        recordOutputs: SENTRY_AI_RECORD_OUTPUTS,
+        agentSpanAttributes: {
+          "cv_parser.file_mime_type": mimeType,
+          "cv_parser.file_size_bytes": file.size,
         },
       },
-    };
+    });
 
-    if (!isPlainTextFile) {
-      openAiRequestBody.tools = [
-        {
-          type: "code_interpreter",
-          container: { type: "auto" },
-        },
-      ];
-      openAiRequestBody.tool_choice = "auto";
-    }
-
-    const initialRequestTraceMeta: OpenAiRequestTraceMeta = {
-      attempt: 1,
-      hasFileInput: !isPlainTextFile,
-      inputItemCount: inputContent.length,
-      model,
-    };
-    const { payload, response: openAiResponse } = await withAgentSpan(
-      model,
-      mimeType,
-      file.size,
-      async () => {
-        let result = await requestOpenAi(apiKey, openAiRequestBody, initialRequestTraceMeta);
-
-        if (
-          result.response.ok &&
-          result.payload?.status === "incomplete" &&
-          result.payload?.incomplete_details?.reason === "max_output_tokens"
-        ) {
-          const retriedRequestBody = {
-            ...openAiRequestBody,
-            max_output_tokens: RETRY_MAX_OUTPUT_TOKENS,
-          };
-
-          result = await requestOpenAi(apiKey, retriedRequestBody, {
-            ...initialRequestTraceMeta,
-            attempt: 2,
-          });
-        }
-
-        return result;
-      },
-    );
-
-    if (!openAiResponse.ok) {
-      const upstreamError = extractOpenAiErrorRecord(payload);
+    if (llmResult.status === "upstream_error") {
+      const upstreamError = extractOpenAiErrorRecord(llmResult.upstream.payload);
       const normalizedErrorCode = normalizeUpstreamErrorCode(
-        openAiResponse.status,
-        payload,
+        llmResult.upstream.status,
+        llmResult.upstream.payload,
       );
 
       await captureApiMessage(
@@ -1439,8 +1058,8 @@ async function handleWebRequest(request: Request) {
             openai_error_code: upstreamError.code ?? "unknown",
             openai_error_type: upstreamError.type ?? "unknown",
             parser_error_code: normalizedErrorCode,
-            openai_status: openAiResponse.status,
-            openai_status_text: openAiResponse.statusText,
+            openai_status: llmResult.upstream.status,
+            openai_status_text: llmResult.upstream.statusText,
           },
           {
             failure_stage: "openai_request",
@@ -1451,17 +1070,42 @@ async function handleWebRequest(request: Request) {
       return errorResponse(normalizedErrorCode);
     }
 
+    if (llmResult.status === "truncated") {
+      return errorResponse("CV_PARSER_RESPONSE_TRUNCATED");
+    }
+
+    if (llmResult.status === "invalid_response") {
+      const payload = llmResult.upstream.payload as
+        | Record<string, unknown>
+        | null
+        | undefined;
+
+      await captureApiMessage(
+        "CV parser response format invalid",
+        buildSentryContext(
+          request,
+          {
+            model,
+            payload_status:
+              typeof payload?.status === "string" ? payload.status : "unknown",
+          },
+          {
+            failure_stage: "response_shape",
+          },
+        ),
+      );
+
+      return errorResponse("CV_PARSER_RESPONSE_INVALID");
+    }
+
     try {
-      const parsed = extractJsonOutput(payload);
-      const extractedExperiences = findExperienceArray(parsed);
+      const extractedExperiences = findExperienceArray(llmResult.parsed);
 
       if (!extractedExperiences) {
-        if (
-          payload?.status === "incomplete" &&
-          payload?.incomplete_details?.reason === "max_output_tokens"
-        ) {
-          return errorResponse("CV_PARSER_RESPONSE_TRUNCATED");
-        }
+        const payload = llmResult.upstream.payload as
+          | Record<string, unknown>
+          | null
+          | undefined;
 
         await captureApiMessage(
           "CV parser response format invalid",
@@ -1488,6 +1132,11 @@ async function handleWebRequest(request: Request) {
 
       return jsonResponse({ experiences, model });
     } catch (error) {
+      const payload = llmResult.upstream.payload as
+        | Record<string, unknown>
+        | null
+        | undefined;
+
       await captureApiException(
         error,
         buildSentryContext(
