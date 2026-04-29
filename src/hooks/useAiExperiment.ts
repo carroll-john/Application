@@ -8,6 +8,30 @@ import {
 
 type AiExperimentEventProperties = Record<string, unknown>;
 
+const DEFAULT_COHORT_PROPERTY_NAME = "experiment_enabled_for_cohort";
+
+export function buildAiExperimentProperties(
+  state: AiExperimentState,
+  flagKey: string,
+  cohortPropertyName: string = DEFAULT_COHORT_PROPERTY_NAME,
+  extraProperties?: AiExperimentEventProperties,
+): AiExperimentEventProperties {
+  return {
+    feature_flag_key: flagKey,
+    [cohortPropertyName]: state.enabled,
+    variant: state.variant ?? "none",
+    ...extraProperties,
+  };
+}
+
+export function getAiExperimentExposureEventName(eventPrefix: string) {
+  return `${eventPrefix}_experiment_exposure`;
+}
+
+export function getAiExperimentEventName(eventPrefix: string, suffix: string) {
+  return `${eventPrefix}_${suffix}`;
+}
+
 export interface UseAiExperimentOptions {
   /** PostHog feature flag key controlling cohort assignment. */
   flagKey: string;
@@ -43,8 +67,6 @@ export interface UseAiExperimentReturn {
   ) => AiExperimentEventProperties;
 }
 
-const DEFAULT_COHORT_PROPERTY_NAME = "experiment_enabled_for_cohort";
-
 export function useAiExperiment({
   flagKey,
   eventPrefix,
@@ -70,22 +92,20 @@ export function useAiExperiment({
   }, [flagKey]);
 
   const buildProperties = useCallback<UseAiExperimentReturn["buildProperties"]>(
-    (extraProperties) => {
-      const current = stateRef.current;
-      return {
-        feature_flag_key: flagKey,
-        [cohortPropertyName]: current.enabled,
-        variant: current.variant ?? "none",
-        ...extraProperties,
-      };
-    },
+    (extraProperties) =>
+      buildAiExperimentProperties(
+        stateRef.current,
+        flagKey,
+        cohortPropertyName,
+        extraProperties,
+      ),
     [flagKey, cohortPropertyName],
   );
 
   const recordExposure = useCallback<UseAiExperimentReturn["recordExposure"]>(
     (extraProperties) => {
       const current = stateRef.current;
-      capturePostHogEvent(`${eventPrefix}_experiment_exposure`, {
+      capturePostHogEvent(getAiExperimentExposureEventName(eventPrefix), {
         experiment_source: current.source,
         ...buildProperties(extraProperties),
       });
@@ -96,7 +116,7 @@ export function useAiExperiment({
   const recordEvent = useCallback<UseAiExperimentReturn["recordEvent"]>(
     (suffix, extraProperties) => {
       capturePostHogEvent(
-        `${eventPrefix}_${suffix}`,
+        getAiExperimentEventName(eventPrefix, suffix),
         buildProperties(extraProperties),
       );
     },
