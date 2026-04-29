@@ -1,5 +1,5 @@
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FormActionBar } from "../components/FormActionBar";
 import { FormSectionCard } from "../components/FormSectionCard";
@@ -7,17 +7,13 @@ import { SectionProgressHeader } from "../components/SectionProgressHeader";
 import { StatusMessage } from "../components/StatusMessage";
 import { FileUpload } from "../components/FileUpload";
 import { useApplication } from "../context/ApplicationContext";
+import { useAiExperiment } from "../hooks/useAiExperiment";
 import { useReviewReturn } from "../hooks/useReviewReturn";
 import {
   getCvParserErrorMessage,
   parseEmploymentExperiencesFromCv,
 } from "../lib/cvParserClient";
-import {
-  capturePostHogEvent,
-  CV_PARSER_FEATURE_FLAG_KEY,
-  getCvParserExperimentState,
-  onPostHogFeatureFlags,
-} from "../lib/posthog";
+import { CV_PARSER_FEATURE_FLAG_KEY } from "../lib/posthog";
 import {
   deleteStoredDocument,
   getDocumentUploadErrorMessage,
@@ -49,31 +45,19 @@ export default function Section2AddCV() {
     message: string;
     type: "success" | "warning" | "error" | "status";
   } | null>(null);
-  const [cvParserExperiment, setCvParserExperiment] = useState(() =>
-    getCvParserExperimentState(),
-  );
+  const cvParserExperiment = useAiExperiment({
+    flagKey: CV_PARSER_FEATURE_FLAG_KEY,
+    eventPrefix: "cv_parser",
+    cohortPropertyName: "parser_enabled_for_cohort",
+  });
   const hasDocument =
     Boolean(selectedFile) || Boolean(currentDocument) || Boolean(currentFileName);
-
-  useEffect(() => {
-    const syncExperiment = () => {
-      setCvParserExperiment(getCvParserExperimentState());
-    };
-
-    syncExperiment();
-
-    const stopListening = onPostHogFeatureFlags(syncExperiment);
-
-    return () => {
-      stopListening();
-    };
-  }, []);
 
   async function handleSaveAndContinue() {
     const hasNewCvForAutoDraft =
       Boolean(selectedFile) && data.employmentExperiences.length === 0;
     const isDraftingEmploymentFromCv =
-      hasNewCvForAutoDraft && cvParserExperiment.enabled;
+      hasNewCvForAutoDraft && cvParserExperiment.state.enabled;
     const parseFile = selectedFile;
     let parseStartedAt: number | null = null;
     let parseEmploymentPromise:
@@ -88,19 +72,13 @@ export default function Section2AddCV() {
         >
       | null = null;
 
-    capturePostHogEvent("cv_parser_save_continue_clicked", {
+    cvParserExperiment.recordEvent("save_continue_clicked", {
       existing_employment_count: data.employmentExperiences.length,
       has_selected_file: Boolean(selectedFile),
-      parser_enabled_for_cohort: cvParserExperiment.enabled,
     });
 
     if (hasNewCvForAutoDraft) {
-      capturePostHogEvent("cv_parser_experiment_exposure", {
-        experiment_source: cvParserExperiment.source,
-        feature_flag_key: CV_PARSER_FEATURE_FLAG_KEY,
-        parser_enabled_for_cohort: cvParserExperiment.enabled,
-        variant: cvParserExperiment.variant ?? "none",
-      });
+      cvParserExperiment.recordExposure();
     }
 
     setIsSaving(true);
@@ -159,13 +137,12 @@ export default function Section2AddCV() {
 
         const parseResult = await parseEmploymentPromise;
 
+        const parseDurationMs =
+          parseStartedAt === null ? undefined : Date.now() - parseStartedAt;
+
         if (!parseResult.ok) {
-          capturePostHogEvent("cv_parser_autofill_failed", {
-            feature_flag_key: CV_PARSER_FEATURE_FLAG_KEY,
-            parse_duration_ms:
-              parseStartedAt === null ? undefined : Date.now() - parseStartedAt,
-            parser_enabled_for_cohort: cvParserExperiment.enabled,
-            variant: cvParserExperiment.variant ?? "none",
+          cvParserExperiment.recordEvent("autofill_failed", {
+            parse_duration_ms: parseDurationMs,
           });
           flashMessage = {
             message: getCvParserErrorMessage(parseResult.error),
@@ -184,26 +161,18 @@ export default function Section2AddCV() {
             parseResult.parsedEmployment.experiences.length === 1
               ? "role"
               : "roles";
-          capturePostHogEvent("cv_parser_autofill_succeeded", {
+          cvParserExperiment.recordEvent("autofill_succeeded", {
             drafted_roles_count: parseResult.parsedEmployment.experiences.length,
-            feature_flag_key: CV_PARSER_FEATURE_FLAG_KEY,
-            parse_duration_ms:
-              parseStartedAt === null ? undefined : Date.now() - parseStartedAt,
-            parser_enabled_for_cohort: cvParserExperiment.enabled,
-            variant: cvParserExperiment.variant ?? "none",
+            parse_duration_ms: parseDurationMs,
           });
           flashMessage = {
             message: `We drafted ${parseResult.parsedEmployment.experiences.length} employment ${rolesLabel} from your CV. Review the details and adjust anything that looks off.`,
             type: "success",
           };
         } else {
-          capturePostHogEvent("cv_parser_autofill_empty", {
+          cvParserExperiment.recordEvent("autofill_empty", {
             drafted_roles_count: 0,
-            feature_flag_key: CV_PARSER_FEATURE_FLAG_KEY,
-            parse_duration_ms:
-              parseStartedAt === null ? undefined : Date.now() - parseStartedAt,
-            parser_enabled_for_cohort: cvParserExperiment.enabled,
-            variant: cvParserExperiment.variant ?? "none",
+            parse_duration_ms: parseDurationMs,
           });
           flashMessage = {
             message:
@@ -211,12 +180,8 @@ export default function Section2AddCV() {
             type: "warning",
           };
         }
-      } else if (hasNewCvForAutoDraft && !cvParserExperiment.enabled) {
-        capturePostHogEvent("cv_parser_autofill_skipped_control", {
-          feature_flag_key: CV_PARSER_FEATURE_FLAG_KEY,
-          parser_enabled_for_cohort: cvParserExperiment.enabled,
-          variant: cvParserExperiment.variant ?? "none",
-        });
+      } else if (hasNewCvForAutoDraft && !cvParserExperiment.state.enabled) {
+        cvParserExperiment.recordEvent("autofill_skipped_control");
         flashMessage = {
           message:
             "We saved your CV. Employment auto-draft is off for your current test group, so you can add roles manually.",
