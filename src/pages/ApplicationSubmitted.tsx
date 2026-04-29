@@ -17,6 +17,8 @@ import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
 import { formatApplicationDate } from "../lib/applicationProgress";
 
+const AI_ASSESSMENT_DEMO_ENABLED = import.meta.env.DEV;
+
 export default function ApplicationSubmitted() {
   const navigate = useNavigate();
   const { data } = useApplication();
@@ -28,17 +30,21 @@ export default function ApplicationSubmitted() {
   return (
     <div className="min-h-screen bg-[#f7f7f4]">
       <AppBrandHeader>
-        <Button
-          className="rounded-2xl shadow-none"
-          onClick={() => setShowAIDemo(true)}
-          variant="soft"
-        >
-          <Sparkles className="h-4 w-4" />
-          Run AI Assessment Demo
-        </Button>
+        {AI_ASSESSMENT_DEMO_ENABLED ? (
+          <Button
+            className="rounded-2xl shadow-none"
+            onClick={() => setShowAIDemo(true)}
+            variant="soft"
+          >
+            <Sparkles className="h-4 w-4" />
+            Run AI Assessment Demo
+          </Button>
+        ) : null}
       </AppBrandHeader>
 
-      {showAIDemo ? <AIAssessmentDemo onClose={() => setShowAIDemo(false)} /> : null}
+      {AI_ASSESSMENT_DEMO_ENABLED && showAIDemo ? (
+        <AIAssessmentDemo onClose={() => setShowAIDemo(false)} />
+      ) : null}
 
       <section className="relative overflow-hidden bg-[linear-gradient(135deg,#084E74_0%,#0b678f_55%,#084E74_100%)] text-white">
         <div className="absolute inset-0 opacity-15">

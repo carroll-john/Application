@@ -4,7 +4,7 @@ import {
   type ApplicationData,
   type TertiaryQualification,
 } from "./applicationData";
-import { validateApplication } from "./applicationValidation";
+import { getSubmissionValidationIssues } from "./applicationValidationSchema";
 
 function makeValidTertiaryQualification(
   overrides: Partial<TertiaryQualification> = {},
@@ -74,13 +74,13 @@ function makeValidApplication(
   };
 }
 
-describe("validateApplication", () => {
+describe("getSubmissionValidationIssues", () => {
   it("returns no errors for a valid application", () => {
-    expect(validateApplication(makeValidApplication())).toEqual([]);
+    expect(getSubmissionValidationIssues(makeValidApplication())).toEqual([]);
   });
 
   it("requires visible parent education fields when a parent count is selected", () => {
-    const errors = validateApplication(
+    const errors = getSubmissionValidationIssues(
       makeValidApplication({
         tertiaryQualifications: [],
         cvUploaded: true,
@@ -126,7 +126,7 @@ describe("validateApplication", () => {
   });
 
   it("requires a certificate when a tertiary qualification is marked completed", () => {
-    const errors = validateApplication(
+    const errors = getSubmissionValidationIssues(
       makeValidApplication({
         tertiaryQualifications: [
           makeValidTertiaryQualification({
@@ -147,7 +147,7 @@ describe("validateApplication", () => {
   });
 
   it("requires the section 2 alternate path when no tertiary study, cv, or employment exists", () => {
-    const errors = validateApplication(
+    const errors = getSubmissionValidationIssues(
       makeValidApplication({
         tertiaryQualifications: [],
         cvUploaded: false,

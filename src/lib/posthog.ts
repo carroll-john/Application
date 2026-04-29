@@ -133,6 +133,8 @@ export interface CvParserExperimentState {
   variant: string | boolean | null;
 }
 
+export type AiExperimentState = CvParserExperimentState;
+
 export const CV_PARSER_FEATURE_FLAG_KEY =
   import.meta.env.VITE_POSTHOG_CV_PARSER_FLAG?.trim() ||
   "cv_parser_autofill_experiment";
@@ -689,7 +691,7 @@ export function capturePostHogEvent(
   });
 }
 
-export function getCvParserExperimentState(): CvParserExperimentState {
+export function getAiExperimentState(flagKey: string): AiExperimentState {
   if (!canCapturePostHog()) {
     return {
       enabled: true,
@@ -700,7 +702,7 @@ export function getCvParserExperimentState(): CvParserExperimentState {
 
   initPostHog();
 
-  const variant = window.posthog?.getFeatureFlag?.(CV_PARSER_FEATURE_FLAG_KEY);
+  const variant = window.posthog?.getFeatureFlag?.(flagKey);
   const normalizedVariant = normalizeFeatureFlagVariant(variant);
   const safeVariant =
     typeof variant === "string" || typeof variant === "boolean" ? variant : null;
@@ -713,7 +715,7 @@ export function getCvParserExperimentState(): CvParserExperimentState {
     };
   }
 
-  const enabled = window.posthog?.isFeatureEnabled?.(CV_PARSER_FEATURE_FLAG_KEY);
+  const enabled = window.posthog?.isFeatureEnabled?.(flagKey);
 
   if (typeof enabled === "boolean") {
     return {
@@ -728,6 +730,10 @@ export function getCvParserExperimentState(): CvParserExperimentState {
     source: "fallback",
     variant: safeVariant,
   };
+}
+
+export function getCvParserExperimentState(): CvParserExperimentState {
+  return getAiExperimentState(CV_PARSER_FEATURE_FLAG_KEY);
 }
 
 export function getCourseAnalyticsProperties(
