@@ -337,7 +337,8 @@ function tryParseJsonText(candidate: string) {
   return null;
 }
 
-function extractStructuredOutput(payload: unknown) {
+// Exported for tests; not part of the public callLlm contract.
+export function extractStructuredOutput(payload: unknown) {
   if (!payload || typeof payload !== "object") {
     return null;
   }
