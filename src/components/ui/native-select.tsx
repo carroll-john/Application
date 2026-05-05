@@ -237,7 +237,7 @@ export const NativeSelect = React.forwardRef<HTMLButtonElement, NativeSelectProp
           aria-controls={listboxId}
           aria-expanded={isOpen}
           className={cn(
-            "flex h-14 w-full items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-left text-base shadow-sm outline-none transition hover:border-slate-400 focus:border-[#1f2a3a] focus:ring-4 focus:ring-[#1f2a3a]/10 disabled:cursor-not-allowed disabled:opacity-60",
+            "flex h-14 w-full items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-left text-base shadow-sm outline-none transition hover:border-slate-400 focus:border-[var(--cta-secondary)] focus:ring-4 focus:ring-[var(--cta-secondary)]/10 disabled:cursor-not-allowed disabled:opacity-60",
             isOpen && openDirection === "down" && "rounded-b-none border-b-transparent",
             isOpen && openDirection === "up" && "rounded-t-none border-t-transparent",
             className,

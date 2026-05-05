@@ -50,7 +50,7 @@ export default function Section1PersonalContact() {
       <div className="space-y-6">
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <UserCircle className="mt-0.5 h-6 w-6 shrink-0 text-[#1f2a3a]" />
+            <UserCircle className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
             <div>
               <h2 className="text-lg font-bold text-slate-900">
                 Personal information
@@ -97,7 +97,7 @@ export default function Section1PersonalContact() {
 
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <Phone className="mt-0.5 h-6 w-6 shrink-0 text-[#1f2a3a]" />
+            <Phone className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
             <div>
               <h2 className="text-lg font-bold text-slate-900">
                 Contact details

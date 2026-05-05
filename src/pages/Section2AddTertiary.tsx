@@ -172,7 +172,7 @@ export default function Section2AddTertiary() {
         <div className="space-y-6">
           <FormSectionCard
             description="Where did you study?"
-            icon={<Building2 className="mt-0.5 h-6 w-6 shrink-0 text-[#1f2a3a]" />}
+            icon={<Building2 className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Institution Details"
           >
             <div className="space-y-5">
@@ -215,7 +215,7 @@ export default function Section2AddTertiary() {
 
           <FormSectionCard
             description="What did you study?"
-            icon={<GraduationCap className="mt-0.5 h-6 w-6 shrink-0 text-[#1f2a3a]" />}
+            icon={<GraduationCap className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Qualification Details"
           >
             <div className="space-y-5">
@@ -258,7 +258,7 @@ export default function Section2AddTertiary() {
 
           <FormSectionCard
             description="When did you study?"
-            icon={<Calendar className="mt-0.5 h-6 w-6 shrink-0 text-[#1f2a3a]" />}
+            icon={<Calendar className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Study Period"
           >
             <div className="space-y-5">
@@ -339,7 +339,7 @@ export default function Section2AddTertiary() {
 
           <FormSectionCard
             description="Attach supporting documents now or later before submit. PDF, DOC, DOCX or TXT, up to 5 MB."
-            icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-[#1f2a3a]" />}
+            icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Supporting Documents"
           >
             <div className="space-y-5">

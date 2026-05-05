@@ -234,7 +234,7 @@ export default function CourseDetails() {
                 />
               </svg>
             </AccentIconBadge>
-            <h2 className="text-2xl font-bold text-[#1f2a3a]">
+            <h2 className="text-2xl font-bold text-[var(--cta-secondary)]">
               Accelerated application process
             </h2>
             <Checklist
@@ -297,7 +297,7 @@ export default function CourseDetails() {
         className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16"
       >
         <div>
-          <h2 className="text-3xl font-bold text-[#1f2a3a]">Course details</h2>
+          <h2 className="text-3xl font-bold text-[var(--cta-secondary)]">Course details</h2>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -575,7 +575,7 @@ function Checklist({ items }: { items: readonly string[] }) {
     <ul className="mt-6 space-y-3">
       {items.map((item) => (
         <li key={item} className="flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#1f2a3a]" />
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)]" />
           <span className="text-sm leading-6 text-slate-700">{item}</span>
         </li>
       ))}

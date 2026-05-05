@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { AccentIconBadge } from "../components/AccentIconBadge";
 import AIAssessmentDemo from "../components/AIAssessmentDemo";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { FormSectionCard } from "../components/FormSectionCard";
@@ -130,17 +131,20 @@ export default function ApplicationSubmitted() {
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             <SupportCard
               action="support@studynext.com"
-              icon={<Mail className="h-6 w-6 text-[var(--sn-navy)]" />}
+              iconTone="brandSoft"
+              icon={<Mail className="h-6 w-6" />}
               title="Email support"
             />
             <SupportCard
               action="1300 123 456"
-              icon={<Phone className="h-6 w-6 text-[var(--sn-mint)]" />}
+              iconTone="mintSoft"
+              icon={<Phone className="h-6 w-6" />}
               title="Phone support"
             />
             <SupportCard
               action="Start chat"
-              icon={<MessageCircle className="h-6 w-6 text-[var(--sn-yellow)]" />}
+              iconTone="accentSoft"
+              icon={<MessageCircle className="h-6 w-6" />}
               title="Live chat"
             />
           </div>
@@ -204,18 +208,18 @@ function TimelineStep({
 
 function SupportCard({
   icon,
+  iconTone,
   title,
   action,
 }: {
   icon: ReactNode;
+  iconTone: "brandSoft" | "mintSoft" | "accentSoft";
   title: string;
   action: string;
 }) {
   return (
     <FormSectionCard className="rounded-[30px] p-6 text-center">
-      <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-        {icon}
-      </div>
+      <AccentIconBadge tone={iconTone}>{icon}</AccentIconBadge>
       <h3 className="mt-4 text-lg font-semibold text-slate-900">{title}</h3>
       <p className="mt-4 text-sm font-medium text-[var(--cta-secondary)]">{action}</p>
     </FormSectionCard>

@@ -32,7 +32,7 @@ export default function RouteErrorBoundary() {
 
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
         <SurfaceCard className="p-6 sm:p-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#1f2a3a]">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--cta-secondary)]">
             {isChunkError ? "Application updated" : "Something went wrong"}
           </p>
           <h1 className="mt-3 text-3xl font-bold text-slate-900">

@@ -97,7 +97,7 @@ export default function Section1BackgroundInfo() {
         <div className="space-y-6">
           <FormSectionCard
             description="We use this for background reporting."
-            icon={<Users className="mt-0.5 h-5 w-5 shrink-0 text-[#1f2a3a] sm:h-6 sm:w-6" />}
+            icon={<Users className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />}
             title="Parent/Guardian Information"
           >
             <div className="space-y-5">
@@ -194,7 +194,7 @@ export default function Section1BackgroundInfo() {
 
           <FormSectionCard
             description="This helps us understand whether you may need support."
-            icon={<Heart className="mt-0.5 h-5 w-5 shrink-0 text-[#1f2a3a] sm:h-6 sm:w-6" />}
+            icon={<Heart className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />}
             title="Disability & Support Needs"
           >
             <div className="space-y-5">
@@ -207,7 +207,7 @@ export default function Section1BackgroundInfo() {
                   <label className="flex cursor-pointer items-start space-x-3">
                     <input
                       checked={formData.hasDisability}
-                      className="mt-1 h-4 w-4 border-gray-300 text-[#1f2a3a] focus:ring-[#1f2a3a]"
+                      className="mt-1 h-4 w-4 border-gray-300 text-[var(--cta-secondary)] focus:ring-[var(--cta-secondary)]"
                       name="hasDisability"
                       type="radio"
                       onChange={() => handleChange("hasDisability", true)}
@@ -225,7 +225,7 @@ export default function Section1BackgroundInfo() {
                   <label className="flex cursor-pointer items-start space-x-3">
                     <input
                       checked={!formData.hasDisability}
-                      className="mt-1 h-4 w-4 border-gray-300 text-[#1f2a3a] focus:ring-[#1f2a3a]"
+                      className="mt-1 h-4 w-4 border-gray-300 text-[var(--cta-secondary)] focus:ring-[var(--cta-secondary)]"
                       name="hasDisability"
                       type="radio"
                       onChange={() => handleChange("hasDisability", false)}

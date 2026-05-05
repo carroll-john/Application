@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { cn } from "../lib/utils";
 
+// `accentSoft` is yellow-tinted (legacy Apply look); the design system kit
+// uses mint as the brand accent, so new code should prefer `mintSoft`.
 type AccentIconBadgeTone =
   | "brand"
   | "brandSoft"

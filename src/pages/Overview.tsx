@@ -95,10 +95,10 @@ export default function Overview() {
           {overviewSections.map((section) => (
             <SurfaceCard
               key={section.title}
-              className="border-[#1f2a3a]/10 bg-[var(--background-soft-blue)] p-6"
+              className="border-[var(--cta-secondary)]/10 bg-[var(--background-soft-blue)] p-6"
             >
-              <div className="h-16 w-16 rounded-[24px] bg-[#1f2a3a]/10" />
-              <p className="mt-4 text-lg font-bold text-[#1f2a3a]">
+              <div className="h-16 w-16 rounded-[24px] bg-[var(--cta-secondary)]/10" />
+              <p className="mt-4 text-lg font-bold text-[var(--cta-secondary)]">
                 {section.title}
               </p>
               <h3 className="mt-2 text-xl font-bold text-slate-900">

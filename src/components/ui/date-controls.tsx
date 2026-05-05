@@ -126,14 +126,14 @@ const PickerTrigger = forwardRef<HTMLButtonElement, TriggerProps>(
     <button
       ref={ref}
       className={cn(
-        "group flex h-14 w-full items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white px-4 text-left shadow-sm transition hover:border-slate-400 focus:border-[#1f2a3a] focus:outline-none focus:ring-4 focus:ring-[#1f2a3a]/10 disabled:cursor-not-allowed disabled:opacity-60",
+        "group flex h-14 w-full items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white px-4 text-left shadow-sm transition hover:border-slate-400 focus:border-[var(--cta-secondary)] focus:outline-none focus:ring-4 focus:ring-[var(--cta-secondary)]/10 disabled:cursor-not-allowed disabled:opacity-60",
         className,
       )}
       type="button"
       {...props}
     >
       <span className="flex min-w-0 items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-[#1f2a3a]">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-[var(--cta-secondary)]">
           <Icon className="h-4 w-4" />
         </span>
         <span

@@ -117,7 +117,7 @@ export default function Section1ContactDetails() {
       <div className="space-y-6">
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <Home className="mt-0.5 h-6 w-6 shrink-0 text-[#1f2a3a]" />
+            <Home className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
             <div>
               <h2 className="text-lg font-bold text-slate-900">
                 Residential address
@@ -159,7 +159,7 @@ export default function Section1ContactDetails() {
 
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <Mailbox className="mt-0.5 h-6 w-6 shrink-0 text-[#1f2a3a]" />
+            <Mailbox className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
             <div>
               <h2 className="text-lg font-bold text-slate-900">Postal address</h2>
               <p className="text-sm text-slate-600">

@@ -50,7 +50,7 @@ export default function Section1BasicInfo() {
       <div className="space-y-6">
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <User className="mt-0.5 h-6 w-6 shrink-0 text-[#1f2a3a]" />
+            <User className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
             <div>
               <h2 className="text-lg font-bold text-slate-900">Legal name</h2>
               <p className="text-sm text-slate-600">
@@ -131,7 +131,7 @@ export default function Section1BasicInfo() {
 
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <Smile className="mt-0.5 h-6 w-6 shrink-0 text-[#1f2a3a]" />
+            <Smile className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
             <div>
               <h2 className="text-lg font-bold text-slate-900">
                 Preferred name
