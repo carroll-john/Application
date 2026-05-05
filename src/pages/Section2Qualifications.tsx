@@ -258,7 +258,7 @@ export default function Section2Qualifications() {
             actionRoute={`/section2/add-tertiary${reviewSuffix}`}
             description="Add your university degrees and diplomas"
             emptyMessage="No qualifications added yet"
-            icon={<GraduationCap className="h-5 w-5 shrink-0 text-[#084E74] sm:h-6 sm:w-6" />}
+            icon={<GraduationCap className="h-5 w-5 shrink-0 text-[#1f2a3a] sm:h-6 sm:w-6" />}
             items={data.tertiaryQualifications}
             onSkip={() => handleSkipSection("tertiary")}
             renderItem={(qualification) => (
@@ -287,7 +287,7 @@ export default function Section2Qualifications() {
             actionText={data.cvUploaded ? "Replace" : "Add"}
             description="Add your current CV or resume"
             emptyMessage="No CV uploaded yet"
-            icon={<FileText className="h-5 w-5 shrink-0 text-[#084E74] sm:h-6 sm:w-6" />}
+            icon={<FileText className="h-5 w-5 shrink-0 text-[#1f2a3a] sm:h-6 sm:w-6" />}
             items={data.cvUploaded ? [{ id: "cv", name: data.cvFileName ?? "" }] : []}
             onSkip={() => handleSkipSection("cv")}
             renderItem={(item) => (
@@ -306,7 +306,7 @@ export default function Section2Qualifications() {
             actionRoute={`/section2/add-employment${reviewSuffix}`}
             description="Add your work history and experience"
             emptyMessage="No employment experience added yet"
-            icon={<Briefcase className="h-5 w-5 shrink-0 text-[#084E74] sm:h-6 sm:w-6" />}
+            icon={<Briefcase className="h-5 w-5 shrink-0 text-[#1f2a3a] sm:h-6 sm:w-6" />}
             items={data.employmentExperiences}
             onSkip={() => handleSkipSection("employment")}
             renderItem={(experience) => (
@@ -330,7 +330,7 @@ export default function Section2Qualifications() {
             actionRoute={`/section2/add-accreditation${reviewSuffix}`}
             description="Add certifications and professional memberships"
             emptyMessage="No accreditations added yet"
-            icon={<Award className="h-5 w-5 shrink-0 text-[#084E74] sm:h-6 sm:w-6" />}
+            icon={<Award className="h-5 w-5 shrink-0 text-[#1f2a3a] sm:h-6 sm:w-6" />}
             items={data.professionalAccreditations}
             onSkip={() => handleSkipSection("accreditation")}
             renderItem={(accreditation) => (
@@ -355,7 +355,7 @@ export default function Section2Qualifications() {
             actionRoute={`/section2/add-secondary${reviewSuffix}`}
             description="Add your high school education details"
             emptyMessage="No secondary qualifications added yet"
-            icon={<GraduationCap className="h-5 w-5 shrink-0 text-[#084E74] sm:h-6 sm:w-6" />}
+            icon={<GraduationCap className="h-5 w-5 shrink-0 text-[#1f2a3a] sm:h-6 sm:w-6" />}
             items={data.secondaryQualifications}
             onSkip={() => handleSkipSection("secondary")}
             renderItem={(qualification) => (
@@ -379,7 +379,7 @@ export default function Section2Qualifications() {
             actionRoute={`/section2/add-language-test${reviewSuffix}`}
             description="Add IELTS, TOEFL, or other English test results"
             emptyMessage="No language tests added yet"
-            icon={<Languages className="h-5 w-5 shrink-0 text-[#084E74] sm:h-6 sm:w-6" />}
+            icon={<Languages className="h-5 w-5 shrink-0 text-[#1f2a3a] sm:h-6 sm:w-6" />}
             items={data.languageTests}
             onSkip={() => handleSkipSection("languageTest")}
             renderItem={(test) => (

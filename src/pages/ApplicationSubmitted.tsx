@@ -46,7 +46,7 @@ export default function ApplicationSubmitted() {
         <AIAssessmentDemo onClose={() => setShowAIDemo(false)} />
       ) : null}
 
-      <section className="relative overflow-hidden bg-[linear-gradient(135deg,#084E74_0%,#0b678f_55%,#084E74_100%)] text-white">
+      <section className="relative overflow-hidden bg-[linear-gradient(135deg,#1f2a3a_0%,#0b678f_55%,#1f2a3a_100%)] text-white">
         <div className="absolute inset-0 opacity-15">
           <div className="absolute right-10 top-10 h-64 w-64 rounded-full bg-[#F4CF0A] blur-3xl" />
           <div className="absolute bottom-10 left-10 h-48 w-48 rounded-full bg-sky-300 blur-3xl" />

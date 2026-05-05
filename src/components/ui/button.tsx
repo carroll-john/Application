@@ -17,7 +17,7 @@ const variantClasses: Record<ButtonVariant, string> = {
     "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 shadow-none",
   outline:
     "border border-[var(--cta-tertiary-border)] bg-[var(--cta-tertiary-bg)] text-[var(--cta-tertiary-text)] hover:bg-[var(--cta-tertiary-hover)] active:bg-[var(--cta-tertiary-pressed)] shadow-none",
-  soft: "bg-[var(--cta-secondary)] text-white hover:bg-[var(--cta-secondary-hover)] active:bg-[var(--cta-secondary-pressed)] shadow-[0_8px_20px_rgba(8,78,116,0.18)]",
+  soft: "bg-[var(--cta-secondary)] text-white hover:bg-[var(--cta-secondary-hover)] active:bg-[var(--cta-secondary-pressed)] shadow-[0_8px_20px_rgba(31, 42, 58,0.18)]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

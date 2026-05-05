@@ -137,7 +137,7 @@ export default function ReviewAndSubmit() {
             </span>
           </div>
           <div className="h-2 w-full rounded-full bg-gray-200">
-            <div className="h-2 w-full rounded-full bg-[#084E74] transition-all duration-300" />
+            <div className="h-2 w-full rounded-full bg-[#1f2a3a] transition-all duration-300" />
           </div>
         </div>
 
@@ -364,7 +364,7 @@ export default function ReviewAndSubmit() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <p className="font-medium text-gray-900">
-                        <span className="mr-2 rounded bg-[#084E74] px-2 py-0.5 text-xs text-white">
+                        <span className="mr-2 rounded bg-[#1f2a3a] px-2 py-0.5 text-xs text-white">
                           #{index + 1}
                         </span>
                         {qualification.courseName}
@@ -468,7 +468,7 @@ export default function ReviewAndSubmit() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <p className="font-medium text-gray-900">
-                        <span className="mr-2 rounded bg-[#084E74] px-2 py-0.5 text-xs text-white">
+                        <span className="mr-2 rounded bg-[#1f2a3a] px-2 py-0.5 text-xs text-white">
                           #{index + 1}
                         </span>
                         {experience.position || "Employment Experience"}
@@ -532,7 +532,7 @@ export default function ReviewAndSubmit() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <p className="font-medium text-gray-900">
-                        <span className="mr-2 rounded bg-[#084E74] px-2 py-0.5 text-xs text-white">
+                        <span className="mr-2 rounded bg-[#1f2a3a] px-2 py-0.5 text-xs text-white">
                           #{index + 1}
                         </span>
                         {accreditation.name || "Professional Accreditation"}
@@ -583,7 +583,7 @@ export default function ReviewAndSubmit() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <p className="font-medium text-gray-900">
-                        <span className="mr-2 rounded bg-[#084E74] px-2 py-0.5 text-xs text-white">
+                        <span className="mr-2 rounded bg-[#1f2a3a] px-2 py-0.5 text-xs text-white">
                           #{index + 1}
                         </span>
                         {qualification.qualification || "Secondary Qualification"}
@@ -634,7 +634,7 @@ export default function ReviewAndSubmit() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <p className="font-medium text-gray-900">
-                        <span className="mr-2 rounded bg-[#084E74] px-2 py-0.5 text-xs text-white">
+                        <span className="mr-2 rounded bg-[#1f2a3a] px-2 py-0.5 text-xs text-white">
                           #{index + 1}
                         </span>
                         {test.name || "Language Test"}
@@ -724,7 +724,7 @@ function ReviewCard({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 border-l-4 border-l-[#084E74] bg-white p-5 shadow-sm sm:p-6">
+    <div className="rounded-lg border border-gray-200 border-l-4 border-l-[#1f2a3a] bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-5 flex flex-col gap-4">
         <h3 className="text-base font-bold text-gray-900 sm:text-lg">{title}</h3>
         <Button

@@ -24,7 +24,7 @@ export function SectionProgressHeader({
         </div>
         <div className="h-2 w-full rounded-full bg-gray-200">
           <div
-            className="h-2 rounded-full bg-[#084E74] transition-all duration-300"
+            className="h-2 rounded-full bg-[#1f2a3a] transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>

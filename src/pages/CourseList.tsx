@@ -104,7 +104,7 @@ export default function CourseList() {
             >
               <div className="flex min-w-0 flex-col p-4">
                 <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full bg-[#E4EFEE] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#084E74]">
+                  <span className="rounded-full bg-[#E4EFEE] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1f2a3a]">
                     {course.delivery}
                   </span>
                   {course.categories.map((category) => (

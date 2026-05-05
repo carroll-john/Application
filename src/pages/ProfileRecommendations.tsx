@@ -21,7 +21,7 @@ export default function ProfileRecommendations() {
     <div className="min-h-screen bg-[#f7f7f4]">
       <AppBrandHeader maxWidthClassName="max-w-5xl" />
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
-        <SurfaceCard className="rounded-[36px] border-0 bg-[linear-gradient(135deg,#1f3f58_0%,#084E74_100%)] p-6 text-white shadow-[0_24px_50px_rgba(8,78,116,0.25)] sm:p-8">
+        <SurfaceCard className="rounded-[36px] border-0 bg-[linear-gradient(135deg,#1f3f58_0%,#1f2a3a_100%)] p-6 text-white shadow-[0_24px_50px_rgba(31, 42, 58,0.25)] sm:p-8">
           <AccentIconBadge tone="inverseSoft">
             <Sparkles className="h-6 w-6" />
           </AccentIconBadge>

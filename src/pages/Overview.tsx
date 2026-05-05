@@ -52,7 +52,7 @@ export default function Overview() {
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <SurfaceCard className="p-5 sm:p-6">
           <div className="flex flex-col gap-5 sm:flex-row">
-            <div className="h-32 w-full rounded-[28px] bg-[linear-gradient(135deg,#084E74_0%,#0b678f_100%)] sm:w-48" />
+            <div className="h-32 w-full rounded-[28px] bg-[linear-gradient(135deg,#1f2a3a_0%,#0b678f_100%)] sm:w-48" />
             <div className="flex-1">
               <h2 className="text-xl font-bold text-slate-900">
                 {selectedCourse.title}
@@ -95,10 +95,10 @@ export default function Overview() {
           {overviewSections.map((section) => (
             <SurfaceCard
               key={section.title}
-              className="border-[#084E74]/10 bg-[#E4EFEE] p-6"
+              className="border-[#1f2a3a]/10 bg-[#E4EFEE] p-6"
             >
-              <div className="h-16 w-16 rounded-[24px] bg-[#084E74]/10" />
-              <p className="mt-4 text-lg font-bold text-[#084E74]">
+              <div className="h-16 w-16 rounded-[24px] bg-[#1f2a3a]/10" />
+              <p className="mt-4 text-lg font-bold text-[#1f2a3a]">
                 {section.title}
               </p>
               <h3 className="mt-2 text-xl font-bold text-slate-900">
