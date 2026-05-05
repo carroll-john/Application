@@ -200,7 +200,7 @@ export const NativeSelect = React.forwardRef<HTMLButtonElement, NativeSelectProp
                   ? "cursor-not-allowed text-slate-300"
                   : "hover:bg-slate-50 focus:bg-slate-50 focus:outline-none",
                 isSelected
-                  ? "bg-[#EAF4FB] font-semibold text-[#1f2a3a]"
+                  ? "bg-[var(--info-bg)] font-semibold text-[var(--cta-secondary)]"
                   : isPlaceholderOption
                     ? "text-slate-500"
                     : "text-slate-900",

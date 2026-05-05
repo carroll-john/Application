@@ -196,14 +196,14 @@ function DashboardStatCard({
 }) {
   const tones = {
     orange: active
-      ? "border-amber-500 ring-2 ring-amber-200"
-      : "border-slate-200 hover:border-amber-300",
+      ? "border-[var(--sn-yellow)] ring-2 ring-[var(--sn-yellow)]/30"
+      : "border-slate-200 hover:border-[var(--sn-yellow)]/50",
     blue: active
-      ? "border-sky-500 ring-2 ring-sky-200"
-      : "border-slate-200 hover:border-sky-300",
+      ? "border-[var(--sn-navy)] ring-2 ring-[var(--sn-navy)]/20"
+      : "border-slate-200 hover:border-[var(--sn-mint)]",
     green: active
-      ? "border-green-500 ring-2 ring-green-200"
-      : "border-slate-200 hover:border-green-300",
+      ? "border-[var(--success-text)] ring-2 ring-[var(--success-border)]"
+      : "border-slate-200 hover:border-[var(--success-border)]",
   };
 
   return (

@@ -164,7 +164,7 @@ export default function CourseDetails() {
         </div>
       </AppBrandHeader>
 
-      <section className="bg-[linear-gradient(135deg,#1f2a3a_0%,#0b678f_55%,#0e7ca9_100%)] text-white">
+      <section className="bg-[linear-gradient(135deg,#1f2a3a_0%,#16202d_55%,#1f2a3a_100%)] text-white">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-16">
           <div className="max-w-2xl">
             <div className="flex flex-wrap gap-3">
@@ -209,7 +209,7 @@ export default function CourseDetails() {
             </div>
           </div>
 
-          <SurfaceCard className="rounded-[36px] border-0 bg-[#E4EFEE] p-6 text-slate-900 shadow-[0_32px_60px_rgba(31, 42, 58,0.25)] sm:p-8">
+          <SurfaceCard className="rounded-[36px] border-0 bg-[var(--background-soft-blue)] p-6 text-slate-900 shadow-[0_32px_60px_rgba(31, 42, 58,0.25)] sm:p-8">
             <AccentIconBadge className="mb-6" size="lg" tone="brandSoft">
               <svg
                 aria-hidden="true"

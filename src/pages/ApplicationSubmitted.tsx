@@ -46,10 +46,10 @@ export default function ApplicationSubmitted() {
         <AIAssessmentDemo onClose={() => setShowAIDemo(false)} />
       ) : null}
 
-      <section className="relative overflow-hidden bg-[linear-gradient(135deg,#1f2a3a_0%,#0b678f_55%,#1f2a3a_100%)] text-white">
+      <section className="relative overflow-hidden bg-[linear-gradient(135deg,#1f2a3a_0%,#16202d_55%,#1f2a3a_100%)] text-white">
         <div className="absolute inset-0 opacity-15">
-          <div className="absolute right-10 top-10 h-64 w-64 rounded-full bg-[#F4CF0A] blur-3xl" />
-          <div className="absolute bottom-10 left-10 h-48 w-48 rounded-full bg-sky-300 blur-3xl" />
+          <div className="absolute right-10 top-10 h-64 w-64 rounded-full bg-[var(--sn-yellow)] blur-3xl" />
+          <div className="absolute bottom-10 left-10 h-48 w-48 rounded-full bg-[var(--sn-mint)] blur-3xl" />
         </div>
         <div className="relative mx-auto max-w-4xl px-4 py-14 text-center sm:px-6 lg:px-8 lg:py-20">
           <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-green-500 shadow-[0_18px_40px_rgba(34,197,94,0.35)]">
@@ -60,7 +60,7 @@ export default function ApplicationSubmitted() {
           </h1>
           <div className="mt-6 inline-block rounded-2xl border border-white/20 bg-white/10 px-6 py-3 backdrop-blur">
             <p className="text-sm text-white/75">Your application number</p>
-            <p className="text-3xl font-bold text-[#F4CF0A]">{applicationNumber}</p>
+            <p className="text-3xl font-bold text-[var(--sn-yellow)]">{applicationNumber}</p>
           </div>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-100">
             Your application has been received and is now being reviewed by our
@@ -130,17 +130,17 @@ export default function ApplicationSubmitted() {
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             <SupportCard
               action="support@studynext.com"
-              icon={<Mail className="h-6 w-6 text-blue-600" />}
+              icon={<Mail className="h-6 w-6 text-[var(--sn-navy)]" />}
               title="Email support"
             />
             <SupportCard
               action="1300 123 456"
-              icon={<Phone className="h-6 w-6 text-green-600" />}
+              icon={<Phone className="h-6 w-6 text-[var(--sn-mint)]" />}
               title="Phone support"
             />
             <SupportCard
               action="Start chat"
-              icon={<MessageCircle className="h-6 w-6 text-amber-600" />}
+              icon={<MessageCircle className="h-6 w-6 text-[var(--sn-yellow)]" />}
               title="Live chat"
             />
           </div>
@@ -175,7 +175,7 @@ function TimelineStep({
     tone === "green"
       ? "bg-green-500"
       : tone === "yellow"
-        ? "bg-[#F4CF0A]"
+        ? "bg-[var(--sn-yellow)]"
         : "bg-slate-300";
 
   return (

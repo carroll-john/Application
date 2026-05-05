@@ -67,7 +67,7 @@ export default function ProfileRecommendations() {
           <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
             {recommendations.map((recommendation) => (
               <li key={recommendation} className="flex items-start gap-3">
-                <span className="mt-2 h-2 w-2 rounded-full bg-[#F4CF0A]" />
+                <span className="mt-2 h-2 w-2 rounded-full bg-[var(--sn-yellow)]" />
                 <span>{recommendation}</span>
               </li>
             ))}

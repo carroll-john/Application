@@ -118,7 +118,7 @@ export function FileUpload({
               />
               <div className="flex items-center gap-4 rounded-[22px] bg-white px-3 py-2">
                 <label
-                  className="inline-flex h-12 cursor-pointer items-center justify-center rounded-[22px] bg-[linear-gradient(135deg,#0c628f_0%,#1f2a3a_58%,#16202d_100%)] px-6 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(31, 42, 58,0.24)] transition hover:bg-[linear-gradient(135deg,#0a567d_0%,#16202d_100%)]"
+                  className="inline-flex h-12 cursor-pointer items-center justify-center rounded-[22px] bg-[var(--cta-secondary)] px-6 text-sm font-semibold text-white shadow-[var(--shadow-cta-navy)] transition hover:bg-[var(--cta-secondary-hover)]"
                   htmlFor={inputId}
                 >
                   Choose file
