@@ -1,7 +1,13 @@
 import type { ReactNode } from "react";
 import { cn } from "../lib/utils";
 
-type AccentIconBadgeTone = "brand" | "brandSoft" | "accentSoft" | "inverseSoft";
+type AccentIconBadgeTone =
+  | "brand"
+  | "brandSoft"
+  | "accentSoft"
+  | "inverseSoft"
+  | "mint"
+  | "mintSoft";
 type AccentIconBadgeSize = "md" | "lg";
 
 const toneClasses: Record<AccentIconBadgeTone, string> = {
@@ -9,6 +15,8 @@ const toneClasses: Record<AccentIconBadgeTone, string> = {
   brand: "bg-[var(--cta-secondary)] text-white",
   brandSoft: "bg-[var(--cta-secondary)]/10 text-[var(--cta-secondary)]",
   inverseSoft: "bg-white/10 text-white",
+  mint: "bg-[var(--sn-mint)] text-[var(--sn-navy)]",
+  mintSoft: "bg-[var(--sn-mint)]/20 text-[var(--sn-navy)]",
 };
 
 const sizeClasses: Record<AccentIconBadgeSize, string> = {

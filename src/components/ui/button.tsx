@@ -12,12 +12,12 @@ export interface ButtonProps
 
 const variantClasses: Record<ButtonVariant, string> = {
   default:
-    "bg-[var(--cta-primary)] text-[#1f2937] hover:bg-[var(--cta-primary-hover)] active:bg-[var(--cta-primary-pressed)] shadow-[0_8px_20px_rgba(244,207,10,0.22)]",
+    "bg-[var(--cta-primary)] text-[#1f2937] hover:bg-[var(--cta-primary-hover)] active:bg-[var(--cta-primary-pressed)] shadow-[var(--shadow-cta-yellow)]",
   neutralOutline:
     "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 shadow-none",
   outline:
     "border border-[var(--cta-tertiary-border)] bg-[var(--cta-tertiary-bg)] text-[var(--cta-tertiary-text)] hover:bg-[var(--cta-tertiary-hover)] active:bg-[var(--cta-tertiary-pressed)] shadow-none",
-  soft: "bg-[var(--cta-secondary)] text-white hover:bg-[var(--cta-secondary-hover)] active:bg-[var(--cta-secondary-pressed)] shadow-[0_8px_20px_rgba(31, 42, 58,0.18)]",
+  soft: "bg-[var(--cta-secondary)] text-white hover:bg-[var(--cta-secondary-hover)] active:bg-[var(--cta-secondary-pressed)] shadow-[var(--shadow-cta-navy)]",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
