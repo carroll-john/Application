@@ -164,7 +164,7 @@ export default function CourseDetails() {
         </div>
       </AppBrandHeader>
 
-      <section className="bg-[linear-gradient(135deg,#084E74_0%,#0b678f_55%,#0e7ca9_100%)] text-white">
+      <section className="bg-[linear-gradient(135deg,#1f2a3a_0%,#16202d_55%,#1f2a3a_100%)] text-white">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-16">
           <div className="max-w-2xl">
             <div className="flex flex-wrap gap-3">
@@ -209,7 +209,7 @@ export default function CourseDetails() {
             </div>
           </div>
 
-          <SurfaceCard className="rounded-[36px] border-0 bg-[#E4EFEE] p-6 text-slate-900 shadow-[0_32px_60px_rgba(8,78,116,0.25)] sm:p-8">
+          <SurfaceCard className="rounded-[36px] border-0 bg-[var(--background-soft-blue)] p-6 text-slate-900 shadow-[0_32px_60px_rgba(31, 42, 58,0.25)] sm:p-8">
             <AccentIconBadge className="mb-6" size="lg" tone="brandSoft">
               <svg
                 aria-hidden="true"
@@ -234,7 +234,7 @@ export default function CourseDetails() {
                 />
               </svg>
             </AccentIconBadge>
-            <h2 className="text-2xl font-bold text-[#084E74]">
+            <h2 className="text-2xl font-bold text-[var(--cta-secondary)]">
               Accelerated application process
             </h2>
             <Checklist
@@ -297,7 +297,7 @@ export default function CourseDetails() {
         className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16"
       >
         <div>
-          <h2 className="text-3xl font-bold text-[#084E74]">Course details</h2>
+          <h2 className="text-3xl font-bold text-[var(--cta-secondary)]">Course details</h2>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -575,7 +575,7 @@ function Checklist({ items }: { items: readonly string[] }) {
     <ul className="mt-6 space-y-3">
       {items.map((item) => (
         <li key={item} className="flex items-start gap-3">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#084E74]" />
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)]" />
           <span className="text-sm leading-6 text-slate-700">{item}</span>
         </li>
       ))}

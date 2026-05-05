@@ -289,7 +289,7 @@ export function AddressAutocomplete({
                     }}
                     onMouseEnter={() => setActiveIndex(index)}
                   >
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#084E74]" />
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--cta-secondary)]" />
                     <span className="flex min-w-0 flex-col">
                       <span>{suggestion.label}</span>
                       {suggestion.detail ? (

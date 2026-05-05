@@ -23,7 +23,7 @@ export default function AIAssessmentDemo({
         </div>
       }
       header={
-        <div className="flex items-start justify-between bg-[#084E74] px-6 py-5 text-white">
+        <div className="flex items-start justify-between bg-[var(--cta-secondary)] px-6 py-5 text-white">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">
               Demo
@@ -57,7 +57,7 @@ export default function AIAssessmentDemo({
             potential admission risks before the application goes to staff.
           </p>
         </SurfaceCard>
-        <SurfaceCard className="rounded-[28px] border-0 bg-[#084E74] p-5 text-white shadow-none">
+        <SurfaceCard className="rounded-[28px] border-0 bg-[var(--cta-secondary)] p-5 text-white shadow-none">
           <AccentIconBadge className="mb-4" tone="inverseSoft">
             <Sparkles className="h-6 w-6" />
           </AccentIconBadge>

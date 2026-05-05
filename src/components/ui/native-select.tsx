@@ -200,7 +200,7 @@ export const NativeSelect = React.forwardRef<HTMLButtonElement, NativeSelectProp
                   ? "cursor-not-allowed text-slate-300"
                   : "hover:bg-slate-50 focus:bg-slate-50 focus:outline-none",
                 isSelected
-                  ? "bg-[#EAF4FB] font-semibold text-[#084E74]"
+                  ? "bg-[var(--info-bg)] font-semibold text-[var(--cta-secondary)]"
                   : isPlaceholderOption
                     ? "text-slate-500"
                     : "text-slate-900",
@@ -237,7 +237,7 @@ export const NativeSelect = React.forwardRef<HTMLButtonElement, NativeSelectProp
           aria-controls={listboxId}
           aria-expanded={isOpen}
           className={cn(
-            "flex h-14 w-full items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-left text-base shadow-sm outline-none transition hover:border-slate-400 focus:border-[#084E74] focus:ring-4 focus:ring-[#084E74]/10 disabled:cursor-not-allowed disabled:opacity-60",
+            "flex h-14 w-full items-center justify-between gap-3 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-left text-base shadow-sm outline-none transition hover:border-slate-400 focus:border-[var(--cta-secondary)] focus:ring-4 focus:ring-[var(--cta-secondary)]/10 disabled:cursor-not-allowed disabled:opacity-60",
             isOpen && openDirection === "down" && "rounded-b-none border-b-transparent",
             isOpen && openDirection === "up" && "rounded-t-none border-t-transparent",
             className,

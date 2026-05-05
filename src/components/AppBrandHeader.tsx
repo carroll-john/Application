@@ -8,6 +8,59 @@ interface AppBrandHeaderProps {
   showApplicantProfileLink?: boolean;
 }
 
+function StudyNextChevron({ size = 16 }: { size?: number }) {
+  const width = Math.round(size * 0.5);
+  return (
+    <span
+      aria-hidden="true"
+      className="inline-flex items-baseline gap-px"
+      style={{ marginInline: 4, transform: "translateY(-1px)" }}
+    >
+      {[0, 1, 2].map((index) => (
+        <svg
+          key={index}
+          fill="var(--sn-mint)"
+          height={size}
+          style={{ display: "block" }}
+          viewBox="0 0 11 22"
+          width={width}
+        >
+          <polygon points="0,2 6,2 11,11 6,20 0,20 5,11" />
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+function StudyNextWordmark({ size = 20 }: { size?: number }) {
+  return (
+    <span
+      className="inline-flex items-baseline text-white"
+      style={{
+        font: `500 ${size}px/1 var(--font-body, "Montserrat", sans-serif)`,
+        letterSpacing: "-0.01em",
+      }}
+    >
+      <span>Study</span>
+      <StudyNextChevron size={Math.round(size * 0.78)} />
+      <span>
+        Next.
+        <sup
+          style={{
+            display: "inline-block",
+            fontSize: "0.32em",
+            fontWeight: 500,
+            marginLeft: 1,
+            transform: "translateY(-0.6em)",
+          }}
+        >
+          ®
+        </sup>
+      </span>
+    </span>
+  );
+}
+
 export function AppBrandHeader({
   children,
   maxWidthClassName = "max-w-7xl",
@@ -25,20 +78,18 @@ export function AppBrandHeader({
   const accountLinkPath = isSignedIn ? "/profile" : `/sign-in?redirect=${encodeURIComponent(location.pathname + location.search)}`;
 
   return (
-    <div className="border-b border-slate-200 bg-white">
+    <div className="bg-[var(--sn-navy)]">
       <div
         className={`mx-auto flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8 ${maxWidthClassName}`}
       >
         <NavLink
           aria-label="Go to course browse"
-          className="inline-flex h-10 items-center rounded-2xl bg-[#084E74] px-4 text-white transition hover:bg-[#063d5a]"
+          className="inline-flex items-center gap-3 transition hover:opacity-90"
           to="/"
         >
-          <span className="text-[0.62rem] font-extrabold uppercase tracking-[0.24em]">
-            KEYPATH
-          </span>
-          <span className="ml-2 hidden text-[0.62rem] font-semibold uppercase tracking-[0.14em] sm:inline">
-            APPLY
+          <StudyNextWordmark />
+          <span className="hidden h-5 items-center rounded-full bg-white/[0.10] px-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/85 sm:inline-flex">
+            Apply
           </span>
         </NavLink>
         <div className="flex items-center gap-3">
@@ -47,8 +98,8 @@ export function AppBrandHeader({
               className={({ isActive }) =>
                 `inline-flex rounded-full border px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm ${
                   isActive
-                    ? "border-[#084E74] bg-[#084E74] text-white"
-                    : "border-slate-300 bg-white text-[#084E74] hover:border-[#084E74]/60 hover:bg-[#F2F8FB]"
+                    ? "border-transparent bg-[var(--sn-yellow)] text-[var(--sn-navy)] shadow-[var(--shadow-cta-yellow)] hover:bg-[var(--keypath-yellow-hover)]"
+                    : "border-white/30 bg-transparent text-white hover:border-[var(--sn-mint)] hover:text-[var(--sn-mint)]"
                 }`
               }
               to={accountLinkPath}

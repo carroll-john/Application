@@ -48,7 +48,7 @@ export default function Section1ContactInfo() {
       <div className="space-y-6">
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <Globe2 className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />
+            <Globe2 className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
             <div>
               <h2 className="text-lg font-bold text-slate-900">Citizenship</h2>
               <p className="text-sm text-slate-600">
@@ -102,7 +102,7 @@ export default function Section1ContactInfo() {
 
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <Landmark className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />
+            <Landmark className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
             <div>
               <h2 className="text-lg font-bold text-slate-900">
                 Australian citizenship status

@@ -113,7 +113,7 @@ export default function Section2AddAccreditation() {
         <div className="space-y-6">
           <FormSectionCard
             description="Record the qualification, registration, or membership."
-            icon={<Award className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
+            icon={<Award className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Accreditation Details"
           >
             <Label>Accreditation Name <span className="text-red-500">*</span></Label>
@@ -135,7 +135,7 @@ export default function Section2AddAccreditation() {
 
           <FormSectionCard
             description="Tell us whether this accreditation is current."
-            icon={<Shield className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
+            icon={<Shield className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Current Status"
           >
             <Label>Status <span className="text-red-500">*</span></Label>
@@ -158,7 +158,7 @@ export default function Section2AddAccreditation() {
 
           <FormSectionCard
             description="Attach the supporting document now or later before submit. PDF, DOC, DOCX or TXT, up to 5 MB."
-            icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
+            icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Supporting Documents"
           >
             <FileUpload

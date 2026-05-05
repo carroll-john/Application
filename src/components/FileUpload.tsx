@@ -77,7 +77,7 @@ export function FileUpload({
                 <span>{pendingHelperText}</span>
               </div>
             ) : null}
-            <div className="rounded-[26px] border-2 border-[#b7ccd8] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfd_100%)] p-2 shadow-[0_14px_32px_rgba(15,23,42,0.08)] transition hover:border-[var(--cta-secondary)] focus-within:border-[var(--cta-secondary)] focus-within:ring-4 focus-within:ring-[rgba(8,78,116,0.12)]">
+            <div className="rounded-[26px] border-2 border-[#b7ccd8] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfd_100%)] p-2 shadow-[0_14px_32px_rgba(15,23,42,0.08)] transition hover:border-[var(--cta-secondary)] focus-within:border-[var(--cta-secondary)] focus-within:ring-4 focus-within:ring-[rgba(31, 42, 58,0.12)]">
               <input
                 id={inputId}
                 accept=".pdf,.doc,.docx,.txt"
@@ -118,7 +118,7 @@ export function FileUpload({
               />
               <div className="flex items-center gap-4 rounded-[22px] bg-white px-3 py-2">
                 <label
-                  className="inline-flex h-12 cursor-pointer items-center justify-center rounded-[22px] bg-[linear-gradient(135deg,#0c628f_0%,#084e74_58%,#063d5a_100%)] px-6 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(8,78,116,0.24)] transition hover:bg-[linear-gradient(135deg,#0a567d_0%,#063d5a_100%)]"
+                  className="inline-flex h-12 cursor-pointer items-center justify-center rounded-[22px] bg-[var(--cta-secondary)] px-6 text-sm font-semibold text-white shadow-[var(--shadow-cta-navy)] transition hover:bg-[var(--cta-secondary-hover)]"
                   htmlFor={inputId}
                 >
                   Choose file

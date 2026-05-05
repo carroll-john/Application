@@ -57,7 +57,7 @@ export default function Section2AddEmployment() {
         <div className="space-y-6">
           <FormSectionCard
             description="Tell us where you worked."
-            icon={<Building className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
+            icon={<Building className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Employer Details"
           >
             <Label>Company/Organization <span className="text-red-500">*</span></Label>
@@ -76,7 +76,7 @@ export default function Section2AddEmployment() {
 
           <FormSectionCard
             description="Tell us about the role."
-            icon={<Briefcase className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
+            icon={<Briefcase className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Role Details"
           >
             <div className="space-y-5">
@@ -118,7 +118,7 @@ export default function Section2AddEmployment() {
 
           <FormSectionCard
             description="When did you work here?"
-            icon={<Calendar className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
+            icon={<Calendar className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Employment Period"
           >
             <div className="space-y-5">
@@ -195,12 +195,12 @@ export default function Section2AddEmployment() {
 
           <FormSectionCard
             description="Summarise your responsibilities and achievements."
-            icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
+            icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Key Responsibilities"
           >
             <Label>Key Duties and Achievements <span className="text-red-500">*</span></Label>
             <textarea
-              className="min-h-40 w-full rounded-2xl border border-slate-300 px-4 py-3 text-base outline-none transition focus:border-[#084E74] focus:ring-4 focus:ring-[#084E74]/10"
+              className="min-h-40 w-full rounded-2xl border border-slate-300 px-4 py-3 text-base outline-none transition focus:border-[var(--cta-secondary)] focus:ring-4 focus:ring-[var(--cta-secondary)]/10"
               placeholder={
                 "• Managed a team of 5 marketing professionals\n• Increased social media engagement by 40%\n• Developed and executed quarterly campaigns..."
               }

@@ -36,7 +36,7 @@ export function ApplicationShell({
           </div>
           <div className="h-2 rounded-full bg-slate-200">
             <div
-              className="h-2 rounded-full bg-[#084E74] transition-all"
+              className="h-2 rounded-full bg-[var(--cta-secondary)] transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>

@@ -19,14 +19,14 @@ interface DashboardTabDefinition {
   icon: ReactNode;
   key: DashboardTab;
   label: string;
-  tone: "blue" | "green" | "orange";
+  tone: "all" | "submitted" | "draft";
 }
 
 const dashboardTabs: DashboardTabDefinition[] = [
   {
     key: "all",
     label: "All applications",
-    tone: "blue",
+    tone: "all",
     icon: <BookOpen className="h-5 w-5" />,
     emptyTitle: "No applications yet",
     emptyBody: "Start an application from a course page to see it here.",
@@ -34,7 +34,7 @@ const dashboardTabs: DashboardTabDefinition[] = [
   {
     key: "draft",
     label: "Open",
-    tone: "orange",
+    tone: "draft",
     icon: <Clock className="h-5 w-5" />,
     emptyTitle: "No open applications",
     emptyBody: "Applications still in progress will appear here.",
@@ -42,7 +42,7 @@ const dashboardTabs: DashboardTabDefinition[] = [
   {
     key: "submitted",
     label: "Submitted",
-    tone: "green",
+    tone: "submitted",
     icon: <CheckCircle2 className="h-5 w-5" />,
     emptyTitle: "No submitted applications",
     emptyBody: "Submitted applications will appear here after final submission.",
@@ -191,19 +191,19 @@ function DashboardStatCard({
   count: number;
   icon: ReactNode;
   active: boolean;
-  tone: "orange" | "blue" | "green";
+  tone: "draft" | "all" | "submitted";
   onClick: () => void;
 }) {
   const tones = {
-    orange: active
-      ? "border-amber-500 ring-2 ring-amber-200"
-      : "border-slate-200 hover:border-amber-300",
-    blue: active
-      ? "border-sky-500 ring-2 ring-sky-200"
-      : "border-slate-200 hover:border-sky-300",
-    green: active
-      ? "border-green-500 ring-2 ring-green-200"
-      : "border-slate-200 hover:border-green-300",
+    draft: active
+      ? "border-[var(--sn-yellow)] ring-2 ring-[var(--sn-yellow)]/30"
+      : "border-slate-200 hover:border-[var(--sn-yellow)]/50",
+    all: active
+      ? "border-[var(--sn-navy)] ring-2 ring-[var(--sn-navy)]/20"
+      : "border-slate-200 hover:border-[var(--sn-mint)]",
+    submitted: active
+      ? "border-[var(--success-text)] ring-2 ring-[var(--success-border)]"
+      : "border-slate-200 hover:border-[var(--success-border)]",
   };
 
   return (

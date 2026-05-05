@@ -49,7 +49,7 @@ export default function Section1CulturalBackground() {
       <div className="grid gap-6">
         <FormSectionCard
           className="rounded-[30px] border-slate-200 p-5 sm:p-6"
-          icon={<Languages className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
+          icon={<Languages className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
           title="Language spoken at home"
           description="Select the language you speak most often at home."
         >
@@ -75,7 +75,7 @@ export default function Section1CulturalBackground() {
 
         <FormSectionCard
           className="rounded-[30px] border-slate-200 p-5 sm:p-6"
-          icon={<Users className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
+          icon={<Users className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
           title="Aboriginal or Torres Strait Islander status"
           description="This question is collected for government statistical reporting."
         >
@@ -100,7 +100,7 @@ export default function Section1CulturalBackground() {
 
         <FormSectionCard
           className="rounded-[30px] border-slate-200 p-5 sm:p-6"
-          icon={<BookOpen className="mt-0.5 h-6 w-6 shrink-0 text-[#084E74]" />}
+          icon={<BookOpen className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
           title="Highest school level completed"
           description="Tell us the highest level of school you have completed."
         >
