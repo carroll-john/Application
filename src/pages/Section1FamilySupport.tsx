@@ -28,7 +28,7 @@ const parentFields = [
   "parent5Details",
 ] as const;
 
-export default function Section1BackgroundInfo() {
+export default function Section1FamilySupport() {
   const navigate = useNavigate();
   const { fromReview, previousLabel, returnPath } = useReviewReturn();
   const { data, updateContactDetails } = useApplication();

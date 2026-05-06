@@ -38,17 +38,17 @@ const ReviewAndSubmit = lazyWithRetry(
   "review-and-submit",
   () => import("./pages/ReviewAndSubmit"),
 );
-const Section1BackgroundInfo = lazyWithRetry(
-  "section1-background-info",
-  () => import("./pages/Section1BackgroundInfo"),
+const Section1Address = lazyWithRetry(
+  "section1-address",
+  () => import("./pages/Section1Address"),
 );
 const Section1BasicInfo = lazyWithRetry(
   "section1-basic-info",
   () => import("./pages/Section1BasicInfo"),
 );
-const Section1ContactDetails = lazyWithRetry(
-  "section1-contact-details",
-  () => import("./pages/Section1ContactDetails"),
+const Section1FamilySupport = lazyWithRetry(
+  "section1-family-support",
+  () => import("./pages/Section1FamilySupport"),
 );
 const Section1ContactInfo = lazyWithRetry(
   "section1-contact-info",
@@ -244,12 +244,12 @@ export const router = createAppRouter([
             element: <Section1PersonalContact />,
           },
           { path: "/section1/contact-info", element: <Section1ContactInfo /> },
-          { path: "/section1/address", element: <Section1ContactDetails /> },
+          { path: "/section1/address", element: <Section1Address /> },
           {
             path: "/section1/cultural-background",
             element: <Section1CulturalBackground />,
           },
-          { path: "/section1/family-support", element: <Section1BackgroundInfo /> },
+          { path: "/section1/family-support", element: <Section1FamilySupport /> },
           {
             path: "/section1/contact-details",
             element: <Navigate replace to="/section1/contact-info" />,

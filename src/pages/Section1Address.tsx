@@ -19,7 +19,7 @@ import {
   hasGooglePlacesApiKey,
 } from "../lib/googlePlaces";
 
-export default function Section1ContactDetails() {
+export default function Section1Address() {
   const navigate = useNavigate();
   const { fromReview, previousLabel, returnPath } = useReviewReturn();
   const { data, updateContactDetails } = useApplication();
