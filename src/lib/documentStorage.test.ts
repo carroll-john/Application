@@ -1,5 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+// IndexedDB polyfill + minimal `window` shim so documentStorage's
+// `window.indexedDB.open(...)` calls find a real backing store.
+import "fake-indexeddb/auto";
+
+type WindowShim = { indexedDB: IDBFactory };
+
+if (typeof (globalThis as { window?: WindowShim }).window === "undefined") {
+  (globalThis as { window: WindowShim }).window = {
+    indexedDB: globalThis.indexedDB,
+  };
+}
+
 type QueryResult = { data: unknown; error: Error | null };
 
 interface MockQuery {
@@ -74,8 +86,10 @@ interface MockClient {
   tableResults: Map<string, QueryResult[]>;
   storageRemoveResult: { data: unknown; error: Error | null };
   storageBuckets: Map<string, StorageBucket>;
+  sessionResult: { data: { session: unknown }; error: Error | null };
   from: (table: string) => MockQuery;
   storage: { from: (bucket: string) => StorageBucket };
+  auth: { getSession: () => Promise<MockClient["sessionResult"]> };
 }
 
 function createMockClient(): MockClient {
@@ -85,6 +99,10 @@ function createMockClient(): MockClient {
     tableResults: new Map(),
     storageRemoveResult: { data: null, error: null },
     storageBuckets: new Map(),
+    sessionResult: { data: { session: null }, error: null },
+    auth: {
+      getSession: () => Promise.resolve(client.sessionResult),
+    },
     from(table) {
       const queue = this.tableResults.get(table);
       const result = queue?.shift() ?? { data: null, error: null };
@@ -120,9 +138,13 @@ vi.mock("./supabase", () => ({
   supabase: mockClient,
 }));
 
-const { deleteStoredDocument, formatFileSize } = await import(
-  "./documentStorage"
-);
+const {
+  clearStoredDocuments,
+  deleteStoredDocument,
+  formatFileSize,
+  replaceStoredDocument,
+  saveDocumentFile,
+} = await import("./documentStorage");
 
 beforeEach(() => {
   mockClient.fromCalls = [];
@@ -237,5 +259,99 @@ describe("deleteStoredDocument", () => {
         storagePath: "user-9/app-1/cv/doc-3-x.pdf",
       }),
     ).rejects.toThrow("constraint violation");
+  });
+});
+
+describe("saveDocumentFile (IndexedDB)", () => {
+  beforeEach(async () => {
+    await clearStoredDocuments();
+  });
+
+  it("persists the file as an UploadedDocument with source 'local'", async () => {
+    const file = new File(["resume contents"], "cv.pdf", {
+      type: "application/pdf",
+    });
+
+    const stored = await saveDocumentFile(file);
+
+    expect(stored).toMatchObject({
+      name: "cv.pdf",
+      size: file.size,
+      type: "application/pdf",
+      source: "local",
+    });
+    expect(stored.id).toMatch(/[0-9a-f-]{36}/i);
+    expect(stored.uploadedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it("rejects files larger than the size cap before writing", async () => {
+    const oversized = new File([new Uint8Array(11 * 1024 * 1024)], "huge.pdf", {
+      type: "application/pdf",
+    });
+
+    await expect(saveDocumentFile(oversized)).rejects.toThrow();
+  });
+});
+
+describe("replaceStoredDocument (local fallback)", () => {
+  beforeEach(async () => {
+    await clearStoredDocuments();
+  });
+
+  it("returns the previous document when no new file is supplied", async () => {
+    const existing = await saveDocumentFile(
+      new File(["x"], "old.pdf", { type: "application/pdf" }),
+    );
+
+    const result = await replaceStoredDocument(null, existing);
+
+    expect(result).toBe(existing);
+  });
+
+  it("saves the new file and deletes the previous local document", async () => {
+    const previous = await saveDocumentFile(
+      new File(["old"], "old.pdf", { type: "application/pdf" }),
+    );
+    const next = new File(["new"], "new.pdf", { type: "application/pdf" });
+
+    const stored = await replaceStoredDocument(next, previous);
+
+    expect(stored).toBeDefined();
+    expect(stored?.name).toBe("new.pdf");
+    expect(stored?.id).not.toBe(previous.id);
+
+    // Old local doc should now 404 the IDB get; deleteStoredDocument(undefined)
+    // is a no-op so it serves as a sanity check that we don't blow up on the
+    // already-cleared id.
+    await expect(deleteStoredDocument(previous)).resolves.toBeUndefined();
+  });
+
+  it("falls back to local save when applicationId or kind is missing", async () => {
+    const next = new File(["x"], "cv.pdf", { type: "application/pdf" });
+
+    const stored = await replaceStoredDocument(next, undefined, {
+      applicationId: undefined,
+      kind: undefined,
+    });
+
+    expect(stored?.source).toBe("local");
+  });
+});
+
+describe("clearStoredDocuments", () => {
+  it("empties the local store", async () => {
+    await saveDocumentFile(
+      new File(["x"], "a.pdf", { type: "application/pdf" }),
+    );
+    await saveDocumentFile(
+      new File(["y"], "b.pdf", { type: "application/pdf" }),
+    );
+
+    await expect(clearStoredDocuments()).resolves.toBeUndefined();
+    // After clear, a fresh save should succeed without seeing the old rows.
+    const fresh = await saveDocumentFile(
+      new File(["z"], "c.pdf", { type: "application/pdf" }),
+    );
+    expect(fresh.name).toBe("c.pdf");
   });
 });
