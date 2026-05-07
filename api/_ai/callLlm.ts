@@ -54,14 +54,20 @@ export type LlmUpstreamSnapshot = {
   payload: unknown;
 };
 
-export type LlmResult = {
-  status: "ok" | "truncated" | "invalid_response" | "upstream_error";
-  parsed?: unknown;
+interface LlmResultBase {
   tokens: LlmTokenUsage;
   latencyMs: number;
   attempts: number;
   upstream: LlmUpstreamSnapshot;
-};
+}
+
+// Discriminated union: `parsed` is only readable when status === "ok",
+// so callers can't accidentally consume a stale or missing payload.
+export type LlmResult =
+  | (LlmResultBase & { status: "ok"; parsed: unknown })
+  | (LlmResultBase & { status: "truncated" })
+  | (LlmResultBase & { status: "invalid_response" })
+  | (LlmResultBase & { status: "upstream_error" });
 
 type OpenAiContent =
   | { type: "input_text"; text: string }
