@@ -8,17 +8,22 @@ import {
   Phone,
   Sparkles,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { Suspense, lazy, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AccentIconBadge } from "../components/AccentIconBadge";
-import AIAssessmentDemo from "../components/AIAssessmentDemo";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { FormSectionCard } from "../components/FormSectionCard";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
 import { formatApplicationDate } from "../lib/applicationProgress";
 
+// Gate the dynamic import behind DEV so the chunk is dead-code-eliminated
+// from production builds. import.meta.env.DEV becomes a literal `false` at
+// build time, letting the bundler drop the import() entirely.
 const AI_ASSESSMENT_DEMO_ENABLED = import.meta.env.DEV;
+const AIAssessmentDemo = AI_ASSESSMENT_DEMO_ENABLED
+  ? lazy(() => import("../components/AIAssessmentDemo"))
+  : null;
 
 export default function ApplicationSubmitted() {
   const navigate = useNavigate();
@@ -43,8 +48,10 @@ export default function ApplicationSubmitted() {
         ) : null}
       </AppBrandHeader>
 
-      {AI_ASSESSMENT_DEMO_ENABLED && showAIDemo ? (
-        <AIAssessmentDemo onClose={() => setShowAIDemo(false)} />
+      {AIAssessmentDemo && showAIDemo ? (
+        <Suspense fallback={null}>
+          <AIAssessmentDemo onClose={() => setShowAIDemo(false)} />
+        </Suspense>
       ) : null}
 
       <section className="relative overflow-hidden bg-[linear-gradient(135deg,#1f2a3a_0%,#16202d_55%,#1f2a3a_100%)] text-white">
