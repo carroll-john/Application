@@ -1,9 +1,10 @@
 import type { AddressSuggestion } from "../components/ui/address-autocomplete";
+import { createEmptyStructuredAddress } from "./address";
 import {
-  createEmptyStructuredAddress,
-  formatStructuredAddress,
-  type StructuredAddress,
-} from "./address";
+  type GoogleAddressComponent,
+  type GooglePlacePayload,
+  mapPlaceToStructuredAddress,
+} from "./googlePlacesAddress";
 
 type GoogleMapsWindow = Window & {
   google?: {
@@ -18,15 +19,7 @@ type GoogleMapsGlobal = NonNullable<GoogleMapsWindow["google"]>;
 
 interface GoogleAutocompleteSessionToken {}
 
-interface GoogleAddressComponent {
-  longText?: string;
-  shortText?: string;
-  types?: string[];
-}
-
-interface GooglePlace {
-  formattedAddress?: string;
-  addressComponents?: GoogleAddressComponent[];
+interface GooglePlace extends GooglePlacePayload {
   fetchFields?: (options: { fields: string[] }) => Promise<void>;
 }
 
@@ -63,62 +56,6 @@ let googleMapsPromise: Promise<GoogleMapsGlobal> | null = null;
 
 function getGoogleMapsWindow() {
   return window as GoogleMapsWindow;
-}
-
-function getAddressComponent(
-  components: GoogleAddressComponent[],
-  types: string[],
-) {
-  return components.find((component) =>
-    types.some((type) => component.types?.includes(type)),
-  );
-}
-
-function joinStreetAddress(components: GoogleAddressComponent[]) {
-  const streetNumber = getAddressComponent(components, ["street_number"])?.longText ?? "";
-  const subpremise = getAddressComponent(components, ["subpremise"])?.longText ?? "";
-  const route = getAddressComponent(components, ["route"])?.longText ?? "";
-  const premise = getAddressComponent(components, ["premise"])?.longText ?? "";
-
-  const buildingNumber =
-    subpremise && streetNumber ? `${subpremise}/${streetNumber}` : subpremise || streetNumber;
-
-  return [buildingNumber, route].filter(Boolean).join(" ").trim() || premise.trim();
-}
-
-function mapPlaceToStructuredAddress(place: GooglePlace, fallbackLabel: string) {
-  const components = place.addressComponents ?? [];
-  const suburb =
-    getAddressComponent(components, [
-      "locality",
-      "postal_town",
-      "sublocality_level_1",
-      "sublocality",
-      "administrative_area_level_2",
-    ])?.longText ?? "";
-  const state =
-    getAddressComponent(components, ["administrative_area_level_1"])?.shortText ??
-    getAddressComponent(components, ["administrative_area_level_1"])?.longText ??
-    "";
-  const postcode = getAddressComponent(components, ["postal_code"])?.longText ?? "";
-  const country = getAddressComponent(components, ["country"])?.longText ?? "";
-  const streetAddress = joinStreetAddress(components);
-
-  const structuredAddress: StructuredAddress = {
-    ...createEmptyStructuredAddress(),
-    formattedAddress: place.formattedAddress?.trim() || fallbackLabel,
-    streetAddress,
-    suburb,
-    state,
-    postcode,
-    country,
-  };
-
-  return {
-    ...structuredAddress,
-    formattedAddress:
-      structuredAddress.formattedAddress || formatStructuredAddress(structuredAddress),
-  };
 }
 
 export function hasGooglePlacesApiKey() {

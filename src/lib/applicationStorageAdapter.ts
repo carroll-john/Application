@@ -1,3 +1,19 @@
+// Storage layer (top-down):
+//
+//   applicationStorageAdapter — this file. Picks local vs remote per call
+//     based on the auth session, and is the only thing UI code talks to.
+//   applicationRemoteStore    — Supabase CRUD + the submit RPC. Used when
+//                               an authenticated session is present.
+//   applicationRecords        — localStorage CRUD over the multi-app list
+//                               and the single "active" application id.
+//   applicationData           — canonical ApplicationData shape, the
+//                               initial data, and the merge helper used by
+//                               both local and remote loaders.
+//
+// In dev or before sign-in the adapter routes to applicationRecords. After
+// sign-in it routes to applicationRemoteStore; the local copy is kept as a
+// best-effort cache so the form survives offline blips.
+
 import type { Session } from "@supabase/supabase-js";
 import {
   findLocalApplicationById,

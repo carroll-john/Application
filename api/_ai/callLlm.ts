@@ -54,14 +54,20 @@ export type LlmUpstreamSnapshot = {
   payload: unknown;
 };
 
-export type LlmResult = {
-  status: "ok" | "truncated" | "invalid_response" | "upstream_error";
-  parsed?: unknown;
+interface LlmResultBase {
   tokens: LlmTokenUsage;
   latencyMs: number;
   attempts: number;
   upstream: LlmUpstreamSnapshot;
-};
+}
+
+// Discriminated union: `parsed` is only readable when status === "ok",
+// so callers can't accidentally consume a stale or missing payload.
+export type LlmResult =
+  | (LlmResultBase & { status: "ok"; parsed: unknown })
+  | (LlmResultBase & { status: "truncated" })
+  | (LlmResultBase & { status: "invalid_response" })
+  | (LlmResultBase & { status: "upstream_error" });
 
 type OpenAiContent =
   | { type: "input_text"; text: string }
@@ -464,8 +470,13 @@ async function callOpenAi(request: LlmRequest): Promise<LlmResult> {
 
   const startedAt = Date.now();
 
-  const run = async () => {
+  type RetryOutcome = "none" | "recovered" | "still_truncated" | "error";
+
+  const run = async (agentSpan?: Sentry.Span) => {
     let attempts = 1;
+    let initialTruncated = false;
+    let retryOutcome: RetryOutcome = "none";
+
     let result = await executeOpenAiRequest(
       request.apiKey,
       initialBody,
@@ -474,6 +485,7 @@ async function callOpenAi(request: LlmRequest): Promise<LlmResult> {
     );
 
     if (result.response.ok && isMaxTokensTruncation(result.payload)) {
+      initialTruncated = true;
       attempts = 2;
       result = await executeOpenAiRequest(
         request.apiKey,
@@ -481,6 +493,20 @@ async function callOpenAi(request: LlmRequest): Promise<LlmResult> {
         { ...baseMeta, attempt: 2 },
         request.trace.enabled,
       );
+
+      if (!result.response.ok) {
+        retryOutcome = "error";
+      } else if (isMaxTokensTruncation(result.payload)) {
+        retryOutcome = "still_truncated";
+      } else {
+        retryOutcome = "recovered";
+      }
+    }
+
+    if (agentSpan) {
+      agentSpan.setAttribute("gen_ai.retry.attempts", attempts);
+      agentSpan.setAttribute("gen_ai.retry.outcome", retryOutcome);
+      agentSpan.setAttribute("gen_ai.truncation.detected", initialTruncated);
     }
 
     return { result, attempts };
@@ -500,7 +526,7 @@ async function callOpenAi(request: LlmRequest): Promise<LlmResult> {
             ...(request.trace.agentSpanAttributes ?? {}),
           },
         },
-        run,
+        (agentSpan) => run(agentSpan),
       )
     : await run();
 
