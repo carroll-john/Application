@@ -37,7 +37,7 @@ function StudyNextWordmark({ size = 20 }: { size?: number }) {
     <span
       className="inline-flex items-baseline text-white"
       style={{
-        font: `500 ${size}px/1 var(--font-body, "Montserrat", sans-serif)`,
+        font: `500 ${size}px/1 var(--font-body, "Figtree", sans-serif)`,
         letterSpacing: "-0.01em",
       }}
     >
