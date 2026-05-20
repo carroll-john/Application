@@ -1,5 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../src/lib/supabase.types";
+import {
+  handleApiRequest,
+  type NodeRequestLike,
+  type NodeResponseLike,
+} from "./_shared/nodeWebHandler";
 
 type DocumentDisposition = "attachment" | "inline";
 
@@ -253,126 +258,15 @@ async function handleWebRequest(request: Request) {
   }
 }
 
-type NodeRequestHeaders = Record<string, string | string[] | undefined>;
-
-type NodeRequestLike = AsyncIterable<unknown> & {
-  headers: NodeRequestHeaders;
-  method?: string;
-  url?: string;
-};
-
-type NodeResponseLike = {
-  end: (body?: Uint8Array | string) => void;
-  setHeader: (name: string, value: string) => void;
-  statusCode: number;
-};
-
-function isWebRequest(value: unknown): value is Request {
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      "headers" in (value as Request) &&
-      typeof (value as Request).headers?.get === "function" &&
-      typeof (value as Request).method === "string",
-  );
-}
-
-function toWebHeaders(nodeHeaders: NodeRequestHeaders) {
-  const headers = new Headers();
-
-  for (const [key, value] of Object.entries(nodeHeaders)) {
-    if (typeof value === "string") {
-      headers.set(key, value);
-      continue;
-    }
-
-    if (Array.isArray(value)) {
-      headers.set(key, value.join(", "));
-    }
-  }
-
-  return headers;
-}
-
-function supportsRequestBody(method: string) {
-  return method !== "GET" && method !== "HEAD";
-}
-
-async function readNodeRequestBody(nodeRequest: NodeRequestLike) {
-  const chunks: Buffer[] = [];
-
-  for await (const chunk of nodeRequest) {
-    if (typeof chunk === "string") {
-      chunks.push(Buffer.from(chunk));
-      continue;
-    }
-
-    if (chunk instanceof Uint8Array) {
-      chunks.push(Buffer.from(chunk));
-      continue;
-    }
-
-    if (chunk instanceof ArrayBuffer) {
-      chunks.push(Buffer.from(chunk));
-    }
-  }
-
-  return chunks.length > 0 ? Buffer.concat(chunks) : undefined;
-}
-
-async function handleNodeRequest(
-  nodeRequest: NodeRequestLike,
-  nodeResponse: NodeResponseLike,
-) {
-  const method = (nodeRequest.method || "GET").toUpperCase();
-  const headers = toWebHeaders(nodeRequest.headers || {});
-  const pathname = nodeRequest.url || "/api/document-delivery";
-  const body = supportsRequestBody(method)
-    ? await readNodeRequestBody(nodeRequest)
-    : undefined;
-
-  const requestInit: RequestInit & { duplex?: "half" } = {
-    headers,
-    method,
-  };
-
-  if (supportsRequestBody(method) && body) {
-    requestInit.body = body;
-    requestInit.duplex = "half";
-  }
-
-  const webRequest = new Request(
-    `https://application-prototype.local${pathname}`,
-    requestInit,
-  );
-  const webResponse = await handleWebRequest(webRequest);
-
-  nodeResponse.statusCode = webResponse.status;
-  webResponse.headers.forEach((value, key) => {
-    nodeResponse.setHeader(key, value);
-  });
-
-  if (method === "HEAD") {
-    nodeResponse.end();
-    return;
-  }
-
-  const responseBody = new Uint8Array(await webResponse.arrayBuffer());
-  nodeResponse.end(responseBody);
-}
-
 export default async function handler(
   request: Request | NodeRequestLike,
   response?: NodeResponseLike,
 ) {
-  if (isWebRequest(request)) {
-    return handleWebRequest(request);
-  }
-
-  if (response) {
-    await handleNodeRequest(request as NodeRequestLike, response);
-    return;
-  }
-
-  return errorResponse("DOCUMENT_PROXY_UNEXPECTED_FAILURE");
+  return handleApiRequest(request, response, {
+    defaultPath: "/api/document-delivery",
+    endHeadWithoutBody: true,
+    handleWebRequest,
+    origin: "https://application-prototype.local",
+    unsupportedResponse: () => errorResponse("DOCUMENT_PROXY_UNEXPECTED_FAILURE"),
+  });
 }

@@ -103,17 +103,23 @@ vi.mock("./supabase", () => ({
 vi.mock("./courseCatalog", () => ({
   getDefaultCourse: () => ({
     code: "DEFAULT-101",
+    eligibility: {
+      rules: [{ type: "min_education", minEducation: "Bachelor degree" }],
+    },
     title: "Default Course",
     provider: "Default University",
     intakeLabel: "Default Intake",
   }),
   getCourseByCode: (code: string | null | undefined) =>
     code === "MATCHED-202"
-      ? {
-          code: "MATCHED-202",
-          title: "Matched Course",
-          provider: "Matched University",
-          intakeLabel: "Matched Intake",
+        ? {
+            code: "MATCHED-202",
+            eligibility: {
+              rules: [{ type: "min_education", minEducation: "Bachelor degree" }],
+            },
+            title: "Matched Course",
+            provider: "Matched University",
+            intakeLabel: "Matched Intake",
         }
       : undefined,
 }));

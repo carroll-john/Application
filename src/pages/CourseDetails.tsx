@@ -1,6 +1,11 @@
 import { CheckCircle2, Clock } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+  type NavigateFunction,
+} from "react-router-dom";
 import { AccentIconBadge } from "../components/AccentIconBadge";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { ModalShell } from "../components/ModalShell";
@@ -10,8 +15,16 @@ import { Button } from "../components/ui/button";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { useAuth } from "../context/AuthContext";
-import { sortApplicationsForPrefillChooser } from "../lib/applicationRecords";
-import { getCourseByCode, getDefaultCourse } from "../lib/courseCatalog";
+import {
+  sortApplicationsForPrefillChooser,
+  type ApplicationSummary,
+} from "../lib/applicationRecords";
+import {
+  getCourseByCode,
+  getDefaultCourse,
+  type CourseCatalogEntry,
+} from "../lib/courseCatalog";
+import type { ApplicationData, SelectedCourse } from "../lib/applicationData";
 import {
   evaluateCourseEligibility,
   hasCourseExperienceAlternative,
@@ -24,48 +37,46 @@ import {
 
 type EligibilityOutcome = "success" | "fail" | null;
 
-export default function CourseDetails() {
-  const navigate = useNavigate();
-  const { courseCode } = useParams();
-  const [searchParams] = useSearchParams();
-  const { isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
-  const {
-    activeApplicationId,
-    applications,
-    beginCourseApplication,
-    isHydrating,
-  } = useApplication();
-  const course = useMemo(
-    () => getCourseByCode(courseCode) ?? getDefaultCourse(),
-    [courseCode],
-  );
-  const [showEligibility, setShowEligibility] = useState(false);
-  const [eligibilityOutcome, setEligibilityOutcome] =
-    useState<EligibilityOutcome>(null);
-  const [eligibilityReason, setEligibilityReason] = useState("");
+type StartApplicationOptions = {
+  prefillFromApplicationId?: string | null;
+  startFresh?: boolean;
+};
+
+type BeginCourseApplication = (
+  course: SelectedCourse,
+  options?: StartApplicationOptions,
+) => Promise<ApplicationData>;
+
+function useCourseApplicationStart({
+  activeApplicationId,
+  applications,
+  beginCourseApplication,
+  course,
+  isAuthenticated,
+  isHydrating,
+  navigate,
+  onEligibleResult,
+  onResetEligibilityState,
+  selectedCourse,
+  shouldAutoApply,
+}: {
+  activeApplicationId: string | null;
+  applications: ApplicationSummary[];
+  beginCourseApplication: BeginCourseApplication;
+  course: CourseCatalogEntry;
+  isAuthenticated: boolean;
+  isHydrating: boolean;
+  navigate: NavigateFunction;
+  onEligibleResult: (reason: string) => void;
+  onResetEligibilityState: () => void;
+  selectedCourse: SelectedCourse;
+  shouldAutoApply: boolean;
+}) {
   const [applyError, setApplyError] = useState<string | null>(null);
-  const [eligibilityForm, setEligibilityForm] = useState<EligibilityAnswers>({
-    educationLevel: "",
-    experienceRange: "",
-    goal: "",
-  });
-  const courseDetailsSectionRef = useRef<HTMLElement | null>(null);
-  const entryRequirementsRef = useRef<HTMLDivElement | null>(null);
   const [isStartingApplication, setIsStartingApplication] = useState(false);
   const [showApplicationStartPicker, setShowApplicationStartPicker] =
     useState(false);
   const autoApplyStartedRef = useRef(false);
-  const isAuthenticated = Boolean(isBypassedInDev || isAuthorizedCompanyUser);
-  const requiresExperienceInput = hasCourseExperienceAlternative(course.eligibility);
-  const shouldAutoApply =
-    searchParams.get("apply") === "1" && searchParams.get("eligible") === "1";
-  const isApplyActionPending = isHydrating || isStartingApplication;
-  const selectedCourse = {
-    code: course.code,
-    intake: course.intakeLabel,
-    provider: course.provider,
-    title: course.title,
-  };
   const currentCourseDraft = useMemo(
     () =>
       applications.find(
@@ -83,107 +94,45 @@ export default function CourseDetails() {
       ),
     [activeApplicationId, applications, course.code],
   );
+  const isApplyActionPending = isHydrating || isStartingApplication;
 
-  function resetEligibilityState() {
+  const resetApplicationStartState = useCallback(() => {
     setApplyError(null);
-    setEligibilityOutcome(null);
-    setEligibilityReason("");
     setShowApplicationStartPicker(false);
-    setShowEligibility(false);
-  }
+  }, []);
 
-  useEffect(() => {
-    if (!shouldAutoApply || !isAuthenticated || isHydrating || autoApplyStartedRef.current) {
-      return;
-    }
+  const startApplication = useCallback(
+    async (options?: StartApplicationOptions) => {
+      setApplyError(null);
+      setIsStartingApplication(true);
 
-    autoApplyStartedRef.current = true;
-
-    if (currentCourseDraft) {
-      void beginCourseApplication(selectedCourse)
-        .then(() => {
-          navigate("/overview", { replace: true });
-        })
-        .catch(() => {
-          autoApplyStartedRef.current = false;
-          setEligibilityOutcome("success");
-          setEligibilityReason(
-            `You meet the entry criteria for ${course.title}.`,
-          );
-          setApplyError(
-            "We couldn't start your application right now. Try again.",
-          );
-        });
-      return;
-    }
-
-    if (reusableSourceApplications.length > 0) {
-      setEligibilityOutcome("success");
-      setEligibilityReason(`You meet the entry criteria for ${course.title}.`);
-      setShowApplicationStartPicker(true);
-      return;
-    }
-
-    void beginCourseApplication(selectedCourse, { startFresh: true })
-      .then(() => {
-        navigate("/overview", { replace: true });
-      })
-      .catch(() => {
-        autoApplyStartedRef.current = false;
-        setEligibilityOutcome("success");
-        setEligibilityReason(
-          `You meet the entry criteria for ${course.title}.`,
+      try {
+        await beginCourseApplication(selectedCourse, options);
+        resetApplicationStartState();
+        onResetEligibilityState();
+        navigate(
+          options?.prefillFromApplicationId && !options.startFresh
+            ? "/review"
+            : "/overview",
         );
+      } catch {
         setApplyError(
           "We couldn't start your application right now. Try again.",
         );
-      });
-  }, [
-    applications,
-    beginCourseApplication,
-    course.code,
-    course.intakeLabel,
-    course.provider,
-    course.title,
-    currentCourseDraft,
-    isAuthenticated,
-    isHydrating,
-    navigate,
-    reusableSourceApplications.length,
-    selectedCourse,
-    shouldAutoApply,
-  ]);
+      } finally {
+        setIsStartingApplication(false);
+      }
+    },
+    [
+      beginCourseApplication,
+      navigate,
+      onResetEligibilityState,
+      resetApplicationStartState,
+      selectedCourse,
+    ],
+  );
 
-  const isEligibilityFormComplete =
-    Boolean(eligibilityForm.goal) &&
-    Boolean(eligibilityForm.educationLevel) &&
-    (!requiresExperienceInput || Boolean(eligibilityForm.experienceRange));
-
-  async function startApplication(options?: {
-    prefillFromApplicationId?: string | null;
-    startFresh?: boolean;
-  }) {
-    setApplyError(null);
-    setIsStartingApplication(true);
-
-    try {
-      await beginCourseApplication(selectedCourse, options);
-      resetEligibilityState();
-      navigate(
-        options?.prefillFromApplicationId && !options.startFresh
-          ? "/review"
-          : "/overview",
-      );
-    } catch {
-      setApplyError(
-        "We couldn't start your application right now. Try again.",
-      );
-    } finally {
-      setIsStartingApplication(false);
-    }
-  }
-
-  async function handleEligibleApplyNow() {
+  const handleEligibleApplyNow = useCallback(async () => {
     if (isApplyActionPending) {
       return;
     }
@@ -216,13 +165,194 @@ export default function CourseDetails() {
       auth_state: "anonymous",
       redirect_reason: "eligible_apply",
     });
-    resetEligibilityState();
+    resetApplicationStartState();
+    onResetEligibilityState();
     navigate(
       `/sign-in?redirect=${encodeURIComponent(
         `/courses/${course.code}?eligible=1&apply=1`,
       )}`,
     );
-  }
+  }, [
+    course,
+    currentCourseDraft,
+    isApplyActionPending,
+    isAuthenticated,
+    navigate,
+    onResetEligibilityState,
+    resetApplicationStartState,
+    reusableSourceApplications.length,
+    startApplication,
+  ]);
+
+  useEffect(() => {
+    if (!shouldAutoApply || !isAuthenticated || isHydrating || autoApplyStartedRef.current) {
+      return;
+    }
+
+    autoApplyStartedRef.current = true;
+
+    if (currentCourseDraft) {
+      void beginCourseApplication(selectedCourse)
+        .then(() => {
+          navigate("/overview", { replace: true });
+        })
+        .catch(() => {
+          autoApplyStartedRef.current = false;
+          onEligibleResult(`You meet the entry criteria for ${course.title}.`);
+          setApplyError(
+            "We couldn't start your application right now. Try again.",
+          );
+        });
+      return;
+    }
+
+    if (reusableSourceApplications.length > 0) {
+      onEligibleResult(`You meet the entry criteria for ${course.title}.`);
+      setShowApplicationStartPicker(true);
+      return;
+    }
+
+    void beginCourseApplication(selectedCourse, { startFresh: true })
+      .then(() => {
+        navigate("/overview", { replace: true });
+      })
+      .catch(() => {
+        autoApplyStartedRef.current = false;
+        onEligibleResult(`You meet the entry criteria for ${course.title}.`);
+        setApplyError(
+          "We couldn't start your application right now. Try again.",
+        );
+      });
+  }, [
+    beginCourseApplication,
+    course.title,
+    currentCourseDraft,
+    isAuthenticated,
+    isHydrating,
+    navigate,
+    onEligibleResult,
+    reusableSourceApplications.length,
+    selectedCourse,
+    shouldAutoApply,
+  ]);
+
+  return {
+    applyError,
+    currentCourseDraft,
+    handleEligibleApplyNow,
+    isApplyActionPending,
+    resetApplicationStartState,
+    reusableSourceApplications,
+    setApplyError,
+    setShowApplicationStartPicker,
+    showApplicationStartPicker,
+    startApplication,
+  };
+}
+
+export default function CourseDetails() {
+  const navigate = useNavigate();
+  const { courseCode } = useParams();
+  const [searchParams] = useSearchParams();
+  const { isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
+  const {
+    activeApplicationId,
+    applications,
+    beginCourseApplication,
+    isHydrating,
+  } = useApplication();
+  const course = useMemo(
+    () => getCourseByCode(courseCode) ?? getDefaultCourse(),
+    [courseCode],
+  );
+  const [showEligibility, setShowEligibility] = useState(false);
+  const [eligibilityOutcome, setEligibilityOutcome] =
+    useState<EligibilityOutcome>(null);
+  const [eligibilityReason, setEligibilityReason] = useState("");
+  const [eligibilityForm, setEligibilityForm] = useState<EligibilityAnswers>({
+    educationLevel: "",
+    experienceRange: "",
+    goal: "",
+  });
+  const courseDetailsSectionRef = useRef<HTMLElement | null>(null);
+  const entryRequirementsRef = useRef<HTMLDivElement | null>(null);
+  const isAuthenticated = Boolean(isBypassedInDev || isAuthorizedCompanyUser);
+  const requiresExperienceInput = hasCourseExperienceAlternative(course.eligibility);
+  const shouldAutoApply =
+    searchParams.get("apply") === "1" && searchParams.get("eligible") === "1";
+  const selectedCourse = useMemo(
+    () => ({
+      code: course.code,
+      intake: course.intakeLabel,
+      provider: course.provider,
+      title: course.title,
+    }),
+    [course.code, course.intakeLabel, course.provider, course.title],
+  );
+  const resetEligibilityView = useCallback(() => {
+    setEligibilityOutcome(null);
+    setEligibilityReason("");
+    setShowEligibility(false);
+  }, []);
+  const showEligibleResult = useCallback((reason: string) => {
+    setEligibilityOutcome("success");
+    setEligibilityReason(reason);
+  }, []);
+  const {
+    applyError,
+    currentCourseDraft,
+    handleEligibleApplyNow,
+    isApplyActionPending,
+    resetApplicationStartState,
+    reusableSourceApplications,
+    setApplyError,
+    showApplicationStartPicker,
+    startApplication,
+  } = useCourseApplicationStart({
+    activeApplicationId,
+    applications,
+    beginCourseApplication,
+    course,
+    isAuthenticated,
+    isHydrating,
+    navigate,
+    onEligibleResult: showEligibleResult,
+    onResetEligibilityState: resetEligibilityView,
+    selectedCourse,
+    shouldAutoApply,
+  });
+  const resetEligibilityState = useCallback(() => {
+    resetApplicationStartState();
+    resetEligibilityView();
+  }, [resetApplicationStartState, resetEligibilityView]);
+
+  const isEligibilityFormComplete =
+    Boolean(eligibilityForm.goal) &&
+    Boolean(eligibilityForm.educationLevel) &&
+    (!requiresExperienceInput || Boolean(eligibilityForm.experienceRange));
+  const handleEligibilityComplete = useCallback(() => {
+    setApplyError(null);
+    const result = evaluateCourseEligibility(course.eligibility, eligibilityForm);
+
+    capturePostHogEvent("eligibility_check_completed", {
+      ...getCourseAnalyticsProperties(course),
+      education_level: eligibilityForm.educationLevel,
+      eligible: result.eligible,
+      experience_range: eligibilityForm.experienceRange,
+      goal: eligibilityForm.goal,
+    });
+    setEligibilityOutcome(result.eligible ? "success" : "fail");
+    setEligibilityReason(result.reason ?? "");
+  }, [course, eligibilityForm, setApplyError]);
+  const handleTryEligibilityAgain = useCallback(() => {
+    setApplyError(null);
+    setEligibilityReason("");
+    setEligibilityOutcome(null);
+  }, [setApplyError]);
+  const handleBrowseCourses = useCallback(() => {
+    resetEligibilityState();
+    navigate("/");
+  }, [navigate, resetEligibilityState]);
 
   function handleReviewRequirements() {
     resetEligibilityState();
@@ -505,237 +635,330 @@ export default function CourseDetails() {
       </section>
 
       {showEligibility && !eligibilityOutcome ? (
-        <ModalShell
+        <EligibilityCheckModal
+          course={course}
+          eligibilityForm={eligibilityForm}
+          isComplete={isEligibilityFormComplete}
+          requiresExperienceInput={requiresExperienceInput}
+          onAnswerChange={(updates) =>
+            setEligibilityForm((previous) => ({ ...previous, ...updates }))
+          }
           onClose={() => {
             setApplyError(null);
             setShowEligibility(false);
           }}
-          title="Eligibility Check"
-        >
-          <p className="mb-6 text-sm leading-6 text-slate-600">
-            Answer a few questions so we can check this course&apos;s entry
-            criteria before you start an application.
-          </p>
-          <div className="space-y-4">
-            <SelectField
-              label="Select: Description of goals"
-              value={eligibilityForm.goal ?? ""}
-              onChange={(value) =>
-                setEligibilityForm((previous) => ({ ...previous, goal: value }))
-              }
-              options={course.eligibility.goalsOptions}
-            />
-            <SelectField
-              label="Select: Education level"
-              value={eligibilityForm.educationLevel ?? ""}
-              onChange={(value) =>
-                setEligibilityForm((previous) => ({
-                  ...previous,
-                  educationLevel: value,
-                }))
-              }
-              options={course.eligibility.educationOptions}
-            />
-            {requiresExperienceInput ? (
-              <SelectField
-                label="Select: Experience"
-                value={eligibilityForm.experienceRange ?? ""}
-                onChange={(value) =>
-                  setEligibilityForm((previous) => ({
-                    ...previous,
-                    experienceRange: value,
-                  }))
-                }
-                options={course.eligibility.experienceOptions}
-              />
-            ) : null}
-          </div>
-          <Button
-            className="mt-6 w-full"
-            disabled={!isEligibilityFormComplete}
-            onClick={() => {
-              setApplyError(null);
-              const result = evaluateCourseEligibility(course.eligibility, eligibilityForm);
-              capturePostHogEvent("eligibility_check_completed", {
-                ...getCourseAnalyticsProperties(course),
-                education_level: eligibilityForm.educationLevel,
-                eligible: result.eligible,
-                experience_range: eligibilityForm.experienceRange,
-                goal: eligibilityForm.goal,
-              });
-              setEligibilityOutcome(result.eligible ? "success" : "fail");
-              setEligibilityReason(result.reason ?? "");
-            }}
-          >
-            Next
-          </Button>
-        </ModalShell>
+          onComplete={handleEligibilityComplete}
+        />
       ) : null}
 
       {eligibilityOutcome ? (
-        <ModalShell
-          maxWidthClassName="max-w-xl"
+        <EligibilityResultModal
+          activeApplicationId={activeApplicationId}
+          applyError={applyError}
+          currentCourseDraft={currentCourseDraft}
+          eligibilityOutcome={eligibilityOutcome}
+          eligibilityReason={eligibilityReason}
+          isApplyActionPending={isApplyActionPending}
+          isAuthenticated={isAuthenticated}
+          reusableSourceApplications={reusableSourceApplications}
+          showApplicationStartPicker={showApplicationStartPicker}
+          onBrowseCourses={handleBrowseCourses}
           onClose={resetEligibilityState}
-          title={
-            eligibilityOutcome === "success" && showApplicationStartPicker
-              ? "Choose How To Start"
-              : eligibilityOutcome === "success"
-              ? "Eligible to apply"
-              : "Not eligible yet"
-          }
-        >
-          {eligibilityOutcome === "success" && showApplicationStartPicker ? (
-            <div className="mt-6 space-y-3">
-              <p className="text-sm leading-6 text-slate-600">
-                Choose an existing application to copy its personal details,
-                qualifications, employment history, and stored supporting
-                documents into this new course application, or start a brand new
-                application instead.
-              </p>
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
-                Most complete applications appear first.
-              </p>
-              {reusableSourceApplications.map((application) => (
-                <button
-                  key={application.id}
-                  className="w-full rounded-[28px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[#084E74]/30 hover:bg-white"
-                  disabled={isApplyActionPending}
-                  type="button"
-                  onClick={() => {
-                    void startApplication({
-                      prefillFromApplicationId: application.id,
-                    });
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-base font-semibold text-slate-900">
-                        {application.course.title}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-600">
-                        {application.course.provider}
-                      </p>
-                      <p className="mt-2 text-sm font-medium text-slate-700">
-                        {application.completionPercentage}% complete (
-                        {application.completedStepCount} of{" "}
-                        {application.totalStepCount} sections)
-                      </p>
-                      {application.id === activeApplicationId ? (
-                        <p className="mt-2 text-xs font-medium uppercase tracking-[0.16em] text-[#084E74]">
-                          Current active application
-                        </p>
-                      ) : null}
-                    </div>
-                    <StatusPill
-                      icon={
-                        application.status === "submitted" ? (
-                          <CheckCircle2 className="h-4 w-4" />
-                        ) : (
-                          <Clock className="h-4 w-4" />
-                        )
-                      }
-                      tone={
-                        application.status === "submitted"
-                          ? "success"
-                          : "warning"
-                      }
-                    >
-                      {application.status === "submitted" ? "Submitted" : "Open"}
-                    </StatusPill>
-                  </div>
-                </button>
-              ))}
-              {applyError ? (
-                <p className="text-sm font-medium text-[var(--error-text)]">
-                  {applyError}
-                </p>
-              ) : null}
-              <Button
-                className="w-full"
-                disabled={isApplyActionPending}
-                onClick={() => {
-                  void startApplication({ startFresh: true });
-                }}
-                variant="soft"
-              >
-                {isApplyActionPending ? "Preparing application..." : "Start brand new application"}
-              </Button>
-            </div>
-          ) : (
-            <>
-              <p
-                className={`mb-4 text-lg font-semibold ${
-                  eligibilityOutcome === "success"
-                    ? "text-green-700"
-                    : "text-red-700"
-                }`}
-              >
-                {eligibilityOutcome === "success"
-                  ? "You meet the entry criteria"
-                  : "You do not meet the entry criteria yet"}
-              </p>
-              <p className="text-sm leading-6 text-slate-600">
-                {eligibilityReason}
-              </p>
-              {applyError ? (
-                <p className="mt-4 text-sm font-medium text-[var(--error-text)]">
-                  {applyError}
-                </p>
-              ) : null}
-              {eligibilityOutcome === "success" ? (
-                <Button
-                  className="mt-6 w-full"
-                  disabled={isApplyActionPending}
-                  onClick={() => {
-                    void handleEligibleApplyNow();
-                  }}
-                >
-                  {isAuthenticated
-                    ? currentCourseDraft
-                      ? isApplyActionPending
-                        ? "Preparing application..."
-                        : "Continue application"
-                      : reusableSourceApplications.length > 0
-                        ? "Choose how to start"
-                        : isApplyActionPending
-                          ? "Preparing application..."
-                          : "Start application"
-                    : "Sign in to apply"}
-                </Button>
-              ) : (
-                <div className="mt-6 space-y-3">
-                  <Button className="w-full" onClick={handleReviewRequirements}>
-                    Review entry requirements
-                  </Button>
-                  <Button
-                    className="w-full"
-                    variant="soft"
-                    onClick={() => {
-                      setApplyError(null);
-                      setEligibilityReason("");
-                      setEligibilityOutcome(null);
-                    }}
-                  >
-                    Try again
-                  </Button>
-                  <Button
-                    className="w-full"
-                    variant="neutralOutline"
-                    onClick={() => {
-                      resetEligibilityState();
-                      navigate("/");
-                    }}
-                  >
-                    Browse courses
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </ModalShell>
+          onEligibleApplyNow={handleEligibleApplyNow}
+          onReviewRequirements={handleReviewRequirements}
+          onStartApplication={startApplication}
+          onTryAgain={handleTryEligibilityAgain}
+        />
       ) : null}
     </div>
   );
+}
+
+function EligibilityCheckModal({
+  course,
+  eligibilityForm,
+  isComplete,
+  requiresExperienceInput,
+  onAnswerChange,
+  onClose,
+  onComplete,
+}: {
+  course: CourseCatalogEntry;
+  eligibilityForm: EligibilityAnswers;
+  isComplete: boolean;
+  requiresExperienceInput: boolean;
+  onAnswerChange: (updates: Partial<EligibilityAnswers>) => void;
+  onClose: () => void;
+  onComplete: () => void;
+}) {
+  return (
+    <ModalShell onClose={onClose} title="Eligibility Check">
+      <p className="mb-6 text-sm leading-6 text-slate-600">
+        Answer a few questions so we can check this course&apos;s entry criteria
+        before you start an application.
+      </p>
+      <div className="space-y-4">
+        <SelectField
+          label="Select: Description of goals"
+          options={course.eligibility.goalsOptions}
+          value={eligibilityForm.goal ?? ""}
+          onChange={(value) => onAnswerChange({ goal: value })}
+        />
+        <SelectField
+          label="Select: Education level"
+          options={course.eligibility.educationOptions}
+          value={eligibilityForm.educationLevel ?? ""}
+          onChange={(value) => onAnswerChange({ educationLevel: value })}
+        />
+        {requiresExperienceInput ? (
+          <SelectField
+            label="Select: Experience"
+            options={course.eligibility.experienceOptions}
+            value={eligibilityForm.experienceRange ?? ""}
+            onChange={(value) => onAnswerChange({ experienceRange: value })}
+          />
+        ) : null}
+      </div>
+      <Button className="mt-6 w-full" disabled={!isComplete} onClick={onComplete}>
+        Next
+      </Button>
+    </ModalShell>
+  );
+}
+
+function EligibilityResultModal({
+  activeApplicationId,
+  applyError,
+  currentCourseDraft,
+  eligibilityOutcome,
+  eligibilityReason,
+  isApplyActionPending,
+  isAuthenticated,
+  reusableSourceApplications,
+  showApplicationStartPicker,
+  onBrowseCourses,
+  onClose,
+  onEligibleApplyNow,
+  onReviewRequirements,
+  onStartApplication,
+  onTryAgain,
+}: {
+  activeApplicationId: string | null;
+  applyError: string | null;
+  currentCourseDraft: ApplicationSummary | null;
+  eligibilityOutcome: Exclude<EligibilityOutcome, null>;
+  eligibilityReason: string;
+  isApplyActionPending: boolean;
+  isAuthenticated: boolean;
+  reusableSourceApplications: ApplicationSummary[];
+  showApplicationStartPicker: boolean;
+  onBrowseCourses: () => void;
+  onClose: () => void;
+  onEligibleApplyNow: () => Promise<void>;
+  onReviewRequirements: () => void;
+  onStartApplication: (options?: StartApplicationOptions) => Promise<void>;
+  onTryAgain: () => void;
+}) {
+  const isEligible = eligibilityOutcome === "success";
+
+  return (
+    <ModalShell
+      maxWidthClassName="max-w-xl"
+      onClose={onClose}
+      title={getEligibilityResultTitle(isEligible, showApplicationStartPicker)}
+    >
+      {isEligible && showApplicationStartPicker ? (
+        <ApplicationStartPicker
+          activeApplicationId={activeApplicationId}
+          applyError={applyError}
+          isApplyActionPending={isApplyActionPending}
+          reusableSourceApplications={reusableSourceApplications}
+          onStartApplication={onStartApplication}
+        />
+      ) : (
+        <>
+          <p
+            className={`mb-4 text-lg font-semibold ${
+              isEligible ? "text-green-700" : "text-red-700"
+            }`}
+          >
+            {isEligible
+              ? "You meet the entry criteria"
+              : "You do not meet the entry criteria yet"}
+          </p>
+          <p className="text-sm leading-6 text-slate-600">
+            {eligibilityReason}
+          </p>
+          {applyError ? (
+            <p className="mt-4 text-sm font-medium text-[var(--error-text)]">
+              {applyError}
+            </p>
+          ) : null}
+          {isEligible ? (
+            <Button
+              className="mt-6 w-full"
+              disabled={isApplyActionPending}
+              onClick={() => {
+                void onEligibleApplyNow();
+              }}
+            >
+              {getEligibleApplyLabel({
+                currentCourseDraft,
+                isApplyActionPending,
+                isAuthenticated,
+                reusableSourceApplications,
+              })}
+            </Button>
+          ) : (
+            <div className="mt-6 space-y-3">
+              <Button className="w-full" onClick={onReviewRequirements}>
+                Review entry requirements
+              </Button>
+              <Button className="w-full" variant="soft" onClick={onTryAgain}>
+                Try again
+              </Button>
+              <Button
+                className="w-full"
+                variant="neutralOutline"
+                onClick={onBrowseCourses}
+              >
+                Browse courses
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+    </ModalShell>
+  );
+}
+
+function ApplicationStartPicker({
+  activeApplicationId,
+  applyError,
+  isApplyActionPending,
+  reusableSourceApplications,
+  onStartApplication,
+}: {
+  activeApplicationId: string | null;
+  applyError: string | null;
+  isApplyActionPending: boolean;
+  reusableSourceApplications: ApplicationSummary[];
+  onStartApplication: (options?: StartApplicationOptions) => Promise<void>;
+}) {
+  return (
+    <div className="mt-6 space-y-3">
+      <p className="text-sm leading-6 text-slate-600">
+        Choose an existing application to copy its personal details,
+        qualifications, employment history, and stored supporting documents into
+        this new course application, or start a brand new application instead.
+      </p>
+      <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">
+        Most complete applications appear first.
+      </p>
+      {reusableSourceApplications.map((application) => (
+        <button
+          key={application.id}
+          className="w-full rounded-[28px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[#084E74]/30 hover:bg-white"
+          disabled={isApplyActionPending}
+          type="button"
+          onClick={() => {
+            void onStartApplication({
+              prefillFromApplicationId: application.id,
+            });
+          }}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-base font-semibold text-slate-900">
+                {application.course.title}
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                {application.course.provider}
+              </p>
+              <p className="mt-2 text-sm font-medium text-slate-700">
+                {application.completionPercentage}% complete (
+                {application.completedStepCount} of {application.totalStepCount}{" "}
+                sections)
+              </p>
+              {application.id === activeApplicationId ? (
+                <p className="mt-2 text-xs font-medium uppercase tracking-[0.16em] text-[#084E74]">
+                  Current active application
+                </p>
+              ) : null}
+            </div>
+            <StatusPill
+              icon={
+                application.status === "submitted" ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <Clock className="h-4 w-4" />
+                )
+              }
+              tone={application.status === "submitted" ? "success" : "warning"}
+            >
+              {application.status === "submitted" ? "Submitted" : "Open"}
+            </StatusPill>
+          </div>
+        </button>
+      ))}
+      {applyError ? (
+        <p className="text-sm font-medium text-[var(--error-text)]">
+          {applyError}
+        </p>
+      ) : null}
+      <Button
+        className="w-full"
+        disabled={isApplyActionPending}
+        variant="soft"
+        onClick={() => {
+          void onStartApplication({ startFresh: true });
+        }}
+      >
+        {isApplyActionPending
+          ? "Preparing application..."
+          : "Start brand new application"}
+      </Button>
+    </div>
+  );
+}
+
+function getEligibilityResultTitle(
+  isEligible: boolean,
+  showApplicationStartPicker: boolean,
+) {
+  if (isEligible && showApplicationStartPicker) {
+    return "Choose How To Start";
+  }
+
+  return isEligible ? "Eligible to apply" : "Not eligible yet";
+}
+
+function getEligibleApplyLabel({
+  currentCourseDraft,
+  isApplyActionPending,
+  isAuthenticated,
+  reusableSourceApplications,
+}: {
+  currentCourseDraft: ApplicationSummary | null;
+  isApplyActionPending: boolean;
+  isAuthenticated: boolean;
+  reusableSourceApplications: ApplicationSummary[];
+}) {
+  if (!isAuthenticated) {
+    return "Sign in to apply";
+  }
+
+  if (isApplyActionPending) {
+    return "Preparing application...";
+  }
+
+  if (currentCourseDraft) {
+    return "Continue application";
+  }
+
+  return reusableSourceApplications.length > 0
+    ? "Choose how to start"
+    : "Start application";
 }
 
 function Checklist({ items }: { items: readonly string[] }) {

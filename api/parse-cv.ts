@@ -4,6 +4,11 @@ import type { Database } from "../src/lib/supabase.types";
 import { callLlm, type LlmContent } from "./_ai/callLlm";
 import { cvEmploymentPromptV1 } from "./_ai/prompts/cvEmployment.v1";
 import { cvEmploymentSchemaV1 } from "./_ai/schemas/cvEmployment.v1";
+import {
+  handleApiRequest,
+  type NodeRequestLike,
+  type NodeResponseLike,
+} from "./_shared/nodeWebHandler";
 import { createRateLimiter } from "./_shared/rateLimiter";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -1188,131 +1193,13 @@ async function handleWebRequest(request: Request) {
   }
 }
 
-type NodeRequestHeaders = Record<string, string | string[] | undefined>;
-
-type NodeRequestLike = AsyncIterable<unknown> & {
-  headers: NodeRequestHeaders;
-  method?: string;
-  url?: string;
-};
-
-type NodeResponseLike = {
-  end: (chunk?: Uint8Array | string) => void;
-  setHeader: (name: string, value: string) => void;
-  statusCode: number;
-};
-
-function isWebRequest(value: unknown): value is Request {
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      "method" in value &&
-      "headers" in value &&
-      typeof (value as Request).formData === "function",
-  );
-}
-
-function toWebHeaders(nodeHeaders: NodeRequestHeaders) {
-  const headers = new Headers();
-
-  Object.entries(nodeHeaders).forEach(([key, value]) => {
-    if (typeof value === "string") {
-      headers.set(key, value);
-      return;
-    }
-
-    if (Array.isArray(value)) {
-      headers.set(key, value.join(", "));
-    }
-  });
-
-  return headers;
-}
-
-function supportsRequestBody(method: string) {
-  return !["GET", "HEAD"].includes(method.toUpperCase());
-}
-
-async function readNodeRequestBody(nodeRequest: NodeRequestLike) {
-  const chunks: Uint8Array[] = [];
-
-  for await (const chunk of nodeRequest) {
-    if (chunk instanceof Uint8Array) {
-      chunks.push(chunk);
-      continue;
-    }
-
-    if (typeof chunk === "string") {
-      chunks.push(new TextEncoder().encode(chunk));
-      continue;
-    }
-
-    if (chunk instanceof ArrayBuffer) {
-      chunks.push(new Uint8Array(chunk));
-    }
-  }
-
-  if (chunks.length === 0) {
-    return undefined;
-  }
-
-  const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-  const combined = new Uint8Array(totalLength);
-  let offset = 0;
-
-  chunks.forEach((chunk) => {
-    combined.set(chunk, offset);
-    offset += chunk.length;
-  });
-
-  return combined;
-}
-
-async function handleNodeRequest(nodeRequest: NodeRequestLike, nodeResponse: NodeResponseLike) {
-  const method = (nodeRequest.method || "GET").toUpperCase();
-  const headers = toWebHeaders(nodeRequest.headers || {});
-  const host = headers.get("x-forwarded-host") || headers.get("host") || "localhost";
-  const protocol = headers.get("x-forwarded-proto") || "https";
-  const pathname = nodeRequest.url || "/api/parse-cv";
-  const body = supportsRequestBody(method) ? await readNodeRequestBody(nodeRequest) : undefined;
-
-  const requestInit: RequestInit & { duplex?: "half" } = {
-    body,
-    headers,
-    method,
-  };
-
-  if (supportsRequestBody(method)) {
-    requestInit.duplex = "half";
-  }
-
-  const webRequest = new Request(
-    new URL(pathname, `${protocol}://${host}`).toString(),
-    requestInit,
-  );
-  const webResponse = await handleWebRequest(webRequest);
-
-  nodeResponse.statusCode = webResponse.status;
-  webResponse.headers.forEach((value, key) => {
-    nodeResponse.setHeader(key, value);
-  });
-
-  const responseBody = new Uint8Array(await webResponse.arrayBuffer());
-  nodeResponse.end(responseBody);
-}
-
 export default async function handler(
   request: Request | NodeRequestLike,
   response?: NodeResponseLike,
 ) {
-  if (isWebRequest(request)) {
-    return handleWebRequest(request);
-  }
-
-  if (response) {
-    await handleNodeRequest(request as NodeRequestLike, response);
-    return;
-  }
-
-  return errorResponse("CV_PARSER_UNSUPPORTED_REQUEST_SHAPE");
+  return handleApiRequest(request, response, {
+    defaultPath: "/api/parse-cv",
+    handleWebRequest,
+    unsupportedResponse: () => errorResponse("CV_PARSER_UNSUPPORTED_REQUEST_SHAPE"),
+  });
 }

@@ -128,7 +128,7 @@ describe("getSubmissionValidationIssues", () => {
   });
 
   it("requires disability details when support needs are declared", () => {
-    const errors = validateApplication(
+    const errors = getSubmissionValidationIssues(
       makeValidApplication({
         contactDetails: {
           ...initialApplicationData.contactDetails,

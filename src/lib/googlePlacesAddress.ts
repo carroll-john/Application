@@ -29,10 +29,14 @@ export function getAddressComponent(
 }
 
 export function joinStreetAddress(components: GoogleAddressComponent[]) {
+  const subpremise = getAddressComponent(components, ["subpremise"])?.longText ?? "";
   const streetNumber = getAddressComponent(components, ["street_number"])?.longText ?? "";
   const route = getAddressComponent(components, ["route"])?.longText ?? "";
   const premise = getAddressComponent(components, ["premise"])?.longText ?? "";
-  const buildingNumber = streetNumber || premise;
+  const buildingNumber =
+    subpremise && streetNumber
+      ? `${subpremise}/${streetNumber}`
+      : streetNumber || subpremise || premise;
 
   return [buildingNumber, route].filter(Boolean).join(" ").trim() || premise.trim();
 }
