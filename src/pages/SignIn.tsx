@@ -1,11 +1,6 @@
 import { Mail, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Navigate,
-  useLocation,
-  useNavigate,
-  useSearchParams,
-} from "react-router-dom";
+import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
@@ -18,7 +13,6 @@ function formatDomains(domains: string[]) {
 }
 
 export default function SignIn() {
-  const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const {
@@ -30,11 +24,12 @@ export default function SignIn() {
     isAllowedEmail,
     isBypassedInDev,
     isConfigured,
-    authorizeCompanyEmail,
+    sendSignInLink,
   } = useAuth();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
   const trimmedEmail = email.trim().toLowerCase();
 
   const redirectPath = useMemo(() => {
@@ -72,14 +67,18 @@ export default function SignIn() {
     }
 
     setIsSubmitting(true);
-    const { error: signInError } = await authorizeCompanyEmail(trimmedEmail);
+    const { error: signInError } = await sendSignInLink(
+      trimmedEmail,
+      redirectPath,
+    );
     setIsSubmitting(false);
 
     if (signInError) {
       setError(signInError);
       return;
     }
-    navigate(redirectPath, { replace: true });
+
+    setLinkSentTo(trimmedEmail);
   }
 
   return (
@@ -98,7 +97,8 @@ export default function SignIn() {
               </h1>
               <p className="max-w-xl text-lg leading-8 text-slate-600">
                 This environment is limited to employees using approved company
-                email domains. Enter your Keypath email to continue.
+                email domains. We email you a one-time sign-in link — no
+                password to manage.
               </p>
             </div>
             <div className="rounded-[28px] border border-slate-200 bg-white/80 p-6 shadow-sm">
@@ -114,103 +114,134 @@ export default function SignIn() {
           </div>
 
           <SurfaceCard className="p-8 sm:p-10">
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <h2 className="text-2xl font-semibold text-slate-950">Work email</h2>
-                <p className="text-sm leading-6 text-slate-600">
-                  Enter your company email address to unlock the prototype. We
-                  only use the Keypath email domain as the access gate for this
-                  flow.
-                </p>
-              </div>
-
-              {!isConfigured ? (
-                <div className="rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-bg)] p-4 text-sm text-[var(--warning-text)]">
-                  Company-email access is not configured yet. Add
-                  `VITE_ALLOWED_EMAIL_DOMAINS` to enable sign-in outside local
-                  development.
-                </div>
-              ) : null}
-
-              <form className="space-y-4" onSubmit={handleSubmit}>
+            {linkSentTo ? (
+              <div className="space-y-5">
                 <div className="space-y-2">
-                  <label
-                    className="text-sm font-medium text-slate-800"
-                    htmlFor="email"
-                  >
-                    Company email
-                  </label>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      autoComplete="email"
-                      className="h-12 pl-11 text-base"
-                      id="email"
-                      placeholder={
-                        companyDomains[0]
-                          ? `name@${companyDomains[0]}`
-                          : "name@company.com"
-                      }
-                      type="email"
-                      value={email}
-                      onChange={(event) => {
-                        setEmail(event.target.value);
-                        setError(null);
-                      }}
-                    />
-                  </div>
+                  <h2 className="text-2xl font-semibold text-slate-950">
+                    Check your email
+                  </h2>
+                  <p className="text-sm leading-6 text-slate-600">
+                    We sent a one-time sign-in link to{" "}
+                    <span className="font-semibold text-slate-900">
+                      {linkSentTo}
+                    </span>
+                    . Open it on this device to finish signing in. The link
+                    expires shortly — request a new one if it stops working.
+                  </p>
+                </div>
+                <Button
+                  className="w-full sm:w-auto"
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setLinkSentTo(null);
+                    setError(null);
+                  }}
+                >
+                  Use a different email
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-semibold text-slate-950">
+                    Work email
+                  </h2>
+                  <p className="text-sm leading-6 text-slate-600">
+                    Enter your company email and we'll send a one-time sign-in
+                    link. Only approved company email domains can sign in.
+                  </p>
                 </div>
 
-                {error ? (
-                  <p className="text-sm font-medium text-[var(--error-text)]">
-                    {error}
-                  </p>
+                {!isConfigured ? (
+                  <div className="rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-bg)] p-4 text-sm text-[var(--warning-text)]">
+                    Authentication is not configured yet. Set the Supabase
+                    environment variables and `VITE_ALLOWED_EMAIL_DOMAINS` to
+                    enable sign-in outside local development.
+                  </div>
                 ) : null}
 
-                <Button
-                  className="h-12 w-full justify-center text-base"
-                  disabled={isSubmitting || !isConfigured}
-                  type="submit"
-                  variant="soft"
-                >
-                  {isSubmitting ? "Continuing..." : "Continue"}
-                </Button>
-              </form>
-
-              {canUseDevBypass ? (
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
-                  <p className="text-sm font-semibold text-slate-900">
-                    Local verification bypass
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    This localhost-only bypass is for temporary UI verification
-                    beyond the Keypath gate. It does not affect preview or
-                    production auth.
-                  </p>
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                    <Button
-                      className="sm:min-w-48"
-                      variant="outline"
-                      onClick={() => {
-                        disableDevBypass();
-                        setError(null);
-                      }}
+                <form className="space-y-4" onSubmit={handleSubmit}>
+                  <div className="space-y-2">
+                    <label
+                      className="text-sm font-medium text-slate-800"
+                      htmlFor="email"
                     >
-                      Use real sign-in
-                    </Button>
-                    <Button
-                      className="sm:min-w-56"
-                      variant="default"
-                      onClick={() => {
-                        enableDevBypass();
-                      }}
-                    >
-                      Enter Local Preview
-                    </Button>
+                      Company email
+                    </label>
+                    <div className="relative">
+                      <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      <Input
+                        autoComplete="email"
+                        className="h-12 pl-11 text-base"
+                        id="email"
+                        placeholder={
+                          companyDomains[0]
+                            ? `name@${companyDomains[0]}`
+                            : "name@company.com"
+                        }
+                        type="email"
+                        value={email}
+                        onChange={(event) => {
+                          setEmail(event.target.value);
+                          setError(null);
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              ) : null}
-            </div>
+
+                  {error ? (
+                    <p className="text-sm font-medium text-[var(--error-text)]">
+                      {error}
+                    </p>
+                  ) : null}
+
+                  <Button
+                    className="h-12 w-full justify-center text-base"
+                    disabled={isSubmitting || !isConfigured}
+                    type="submit"
+                    variant="soft"
+                  >
+                    {isSubmitting ? "Sending link..." : "Email me a sign-in link"}
+                  </Button>
+                </form>
+
+                {canUseDevBypass ? (
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+                    <p className="text-sm font-semibold text-slate-900">
+                      Local verification bypass
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      This localhost-only bypass is for temporary UI
+                      verification beyond the company sign-in gate. It does not
+                      affect preview or production auth.
+                    </p>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                      <Button
+                        className="sm:min-w-48"
+                        variant="outline"
+                        onClick={() => {
+                          disableDevBypass();
+                          setError(null);
+                        }}
+                      >
+                        Use real sign-in
+                      </Button>
+                      <Button
+                        className="sm:min-w-56"
+                        variant="default"
+                        onClick={() => {
+                          enableDevBypass();
+                        }}
+                      >
+                        Enter Local Preview
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
           </SurfaceCard>
         </div>
       </div>

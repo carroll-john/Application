@@ -20,10 +20,10 @@
 - Form navigation belongs to the form layout, not the site footer. Use the shared action-bar pattern.
 - Keep routing and provider layers thin. Prefer inline route redirects and shared application state over one-off wrapper components when they do not add real behavior.
 - The repo now uses a company-email gate scaffold. Use `AuthContext` and protected routes instead of inventing page-local auth checks.
-- Company-only access is currently enforced at the sign-in form and route gate during the demo phase. Keep the Supabase allowlist/RLS setup aligned for backend operations, but do not assume a live session exists in the current frontend flow.
+- Company-only access is enforced at the sign-in form, the route gate, and Supabase RLS. `AuthContext` exposes a live Supabase session — treat it as the source of truth for the signed-in user.
 - Keep that company-domain gate on the whole site during the current dogfood phase. Do not narrow it to admin-only routes until launch preparation explicitly calls for it.
 - Treat business-user access and applicant identity as separate concerns. Use the `business_users` and `applicant_profiles` groundwork rather than assuming the signed-in Keypath employee is the long-term applicant auth model.
-- The current Tuesday-demo auth model uses one Keypath-only email-domain gate on `/sign-in`. Do not reintroduce OTP, magic-link, or a second inner pseudo-auth layer for applicants.
+- Sign-in uses a Supabase magic-link (`signInWithOtp`) restricted to approved company email domains. Do not reintroduce the localStorage-only email gate, and do not add a second inner pseudo-auth layer for applicants.
 - Auto-provision a reusable local applicant profile for the authorized email when no matching local profile exists yet.
 - Use `/profile` as plain profile management, not as an auth step. It should stay limited to updating email and name, linking to the dashboard, and logging out.
 - Profile data should seed new applications, but it must not continuously overwrite existing applications once they have been created.
