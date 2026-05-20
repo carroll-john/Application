@@ -118,33 +118,35 @@ function mapApplicationSummary(row: RemoteApplicationRow): ApplicationSummary | 
   const defaultCourse = getDefaultCourse();
   const matchingCourse = getCourseByCode(row.course_code);
 
-  return summarizeApplication({
-    applicationMeta: {
-      applicantProfileId: row.applicant_profile_id ?? undefined,
-      applicationNumber: row.application_number ?? undefined,
-      createdAt: row.created_at,
-      recordId: row.id,
-      selectedCourse: {
-        code: row.course_code ?? matchingCourse?.code ?? defaultCourse.code,
-        title: row.course_title ?? matchingCourse?.title ?? defaultCourse.title,
-        provider: matchingCourse?.provider ?? defaultCourse.provider,
-        intake: row.intake_label ?? matchingCourse?.intakeLabel ?? defaultCourse.intakeLabel,
+  return summarizeApplication(
+    mergeStoredApplicationData({
+      applicationMeta: {
+        applicantProfileId: row.applicant_profile_id ?? undefined,
+        applicationNumber: row.application_number ?? undefined,
+        createdAt: row.created_at,
+        recordId: row.id,
+        selectedCourse: {
+          code: row.course_code ?? matchingCourse?.code ?? defaultCourse.code,
+          title: row.course_title ?? matchingCourse?.title ?? defaultCourse.title,
+          provider: matchingCourse?.provider ?? defaultCourse.provider,
+          intake: row.intake_label ?? matchingCourse?.intakeLabel ?? defaultCourse.intakeLabel,
+        },
+        status: row.status,
+        submittedAt: row.submitted_at ?? undefined,
+        updatedAt: row.updated_at,
       },
-      status: row.status,
-      submittedAt: row.submitted_at ?? undefined,
-      updatedAt: row.updated_at,
-    },
-    contactDetails: toContactDetails(row.contact_details),
-    cvDocument: undefined,
-    cvFileName: row.cv_file_name ?? undefined,
-    cvUploaded: Boolean(row.cv_document_id || row.cv_file_name),
-    employmentExperiences: [],
-    languageTests: [],
-    personalDetails: toPersonalDetails(row.personal_details),
-    professionalAccreditations: [],
-    secondaryQualifications: [],
-    tertiaryQualifications: [],
-  } as ApplicationData);
+      contactDetails: toContactDetails(row.contact_details),
+      cvDocument: undefined,
+      cvFileName: row.cv_file_name ?? undefined,
+      cvUploaded: Boolean(row.cv_document_id || row.cv_file_name),
+      employmentExperiences: [],
+      languageTests: [],
+      personalDetails: toPersonalDetails(row.personal_details),
+      professionalAccreditations: [],
+      secondaryQualifications: [],
+      tertiaryQualifications: [],
+    } as ApplicationData),
+  );
 }
 
 async function fetchRemoteApplicationRow(

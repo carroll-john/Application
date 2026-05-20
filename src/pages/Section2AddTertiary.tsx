@@ -1,14 +1,12 @@
 import {
-  AlertTriangle,
   Building2,
   Calendar,
-  CheckCircle2,
   FileText,
   GraduationCap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FileUpload } from "../components/FileUpload";
+import { DocumentUploadField } from "../components/DocumentUploadField";
 import { FormActionBar } from "../components/FormActionBar";
 import { FormSectionCard } from "../components/FormSectionCard";
 import { SectionProgressHeader } from "../components/SectionProgressHeader";
@@ -20,13 +18,8 @@ import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { useReviewReturn } from "../hooks/useReviewReturn";
-import {
-  deleteStoredDocument,
-  getDocumentUploadErrorMessage,
-  replaceStoredDocument,
-  viewLocalDocument,
-  viewStoredDocument,
-} from "../lib/documentStorage";
+import { saveDocumentAttachment } from "../lib/documentAttachment";
+import { getDocumentUploadErrorMessage } from "../lib/documentStorage";
 import { countries, months, years } from "../lib/formOptions";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
 
@@ -109,37 +102,21 @@ export default function Section2AddTertiary() {
       !formData.certificateDocument &&
       Boolean(originalCertificateDocument);
 
-    let transcriptDocument = formData.transcriptDocument;
-    let certificateDocument = formData.certificateDocument;
     const applicationId = await ensureRemoteRecordId();
-
-    if (selectedTranscriptFile) {
-      transcriptDocument = await replaceStoredDocument(
-        selectedTranscriptFile,
-        originalTranscriptDocument,
-        {
-          applicationId,
-          kind: "tertiary_transcript",
-        },
-      );
-    } else if (transcriptRemoved && originalTranscriptDocument) {
-      await deleteStoredDocument(originalTranscriptDocument);
-      transcriptDocument = undefined;
-    }
-
-    if (selectedCertificateFile) {
-      certificateDocument = await replaceStoredDocument(
-        selectedCertificateFile,
-        originalCertificateDocument,
-        {
-          applicationId,
-          kind: "tertiary_certificate",
-        },
-      );
-    } else if (certificateRemoved && originalCertificateDocument) {
-      await deleteStoredDocument(originalCertificateDocument);
-      certificateDocument = undefined;
-    }
+    const transcriptDocument = await saveDocumentAttachment({
+      applicationId,
+      currentDocument: transcriptRemoved ? undefined : formData.transcriptDocument,
+      kind: "tertiary_transcript",
+      originalDocument: originalTranscriptDocument,
+      selectedFile: selectedTranscriptFile,
+    });
+    const certificateDocument = await saveDocumentAttachment({
+      applicationId,
+      currentDocument: certificateRemoved ? undefined : formData.certificateDocument,
+      kind: "tertiary_certificate",
+      originalDocument: originalCertificateDocument,
+      selectedFile: selectedCertificateFile,
+    });
 
     const nextRecord = {
       ...formData,
@@ -363,142 +340,53 @@ export default function Section2AddTertiary() {
             title="Supporting Documents"
           >
             <div className="space-y-5">
-              <div>
-                <FileUpload
-                  attachedDescription="Your transcript is the academic record that shows the subjects you studied and the results you achieved."
-                  className={
-                    hasTranscript
-                      ? "border-[var(--success-border)] bg-[linear-gradient(180deg,#ffffff_0%,#f7fcf9_100%)] shadow-[0_18px_40px_rgba(31,106,59,0.08)]"
-                      : "border-[var(--warning-border)] bg-[linear-gradient(180deg,#ffffff_0%,#fffaf0_100%)] shadow-[0_18px_40px_rgba(122,90,0,0.08)]"
-                  }
-                  description="Your transcript is the academic record that shows the subjects you studied and the results you achieved."
-                  fileName={
-                    selectedTranscriptFile?.name ||
-                    formData.transcriptDocument?.name ||
-                    formData.transcriptDocumentName
-                  }
-                  fileSize={
-                    selectedTranscriptFile?.size || formData.transcriptDocument?.size
-                  }
-                  helperText=""
-                  label="Academic Transcript"
-                  onRemove={
-                    selectedTranscriptFile || formData.transcriptDocument
-                      ? () => {
-                          if (selectedTranscriptFile) {
-                            setSelectedTranscriptFile(null);
-                            return;
-                          }
-
-                          setFormData((previous) => ({
-                            ...previous,
-                            transcriptDocument: undefined,
-                            transcriptDocumentName: undefined,
-                          }));
-                        }
-                      : undefined
-                  }
-                  onView={
-                    selectedTranscriptFile
-                      ? () => {
-                          viewLocalDocument(selectedTranscriptFile);
-                        }
-                      : formData.transcriptDocument
-                        ? () => {
-                            void viewStoredDocument(formData.transcriptDocument);
-                          }
-                        : undefined
-                  }
-                  onFileSelect={(file) => setSelectedTranscriptFile(file)}
-                  required={!hasTranscript}
-                />
-                <div className="mt-3 flex items-center gap-2">
-                  {hasTranscript ? (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 text-[var(--success-text)]" />
-                      <p className="text-sm font-medium text-[var(--success-text)]">
-                        Transcript attached
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <AlertTriangle className="h-4 w-4 text-[var(--warning-text)]" />
-                      <p className="text-sm font-medium text-[var(--warning-text)]">
-                        Transcript required before submit
-                      </p>
-                    </>
-                  )}
-                </div>
-              </div>
+              <DocumentUploadField
+                attachedDescription="Your transcript is the academic record that shows the subjects you studied and the results you achieved."
+                attachedStatus="Transcript attached"
+                description="Your transcript is the academic record that shows the subjects you studied and the results you achieved."
+                document={formData.transcriptDocument}
+                documentName={formData.transcriptDocumentName}
+                label="Academic Transcript"
+                missingStatus="Transcript required before submit"
+                missingTone="warning"
+                onClearDocument={() =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    transcriptDocument: undefined,
+                    transcriptDocumentName: undefined,
+                  }))
+                }
+                onClearSelectedFile={() => setSelectedTranscriptFile(null)}
+                onFileSelect={setSelectedTranscriptFile}
+                required={!hasTranscript}
+                selectedFile={selectedTranscriptFile}
+                showStatusIcon
+              />
 
               {formData.completed ? (
                 <div className="animate-in fade-in duration-300">
-                  <FileUpload
+                  <DocumentUploadField
                     attachedDescription="Your certificate of completion confirms that you finished and were awarded this qualification."
-                    className={
-                      hasCertificate
-                        ? "border-[var(--success-border)] bg-[linear-gradient(180deg,#ffffff_0%,#f7fcf9_100%)] shadow-[0_18px_40px_rgba(31,106,59,0.08)]"
-                        : "border-[var(--warning-border)] bg-[linear-gradient(180deg,#ffffff_0%,#fffaf0_100%)] shadow-[0_18px_40px_rgba(122,90,0,0.08)]"
-                    }
+                    attachedStatus="Certificate of completion attached"
                     description="Your certificate of completion confirms that you finished and were awarded this qualification."
-                    fileName={
-                      selectedCertificateFile?.name ||
-                      formData.certificateDocument?.name ||
-                      formData.certificateDocumentName
-                    }
-                    fileSize={
-                      selectedCertificateFile?.size ||
-                      formData.certificateDocument?.size
-                    }
-                    helperText=""
+                    document={formData.certificateDocument}
+                    documentName={formData.certificateDocumentName}
                     label="Certificate of Completion"
-                    onRemove={
-                      selectedCertificateFile || formData.certificateDocument
-                        ? () => {
-                            if (selectedCertificateFile) {
-                              setSelectedCertificateFile(null);
-                              return;
-                            }
-
-                            setFormData((previous) => ({
-                              ...previous,
-                              certificateDocument: undefined,
-                              certificateDocumentName: undefined,
-                            }));
-                          }
-                        : undefined
+                    missingStatus="Certificate required before submit"
+                    missingTone="warning"
+                    onClearDocument={() =>
+                      setFormData((previous) => ({
+                        ...previous,
+                        certificateDocument: undefined,
+                        certificateDocumentName: undefined,
+                      }))
                     }
-                    onView={
-                      selectedCertificateFile
-                        ? () => {
-                            viewLocalDocument(selectedCertificateFile);
-                          }
-                        : formData.certificateDocument
-                          ? () => {
-                              void viewStoredDocument(formData.certificateDocument);
-                            }
-                          : undefined
-                    }
-                    onFileSelect={(file) => setSelectedCertificateFile(file)}
+                    onClearSelectedFile={() => setSelectedCertificateFile(null)}
+                    onFileSelect={setSelectedCertificateFile}
                     required={!hasCertificate}
+                    selectedFile={selectedCertificateFile}
+                    showStatusIcon
                   />
-                  <div className="mt-3 flex items-center gap-2">
-                    {hasCertificate ? (
-                      <>
-                        <CheckCircle2 className="h-4 w-4 text-[var(--success-text)]" />
-                        <p className="text-sm font-medium text-[var(--success-text)]">
-                          Certificate of completion attached
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <AlertTriangle className="h-4 w-4 text-[var(--warning-text)]" />
-                        <p className="text-sm font-medium text-[var(--warning-text)]">
-                          Certificate required before submit
-                        </p>
-                      </>
-                    )}
-                  </div>
                 </div>
               ) : null}
             </div>

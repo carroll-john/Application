@@ -368,85 +368,42 @@ export default function ReviewAndSubmit() {
               }
               title="Tertiary qualifications"
             >
-              <div className="space-y-3">
-                {data.tertiaryQualifications.map((qualification, index) => (
-                  <div
-                    key={qualification.id}
-                    className="rounded-lg border border-gray-200 bg-gray-50 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="font-medium text-gray-900">
-                        <span className="mr-2 rounded bg-[var(--cta-secondary)] px-2 py-0.5 text-xs text-white">
-                          #{index + 1}
-                        </span>
-                        {qualification.courseName}
-                      </p>
-                      <Button
-                        className="ml-2 rounded-lg"
-                        onClick={() =>
-                          navigateToReviewEdit(
-                            `/section2/edit-tertiary/${qualification.id}?from=review`,
-                          )
+              <ReviewList
+                items={data.tertiaryQualifications.map((qualification) => ({
+                  attachments: [
+                    qualification.transcriptDocumentName
+                      ? {
+                          fileName: qualification.transcriptDocumentName,
+                          label: "Transcript",
                         }
-                        size="sm"
-                        variant="outline"
-                      >
-                        <Edit className="h-3 w-3" />
-                        Edit
-                      </Button>
-                    </div>
-                    <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                      <div>
-                        <p className="text-gray-600">Institution</p>
-                        <p className="font-medium text-gray-900">
-                          {qualification.institution}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Country</p>
-                        <p className="font-medium text-gray-900">
-                          {qualification.country}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Level</p>
-                        <p className="font-medium text-gray-900">
-                          {qualification.level}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Duration</p>
-                        <p className="font-medium text-gray-900">
-                          {qualification.startMonth} {qualification.startYear} -{" "}
-                          {qualification.endMonth} {qualification.endYear}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Completed qualification</p>
-                        <p className="font-medium text-gray-900">
-                          {qualification.completed ? "Yes" : "No"}
-                        </p>
-                      </div>
-                    </div>
-                    <ReviewAttachments
-                      attachments={[
-                        qualification.transcriptDocumentName
-                          ? {
-                              fileName: qualification.transcriptDocumentName,
-                              label: "Transcript",
-                            }
-                          : null,
-                        qualification.certificateDocumentName
-                          ? {
-                              fileName: qualification.certificateDocumentName,
-                              label: "Certificate",
-                            }
-                          : null,
-                      ].filter(Boolean) as Array<{ fileName: string; label?: string }>}
-                    />
-                  </div>
-                ))}
-              </div>
+                      : null,
+                    qualification.certificateDocumentName
+                      ? {
+                          fileName: qualification.certificateDocumentName,
+                          label: "Certificate",
+                        }
+                      : null,
+                  ].filter(Boolean) as Array<{ fileName: string; label?: string }>,
+                  editPath: `/section2/edit-tertiary/${qualification.id}?from=review`,
+                  fallbackTitle: "Tertiary Qualification",
+                  fields: [
+                    ["Institution", qualification.institution],
+                    ["Country", qualification.country],
+                    ["Level", qualification.level],
+                    [
+                      "Duration",
+                      `${qualification.startMonth} ${qualification.startYear} - ${qualification.endMonth} ${qualification.endYear}`,
+                    ],
+                    [
+                      "Completed qualification",
+                      qualification.completed ? "Yes" : "No",
+                    ],
+                  ],
+                  id: qualification.id,
+                  title: qualification.courseName,
+                }))}
+                onEdit={navigateToReviewEdit}
+              />
             </ReviewCard>
           ) : null}
 
@@ -472,60 +429,36 @@ export default function ReviewAndSubmit() {
               }
               title="Employment experience"
             >
-              <div className="space-y-3">
-                {data.employmentExperiences.map((experience, index) => (
-                  <div
-                    key={experience.id}
-                    className="rounded-lg border border-gray-200 bg-gray-50 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="font-medium text-gray-900">
-                        <span className="mr-2 rounded bg-[var(--cta-secondary)] px-2 py-0.5 text-xs text-white">
-                          #{index + 1}
-                        </span>
-                        {experience.position || "Employment Experience"}
+              <ReviewList
+                items={data.employmentExperiences.map((experience) => ({
+                  detail: experience.duties ? (
+                    <div className="mt-3 border-t border-gray-200 pt-3">
+                      <p className="text-gray-600">Key responsibilities</p>
+                      <p className="mt-1 text-sm font-medium text-gray-900">
+                        {experience.duties}
                       </p>
-                      <Button
-                        className="ml-2 rounded-lg"
-                        onClick={() =>
-                          navigateToReviewEdit(
-                            `/section2/edit-employment/${experience.id}?from=review`,
-                          )
-                        }
-                        size="sm"
-                        variant="outline"
-                      >
-                        <Edit className="h-3 w-3" />
-                        Edit
-                      </Button>
                     </div>
-                    <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                      <ReviewField label="Company" value={experience.company} />
-                      <ReviewField label="Employment type" value={experience.type} />
-                      <ReviewField
-                        label="Duration"
-                        value={`${experience.startMonth} ${experience.startYear} - ${
-                          experience.currentRole
-                            ? "Current"
-                            : `${experience.endMonth} ${experience.endYear}`
-                        }`}
-                      />
-                      <ReviewField
-                        label="Current role"
-                        value={experience.currentRole ? "Yes" : "No"}
-                      />
-                    </div>
-                    {experience.duties ? (
-                      <div className="mt-3 border-t border-gray-200 pt-3">
-                        <p className="text-gray-600">Key responsibilities</p>
-                        <p className="mt-1 text-sm font-medium text-gray-900">
-                          {experience.duties}
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
+                  ) : null,
+                  editPath: `/section2/edit-employment/${experience.id}?from=review`,
+                  fallbackTitle: "Employment Experience",
+                  fields: [
+                    ["Company", experience.company],
+                    ["Employment type", experience.type],
+                    [
+                      "Duration",
+                      `${experience.startMonth} ${experience.startYear} - ${
+                        experience.currentRole
+                          ? "Current"
+                          : `${experience.endMonth} ${experience.endYear}`
+                      }`,
+                    ],
+                    ["Current role", experience.currentRole ? "Yes" : "No"],
+                  ],
+                  id: experience.id,
+                  title: experience.position,
+                }))}
+                onEdit={navigateToReviewEdit}
+              />
             </ReviewCard>
           ) : null}
 
@@ -536,47 +469,22 @@ export default function ReviewAndSubmit() {
               }
               title="Professional accreditations"
             >
-              <div className="space-y-3">
-                {data.professionalAccreditations.map((accreditation, index) => (
-                  <div
-                    key={accreditation.id}
-                    className="rounded-lg border border-gray-200 bg-gray-50 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="font-medium text-gray-900">
-                        <span className="mr-2 rounded bg-[var(--cta-secondary)] px-2 py-0.5 text-xs text-white">
-                          #{index + 1}
-                        </span>
-                        {accreditation.name || "Professional Accreditation"}
-                      </p>
-                      <Button
-                        className="ml-2 rounded-lg"
-                        onClick={() =>
-                          navigateToReviewEdit(
-                            `/section2/edit-accreditation/${accreditation.id}?from=review`,
-                          )
-                        }
-                        size="sm"
-                        variant="outline"
-                      >
-                        <Edit className="h-3 w-3" />
-                        Edit
-                      </Button>
-                    </div>
-                    <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                      <ReviewField label="Name" value={accreditation.name} />
-                      <ReviewField label="Status" value={accreditation.status} />
-                    </div>
-                    <ReviewAttachments
-                      attachments={
-                        accreditation.documentName
-                          ? [{ fileName: accreditation.documentName }]
-                          : []
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
+              <ReviewList
+                items={data.professionalAccreditations.map((accreditation) => ({
+                  attachments: accreditation.documentName
+                    ? [{ fileName: accreditation.documentName }]
+                    : [],
+                  editPath: `/section2/edit-accreditation/${accreditation.id}?from=review`,
+                  fallbackTitle: "Professional Accreditation",
+                  fields: [
+                    ["Name", accreditation.name],
+                    ["Status", accreditation.status],
+                  ],
+                  id: accreditation.id,
+                  title: accreditation.name,
+                }))}
+                onEdit={navigateToReviewEdit}
+              />
             </ReviewCard>
           ) : null}
 
@@ -587,47 +495,23 @@ export default function ReviewAndSubmit() {
               }
               title="Secondary qualifications"
             >
-              <div className="space-y-3">
-                {data.secondaryQualifications.map((qualification, index) => (
-                  <div
-                    key={qualification.id}
-                    className="rounded-lg border border-gray-200 bg-gray-50 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="font-medium text-gray-900">
-                        <span className="mr-2 rounded bg-[var(--cta-secondary)] px-2 py-0.5 text-xs text-white">
-                          #{index + 1}
-                        </span>
-                        {qualification.qualification || "Secondary Qualification"}
-                      </p>
-                      <Button
-                        className="ml-2 rounded-lg"
-                        onClick={() =>
-                          navigateToReviewEdit(
-                            `/section2/edit-secondary/${qualification.id}?from=review`,
-                          )
-                        }
-                        size="sm"
-                        variant="outline"
-                      >
-                        <Edit className="h-3 w-3" />
-                        Edit
-                      </Button>
-                    </div>
-                    <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                      <ReviewField label="Type" value={qualification.type} />
-                      <ReviewField label="Country" value={qualification.country} />
-                      <ReviewField label="State" value={qualification.state} />
-                      <ReviewField label="School" value={qualification.school} />
-                      <ReviewField
-                        label="Qualification obtained"
-                        value={qualification.qualification}
-                      />
-                      <ReviewField label="Completion year" value={qualification.year} />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ReviewList
+                items={data.secondaryQualifications.map((qualification) => ({
+                  editPath: `/section2/edit-secondary/${qualification.id}?from=review`,
+                  fallbackTitle: "Secondary Qualification",
+                  fields: [
+                    ["Type", qualification.type],
+                    ["Country", qualification.country],
+                    ["State", qualification.state],
+                    ["School", qualification.school],
+                    ["Qualification obtained", qualification.qualification],
+                    ["Completion year", qualification.year],
+                  ],
+                  id: qualification.id,
+                  title: qualification.qualification,
+                }))}
+                onEdit={navigateToReviewEdit}
+              />
             </ReviewCard>
           ) : null}
 
@@ -638,46 +522,21 @@ export default function ReviewAndSubmit() {
               }
               title="English language proficiency"
             >
-              <div className="space-y-3">
-                {data.languageTests.map((test, index) => (
-                  <div
-                    key={test.id}
-                    className="rounded-lg border border-gray-200 bg-gray-50 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="font-medium text-gray-900">
-                        <span className="mr-2 rounded bg-[var(--cta-secondary)] px-2 py-0.5 text-xs text-white">
-                          #{index + 1}
-                        </span>
-                        {test.name || "Language Test"}
-                      </p>
-                      <Button
-                        className="ml-2 rounded-lg"
-                        onClick={() =>
-                          navigateToReviewEdit(
-                            `/section2/edit-language-test/${test.id}?from=review`,
-                          )
-                        }
-                        size="sm"
-                        variant="outline"
-                      >
-                        <Edit className="h-3 w-3" />
-                        Edit
-                      </Button>
-                    </div>
-                    <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                      <ReviewField label="Test type" value={test.type} />
-                      <ReviewField label="Test name" value={test.name} />
-                      <ReviewField label="Test year" value={test.year} />
-                    </div>
-                    <ReviewAttachments
-                      attachments={
-                        test.documentName ? [{ fileName: test.documentName }] : []
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
+              <ReviewList
+                items={data.languageTests.map((test) => ({
+                  attachments: test.documentName ? [{ fileName: test.documentName }] : [],
+                  editPath: `/section2/edit-language-test/${test.id}?from=review`,
+                  fallbackTitle: "Language Test",
+                  fields: [
+                    ["Test type", test.type],
+                    ["Test name", test.name],
+                    ["Test year", test.year],
+                  ],
+                  id: test.id,
+                  title: test.name,
+                }))}
+                onEdit={navigateToReviewEdit}
+              />
             </ReviewCard>
           ) : null}
 
@@ -754,9 +613,65 @@ function ReviewCard({
   );
 }
 
-function ReviewGrid({ items }: { items: Array<[string, string]> }) {
+interface ReviewListItem {
+  attachments?: Array<{ fileName: string; label?: string }>;
+  detail?: ReactNode;
+  editPath: string;
+  fallbackTitle: string;
+  fields: Array<[string, string]>;
+  id: string;
+  title: string;
+}
+
+function ReviewList({
+  items,
+  onEdit,
+}: {
+  items: ReviewListItem[];
+  onEdit: (path: string) => void;
+}) {
   return (
-    <div className="grid gap-4 text-sm sm:grid-cols-2">
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <div
+          key={item.id}
+          className="rounded-lg border border-gray-200 bg-gray-50 p-4"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <p className="font-medium text-gray-900">
+              <span className="mr-2 rounded bg-[var(--cta-secondary)] px-2 py-0.5 text-xs text-white">
+                #{index + 1}
+              </span>
+              {item.title || item.fallbackTitle}
+            </p>
+            <Button
+              className="ml-2 rounded-lg"
+              onClick={() => onEdit(item.editPath)}
+              size="sm"
+              variant="outline"
+            >
+              <Edit className="h-3 w-3" />
+              Edit
+            </Button>
+          </div>
+          <ReviewGrid className="mt-3 grid gap-3 text-sm sm:grid-cols-2" items={item.fields} />
+          {item.detail}
+          <ReviewAttachments attachments={item.attachments ?? []} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReviewGrid({
+  className = "grid gap-4 text-sm sm:grid-cols-2",
+  items,
+}: {
+  className?: string;
+  items: Array<[string, string]>;
+}) {
+  return (
+    <div className={className}>
       {items.map(([label, value]) => (
         <ReviewField key={`${label}-${value}`} label={label} value={value} />
       ))}

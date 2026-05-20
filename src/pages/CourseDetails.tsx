@@ -60,12 +60,15 @@ export default function CourseDetails() {
   const shouldAutoApply =
     searchParams.get("apply") === "1" && searchParams.get("eligible") === "1";
   const isApplyActionPending = isHydrating || isStartingApplication;
-  const selectedCourse = {
-    code: course.code,
-    intake: course.intakeLabel,
-    provider: course.provider,
-    title: course.title,
-  };
+  const selectedCourse = useMemo(
+    () => ({
+      code: course.code,
+      intake: course.intakeLabel,
+      provider: course.provider,
+      title: course.title,
+    }),
+    [course.code, course.intakeLabel, course.provider, course.title],
+  );
   const currentCourseDraft = useMemo(
     () =>
       applications.find(
@@ -139,11 +142,7 @@ export default function CourseDetails() {
         );
       });
   }, [
-    applications,
     beginCourseApplication,
-    course.code,
-    course.intakeLabel,
-    course.provider,
     course.title,
     currentCourseDraft,
     isAuthenticated,

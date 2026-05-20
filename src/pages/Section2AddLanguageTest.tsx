@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FileUpload } from "../components/FileUpload";
+import { DocumentUploadField } from "../components/DocumentUploadField";
 import { FormActionBar } from "../components/FormActionBar";
 import { FormSectionCard } from "../components/FormSectionCard";
 import { SectionProgressHeader } from "../components/SectionProgressHeader";
@@ -11,13 +11,8 @@ import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { useReviewReturn } from "../hooks/useReviewReturn";
-import {
-  deleteStoredDocument,
-  getDocumentUploadErrorMessage,
-  replaceStoredDocument,
-  viewLocalDocument,
-  viewStoredDocument,
-} from "../lib/documentStorage";
+import { saveDocumentAttachment } from "../lib/documentAttachment";
+import { getDocumentUploadErrorMessage } from "../lib/documentStorage";
 import { years } from "../lib/formOptions";
 
 export default function Section2AddLanguageTest() {
@@ -45,28 +40,16 @@ export default function Section2AddLanguageTest() {
     type: "success" | "warning" | "error" | "status";
   } | null>(null);
   const originalDocument = existing?.document;
-  const hasDocument =
-    Boolean(selectedFile) ||
-    Boolean(formData.document) ||
-    Boolean(formData.documentName);
 
   const saveRecord = async () => {
-    let document = formData.document;
     const applicationId = await ensureRemoteRecordId();
-
-    if (selectedFile) {
-      document = await replaceStoredDocument(
-        selectedFile,
-        formData.document ?? originalDocument,
-        {
-          applicationId,
-          kind: "language_test_document",
-        },
-      );
-    } else if (!formData.document && originalDocument) {
-      await deleteStoredDocument(originalDocument);
-      document = undefined;
-    }
+    const document = await saveDocumentAttachment({
+      applicationId,
+      currentDocument: formData.document,
+      kind: "language_test_document",
+      originalDocument,
+      selectedFile,
+    });
 
     const nextRecord = {
       ...formData,
@@ -153,60 +136,25 @@ export default function Section2AddLanguageTest() {
               />
             </div>
 
-            <FileUpload
+            <DocumentUploadField
               attachedDescription="Your test results document is attached. You can view or remove it below."
-              className={
-                hasDocument
-                  ? "border-[var(--success-border)] bg-[linear-gradient(180deg,#ffffff_0%,#f7fcf9_100%)] shadow-[0_18px_40px_rgba(31,106,59,0.08)]"
-                  : "border-[var(--info-border)] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfd_100%)]"
-              }
+              attachedStatus="Results document attached"
               description="Upload the score report or official result."
-              fileName={selectedFile?.name || formData.document?.name || formData.documentName}
-              fileSize={selectedFile?.size || formData.document?.size}
-              helperText=""
+              document={formData.document}
+              documentName={formData.documentName}
               label="Test Results Document"
-              onRemove={
-                selectedFile || formData.document
-                  ? () => {
-                      if (selectedFile) {
-                        setSelectedFile(null);
-                        return;
-                      }
-
-                      setFormData((previous) => ({
-                        ...previous,
-                        document: undefined,
-                        documentName: undefined,
-                      }));
-                    }
-                  : undefined
+              missingStatus="Add your score report now, or come back to it later."
+              onClearDocument={() =>
+                setFormData((previous) => ({
+                  ...previous,
+                  document: undefined,
+                  documentName: undefined,
+                }))
               }
-              onView={
-                selectedFile
-                  ? () => {
-                      viewLocalDocument(selectedFile);
-                    }
-                  : formData.document
-                    ? () => {
-                        void viewStoredDocument(formData.document);
-                      }
-                    : undefined
-              }
-              onFileSelect={(file) => setSelectedFile(file)}
+              onClearSelectedFile={() => setSelectedFile(null)}
+              onFileSelect={setSelectedFile}
+              selectedFile={selectedFile}
             />
-            <div className="flex items-center gap-2">
-              <p
-                className={`text-sm font-medium ${
-                  hasDocument
-                    ? "text-[var(--success-text)]"
-                    : "text-[var(--info-text)]"
-                }`}
-              >
-                {hasDocument
-                  ? "Results document attached"
-                  : "Add your score report now, or come back to it later."}
-              </p>
-            </div>
 
             <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
               <p className="text-sm text-[var(--info-text)]">

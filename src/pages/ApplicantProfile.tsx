@@ -1,5 +1,5 @@
 import { Mail } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { SurfaceCard } from "../components/SurfaceCard";
@@ -37,6 +37,18 @@ export default function ApplicantProfile() {
   const signedInLabel =
     companyUserDisplayName || companyUserEmail || "your Keypath account";
 
+  const applyProfile = useCallback(
+    (profile: StoredApplicantProfile | null) => {
+      const fallbackEmail = companyUserEmail ?? "";
+
+      setProfileRecordId(profile?.id);
+      setEmail(profile?.email ?? fallbackEmail);
+      setFirstName(profile?.firstName ?? "");
+      setLastName(profile?.lastName ?? "");
+    },
+    [companyUserEmail],
+  );
+
   useEffect(() => {
     let isCancelled = false;
 
@@ -72,16 +84,7 @@ export default function ApplicantProfile() {
     return () => {
       isCancelled = true;
     };
-  }, [companyUserEmail]);
-
-  function applyProfile(profile: StoredApplicantProfile | null) {
-    const fallbackEmail = companyUserEmail ?? "";
-
-    setProfileRecordId(profile?.id);
-    setEmail(profile?.email ?? fallbackEmail);
-    setFirstName(profile?.firstName ?? "");
-    setLastName(profile?.lastName ?? "");
-  }
+  }, [applyProfile, companyUserEmail]);
 
   async function handleSave() {
     const trimmedEmail = email.trim().toLowerCase();
