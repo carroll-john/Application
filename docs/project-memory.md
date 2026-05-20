@@ -29,19 +29,18 @@ This file stores durable product, UX, and implementation rules for the applicati
 - Submission requirements and page-save requirements are separate unless the product explicitly says otherwise.
 
 ## Auth And Identity
-- The current Tuesday-demo model uses a company-email gate on `/sign-in` with no OTP or magic-link step.
-- Access remains restricted to `@keypathedu.com.au` during dogfooding.
-- Do not reintroduce OTP, magic-link, or a second inner pseudo-auth layer for applicants.
-- In the current flow, the company email unlocks local prototype access and auto-seeds one reusable local applicant profile unless a newer auth decision restores real sessions.
-- Company access and local-data-owner storage keys are TTL-backed and should expire after 24 hours.
-- The localhost-only bypass key is TTL-backed and should expire after 4 hours.
-- Dev bypass must stay restricted to `localhost` and `127.0.0.1` in development only.
+- Applicant auth uses Supabase email one-time codes. Users sign in or create an account through the same email-code flow.
+- Do not restore the Keypath/company-domain gate for applicants. The app is open to public applicant email addresses.
+- Supabase Auth is configured by `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`; `VITE_ALLOWED_EMAIL_DOMAINS` is obsolete.
+- Supabase email templates must include `{{ .Token }}` so emails send a code that can be verified in-app.
+- Auth entry points are the header, eligibility completion before showing the result, and apply actions before starting/resuming an application.
+- Signed-in users use Supabase-backed profile/application/document storage. Signed-out browsing and pre-auth draft work may remain local.
+- When a signed-in user has anonymous local drafts on the device, offer a one-time import into the Supabase account.
 - `/profile` is profile management, not an auth step.
 - Reusable profile fields are limited to email, first name, and last name.
 - Profile changes affect future applications by default. Existing applications keep the values they were created with.
-- After the Keypath email gate, users should land on the intended course or app route, or `/` by default.
+- After sign-in, users should land on the intended course or app route, or `/` by default.
 - Post-sign-in redirects must be sanitized to internal absolute app paths.
-- A localhost-only auth bypass exists for local verification. It must stay dev-only and must never affect preview or production behavior.
 
 ## Course And Application Model
 - The app supports multiple applications per signed-in user.

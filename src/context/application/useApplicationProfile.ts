@@ -3,12 +3,12 @@ import type { ApplicationStorageAdapter } from "../../lib/applicationStorageAdap
 import type { StoredApplicantProfile } from "../../lib/applicantProfileStore";
 
 interface UseApplicationProfileOptions {
-  companyUserEmail: string | null;
+  userEmail: string | null;
   storageAdapter: ApplicationStorageAdapter;
 }
 
 export function useApplicationProfile({
-  companyUserEmail,
+  userEmail,
   storageAdapter,
 }: UseApplicationProfileOptions) {
   const [applicantProfile, setApplicantProfileState] =
@@ -36,18 +36,18 @@ export function useApplicationProfile({
 
   const ensureApplicantProfile = useCallback(async () => {
     const profile = await storageAdapter.ensureApplicantProfile(
-      companyUserEmail ?? undefined,
+      userEmail ?? undefined,
     );
     setApplicantProfile(profile);
     return profile;
-  }, [companyUserEmail, setApplicantProfile, storageAdapter]);
+  }, [setApplicantProfile, storageAdapter, userEmail]);
 
   const refreshApplicantProfile = useCallback(async () => {
     const profile = await storageAdapter.loadApplicantProfile(
-      companyUserEmail ?? undefined,
+      userEmail ?? undefined,
     );
     setApplicantProfile(profile);
-  }, [companyUserEmail, setApplicantProfile, storageAdapter]);
+  }, [setApplicantProfile, storageAdapter, userEmail]);
 
   return {
     applicantProfile,

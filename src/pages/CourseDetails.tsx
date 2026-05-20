@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { AccentIconBadge } from "../components/AccentIconBadge";
 import { AppBrandHeader } from "../components/AppBrandHeader";
+import { AuthModal } from "../components/AuthModal";
 import { ModalShell } from "../components/ModalShell";
 import { StatusPill } from "../components/StatusPill";
 import { SurfaceCard } from "../components/SurfaceCard";
@@ -36,6 +37,7 @@ import {
 } from "../lib/posthog";
 
 type EligibilityOutcome = "success" | "fail" | null;
+type AuthGateContext = "apply" | "eligibility";
 
 type StartApplicationOptions = {
   prefillFromApplicationId?: string | null;
@@ -47,6 +49,58 @@ type BeginCourseApplication = (
   options?: StartApplicationOptions,
 ) => Promise<ApplicationData>;
 
+const PENDING_ELIGIBILITY_STORAGE_KEY =
+  "application-prototype:pending-eligibility-check";
+
+function savePendingEligibilityCheck(
+  courseCode: string,
+  answers: EligibilityAnswers,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.setItem(
+    PENDING_ELIGIBILITY_STORAGE_KEY,
+    JSON.stringify({ answers, courseCode }),
+  );
+}
+
+function loadPendingEligibilityCheck(courseCode: string) {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rawValue = window.sessionStorage.getItem(
+    PENDING_ELIGIBILITY_STORAGE_KEY,
+  );
+
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as {
+      answers?: EligibilityAnswers;
+      courseCode?: string;
+    };
+
+    return parsed.courseCode === courseCode && parsed.answers
+      ? parsed.answers
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearPendingEligibilityCheck() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.removeItem(PENDING_ELIGIBILITY_STORAGE_KEY);
+}
+
 function useCourseApplicationStart({
   activeApplicationId,
   applications,
@@ -56,6 +110,7 @@ function useCourseApplicationStart({
   isHydrating,
   navigate,
   onEligibleResult,
+  onAuthRequired,
   onResetEligibilityState,
   selectedCourse,
   shouldAutoApply,
@@ -68,6 +123,7 @@ function useCourseApplicationStart({
   isHydrating: boolean;
   navigate: NavigateFunction;
   onEligibleResult: (reason: string) => void;
+  onAuthRequired: (context: AuthGateContext) => void;
   onResetEligibilityState: () => void;
   selectedCourse: SelectedCourse;
   shouldAutoApply: boolean;
@@ -165,21 +221,13 @@ function useCourseApplicationStart({
       auth_state: "anonymous",
       redirect_reason: "eligible_apply",
     });
-    resetApplicationStartState();
-    onResetEligibilityState();
-    navigate(
-      `/sign-in?redirect=${encodeURIComponent(
-        `/courses/${course.code}?eligible=1&apply=1`,
-      )}`,
-    );
+    onAuthRequired("apply");
   }, [
     course,
     currentCourseDraft,
     isApplyActionPending,
     isAuthenticated,
-    navigate,
-    onResetEligibilityState,
-    resetApplicationStartState,
+    onAuthRequired,
     reusableSourceApplications.length,
     startApplication,
   ]);
@@ -231,6 +279,7 @@ function useCourseApplicationStart({
     isHydrating,
     navigate,
     onEligibleResult,
+    onAuthRequired,
     reusableSourceApplications.length,
     selectedCourse,
     shouldAutoApply,
@@ -254,7 +303,7 @@ export default function CourseDetails() {
   const navigate = useNavigate();
   const { courseCode } = useParams();
   const [searchParams] = useSearchParams();
-  const { isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
+  const { isAuthenticated } = useAuth();
   const {
     activeApplicationId,
     applications,
@@ -274,9 +323,12 @@ export default function CourseDetails() {
     experienceRange: "",
     goal: "",
   });
+  const [authGateContext, setAuthGateContext] =
+    useState<AuthGateContext | null>(null);
+  const [pendingAuthAction, setPendingAuthAction] =
+    useState<AuthGateContext | null>(null);
   const courseDetailsSectionRef = useRef<HTMLElement | null>(null);
   const entryRequirementsRef = useRef<HTMLDivElement | null>(null);
-  const isAuthenticated = Boolean(isBypassedInDev || isAuthorizedCompanyUser);
   const requiresExperienceInput = hasCourseExperienceAlternative(course.eligibility);
   const shouldAutoApply =
     searchParams.get("apply") === "1" && searchParams.get("eligible") === "1";
@@ -298,6 +350,17 @@ export default function CourseDetails() {
     setEligibilityOutcome("success");
     setEligibilityReason(reason);
   }, []);
+  const openAuthGate = useCallback(
+    (context: AuthGateContext) => {
+      setPendingAuthAction(context);
+      setAuthGateContext(context);
+      capturePostHogEvent("auth_gate_opened", {
+        ...getCourseAnalyticsProperties(course),
+        auth_context: context,
+      });
+    },
+    [course],
+  );
   const {
     applyError,
     currentCourseDraft,
@@ -316,6 +379,7 @@ export default function CourseDetails() {
     isAuthenticated,
     isHydrating,
     navigate,
+    onAuthRequired: openAuthGate,
     onEligibleResult: showEligibleResult,
     onResetEligibilityState: resetEligibilityView,
     selectedCourse,
@@ -330,20 +394,41 @@ export default function CourseDetails() {
     Boolean(eligibilityForm.goal) &&
     Boolean(eligibilityForm.educationLevel) &&
     (!requiresExperienceInput || Boolean(eligibilityForm.experienceRange));
+  const resolveEligibilityResult = useCallback(
+    (answers: EligibilityAnswers) => {
+      const result = evaluateCourseEligibility(course.eligibility, answers);
+
+      capturePostHogEvent("eligibility_check_completed", {
+        ...getCourseAnalyticsProperties(course),
+        education_level: answers.educationLevel,
+        eligible: result.eligible,
+        experience_range: answers.experienceRange,
+        goal: answers.goal,
+      });
+      clearPendingEligibilityCheck();
+      setEligibilityOutcome(result.eligible ? "success" : "fail");
+      setEligibilityReason(result.reason ?? "");
+    },
+    [course],
+  );
   const handleEligibilityComplete = useCallback(() => {
     setApplyError(null);
-    const result = evaluateCourseEligibility(course.eligibility, eligibilityForm);
 
-    capturePostHogEvent("eligibility_check_completed", {
-      ...getCourseAnalyticsProperties(course),
-      education_level: eligibilityForm.educationLevel,
-      eligible: result.eligible,
-      experience_range: eligibilityForm.experienceRange,
-      goal: eligibilityForm.goal,
-    });
-    setEligibilityOutcome(result.eligible ? "success" : "fail");
-    setEligibilityReason(result.reason ?? "");
-  }, [course, eligibilityForm, setApplyError]);
+    if (!isAuthenticated) {
+      savePendingEligibilityCheck(course.code, eligibilityForm);
+      openAuthGate("eligibility");
+      return;
+    }
+
+    resolveEligibilityResult(eligibilityForm);
+  }, [
+    course.code,
+    eligibilityForm,
+    isAuthenticated,
+    openAuthGate,
+    resolveEligibilityResult,
+    setApplyError,
+  ]);
   const handleTryEligibilityAgain = useCallback(() => {
     setApplyError(null);
     setEligibilityReason("");
@@ -353,6 +438,54 @@ export default function CourseDetails() {
     resetEligibilityState();
     navigate("/");
   }, [navigate, resetEligibilityState]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !pendingAuthAction) {
+      return;
+    }
+
+    if (pendingAuthAction === "apply" && isHydrating) {
+      return;
+    }
+
+    setAuthGateContext(null);
+
+    if (pendingAuthAction === "eligibility") {
+      const pendingAnswers =
+        loadPendingEligibilityCheck(course.code) ?? eligibilityForm;
+      setPendingAuthAction(null);
+      resolveEligibilityResult(pendingAnswers);
+      return;
+    }
+
+    setPendingAuthAction(null);
+    void handleEligibleApplyNow();
+  }, [
+    course.code,
+    eligibilityForm,
+    handleEligibleApplyNow,
+    isAuthenticated,
+    isHydrating,
+    pendingAuthAction,
+    resolveEligibilityResult,
+  ]);
+
+  useEffect(() => {
+    if (isAuthenticated && !eligibilityOutcome && !pendingAuthAction) {
+      const pendingAnswers = loadPendingEligibilityCheck(course.code);
+
+      if (pendingAnswers) {
+        setEligibilityForm(pendingAnswers);
+        resolveEligibilityResult(pendingAnswers);
+      }
+    }
+  }, [
+    course.code,
+    eligibilityOutcome,
+    isAuthenticated,
+    pendingAuthAction,
+    resolveEligibilityResult,
+  ]);
 
   function handleReviewRequirements() {
     resetEligibilityState();
@@ -668,6 +801,19 @@ export default function CourseDetails() {
           onReviewRequirements={handleReviewRequirements}
           onStartApplication={startApplication}
           onTryAgain={handleTryEligibilityAgain}
+        />
+      ) : null}
+
+      {authGateContext ? (
+        <AuthModal
+          context={authGateContext}
+          onAuthenticated={() => {
+            setAuthGateContext(null);
+          }}
+          onClose={() => {
+            setAuthGateContext(null);
+            setPendingAuthAction(null);
+          }}
         />
       ) : null}
     </div>

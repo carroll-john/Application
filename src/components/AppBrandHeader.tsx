@@ -67,15 +67,16 @@ export function AppBrandHeader({
   showApplicantProfileLink = true,
 }: AppBrandHeaderProps) {
   const location = useLocation();
-  const { isAuthorizedCompanyUser, isBypassedInDev } = useAuth();
-  const isSignedIn = isBypassedInDev || isAuthorizedCompanyUser;
+  const { isAuthenticated } = useAuth();
   const canShowAccountLink =
     showApplicantProfileLink &&
     location.pathname !== "/profile" &&
     location.pathname !== "/applicant-profile" &&
     location.pathname !== "/sign-in" &&
     location.pathname !== "/auth/callback";
-  const accountLinkPath = isSignedIn ? "/profile" : `/sign-in?redirect=${encodeURIComponent(location.pathname + location.search)}`;
+  const accountLinkPath = isAuthenticated
+    ? "/profile"
+    : `/sign-in?redirect=${encodeURIComponent(location.pathname + location.search)}`;
 
   return (
     <div className="bg-[var(--sn-navy)]">
@@ -104,7 +105,7 @@ export function AppBrandHeader({
               }
               to={accountLinkPath}
             >
-              {isSignedIn ? "Profile" : "Log in"}
+              {isAuthenticated ? "Profile" : "Log in"}
             </NavLink>
           ) : null}
           {children ? <div className="shrink-0">{children}</div> : null}

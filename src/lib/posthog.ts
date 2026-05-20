@@ -14,8 +14,8 @@ type PostHogConfig = {
 };
 
 type PostHogUserContext = {
-  companyDomain?: string;
   email?: string;
+  emailDomain?: string;
   id: string;
   name?: string;
 };
@@ -600,7 +600,7 @@ export function syncPostHogUser(user: PostHogUserContext | null) {
     return;
   }
 
-  const companyDomain = user.companyDomain ?? user.email?.split("@")[1] ?? "unknown";
+  const emailDomain = user.emailDomain ?? user.email?.split("@")[1] ?? "unknown";
 
   void hashAnalyticsIdentifier(user.id).then((hashedUserId) => {
     if (requestId !== postHogIdentifyRequestId || !canCapturePostHog()) {
@@ -610,7 +610,7 @@ export function syncPostHogUser(user: PostHogUserContext | null) {
     window.posthog?.identify?.(hashedUserId, {
       app_environment: APP_ENVIRONMENT,
       analytics_user_id_hash: hashedUserId,
-      company_domain: companyDomain,
+      email_domain: emailDomain,
     });
   });
 }

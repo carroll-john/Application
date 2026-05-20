@@ -134,3 +134,16 @@
   `storageMode` deliberately stays `local` for now; activating remote (Supabase)
   draft persistence is a separate change that should follow a remote-store
   integration test.
+
+### Public applicant auth via email OTP
+- Supersedes the remaining company-domain gate in the 2026-05-20 magic-link
+  decision. Applicant access is no longer Keypath-only.
+- `/sign-in` now uses a unified Supabase email one-time-code flow for both
+  sign up and sign in. The email template must use `{{ .Token }}` so users can
+  verify the code in-app.
+- Auth can be initiated from the header, from eligibility completion before the
+  result is shown, and from apply actions before an application is started.
+- Signed-in users use remote Supabase profile/application/document storage;
+  anonymous users can still browse and keep pre-auth draft state locally.
+- Applicant RLS now relies on `auth.uid()` ownership checks instead of
+  `is_allowed_company_user()` or `allowed_email_domains`.

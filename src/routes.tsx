@@ -159,8 +159,7 @@ function Layout() {
 
 function AuthRequiredLayout() {
   const {
-    isAuthorizedCompanyUser,
-    isBypassedInDev,
+    isAuthenticated,
     isConfigured,
     isLoading,
   } = useAuth();
@@ -168,10 +167,6 @@ function AuthRequiredLayout() {
 
   if (isLoading) {
     return <RouteLoadingScreen />;
-  }
-
-  if (isBypassedInDev) {
-    return <Outlet />;
   }
 
   if (!isConfigured) {
@@ -182,15 +177,15 @@ function AuthRequiredLayout() {
             Authentication setup required
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Set `VITE_ALLOWED_EMAIL_DOMAINS` before deploying this app outside
-            local development.
+            Set the Supabase URL and anon key environment variables before
+            using protected application routes.
           </p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthorizedCompanyUser) {
+  if (!isAuthenticated) {
     const redirect = `${location.pathname}${location.search}`;
     return (
       <Navigate

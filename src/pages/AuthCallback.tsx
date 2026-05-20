@@ -5,14 +5,13 @@ import { sanitizeRedirectPath } from "../lib/authCallback";
 
 export default function AuthCallback() {
   const location = useLocation();
-  const { isAuthorizedCompanyUser, isBypassedInDev, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const redirectPath = sanitizeRedirectPath(
     new URLSearchParams(location.search).get("redirect"),
   );
 
-  // The Supabase client establishes the session from the magic-link URL during
-  // initialisation. Wait for that to resolve before deciding where to send the
-  // user, otherwise a valid sign-in would be bounced back to /sign-in.
+  // This remains as a fallback for older email links. The primary auth flow now
+  // verifies email OTP codes in the app.
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f7f7f4] px-4">
@@ -24,7 +23,7 @@ export default function AuthCallback() {
     );
   }
 
-  if (isAuthorizedCompanyUser || isBypassedInDev) {
+  if (isAuthenticated) {
     return <Navigate replace to={redirectPath} />;
   }
 
