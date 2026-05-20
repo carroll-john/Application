@@ -1,21 +1,18 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./supabase.types";
+import {
+  resolveSupabaseAnonKey,
+  resolveSupabaseUrl,
+} from "./supabaseConfig";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
-export const DEV_AUTH_BYPASS_STORAGE_KEY =
-  "application-prototype:dev-auth-bypass";
-
-export function canUseLocalDevAuthBypassForHostname(
-  isDev: boolean,
-  hostname: string | null | undefined,
-) {
-  if (!isDev) {
-    return false;
-  }
-
-  return ["127.0.0.1", "localhost"].includes(hostname ?? "");
-}
+const supabaseUrl = resolveSupabaseUrl(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.DEV,
+);
+const supabaseAnonKey = resolveSupabaseAnonKey(
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+  import.meta.env.DEV,
+);
 
 export function hasSupabaseConfig(
   url: string | null | undefined,
@@ -38,10 +35,3 @@ export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
       },
     })
   : null;
-
-export const canUseLocalDevAuthBypass =
-  typeof window !== "undefined" &&
-  canUseLocalDevAuthBypassForHostname(
-    import.meta.env.DEV,
-    window.location.hostname,
-  );

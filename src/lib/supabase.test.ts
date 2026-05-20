@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { canUseLocalDevAuthBypassForHostname, hasSupabaseConfig } from "./supabase";
+import {
+  LOCAL_DEV_SUPABASE_ANON_KEY,
+  LOCAL_DEV_SUPABASE_URL,
+  resolveSupabaseAnonKey,
+  resolveSupabaseUrl,
+} from "./supabaseConfig";
+import { hasSupabaseConfig } from "./supabase";
 
 describe("hasSupabaseConfig", () => {
   it("requires only the Supabase URL and anon key", () => {
@@ -16,28 +22,36 @@ describe("hasSupabaseConfig", () => {
   });
 });
 
-describe("canUseLocalDevAuthBypassForHostname", () => {
-  it("allows bypass on localhost hosts in development", () => {
-    expect(canUseLocalDevAuthBypassForHostname(true, "localhost")).toBe(true);
-    expect(canUseLocalDevAuthBypassForHostname(true, "127.0.0.1")).toBe(true);
+describe("resolveSupabaseUrl", () => {
+  it("prefers configured values", () => {
+    expect(
+      resolveSupabaseUrl("https://example.supabase.co", false),
+    ).toBe("https://example.supabase.co");
   });
 
-  it("blocks bypass outside development mode", () => {
-    expect(canUseLocalDevAuthBypassForHostname(false, "localhost")).toBe(false);
-    expect(canUseLocalDevAuthBypassForHostname(false, "127.0.0.1")).toBe(false);
+  it("falls back to the local stack URL in development", () => {
+    expect(resolveSupabaseUrl(undefined, true)).toBe(LOCAL_DEV_SUPABASE_URL);
   });
 
-  it("blocks bypass for non-local hosts even in development", () => {
-    expect(canUseLocalDevAuthBypassForHostname(true, "application-prototype.vercel.app")).toBe(
-      false,
+  it("does not fall back outside development", () => {
+    expect(resolveSupabaseUrl(undefined, false)).toBeUndefined();
+  });
+});
+
+describe("resolveSupabaseAnonKey", () => {
+  it("prefers configured values", () => {
+    expect(resolveSupabaseAnonKey("publishable-key", false)).toBe(
+      "publishable-key",
     );
-    expect(canUseLocalDevAuthBypassForHostname(true, "preview.example.com")).toBe(
-      false,
+  });
+
+  it("falls back to the local stack anon key in development", () => {
+    expect(resolveSupabaseAnonKey(undefined, true)).toBe(
+      LOCAL_DEV_SUPABASE_ANON_KEY,
     );
   });
 
-  it("blocks bypass when hostname is missing", () => {
-    expect(canUseLocalDevAuthBypassForHostname(true, undefined)).toBe(false);
-    expect(canUseLocalDevAuthBypassForHostname(true, null)).toBe(false);
+  it("does not fall back outside development", () => {
+    expect(resolveSupabaseAnonKey(undefined, false)).toBeUndefined();
   });
 });
