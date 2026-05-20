@@ -36,8 +36,25 @@ jobs:
       - name: Build
         run: npm run build
 
+  check-secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      has-openai-key: ${{ steps.check.outputs.has-key }}
+    steps:
+      - id: check
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -n "$OPENAI_API_KEY" ]; then
+            echo "has-key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-key=false" >> "$GITHUB_OUTPUT"
+          fi
+
   cv-parser-regression:
-    if: ${{ secrets.OPENAI_API_KEY != '' }}
+    needs: check-secrets
+    if: ${{ needs.check-secrets.outputs.has-openai-key == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
