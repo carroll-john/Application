@@ -496,6 +496,10 @@ function inferExperienceMinimum(course: RawCourseEntry) {
     return 5;
   }
 
+  if (maximumYears >= 3) {
+    return 3;
+  }
+
   if (maximumYears >= 2) {
     return 2;
   }
