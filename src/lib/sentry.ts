@@ -6,6 +6,11 @@ import {
   useLocation,
   useNavigationType,
 } from "react-router-dom";
+import {
+  hasAnalyticsConsent,
+  onAnalyticsConsentChange,
+} from "./analyticsConsent";
+import { hashAnalyticsIdentifierSync } from "./analyticsIdentity";
 
 type SentryUserContext = {
   companyDomain?: string;
@@ -36,6 +41,20 @@ const SENTRY_SMOKE_MARKERS = [
 ];
 
 let sentryStarted = false;
+let sentryConsentListenerAttached = false;
+
+function ensureSentryConsentListener() {
+  if (sentryConsentListenerAttached || typeof window === "undefined") {
+    return;
+  }
+
+  sentryConsentListenerAttached = true;
+  onAnalyticsConsentChange(() => {
+    if (hasAnalyticsConsent()) {
+      initSentry();
+    }
+  });
+}
 
 function parseSampleRate(value: string | undefined, fallback: number) {
   const parsed = Number.parseFloat(value ?? "");
@@ -98,7 +117,9 @@ function isSmokeTestEvent(event: Sentry.Event) {
 }
 
 export function initSentry() {
-  if (!isSentryEnabled || sentryStarted) {
+  ensureSentryConsentListener();
+
+  if (!isSentryEnabled || sentryStarted || !hasAnalyticsConsent()) {
     return;
   }
 
@@ -159,10 +180,9 @@ export function syncSentryUser(user: SentryUserContext | null) {
     return;
   }
 
+  // Identify with a non-reversible hash only — no raw email/name to Sentry.
   Sentry.setUser({
-    email: user.email,
-    id: user.id,
-    username: user.name,
+    id: hashAnalyticsIdentifierSync(user.id),
   });
   Sentry.setTag("company_domain", user.companyDomain ?? "unknown");
 }

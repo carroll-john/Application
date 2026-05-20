@@ -1,3 +1,11 @@
+// Analytics identifier hashing.
+//
+// IMPORTANT: VITE_ANALYTICS_HASH_SALT is compiled into the client bundle, so
+// it is NOT secret. This is pseudonymisation, not anonymisation — anyone with
+// the bundle can reverse a hash by guessing identifiers. Do not treat the
+// hashed id as anonymised for compliance purposes. A truly non-reversible id
+// needs server-side hashing with a real secret, or a random (non-PII-derived)
+// identifier.
 const ANALYTICS_HASH_SALT =
   import.meta.env.VITE_ANALYTICS_HASH_SALT?.trim() || "application-prototype";
 

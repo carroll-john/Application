@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Edit, Paperclip } from "lucide-react";
+import { AlertTriangle, Edit, Paperclip } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { CopiedApplicationNotice } from "../components/CopiedApplicationNotice";

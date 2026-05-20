@@ -80,7 +80,6 @@ export default function Section2Qualifications() {
   const tertiaryRequirementsMet =
     hasTertiaryQualification &&
     data.tertiaryQualifications.every(isTertiaryQualificationSubmissionReady);
-  const hasCv = data.cvUploaded;
   const hasEmploymentExperience = data.employmentExperiences.length > 0;
   const employmentRequirementsMet =
     hasEmploymentExperience &&
@@ -462,7 +461,7 @@ export default function Section2Qualifications() {
   );
 }
 
-function SectionCard({
+function SectionCard<T>({
   title,
   description,
   icon,
@@ -478,8 +477,8 @@ function SectionCard({
   description: string;
   icon: ReactNode;
   status: SectionStatus;
-  items: Array<any>;
-  renderItem: (item: any) => ReactNode;
+  items: T[];
+  renderItem: (item: T) => ReactNode;
   emptyMessage: string;
   actionRoute: string;
   actionText?: string;

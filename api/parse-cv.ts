@@ -4,6 +4,7 @@ import type { Database } from "../src/lib/supabase.types";
 import { callLlm, type LlmContent } from "./_ai/callLlm";
 import { cvEmploymentPromptV1 } from "./_ai/prompts/cvEmployment.v1";
 import { cvEmploymentSchemaV1 } from "./_ai/schemas/cvEmployment.v1";
+import { createRateLimiter } from "./_shared/rateLimiter";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_MODEL = "gpt-4.1-mini";
@@ -206,35 +207,33 @@ function getSupabaseProjectConfig() {
   return { anonKey, url };
 }
 
+// Open (unauthenticated) mode is only safe for local development. On a
+// deployed Vercel environment the route must have Supabase auth wired up.
+function isDeployedEnvironment() {
+  const vercelEnv = process.env.VERCEL_ENV?.trim().toLowerCase();
+  return vercelEnv === "production" || vercelEnv === "preview";
+}
+
+function getClientIp(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  return forwardedFor?.split(",")[0]?.trim() || null;
+}
+
 // Loud warning if a deploy has OPENAI configured but no Supabase auth
-// settings: the route falls back to open mode in that state and would
-// burn tokens for any anonymous caller. Local dev / regression hits
-// the no-OPENAI path and stays silent.
+// settings. On a deployed environment the route now fails closed
+// (CV_PARSER_NOT_CONFIGURED); locally it runs in unauthenticated open mode.
 if (process.env.OPENAI_API_KEY?.trim() && !getSupabaseProjectConfig()) {
   console.warn(
-    "[parse-cv] OPENAI_API_KEY is set but SUPABASE_URL/SUPABASE_ANON_KEY are missing — auth gating is disabled and the route accepts unauthenticated requests.",
+    isDeployedEnvironment()
+      ? "[parse-cv] OPENAI_API_KEY is set but SUPABASE_URL/SUPABASE_ANON_KEY are missing on a deployed environment — the route will reject all requests with CV_PARSER_NOT_CONFIGURED until Supabase auth is configured."
+      : "[parse-cv] OPENAI_API_KEY is set but SUPABASE_URL/SUPABASE_ANON_KEY are missing — running in unauthenticated open mode (local/dev only).",
   );
 }
 
-const PARSE_CV_RATE_LIMIT_MAX = 10;
-const PARSE_CV_RATE_LIMIT_WINDOW_MS = 60_000;
-const parseCvRecentRequests = new Map<string, number[]>();
-
-function isRateLimited(key: string) {
-  const now = Date.now();
-  const windowStart = now - PARSE_CV_RATE_LIMIT_WINDOW_MS;
-  const previous = parseCvRecentRequests.get(key) ?? [];
-  const recent = previous.filter((timestamp) => timestamp > windowStart);
-
-  if (recent.length >= PARSE_CV_RATE_LIMIT_MAX) {
-    parseCvRecentRequests.set(key, recent);
-    return true;
-  }
-
-  recent.push(now);
-  parseCvRecentRequests.set(key, recent);
-  return false;
-}
+const parseCvRateLimiter = createRateLimiter({
+  max: 10,
+  windowMs: 60_000,
+});
 
 async function authenticateRequest(request: Request): Promise<
   | { kind: "unauthenticated" }
@@ -975,14 +974,23 @@ async function handleWebRequest(request: Request) {
 
     const authResult = await authenticateRequest(request);
 
+    if (authResult.kind === "open" && isDeployedEnvironment()) {
+      // Fail closed: open mode would accept unauthenticated callers and burn
+      // OpenAI tokens. It is only permitted in local development.
+      return errorResponse("CV_PARSER_NOT_CONFIGURED");
+    }
+
     if (authResult.kind === "unauthenticated") {
       return errorResponse("CV_PARSER_UNAUTHORIZED");
     }
 
-    if (authResult.kind === "authenticated") {
-      if (isRateLimited(`user:${authResult.userId}`)) {
-        return errorResponse("CV_PARSER_RATE_LIMITED");
-      }
+    const rateLimitKey =
+      authResult.kind === "authenticated"
+        ? `user:${authResult.userId}`
+        : `ip:${getClientIp(request) ?? "unknown"}`;
+
+    if (parseCvRateLimiter.isLimited(rateLimitKey)) {
+      return errorResponse("CV_PARSER_RATE_LIMITED");
     }
 
     const formData = await request.formData();

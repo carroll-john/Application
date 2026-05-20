@@ -1,4 +1,4 @@
-import { BookOpen, CheckCircle2, Clock, FileText } from "lucide-react";
+import { BookOpen, CheckCircle2, Clock } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";

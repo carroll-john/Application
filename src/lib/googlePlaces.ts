@@ -16,7 +16,7 @@ type GoogleMapsWindow = Window & {
 
 type GoogleMapsGlobal = NonNullable<GoogleMapsWindow["google"]>;
 
-interface GoogleAutocompleteSessionToken {}
+type GoogleAutocompleteSessionToken = object;
 
 interface GooglePlace extends GooglePlacePayload {
   fetchFields?: (options: { fields: string[] }) => Promise<void>;
