@@ -238,8 +238,7 @@ function hasStoredDocument(
   return Boolean(document || documentName);
 }
 
-function getValidationRules(data: ApplicationData): ValidationRule[] {
-  const rules = [...baseValidationRules];
+function getFamilySupportRules(data: ApplicationData): ValidationRule[] {
   const parentCount = Number(data.contactDetails.parentsCount || 0);
   const parentValues = [
     data.contactDetails.parent1Details,
@@ -249,92 +248,102 @@ function getValidationRules(data: ApplicationData): ValidationRule[] {
     data.contactDetails.parent5Details,
   ];
 
-  rules.push({
-    section: SECTION_1,
-    subsection: "Family & support information",
-    field: "Number of parents/guardians",
-    path: "/section1/family-support?from=review",
-    targets: ["submissionReady"],
-    isMissing: (application) => !application.contactDetails.parentsCount,
-  });
-
-  rules.push({
-    section: SECTION_1,
-    subsection: "Family & support information",
-    field: "Disability, impairment or long-term condition",
-    path: "/section1/family-support?from=review",
-    targets: ["submissionReady"],
-    isMissing: (application) => application.contactDetails.hasDisability === null,
-  });
-
-  rules.push({
-    section: SECTION_1,
-    subsection: "Family & support information",
-    field: "Disability support details",
-    path: "/section1/family-support?from=review",
-    targets: ["submissionReady"],
-    isMissing: (application) =>
-      application.contactDetails.hasDisability === true &&
-      !application.contactDetails.disabilityDetails.trim(),
-  });
-
-  parentValues.slice(0, parentCount).forEach((value, index) => {
-    rules.push({
+  return [
+    {
+      section: SECTION_1,
+      subsection: "Family & support information",
+      field: "Number of parents/guardians",
+      path: "/section1/family-support?from=review",
+      targets: ["submissionReady"],
+      isMissing: (application) => !application.contactDetails.parentsCount,
+    },
+    {
+      section: SECTION_1,
+      subsection: "Family & support information",
+      field: "Disability, impairment or long-term condition",
+      path: "/section1/family-support?from=review",
+      targets: ["submissionReady"],
+      isMissing: (application) => application.contactDetails.hasDisability === null,
+    },
+    {
+      section: SECTION_1,
+      subsection: "Family & support information",
+      field: "Disability support details",
+      path: "/section1/family-support?from=review",
+      targets: ["submissionReady"],
+      isMissing: (application) =>
+        application.contactDetails.hasDisability === true &&
+        !application.contactDetails.disabilityDetails.trim(),
+    },
+    ...parentValues.slice(0, parentCount).map((value, index) => ({
       section: SECTION_1,
       subsection: "Family & support information",
       field: `Parent/Guardian ${index + 1} Education Level`,
       path: "/section1/family-support?from=review",
-      targets: ["submissionReady"],
+      targets: ["submissionReady"] as ValidationTarget[],
       isMissing: () => !value?.trim(),
-    });
-  });
+    })),
+  ];
+}
 
-  getSection2SubmissionMissingFields(getSection2RequirementInput(data)).forEach(
-    (field) => {
-      rules.push({
-        section: SECTION_2,
-        subsection: "Submission requirements",
-        field,
-        path: "/section2/qualifications?from=review",
-        stepLabel: "Tertiary qualifications",
-        targets: ["stepComplete", "submissionReady"],
-        isMissing: () => true,
-      });
-    },
+function getSection2RequirementRules(data: ApplicationData): ValidationRule[] {
+  return getSection2SubmissionMissingFields(getSection2RequirementInput(data)).map(
+    (field) => ({
+      section: SECTION_2,
+      subsection: "Submission requirements",
+      field,
+      path: "/section2/qualifications?from=review",
+      stepLabel: "Tertiary qualifications",
+      targets: ["stepComplete", "submissionReady"],
+      isMissing: () => true,
+    }),
   );
+}
 
-  data.tertiaryQualifications.forEach((qualification, index) => {
+function getTertiaryQualificationRules(data: ApplicationData): ValidationRule[] {
+  return data.tertiaryQualifications.flatMap((qualification, index) => {
     const path = `/section2/edit-tertiary/${qualification.id}?from=review`;
 
-    getTertiaryQualificationSubmissionMissingFields(qualification).forEach((field) => {
-      rules.push({
+    return getTertiaryQualificationSubmissionMissingFields(qualification).map(
+      (field) => ({
         section: SECTION_2,
         subsection: "Tertiary qualifications",
         field: `Qualification ${index + 1}: ${field}`,
         path,
         targets: ["submissionReady"],
         isMissing: () => true,
-      });
-    });
+      }),
+    );
   });
-
-  data.employmentExperiences.forEach((experience, index) => {
-    if (isEmploymentExperienceChronologyValid(experience)) {
-      return;
-    }
-
-    rules.push({
-      section: SECTION_2,
-      subsection: "Employment experience",
-      field: `Employment ${index + 1}: Start date must be before or the same as end date`,
-      path: `/section2/edit-employment/${experience.id}?from=review`,
-      targets: ["submissionReady"],
-      isMissing: () => true,
-    });
-  });
-
-  return rules;
 }
+
+function getEmploymentChronologyRules(data: ApplicationData): ValidationRule[] {
+  return data.employmentExperiences.flatMap((experience, index) =>
+    isEmploymentExperienceChronologyValid(experience)
+      ? []
+      : [
+          {
+            section: SECTION_2,
+            subsection: "Employment experience",
+            field: `Employment ${index + 1}: Start date must be before or the same as end date`,
+            path: `/section2/edit-employment/${experience.id}?from=review`,
+            targets: ["submissionReady"],
+            isMissing: () => true,
+          },
+        ],
+  );
+}
+
+function getValidationRules(data: ApplicationData): ValidationRule[] {
+  return [
+    ...baseValidationRules,
+    ...getFamilySupportRules(data),
+    ...getSection2RequirementRules(data),
+    ...getTertiaryQualificationRules(data),
+    ...getEmploymentChronologyRules(data),
+  ];
+}
+
 export function getTertiaryQualificationSubmissionMissingFields(
   qualification: TertiaryQualification,
 ) {

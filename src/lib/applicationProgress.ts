@@ -91,10 +91,6 @@ export function isApplicationSubmitted(data: ApplicationProgressSnapshot) {
   return Boolean(data.applicationMeta?.submittedAt);
 }
 
-export function createApplicationNumber() {
-  return `QX-${Math.floor(1000000 + Math.random() * 9000000)}`;
-}
-
 export function getSelectedCourse(meta?: ApplicationMeta): ApplicationCourse {
   const selectedCourse = meta?.selectedCourse;
   const defaultCourse = getDefaultCourse();
