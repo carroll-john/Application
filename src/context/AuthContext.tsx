@@ -12,23 +12,20 @@ import {
   canUseLocalDevAuthBypass,
   DEV_AUTH_BYPASS_STORAGE_KEY,
   isAllowedCompanyEmail,
+  isSupabaseConfigured,
+  supabase,
 } from "../lib/supabase";
 import {
   getExpiringStorageString,
   setExpiringStorageString,
 } from "../lib/expiringStorage";
-import {
-  clearLocalApplicantProfile,
-  ensureApplicantProfile,
-  loadLocalApplicantProfile,
-} from "../lib/applicantProfileStore";
-import {
-  clearLocalApplications,
-  loadLocalApplications,
-} from "../lib/applicationRecords";
+import { clearLocalApplicantProfile } from "../lib/applicantProfileStore";
+import { clearLocalApplications } from "../lib/applicationRecords";
 import { clearStoredDocuments } from "../lib/documentStorage";
 import { syncPostHogUser } from "../lib/posthog";
 import { syncSentryUser } from "../lib/sentry";
+
+export type StorageMode = "local" | "remote";
 
 interface AuthContextType {
   user: User | null;
@@ -42,56 +39,26 @@ interface AuthContextType {
   companyUserEmail: string | null;
   companyUserDisplayName: string;
   companyDomains: string[];
-  authorizeCompanyEmail: (email: string) => Promise<{ error: string | null }>;
+  sendSignInLink: (
+    email: string,
+    redirectPath: string,
+  ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   isAllowedEmail: (email: string) => boolean;
   enableDevBypass: () => void;
   disableDevBypass: () => void;
 }
 
-export type StorageMode = "local" | "remote";
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const COMPANY_ACCESS_EMAIL_STORAGE_KEY =
-  "application-prototype:company-access-email";
+
 const LOCAL_DATA_OWNER_EMAIL_STORAGE_KEY =
   "application-prototype:local-data-owner-email";
 const HOURS_TO_MS = 60 * 60 * 1000;
-const COMPANY_ACCESS_EMAIL_TTL_MS = 24 * HOURS_TO_MS;
 const LOCAL_DATA_OWNER_EMAIL_TTL_MS = 24 * HOURS_TO_MS;
 const DEV_AUTH_BYPASS_TTL_MS = 4 * HOURS_TO_MS;
-const AUTH_STORAGE_REVALIDATE_INTERVAL_MS = 60 * 1000;
 
 function normalizeCompanyEmail(email: string | null | undefined) {
   return email?.trim().toLowerCase() ?? "";
-}
-
-function loadAuthorizedCompanyEmail() {
-  const email = getExpiringStorageString(
-    COMPANY_ACCESS_EMAIL_STORAGE_KEY,
-    COMPANY_ACCESS_EMAIL_TTL_MS,
-    {
-      normalize: normalizeCompanyEmail,
-      validate: isAllowedCompanyEmail,
-    },
-  );
-
-  return email ?? null;
-}
-
-function saveAuthorizedCompanyEmail(email: string) {
-  const normalizedEmail = normalizeCompanyEmail(email);
-
-  if (!normalizedEmail) {
-    clearAuthorizedCompanyEmail();
-    return;
-  }
-
-  setExpiringStorageString(
-    COMPANY_ACCESS_EMAIL_STORAGE_KEY,
-    normalizedEmail,
-    COMPANY_ACCESS_EMAIL_TTL_MS,
-  );
 }
 
 function loadLocalDataOwnerEmail() {
@@ -109,9 +76,6 @@ function saveLocalDataOwnerEmail(email: string) {
   const normalizedEmail = normalizeCompanyEmail(email);
 
   if (!normalizedEmail) {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(LOCAL_DATA_OWNER_EMAIL_STORAGE_KEY);
-    }
     return;
   }
 
@@ -135,14 +99,6 @@ function loadDevBypassEnabled() {
   );
 }
 
-function clearAuthorizedCompanyEmail() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.removeItem(COMPANY_ACCESS_EMAIL_STORAGE_KEY);
-}
-
 function formatCompanyDisplayName(email: string | null) {
   if (!email) {
     return "Team member";
@@ -161,209 +117,199 @@ function formatCompanyDisplayName(email: string | null) {
     .join(" ");
 }
 
+async function clearLocalCachedApplicationData() {
+  clearLocalApplications();
+  clearLocalApplicantProfile();
+  await clearStoredDocuments().catch(() => {
+    // Ignore IndexedDB cleanup issues.
+  });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [authorizedEmail, setAuthorizedEmail] = useState<string | null>(() =>
-    loadAuthorizedCompanyEmail(),
-  );
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(Boolean(supabase));
   const [hasDevBypassEnabled, setHasDevBypassEnabled] = useState(
     loadDevBypassEnabled,
   );
-  const isCompanyGateConfigured = allowedEmailDomains.length > 0;
 
-  const isBypassedInDev =
-    (import.meta.env.DEV && !isCompanyGateConfigured) || hasDevBypassEnabled;
-
+  // Track the live Supabase session. The client persists and refreshes the
+  // session itself; onAuthStateChange keeps tabs in sync and picks up the
+  // session established by the magic-link callback.
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!supabase) {
       return;
     }
 
-    const syncAuthStateFromStorage = () => {
-      const nextAuthorizedEmail = loadAuthorizedCompanyEmail();
-      const nextHasDevBypassEnabled = loadDevBypassEnabled();
+    let isActive = true;
 
-      setAuthorizedEmail((currentEmail) =>
-        currentEmail === nextAuthorizedEmail ? currentEmail : nextAuthorizedEmail,
-      );
-      setHasDevBypassEnabled((currentValue) =>
-        currentValue === nextHasDevBypassEnabled
-          ? currentValue
-          : nextHasDevBypassEnabled,
-      );
-    };
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (isActive) {
+          setSession(data.session);
+          setIsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      });
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        syncAuthStateFromStorage();
-      }
-    };
-
-    syncAuthStateFromStorage();
-    const intervalId = window.setInterval(
-      syncAuthStateFromStorage,
-      AUTH_STORAGE_REVALIDATE_INTERVAL_MS,
-    );
-    window.addEventListener("storage", syncAuthStateFromStorage);
-    window.addEventListener("focus", syncAuthStateFromStorage);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setIsLoading(false);
+    });
 
     return () => {
-      window.clearInterval(intervalId);
-      window.removeEventListener("storage", syncAuthStateFromStorage);
-      window.removeEventListener("focus", syncAuthStateFromStorage);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      isActive = false;
+      subscription.unsubscribe();
     };
   }, []);
 
+  const sessionEmail = normalizeCompanyEmail(session?.user?.email) || null;
+  const isCompanyEmailAuthorized = sessionEmail
+    ? isAllowedCompanyEmail(sessionEmail)
+    : false;
+  const isBypassedInDev =
+    (import.meta.env.DEV && !isSupabaseConfigured) || hasDevBypassEnabled;
+  const isAuthorizedCompanyUser = isCompanyEmailAuthorized || isBypassedInDev;
+  const companyUserEmail = isCompanyEmailAuthorized ? sessionEmail : null;
+
+  // A signed-in session whose email is outside the allowed company domains is
+  // not a valid company user — sign it out so the app does not sit in a
+  // logged-in-but-rejected limbo. RLS also rejects this user server-side.
   useEffect(() => {
-    if (!authorizedEmail) {
+    if (!supabase || !session || !sessionEmail) {
+      return;
+    }
+
+    if (!isAllowedCompanyEmail(sessionEmail)) {
+      void supabase.auth.signOut();
+    }
+  }, [session, sessionEmail]);
+
+  // When a different company user signs in on this browser, drop the previous
+  // user's locally cached drafts/documents so data does not leak across users.
+  useEffect(() => {
+    if (!companyUserEmail) {
+      return;
+    }
+
+    const previousOwner = loadLocalDataOwnerEmail();
+
+    if (previousOwner && previousOwner !== companyUserEmail) {
+      void clearLocalCachedApplicationData();
+    }
+
+    saveLocalDataOwnerEmail(companyUserEmail);
+  }, [companyUserEmail]);
+
+  // Keep analytics user identity in sync with the signed-in company user.
+  useEffect(() => {
+    if (!companyUserEmail) {
       syncPostHogUser(null);
       syncSentryUser(null);
       return;
     }
 
-    syncPostHogUser({
-      companyDomain: authorizedEmail.split("@")[1],
-      email: authorizedEmail,
-      id: authorizedEmail,
-      name: formatCompanyDisplayName(authorizedEmail),
-    });
-    syncSentryUser({
-      companyDomain: authorizedEmail.split("@")[1],
-      email: authorizedEmail,
-      id: authorizedEmail,
-      name: formatCompanyDisplayName(authorizedEmail),
-    });
-  }, [authorizedEmail]);
+    const identity = {
+      companyDomain: companyUserEmail.split("@")[1],
+      email: companyUserEmail,
+      id: companyUserEmail,
+      name: formatCompanyDisplayName(companyUserEmail),
+    };
+
+    syncPostHogUser(identity);
+    syncSentryUser(identity);
+  }, [companyUserEmail]);
 
   const value = useMemo<AuthContextType>(
-    () => {
-      const session: Session | null = null;
-      const user: User | null = null;
-      const isAuthorizedCompanyUser = Boolean(authorizedEmail) || isBypassedInDev;
-      const storageMode: StorageMode =
-        session && isAuthorizedCompanyUser && isCompanyGateConfigured
-          ? "remote"
-          : "local";
+    () => ({
+      user: session?.user ?? null,
+      session,
+      // Application drafts stay in local storage for now. Activating remote
+      // (Supabase) persistence is tracked separately and must wait for the
+      // remote-store integration test — restoring auth does not by itself
+      // move applicant data off the client.
+      storageMode: "local",
+      isLoading,
+      isConfigured: isSupabaseConfigured,
+      isBypassedInDev,
+      canUseDevBypass: canUseLocalDevAuthBypass,
+      isAuthorizedCompanyUser,
+      companyUserEmail,
+      companyUserDisplayName: formatCompanyDisplayName(companyUserEmail),
+      companyDomains: allowedEmailDomains,
+      sendSignInLink: async (email, redirectPath) => {
+        const normalizedEmail = normalizeCompanyEmail(email);
 
-      return {
-        user,
-        session,
-        storageMode,
-        isLoading: false,
-        isConfigured: isCompanyGateConfigured,
-        isBypassedInDev,
-        canUseDevBypass: canUseLocalDevAuthBypass,
-        isAuthorizedCompanyUser,
-        companyUserEmail: authorizedEmail,
-        companyUserDisplayName: formatCompanyDisplayName(authorizedEmail),
-        companyDomains: allowedEmailDomains,
-        authorizeCompanyEmail: async (email) => {
-          const normalizedEmail = normalizeCompanyEmail(email);
+        if (!normalizedEmail) {
+          return { error: "Enter your work email address." };
+        }
 
-          if (!normalizedEmail) {
-            return { error: "Enter your work email address." };
-          }
+        if (!isAllowedCompanyEmail(normalizedEmail)) {
+          return {
+            error: `Use your company email address (${allowedEmailDomains.join(", ")}).`,
+          };
+        }
 
-          if (!isAllowedCompanyEmail(normalizedEmail)) {
-            return {
-              error: `Use your company email address (${allowedEmailDomains.join(", ")}).`,
-            };
-          }
+        if (!supabase) {
+          return {
+            error: "Authentication is not configured on this deployment.",
+          };
+        }
 
-          const previousEmail = loadAuthorizedCompanyEmail();
-          const previousLocalDataOwnerEmail = loadLocalDataOwnerEmail();
-          const previousLocalProfileEmail =
-            loadLocalApplicantProfile()?.email ?? null;
-          const knownLocalOwnerEmail =
-            previousEmail ??
-            previousLocalDataOwnerEmail ??
-            previousLocalProfileEmail;
-          const expectedLocalProfileId = `local-profile:${normalizedEmail}`;
-          const hasConflictingLocalDraftOwner = loadLocalApplications().some(
-            (application) => {
-              const applicantProfileId =
-                application.applicationMeta.applicantProfileId
-                  ?.trim()
-                  .toLowerCase() ?? "";
+        const emailRedirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectPath)}`;
+        const { error } = await supabase.auth.signInWithOtp({
+          email: normalizedEmail,
+          options: { emailRedirectTo, shouldCreateUser: true },
+        });
 
-              if (!applicantProfileId.startsWith("local-profile:")) {
-                return false;
-              }
+        if (error) {
+          return { error: error.message };
+        }
 
-              return applicantProfileId !== expectedLocalProfileId;
-            },
-          );
-          const isSwitchingUser =
-            (Boolean(knownLocalOwnerEmail) &&
-              knownLocalOwnerEmail !== normalizedEmail) ||
-            hasConflictingLocalDraftOwner;
+        return { error: null };
+      },
+      signOut: async () => {
+        if (supabase) {
+          await supabase.auth.signOut();
+        }
 
-          if (isSwitchingUser) {
-            clearLocalApplications();
-            clearLocalApplicantProfile();
-            await clearStoredDocuments().catch(() => {
-              // Ignore IndexedDB cleanup issues during gate changes.
-            });
-          }
-
-          saveAuthorizedCompanyEmail(normalizedEmail);
-          saveLocalDataOwnerEmail(normalizedEmail);
-          await ensureApplicantProfile(null, normalizedEmail);
-          setAuthorizedEmail(normalizedEmail);
-          syncPostHogUser({
-            companyDomain: normalizedEmail.split("@")[1],
-            email: normalizedEmail,
-            id: normalizedEmail,
-            name: formatCompanyDisplayName(normalizedEmail),
-          });
-          syncSentryUser({
-            companyDomain: normalizedEmail.split("@")[1],
-            email: normalizedEmail,
-            id: normalizedEmail,
-            name: formatCompanyDisplayName(normalizedEmail),
-          });
-
-          return { error: null };
-        },
-        signOut: async () => {
-          if (authorizedEmail) {
-            saveLocalDataOwnerEmail(authorizedEmail);
-          }
-          clearAuthorizedCompanyEmail();
-          setAuthorizedEmail(null);
-          syncPostHogUser(null);
-          syncSentryUser(null);
-
-          if (canUseLocalDevAuthBypass) {
-            window.localStorage.removeItem(DEV_AUTH_BYPASS_STORAGE_KEY);
-            setHasDevBypassEnabled(false);
-          }
-        },
-        isAllowedEmail: isAllowedCompanyEmail,
-        enableDevBypass: () => {
-          if (!canUseLocalDevAuthBypass) {
-            return;
-          }
-
-          setExpiringStorageString(
-            DEV_AUTH_BYPASS_STORAGE_KEY,
-            "enabled",
-            DEV_AUTH_BYPASS_TTL_MS,
-          );
-          setHasDevBypassEnabled(true);
-        },
-        disableDevBypass: () => {
-          if (!canUseLocalDevAuthBypass) {
-            return;
-          }
-
+        if (canUseLocalDevAuthBypass) {
           window.localStorage.removeItem(DEV_AUTH_BYPASS_STORAGE_KEY);
           setHasDevBypassEnabled(false);
-        },
-      };
-    },
-    [authorizedEmail, isBypassedInDev, isCompanyGateConfigured],
+        }
+
+        syncPostHogUser(null);
+        syncSentryUser(null);
+      },
+      isAllowedEmail: isAllowedCompanyEmail,
+      enableDevBypass: () => {
+        if (!canUseLocalDevAuthBypass) {
+          return;
+        }
+
+        setExpiringStorageString(
+          DEV_AUTH_BYPASS_STORAGE_KEY,
+          "enabled",
+          DEV_AUTH_BYPASS_TTL_MS,
+        );
+        setHasDevBypassEnabled(true);
+      },
+      disableDevBypass: () => {
+        if (!canUseLocalDevAuthBypass) {
+          return;
+        }
+
+        window.localStorage.removeItem(DEV_AUTH_BYPASS_STORAGE_KEY);
+        setHasDevBypassEnabled(false);
+      },
+    }),
+    [session, isLoading, isBypassedInDev, isAuthorizedCompanyUser, companyUserEmail],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

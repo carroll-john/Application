@@ -116,3 +116,21 @@
 ### Stakeholder update notes
 - Publish date-stamped stakeholder updates in `docs/stakeholder-updates/`.
 - Format updates for easy paste into Notion/chat with: what shipped, what is next, feedback request, and see/play links.
+
+## 2026-05-20
+
+### Restore real Supabase Auth via magic-link
+- Supersedes the 2026-03-01 decision to avoid OTP/magic-link. The Tuesday demo
+  is long complete, and the localStorage-only email gate provided no
+  server-verifiable identity — so `/api/parse-cv`, the document delivery proxy,
+  and Supabase RLS had no real caller identity to enforce against.
+- `/sign-in` now sends a Supabase magic-link (`signInWithOtp`). `AuthContext`
+  tracks the live Supabase session via `getSession` + `onAuthStateChange`.
+- The company email-domain gate still applies: enforced client-side against the
+  session email and server-side by the `is_allowed_company_user()` RLS policy.
+  A signed-in session whose email is outside the allowed domains is signed out.
+- The localhost-only dev bypass is unchanged.
+- Restoring auth does NOT by itself move applicant data off the client.
+  `storageMode` deliberately stays `local` for now; activating remote (Supabase)
+  draft persistence is a separate change that should follow a remote-store
+  integration test.
