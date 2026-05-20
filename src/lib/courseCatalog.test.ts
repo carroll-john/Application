@@ -72,6 +72,21 @@ describe("course catalog", () => {
     expect(scuIt?.feeSummary).not.toContain("$208,000");
   });
 
+  it("keeps explicit three-year experience requirements in eligibility copy", () => {
+    const unisqMba = getCourseByCode(
+      "university-of-southern-queensland-unisq-master-of-business-administration-mba",
+    );
+
+    expect(unisqMba?.eligibility.rules).toContainEqual({
+      type: "min_education_or_experience",
+      minEducation: "Bachelor degree",
+      minExperienceYears: 3,
+    });
+    expect(unisqMba?.eligibility.ineligibleCopy).toContain(
+      "three or more years of relevant experience",
+    );
+  });
+
   it("returns the first seeded course as the default", () => {
     expect(getDefaultCourse().code).toBe(getCourseCatalog()[0]?.code);
   });
