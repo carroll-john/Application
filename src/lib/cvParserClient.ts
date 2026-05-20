@@ -74,7 +74,7 @@ export async function parseEmploymentExperiencesFromCv(file: File) {
 
   const response = await requestParseCv(formData);
 
-  let payload: unknown = null;
+  let payload: unknown;
 
   try {
     payload = (await response.json()) as unknown;

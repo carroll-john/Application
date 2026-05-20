@@ -8,11 +8,15 @@ import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { useReviewReturn } from "../hooks/useReviewReturn";
+import { getBirthDateOpenToDate } from "../lib/datePickerHelpers";
 
 export default function Section1PersonalContact() {
   const navigate = useNavigate();
   const { fromReview, previousLabel, returnPath } = useReviewReturn();
   const { data, updatePersonalDetails } = useApplication();
+  const [birthDateOpenToDate] = useState(() =>
+    getBirthDateOpenToDate(new Date()),
+  );
   const [formData, setFormData] = useState({
     gender: data.personalDetails.gender,
     dateOfBirth: data.personalDetails.dateOfBirth,
@@ -83,6 +87,7 @@ export default function Section1PersonalContact() {
               <DatePickerField
                 id="dateOfBirth"
                 maxDate={new Date().toISOString().split("T")[0]}
+                openToDate={birthDateOpenToDate}
                 value={formData.dateOfBirth}
                 onChange={(dateOfBirth) =>
                   setFormData((previous) => ({

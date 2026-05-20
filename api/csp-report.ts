@@ -1,3 +1,5 @@
+import { createRateLimiter } from "./_shared/rateLimiter";
+
 const NO_STORE_HEADERS = {
   "cache-control": "no-store, max-age=0",
   pragma: "no-cache",
@@ -8,25 +10,10 @@ const SYNTHETIC_BLOCKED_URI_HOSTS = new Set(["example-cdn.test"]);
 
 // Best-effort per-instance burst limiter. CSP reporters retry on 5xx but
 // silently drop 204s, so silent-drop is preferred over 429.
-const CSP_REPORT_RATE_LIMIT_MAX = 60;
-const CSP_REPORT_RATE_LIMIT_WINDOW_MS = 60_000;
-const cspReportRecentRequests = new Map<string, number[]>();
-
-function isCspReportRateLimited(key: string) {
-  const now = Date.now();
-  const windowStart = now - CSP_REPORT_RATE_LIMIT_WINDOW_MS;
-  const previous = cspReportRecentRequests.get(key) ?? [];
-  const recent = previous.filter((timestamp) => timestamp > windowStart);
-
-  if (recent.length >= CSP_REPORT_RATE_LIMIT_MAX) {
-    cspReportRecentRequests.set(key, recent);
-    return true;
-  }
-
-  recent.push(now);
-  cspReportRecentRequests.set(key, recent);
-  return false;
-}
+const cspReportRateLimiter = createRateLimiter({
+  max: 60,
+  windowMs: 60_000,
+});
 
 type NodeRequestHeaders = Record<string, string | string[] | undefined>;
 
@@ -186,7 +173,7 @@ async function handleWebRequest(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for");
   const clientIp = forwardedFor?.split(",")[0]?.trim() ?? null;
 
-  if (clientIp && isCspReportRateLimited(`ip:${clientIp}`)) {
+  if (clientIp && cspReportRateLimiter.isLimited(`ip:${clientIp}`)) {
     return new Response(null, {
       headers: NO_STORE_HEADERS,
       status: 204,

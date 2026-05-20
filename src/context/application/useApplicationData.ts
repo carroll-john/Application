@@ -12,6 +12,8 @@ import type {
   SecondaryQualification,
   TertiaryQualification,
 } from "../../lib/applicationData";
+import { normalizeConditionalContactDetails as normalizeContactDetails } from "../../lib/applicationData";
+import type { StepCompletionLabel } from "../../lib/applicationValidationSchema";
 import type { PersistApplicationOptions } from "./useApplicationStorageOrchestration";
 
 interface UseApplicationDataOptions {
@@ -43,7 +45,7 @@ export function useApplicationData({
   trackApplicationDataEvent,
 }: UseApplicationDataOptions) {
   const getNextIncompleteSection = useCallback(
-    (application: ApplicationData = data) =>
+    (application: ApplicationData = data): StepCompletionLabel | null =>
       getNextIncompleteSectionForApplication(application),
     [data],
   );
@@ -77,10 +79,10 @@ export function useApplicationData({
       updateContactDetails: (updates: Partial<ContactDetails>) =>
         updateData((current) => ({
           ...current,
-          contactDetails: {
+          contactDetails: normalizeContactDetails({
             ...current.contactDetails,
             ...updates,
-          },
+          }),
         })),
       updatePersonalDetails: (updates: Partial<PersonalDetails>) =>
         updateData((current) => ({

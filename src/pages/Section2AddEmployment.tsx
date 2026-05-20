@@ -11,6 +11,7 @@ import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { useReviewReturn } from "../hooks/useReviewReturn";
 import { months, years } from "../lib/formOptions";
+import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
 
 export default function Section2AddEmployment() {
   const { id } = useParams();
@@ -35,6 +36,17 @@ export default function Section2AddEmployment() {
     currentRole: existing?.currentRole ?? false,
     duties: existing?.duties ?? "",
   });
+  const [showValidation, setShowValidation] = useState(false);
+  const dateRangeError =
+    !formData.currentRole &&
+    isMonthYearRangeOutOfOrder(
+      formData.startMonth,
+      formData.startYear,
+      formData.endMonth,
+      formData.endYear,
+    )
+      ? "Start date must be before or the same as end date."
+      : null;
 
   const saveRecord = () => {
     if (existing) {
@@ -188,6 +200,11 @@ export default function Section2AddEmployment() {
                       }
                     />
                   </div>
+                  {showValidation && dateRangeError ? (
+                    <p className="sm:col-span-2 text-sm text-red-600">
+                      {dateRangeError}
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -224,6 +241,12 @@ export default function Section2AddEmployment() {
           primaryLabel="Save & Continue"
           onPrevious={() => navigate(returnPath("/section2/qualifications"))}
           onPrimary={() => {
+            setShowValidation(true);
+
+            if (dateRangeError) {
+              return;
+            }
+
             saveRecord();
             navigate(returnPath("/section2/qualifications"));
           }}

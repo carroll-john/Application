@@ -17,11 +17,15 @@ import type {
   SelectedCourse,
   TertiaryQualification,
 } from "../lib/applicationData";
+import type { StepCompletionLabel } from "../lib/applicationValidationSchema";
 import { createApplicationStorageAdapter } from "../lib/applicationStorageAdapter";
 import { useApplicationAnalytics } from "./application/useApplicationAnalytics";
 import { useApplicationData } from "./application/useApplicationData";
 import { useApplicationProfile } from "./application/useApplicationProfile";
-import { useApplicationStorageOrchestration } from "./application/useApplicationStorageOrchestration";
+import {
+  useApplicationStorageOrchestration,
+  type BeginCourseApplicationOptions,
+} from "./application/useApplicationStorageOrchestration";
 import { useAuth } from "./AuthContext";
 
 interface ApplicationContextType {
@@ -29,9 +33,14 @@ interface ApplicationContextType {
   applicantProfile: StoredApplicantProfile | null;
   applications: ApplicationSummary[];
   data: ApplicationData;
-  beginCourseApplication: (course: SelectedCourse) => Promise<ApplicationData>;
+  beginCourseApplication: (
+    course: SelectedCourse,
+    options?: BeginCourseApplicationOptions,
+  ) => Promise<ApplicationData>;
   ensureRemoteRecordId: () => Promise<string>;
-  getNextIncompleteSection: (application?: ApplicationData) => string | null;
+  getNextIncompleteSection: (
+    application?: ApplicationData,
+  ) => StepCompletionLabel | null;
   isHydrating: boolean;
   markApplicationSubmitted: () => Promise<void>;
   openApplication: (applicationId: string) => Promise<void>;

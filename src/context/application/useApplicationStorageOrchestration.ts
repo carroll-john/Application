@@ -21,11 +21,17 @@ import {
   mergeStoredApplicationData,
 } from "../../lib/applicationData";
 import type { ApplicationStorageAdapter } from "../../lib/applicationStorageAdapter";
+import { duplicateStoredDocument, type DocumentKind } from "../../lib/documentStorage";
 
 export interface PersistApplicationOptions {
   applicantProfileId?: string | null;
   forceCreate?: boolean;
   keepActive?: boolean;
+}
+
+export interface BeginCourseApplicationOptions {
+  prefillFromApplicationId?: string | null;
+  startFresh?: boolean;
 }
 
 interface UseApplicationStorageOrchestrationOptions {
@@ -43,6 +49,129 @@ interface UseApplicationStorageOrchestrationOptions {
     applicationId: string | null,
   ) => void;
   trackDraftResumed: (course: SelectedCourse, applicationId: string) => void;
+}
+
+async function duplicateApplicationDocument(
+  document: ApplicationData["cvDocument"] | undefined,
+  applicationId: string,
+  kind: DocumentKind,
+) {
+  return duplicateStoredDocument(document, {
+    applicationId,
+    kind,
+  });
+}
+
+async function cloneSourceApplicationDocuments(
+  application: ApplicationData,
+  sourceApplication: ApplicationData,
+) {
+  const applicationId = application.applicationMeta.recordId;
+
+  if (!applicationId) {
+    return application;
+  }
+
+  const cvDocument = await duplicateApplicationDocument(
+    sourceApplication.cvDocument,
+    applicationId,
+    "cv",
+  );
+
+  const tertiaryQualifications = await Promise.all(
+    application.tertiaryQualifications.map(async (qualification, index) => {
+      const sourceQualification = sourceApplication.tertiaryQualifications[index];
+
+      if (!sourceQualification) {
+        return qualification;
+      }
+
+      const [transcriptDocument, certificateDocument] = await Promise.all([
+        duplicateApplicationDocument(
+          sourceQualification.transcriptDocument,
+          applicationId,
+          "tertiary_transcript",
+        ),
+        sourceQualification.completed
+          ? duplicateApplicationDocument(
+              sourceQualification.certificateDocument,
+              applicationId,
+              "tertiary_certificate",
+            )
+          : Promise.resolve(undefined),
+      ]);
+
+      return {
+        ...qualification,
+        certificateDocument,
+        certificateDocumentName:
+          certificateDocument?.name ??
+          sourceQualification.certificateDocumentName,
+        transcriptDocument,
+        transcriptDocumentName:
+          transcriptDocument?.name ?? sourceQualification.transcriptDocumentName,
+      };
+    }),
+  );
+
+  const professionalAccreditations = await Promise.all(
+    application.professionalAccreditations.map(async (accreditation, index) => {
+      const sourceAccreditation =
+        sourceApplication.professionalAccreditations[index];
+
+      if (!sourceAccreditation) {
+        return accreditation;
+      }
+
+      const document = await duplicateApplicationDocument(
+        sourceAccreditation.document,
+        applicationId,
+        "accreditation_document",
+      );
+
+      return {
+        ...accreditation,
+        document,
+        documentName: document?.name ?? sourceAccreditation.documentName,
+      };
+    }),
+  );
+
+  const languageTests = await Promise.all(
+    application.languageTests.map(async (test, index) => {
+      const sourceTest = sourceApplication.languageTests[index];
+
+      if (!sourceTest) {
+        return test;
+      }
+
+      const document = await duplicateApplicationDocument(
+        sourceTest.document,
+        applicationId,
+        "language_test_document",
+      );
+
+      return {
+        ...test,
+        document,
+        documentName: document?.name ?? sourceTest.documentName,
+      };
+    }),
+  );
+
+  return {
+    ...application,
+    cvDocument,
+    cvFileName: cvDocument?.name ?? sourceApplication.cvFileName,
+    cvUploaded: Boolean(
+      cvDocument ||
+        sourceApplication.cvFileName ||
+        sourceApplication.cvDocument,
+    ),
+    languageTests,
+    professionalAccreditations,
+    tertiaryQualifications,
+  };
 }
 
 export function useApplicationStorageOrchestration({
@@ -215,8 +344,14 @@ export function useApplicationStorageOrchestration({
   }, [loadApplicationState]);
 
   const beginCourseApplication = useCallback(
-    async (course: SelectedCourse) => {
+    async (
+      course: SelectedCourse,
+      options?: BeginCourseApplicationOptions,
+    ) => {
       const resolvedApplicantProfile = await ensureApplicantProfile();
+      const isStartingFromPreviousApplication = Boolean(
+        !options?.startFresh && options?.prefillFromApplicationId,
+      );
       const existingApplication = await storageAdapter.findOpenDraftForCourse(
         course.code,
         applications,
@@ -230,16 +365,40 @@ export function useApplicationStorageOrchestration({
         return reopenedApplication;
       }
 
+      const reusableSourceApplication =
+        !options?.startFresh && options?.prefillFromApplicationId
+          ? data.applicationMeta.recordId === options.prefillFromApplicationId
+          ? data
+          : await storageAdapter.loadApplicationById(
+              options.prefillFromApplicationId,
+            )
+          : null;
+
       const draft = createApplicationDraft(
         course,
         resolvedApplicantProfile?.id ?? undefined,
         resolvedApplicantProfile,
+        reusableSourceApplication,
+        isStartingFromPreviousApplication
+          ? { includeSourceDocuments: false }
+          : undefined,
       );
 
-      const persisted = await persistApplication(draft, {
+      let persisted = await persistApplication(draft, {
         applicantProfileId: resolvedApplicantProfile?.id ?? null,
         forceCreate: true,
       });
+
+      if (isStartingFromPreviousApplication && reusableSourceApplication) {
+        const clonedApplication = await cloneSourceApplicationDocuments(
+          persisted,
+          reusableSourceApplication,
+        );
+
+        persisted = await persistApplication(clonedApplication, {
+          applicantProfileId: resolvedApplicantProfile?.id ?? null,
+        });
+      }
 
       trackDraftCreated(
         course,

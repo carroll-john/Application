@@ -75,11 +75,18 @@ Configure these frontend env vars for experiment control:
 
 ```env
 VITE_ANALYTICS_CONSENT_DEFAULT=denied
-VITE_ANALYTICS_HASH_SALT=replace_with_private_salt
+VITE_ANALYTICS_HASH_SALT=any_non_empty_string
 VITE_POSTHOG_KEY=your_posthog_project_api_key
 VITE_POSTHOG_HOST=https://us.i.posthog.com
 VITE_POSTHOG_CV_PARSER_FLAG=cv_parser_autofill_experiment
 ```
+
+> `VITE_ANALYTICS_HASH_SALT` is bundled into the client build and is therefore
+> **not secret**. Client-side hashing of the user identifier is pseudonymisation
+> only — anyone with the bundle can reverse it by guessing emails. Do not treat
+> the hashed id as anonymised for compliance purposes. A non-reversible
+> identifier requires server-side hashing with a real secret, or a random
+> (non-PII-derived) id.
 
 When the flag resolves to `enabled`, `on`, `true`, `test`, `treatment`, or `variant*`, CV auto-drafting runs.
 All other variants are treated as control and skip the parser call after CV save.

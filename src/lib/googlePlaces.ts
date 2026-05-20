@@ -1,7 +1,6 @@
 import type { AddressSuggestion } from "../components/ui/address-autocomplete";
 import { createEmptyStructuredAddress } from "./address";
 import {
-  type GoogleAddressComponent,
   type GooglePlacePayload,
   mapPlaceToStructuredAddress,
 } from "./googlePlacesAddress";
@@ -17,7 +16,7 @@ type GoogleMapsWindow = Window & {
 
 type GoogleMapsGlobal = NonNullable<GoogleMapsWindow["google"]>;
 
-interface GoogleAutocompleteSessionToken {}
+type GoogleAutocompleteSessionToken = object;
 
 interface GooglePlace extends GooglePlacePayload {
   fetchFields?: (options: { fields: string[] }) => Promise<void>;

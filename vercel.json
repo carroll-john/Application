@@ -14,6 +14,22 @@
         {
           "key": "Content-Security-Policy",
           "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'report-sample' https://www.clarity.ms https://*.posthog.com https://maps.googleapis.com https://maps.gstatic.com; style-src 'self' 'unsafe-inline' 'report-sample' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.supabase.co https://*.posthog.com https://www.clarity.ms https://www.clarityusercontent.com https://maps.googleapis.com https://maps.gstatic.com https://*.googleapis.com https://*.gstatic.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.sentry.io https://sentry.io https://*.posthog.com https://*.clarity.ms https://maps.googleapis.com https://maps.gstatic.com; frame-src 'self'; worker-src 'self' blob:; manifest-src 'self'; media-src 'self' blob: data:; upgrade-insecure-requests; report-uri /api/csp-report; report-to csp-endpoint"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
         }
       ]
     }

@@ -15,6 +15,7 @@ import { SectionProgressHeader } from "../components/SectionProgressHeader";
 import { StatusMessage } from "../components/StatusMessage";
 import { MonthYearPickerField } from "../components/ui/date-controls";
 import { Input } from "../components/ui/input";
+import { InstitutionAutocomplete } from "../components/ui/institution-autocomplete";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
@@ -27,6 +28,7 @@ import {
   viewStoredDocument,
 } from "../lib/documentStorage";
 import { countries, months, years } from "../lib/formOptions";
+import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
 
 export default function Section2AddTertiary() {
   const { id } = useParams();
@@ -88,6 +90,14 @@ export default function Section2AddTertiary() {
     (!formData.startMonth || !formData.startYear) && "Start date",
     (!formData.endMonth || !formData.endYear) && "End date",
   ].filter(Boolean) as string[];
+  const dateRangeError = isMonthYearRangeOutOfOrder(
+    formData.startMonth,
+    formData.startYear,
+    formData.endMonth,
+    formData.endYear,
+  )
+    ? "Start date must be before or the same as end date."
+    : null;
 
   const saveRecord = async () => {
     const transcriptRemoved =
@@ -178,17 +188,21 @@ export default function Section2AddTertiary() {
             <div className="space-y-5">
               <div>
                 <Label>Institution Name <span className="text-red-500">*</span></Label>
-                <Input
+                <InstitutionAutocomplete
                   className="h-12 text-base"
-                  placeholder="Enter institution name"
+                  placeholder="Start typing institution name"
                   value={formData.institution}
-                  onChange={(event) =>
+                  onValueChange={(institution) =>
                     setFormData((previous) => ({
                       ...previous,
-                      institution: event.target.value,
+                      institution,
                     }))
                   }
                 />
+                <p className="mt-2 text-xs text-slate-500">
+                  Suggestions help keep institution names consistent. If yours
+                  is not listed, keep typing to enter it manually.
+                </p>
               </div>
               <div>
                 <Label>Country <span className="text-red-500">*</span></Label>
@@ -231,6 +245,9 @@ export default function Section2AddTertiary() {
                   }
                 >
                   <option value="">Select level</option>
+                  <option value="Associate Degree">Associate Degree</option>
+                  <option value="Diploma">Diploma</option>
+                  <option value="Advanced Diploma">Advanced Diploma</option>
                   <option value="Bachelor">Bachelor Degree</option>
                   <option value="Honours">Honours Degree</option>
                   <option value="Graduate Certificate">Graduate Certificate</option>
@@ -333,6 +350,9 @@ export default function Section2AddTertiary() {
               </div>
               {showValidation && missingRequiredFields.includes("End date") ? (
                 <p className="text-sm text-red-600">Select an end date.</p>
+              ) : null}
+              {showValidation && dateRangeError ? (
+                <p className="text-sm text-red-600">{dateRangeError}</p>
               ) : null}
             </div>
           </FormSectionCard>
@@ -493,7 +513,7 @@ export default function Section2AddTertiary() {
             setShowValidation(true);
             setStatusMessage(null);
 
-            if (missingRequiredFields.length > 0) {
+            if (missingRequiredFields.length > 0 || dateRangeError) {
               return;
             }
 

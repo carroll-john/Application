@@ -35,7 +35,7 @@ interface ApplicationProgressSnapshot {
     parent3Details: string;
     parent4Details: string;
     parent5Details: string;
-    hasDisability: boolean;
+    hasDisability: boolean | null;
     disabilityDetails: string;
   };
   tertiaryQualifications: unknown[];
@@ -76,7 +76,7 @@ export function hasStartedApplication(data: ApplicationProgressSnapshot) {
       data.contactDetails.parent3Details ||
       data.contactDetails.parent4Details ||
       data.contactDetails.parent5Details ||
-      data.contactDetails.hasDisability ||
+      data.contactDetails.hasDisability !== null ||
       data.contactDetails.disabilityDetails ||
       data.tertiaryQualifications.length ||
       data.employmentExperiences.length ||

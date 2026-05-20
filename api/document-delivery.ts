@@ -74,6 +74,7 @@ function resolveDisposition(
 
 function sanitizeFileNameForHeader(fileName: string) {
   const safeName = fileName
+    // eslint-disable-next-line no-control-regex -- deliberately strips control characters from the filename
     .replace(/[\u0000-\u001f\u007f-\u009f/\\]/g, "_")
     .replace(/"/g, "'")
     .trim();
