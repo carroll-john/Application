@@ -321,6 +321,7 @@ export default function CourseDetails() {
   const [eligibilityForm, setEligibilityForm] = useState<EligibilityAnswers>({
     educationLevel: "",
     experienceRange: "",
+    goal: "",
   });
   const [authGateContext, setAuthGateContext] =
     useState<AuthGateContext | null>(null);
@@ -390,6 +391,7 @@ export default function CourseDetails() {
   }, [resetApplicationStartState, resetEligibilityView]);
 
   const isEligibilityFormComplete =
+    Boolean(eligibilityForm.goal) &&
     Boolean(eligibilityForm.educationLevel) &&
     (!requiresExperienceInput || Boolean(eligibilityForm.experienceRange));
   const resolveEligibilityResult = useCallback(
@@ -401,6 +403,7 @@ export default function CourseDetails() {
         education_level: answers.educationLevel,
         eligible: result.eligible,
         experience_range: answers.experienceRange,
+        goal: answers.goal,
       });
       clearPendingEligibilityCheck();
       setEligibilityOutcome(result.eligible ? "success" : "fail");
@@ -841,6 +844,12 @@ function EligibilityCheckModal({
         before you start an application.
       </p>
       <div className="space-y-4">
+        <SelectField
+          label="Select: Description of goals"
+          options={course.eligibility.goalsOptions}
+          value={eligibilityForm.goal ?? ""}
+          onChange={(value) => onAnswerChange({ goal: value })}
+        />
         <SelectField
           label="Select: Education level"
           options={course.eligibility.educationOptions}

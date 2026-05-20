@@ -9,30 +9,32 @@ const mbaStyleEligibility: CourseEligibilityConfig = {
     "Masters degree",
     "Doctorate",
   ],
-  experienceOptions: ["1-2 years", "3-5 years", "5 years plus"],
+  experienceOptions: ["Less than 2 years", "2-5 years", "5+ years"],
+  goalsOptions: ["Career advancement"],
   ineligibleCopy:
-    "This course expects either a bachelor degree or at least three years of experience.",
+    "This course expects either a bachelor degree or at least two years of experience.",
   rules: [
     {
       type: "min_education_or_experience",
       minEducation: "Bachelor degree",
-      minExperienceYears: 3,
+      minExperienceYears: 2,
     },
   ],
   successCopy: "You meet the entry criteria for this course.",
 };
 
 describe("evaluateCourseEligibility", () => {
-  it("rejects applicants with high school and less than three years experience", () => {
+  it("rejects applicants with high school and less than two years experience", () => {
     expect(
       evaluateCourseEligibility(mbaStyleEligibility, {
         educationLevel: "High school",
-        experienceRange: "1-2 years",
+        experienceRange: "Less than 2 years",
+        goal: "Career advancement",
       }),
     ).toEqual({
       eligible: false,
       reason:
-        "This course expects either a bachelor degree or at least three years of experience.",
+        "This course expects either a bachelor degree or at least two years of experience.",
     });
   });
 
@@ -40,7 +42,8 @@ describe("evaluateCourseEligibility", () => {
     expect(
       evaluateCourseEligibility(mbaStyleEligibility, {
         educationLevel: "Bachelor degree",
-        experienceRange: "1-2 years",
+        experienceRange: "Less than 2 years",
+        goal: "Career advancement",
       }),
     ).toEqual({
       eligible: true,
@@ -48,11 +51,12 @@ describe("evaluateCourseEligibility", () => {
     });
   });
 
-  it("accepts applicants with high school and at least three years experience", () => {
+  it("accepts applicants with high school and at least two years experience", () => {
     expect(
       evaluateCourseEligibility(mbaStyleEligibility, {
         educationLevel: "High school",
-        experienceRange: "3-5 years",
+        experienceRange: "2-5 years",
+        goal: "Career advancement",
       }),
     ).toEqual({
       eligible: true,
@@ -76,7 +80,8 @@ describe("evaluateCourseEligibility", () => {
         },
         {
           educationLevel: "High school",
-          experienceRange: "5 years plus",
+          experienceRange: "5+ years",
+          goal: "Career advancement",
         },
       ),
     ).toEqual({
