@@ -6,14 +6,13 @@ export type CourseEducationLevel =
   | "Doctorate";
 
 export type CourseExperienceLevel =
-  | "Less than 2 years"
-  | "2-5 years"
-  | "5+ years";
+  | "1-2 years"
+  | "3-5 years"
+  | "5 years plus";
 
 export interface EligibilityAnswers {
   educationLevel?: string;
   experienceRange?: string;
-  goal?: string;
 }
 
 export interface EligibilityResult {
@@ -33,7 +32,6 @@ export type EligibilityRule =
     };
 
 export interface CourseEligibilityConfig {
-  goalsOptions: string[];
   educationOptions: CourseEducationLevel[];
   experienceOptions: CourseExperienceLevel[];
   rules: EligibilityRule[];
@@ -50,9 +48,9 @@ const educationRank: Record<CourseEducationLevel, number> = {
 };
 
 const experienceRank: Record<CourseExperienceLevel, number> = {
-  "Less than 2 years": 0,
-  "2-5 years": 2,
-  "5+ years": 5,
+  "1-2 years": 1,
+  "3-5 years": 3,
+  "5 years plus": 5,
 };
 
 function meetsMinimumEducation(
