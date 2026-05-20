@@ -9,8 +9,8 @@ import {
 import { hashAnalyticsIdentifierSync } from "./analyticsIdentity";
 
 type SentryUserContext = {
-  companyDomain?: string;
   email?: string;
+  emailDomain?: string;
   id: string;
   name?: string;
 };
@@ -156,7 +156,7 @@ export function syncSentryUser(user: SentryUserContext | null) {
 
   if (!user) {
     Sentry.setUser(null);
-    Sentry.setTag("company_domain", "anonymous");
+    Sentry.setTag("email_domain", "anonymous");
     return;
   }
 
@@ -164,7 +164,7 @@ export function syncSentryUser(user: SentryUserContext | null) {
   Sentry.setUser({
     id: hashAnalyticsIdentifierSync(user.id),
   });
-  Sentry.setTag("company_domain", user.companyDomain ?? "unknown");
+  Sentry.setTag("email_domain", user.emailDomain ?? "unknown");
 }
 
 export function captureSentryException(

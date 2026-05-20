@@ -81,10 +81,14 @@ Important submit-path rules:
 
 | Event | Trigger |
 | --- | --- |
-| `auth_magic_link_requested` | User submits the sign-in form |
-| `auth_magic_link_sent` | Supabase accepts the magic-link request |
-| `auth_magic_link_failed` | Supabase rejects the magic-link request |
-| `auth_magic_link_completed` | User returns through `/auth/callback` with an authorized session |
+| `auth_otp_requested` | User submits an email address for an auth code |
+| `auth_otp_sent` | Supabase accepts the email OTP request |
+| `auth_otp_failed` | Supabase rejects an OTP request or verification |
+| `auth_otp_verified` | User verifies the emailed OTP and establishes a session |
+| `auth_gate_opened` | An in-flow auth modal opens from eligibility or apply |
+| `local_draft_import_started` | Signed-in user starts importing local anonymous drafts |
+| `local_draft_import_completed` | Local draft import completes without failed drafts |
+| `local_draft_import_failed` | Local draft import leaves one or more drafts unimported |
 
 ## Application Progress Events
 

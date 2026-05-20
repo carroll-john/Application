@@ -3,7 +3,9 @@ import {
   clearLocalApplications,
   createApplicationDraft,
   loadLocalActiveApplicationId,
+  loadLocalApplications,
   saveLocalActiveApplicationId,
+  saveLocalApplications,
   summarizeApplication,
   upsertLocalApplication,
   type ApplicationSummary,
@@ -22,6 +24,7 @@ import {
 } from "../../lib/applicationData";
 import type { ApplicationStorageAdapter } from "../../lib/applicationStorageAdapter";
 import { duplicateStoredDocument, type DocumentKind } from "../../lib/documentStorage";
+import { capturePostHogEvent } from "../../lib/posthog";
 
 export interface PersistApplicationOptions {
   applicantProfileId?: string | null;
@@ -34,11 +37,21 @@ export interface BeginCourseApplicationOptions {
   startFresh?: boolean;
 }
 
+export interface LocalDraftImportState {
+  error?: string;
+  failedCount: number;
+  importedCount: number;
+  localDraftCount: number;
+  skippedCount: number;
+  status: "idle" | "ready" | "importing" | "completed";
+}
+
 interface UseApplicationStorageOrchestrationOptions {
   applicantProfileId: string | null;
   ensureApplicantProfile: () => Promise<StoredApplicantProfile | null>;
   setApplicantProfile: (profile: StoredApplicantProfile | null) => void;
   storageAdapter: ApplicationStorageAdapter;
+  importOwnerId?: string | null;
   trackApplicationSubmitted: (
     submittedApplication: ApplicationData,
     submissionMode: "local" | "remote",
@@ -179,6 +192,7 @@ export function useApplicationStorageOrchestration({
   ensureApplicantProfile,
   setApplicantProfile,
   storageAdapter,
+  importOwnerId,
   trackApplicationSubmitted,
   trackDraftCreated,
   trackDraftResumed,
@@ -189,7 +203,18 @@ export function useApplicationStorageOrchestration({
     null,
   );
   const [isHydrating, setIsHydrating] = useState(true);
+  const [localDraftImport, setLocalDraftImport] =
+    useState<LocalDraftImportState>({
+      failedCount: 0,
+      importedCount: 0,
+      localDraftCount: 0,
+      skippedCount: 0,
+      status: "idle",
+    });
   const isMountedRef = useRef(true);
+  const importDismissalKey = importOwnerId
+    ? `application-prototype:local-draft-import-dismissed:${importOwnerId}`
+    : null;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -322,6 +347,63 @@ export function useApplicationStorageOrchestration({
     void loadApplicationState();
   }, [loadApplicationState]);
 
+  useEffect(() => {
+    if (
+      storageAdapter.mode !== "remote" ||
+      isHydrating ||
+      localDraftImport.status === "importing" ||
+      localDraftImport.status === "completed"
+    ) {
+      return;
+    }
+
+    if (
+      importDismissalKey &&
+      window.localStorage.getItem(importDismissalKey) === "1"
+    ) {
+      return;
+    }
+
+    const localDrafts = loadLocalApplications().filter(
+      (application) =>
+        application.applicationMeta.recordId?.startsWith("local-") &&
+        !application.applicationMeta.submittedAt,
+    );
+
+    if (localDrafts.length === 0) {
+      setLocalDraftImport((previous) =>
+        previous.status === "idle"
+          ? previous
+          : {
+              failedCount: 0,
+              importedCount: 0,
+              localDraftCount: 0,
+              skippedCount: 0,
+              status: "idle",
+            },
+      );
+      return;
+    }
+
+    setLocalDraftImport((previous) =>
+      previous.status === "ready" &&
+      previous.localDraftCount === localDrafts.length
+        ? previous
+        : {
+            failedCount: 0,
+            importedCount: 0,
+            localDraftCount: localDrafts.length,
+            skippedCount: 0,
+            status: "ready",
+          },
+    );
+  }, [
+    importDismissalKey,
+    isHydrating,
+    localDraftImport.status,
+    storageAdapter.mode,
+  ]);
+
   const openApplication = useCallback(
     async (applicationId: string) => {
       const application = await storageAdapter.loadApplicationById(applicationId);
@@ -342,6 +424,152 @@ export function useApplicationStorageOrchestration({
   const refreshApplications = useCallback(async () => {
     await loadApplicationState();
   }, [loadApplicationState]);
+
+  const dismissLocalDraftImport = useCallback(() => {
+    if (importDismissalKey) {
+      window.localStorage.setItem(importDismissalKey, "1");
+    }
+
+    setLocalDraftImport((previous) => ({
+      ...previous,
+      status: "idle",
+    }));
+  }, [importDismissalKey]);
+
+  const importLocalDrafts = useCallback(async () => {
+    if (storageAdapter.mode !== "remote") {
+      return;
+    }
+
+    const localDrafts = loadLocalApplications().filter(
+      (application) =>
+        application.applicationMeta.recordId?.startsWith("local-") &&
+        !application.applicationMeta.submittedAt,
+    );
+
+    if (localDrafts.length === 0) {
+      setLocalDraftImport({
+        failedCount: 0,
+        importedCount: 0,
+        localDraftCount: 0,
+        skippedCount: 0,
+        status: "idle",
+      });
+      return;
+    }
+
+    setLocalDraftImport({
+      failedCount: 0,
+      importedCount: 0,
+      localDraftCount: localDrafts.length,
+      skippedCount: 0,
+      status: "importing",
+    });
+    capturePostHogEvent("local_draft_import_started", {
+      local_draft_count: localDrafts.length,
+    });
+
+    let importedCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+    const importedLocalIds = new Set<string>();
+    const remoteDraftCourseCodes = new Set(
+      applications
+        .filter((application) => application.status === "draft")
+        .map((application) => application.course.code),
+    );
+
+    for (const localDraft of localDrafts) {
+      const localId = localDraft.applicationMeta.recordId;
+      const selectedCourse = localDraft.applicationMeta.selectedCourse;
+
+      if (!localId || !selectedCourse) {
+        failedCount += 1;
+        continue;
+      }
+
+      if (remoteDraftCourseCodes.has(selectedCourse.code)) {
+        skippedCount += 1;
+        continue;
+      }
+
+      try {
+        const remoteSeed = mergeStoredApplicationData({
+          ...localDraft,
+          applicationMeta: {
+            ...localDraft.applicationMeta,
+            applicantProfileId: applicantProfileId ?? undefined,
+            applicationNumber: undefined,
+            recordId: undefined,
+            status: "draft",
+            submittedAt: undefined,
+          },
+        });
+        let persisted = await persistApplication(remoteSeed, {
+          applicantProfileId,
+          forceCreate: true,
+          keepActive: true,
+        });
+
+        const clonedApplication = await cloneSourceApplicationDocuments(
+          persisted,
+          localDraft,
+        );
+
+        persisted = await persistApplication(clonedApplication, {
+          applicantProfileId,
+          keepActive: true,
+        });
+
+        importedLocalIds.add(localId);
+        remoteDraftCourseCodes.add(selectedCourse.code);
+        importedCount += 1;
+        upsertSummary(persisted);
+      } catch {
+        failedCount += 1;
+      }
+    }
+
+    const remainingLocalApplications = loadLocalApplications().filter(
+      (application) =>
+        !application.applicationMeta.recordId ||
+        !importedLocalIds.has(application.applicationMeta.recordId),
+    );
+    saveLocalApplications(remainingLocalApplications);
+    await refreshApplications();
+
+    const nextState: LocalDraftImportState = {
+      failedCount,
+      importedCount,
+      localDraftCount: localDrafts.length,
+      skippedCount,
+      status: "completed",
+    };
+
+    if (failedCount > 0) {
+      nextState.error =
+        "Some local drafts could not be imported. They are still saved on this device.";
+      capturePostHogEvent("local_draft_import_failed", {
+        failed_count: failedCount,
+        imported_count: importedCount,
+        skipped_count: skippedCount,
+      });
+    } else {
+      capturePostHogEvent("local_draft_import_completed", {
+        imported_count: importedCount,
+        skipped_count: skippedCount,
+      });
+    }
+
+    setLocalDraftImport(nextState);
+  }, [
+    applicantProfileId,
+    applications,
+    persistApplication,
+    refreshApplications,
+    storageAdapter.mode,
+    upsertSummary,
+  ]);
 
   const beginCourseApplication = useCallback(
     async (
@@ -479,8 +707,11 @@ export function useApplicationStorageOrchestration({
       applications,
       beginCourseApplication,
       data,
+      dismissLocalDraftImport,
       ensureRemoteRecordId,
+      importLocalDrafts,
       isHydrating,
+      localDraftImport,
       markApplicationSubmitted,
       openApplication,
       persistApplication,
@@ -492,8 +723,11 @@ export function useApplicationStorageOrchestration({
       applications,
       beginCourseApplication,
       data,
+      dismissLocalDraftImport,
       ensureRemoteRecordId,
+      importLocalDrafts,
       isHydrating,
+      localDraftImport,
       markApplicationSubmitted,
       openApplication,
       persistApplication,

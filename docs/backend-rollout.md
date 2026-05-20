@@ -7,22 +7,11 @@
 - File storage: Supabase Storage
 
 ## Access Model
-- Initial access model: company-email gate restricted to approved company email domains.
-- Current rollout phase: keep that company-domain gate on the entire site so Keypath employees can dogfood the product safely.
-- Long-term model: site access and applicant identity are separate concerns.
-  - `business_users` is the internal employee using the site
-  - `applicant_profiles` is the applicant record being created/tested inside the site
-  - public applicant auth should come later, after the internal dogfood phase
-- Current Tuesday-demo frontend model uses one lightweight access gate only:
-  - Keypath-domain email validation on `/sign-in`
-  - no OTP, magic-link, or second inner applicant login layer
-  - profile and draft data run through the local fallback path unless a newer auth decision restores real sessions
-- Domains are configured in two places:
-  - frontend env: `VITE_ALLOWED_EMAIL_DOMAINS`
-  - database allowlist: `public.allowed_email_domains`
-- Short-term gate: client-side email domain validation before granting access to the prototype.
-- Server-side gate: row-level security depends on `public.is_allowed_company_user()`, which checks the signed-in user's email domain against the allowlist table.
-- Production hardening path: move to your company IdP via Supabase SSO or an auth hook before wider rollout.
+- Current access model: public applicant auth through Supabase email one-time codes.
+- `/sign-in` is a unified sign up/sign in flow. Supabase Auth emails a 6-digit code and the app verifies it in-place.
+- No company-domain allowlist is used in the frontend, RLS policies, storage policies, or submit RPC.
+- Signed-in users use Supabase-backed profile, application, and document storage. Anonymous users can browse courses and keep pre-auth local drafts.
+- RLS protects applicant data with `auth.uid()` ownership checks.
 
 ## Environment Variables
 Add these to Vercel and local `.env`:
@@ -35,7 +24,6 @@ VITE_POSTHOG_KEY=your_posthog_project_key
 VITE_POSTHOG_HOST=https://us.i.posthog.com
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-VITE_ALLOWED_EMAIL_DOMAINS=yourcompany.com
 VITE_REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION=30
 VITE_REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION=104857600
 VITE_REMOTE_UPLOAD_RATE_LIMIT_WINDOW_MINUTES=10
@@ -60,7 +48,6 @@ SENTRY_PROJECT=your_sentry_project_slug
 
 Current workspace values:
 - `VITE_SUPABASE_URL` points at your Supabase project
-- `VITE_ALLOWED_EMAIL_DOMAINS=keypathedu.com.au`
 - `VITE_CLARITY_PROJECT_ID` is optional; the frontend loader is a no-op until it is set
 - remote upload guardrail defaults are:
   - `VITE_REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION=30`
@@ -79,13 +66,7 @@ Current workspace values:
 - keep the publishable key only in local env and Vercel envs, not in checked-in docs
 
 ## Supabase Project Setup
-Run [supabase/migrations/0001_initial.sql](/Users/jc/Documents/New%20project/supabase/migrations/0001_initial.sql) in the Supabase SQL editor, then seed the company allowlist:
-
-```sql
-insert into public.allowed_email_domains (domain)
-values ('keypathedu.com.au')
-on conflict (domain) do nothing;
-```
+Run [supabase/migrations/0001_initial.sql](/Users/jc/Documents/New%20project/supabase/migrations/0001_initial.sql) in the Supabase SQL editor.
 
 Then run [supabase/migrations/0002_server_submit.sql](/Users/jc/Documents/New%20project/supabase/migrations/0002_server_submit.sql) to add:
 - server-side submission validation
@@ -106,15 +87,13 @@ Then run [supabase/migrations/0005_document_upload_limits.sql](/Users/jc/Documen
 - explicit application-document upload quotas and rate limits
 - indexes for user/rate-limit document checks
 
-Then configure Auth in Supabase when real auth returns:
-- enable the providers you actually intend to use
-- set the local site URL and redirect URLs for the chosen auth flow
-- keep unused providers disabled
+Then run the applicant auth migration to remove the old company-domain RLS dependency and configure email OTP:
+- use the latest `*_applicant_email_otp_auth.sql` migration
+- set the local and deployed site URLs in Supabase Auth
+- configure the email template with `{{ .Token }}` so users receive an in-app verification code
 
 Important:
-- the sign-in screen blocks non-company domains in the client
-- the current production flow does not depend on a real Supabase session
-- database and storage access are still enforced by RLS via `public.allowed_email_domains`
+- database and storage access are enforced by owner-scoped RLS using `auth.uid()`
 - the app is now live at `https://application-prototype.vercel.app`
 - the current production deployment includes the server-backed submit flow from `0002_server_submit.sql`
 
@@ -132,11 +111,10 @@ Key tables:
 - `professional_accreditations`
 - `secondary_qualifications`
 - `language_tests`
-- `allowed_email_domains`
 
 Notes:
-- `applications.user_id` is still the signed-in Keypath employee during dogfooding.
-- `applications.applicant_profile_id` is the bridge to the future public applicant model and the current reusable profile record.
+- `applications.user_id` is the signed-in applicant user.
+- `applications.applicant_profile_id` points to the reusable applicant profile record.
 - section 1 single-instance data stays on `applications` as JSONB for now:
   - `personal_details`
   - `contact_details`
@@ -157,19 +135,13 @@ Notes:
 ## Rollout Order
 1. Create the Supabase project.
 2. Run `supabase/migrations/0001_initial.sql`.
-3. Insert allowed domains into `public.allowed_email_domains`.
-4. Run `supabase/migrations/0002_server_submit.sql`.
-5. Run `supabase/migrations/0003_business_users_and_applicant_profiles.sql`.
-6. Run `supabase/migrations/0004_submission_rpc_grants.sql`.
-7. Run `supabase/migrations/0005_document_upload_limits.sql`.
-8. Configure Auth (only if restoring real authenticated sessions):
-   - enable the provider(s) you intend to use
-   - set the site URL and redirect URLs for local + Vercel
-   - disable providers you do not want exposed
+3. Run `supabase/migrations/0002_server_submit.sql`.
+4. Run `supabase/migrations/0003_business_users_and_applicant_profiles.sql`.
+5. Run `supabase/migrations/0004_submission_rpc_grants.sql`.
+6. Run `supabase/migrations/0005_document_upload_limits.sql`.
+7. Run the latest `*_applicant_email_otp_auth.sql` migration.
+8. Configure Supabase Auth email OTP templates, site URL, and redirect URLs.
 9. Configure the Vercel env vars.
-10. Replace local draft persistence with backend persistence.
-11. Replace IndexedDB document storage with Supabase Storage uploads.
-12. Move submission validation and application-number generation to server-backed operations.
 
 ## Current Frontend State
 - The app now has:
@@ -178,17 +150,15 @@ Notes:
   - sign-in page
   - callback route
   - protected routing
-- The app now uses one Keypath-only email gate:
+- The app now uses public applicant email OTP auth:
   - users browse courses publicly
-  - apply attempts route unauthenticated users to `/sign-in`
-  - entering an allowed company email returns them to the intended course flow
-  - local profile and draft storage back the current demo flow
+  - header, eligibility, and apply entry points can initiate auth
+  - entering a valid one-time code returns them to the intended course flow
+  - signed-in profile and draft storage use Supabase
 - `/profile` is now a plain reusable profile-management screen, not an auth step.
 - Course selection is catalog-driven and attached to each application through `applicationMeta.selectedCourse`.
 - The app now supports multiple applications per user and resumes an existing open draft for the same course instead of creating duplicates.
-- Current application state is local-first for the demo:
-  - local cache and offline fallback in `ApplicationContext`
-  - authenticated draft sync remains available in code, but the current email-gate flow does not create a real session
+- Current application state is remote for signed-in users and local for anonymous pre-auth drafts.
 - Document uploads are local-first:
   - `src/lib/documentStorage.ts` uses IndexedDB when no authenticated Supabase session is available
   - remote uploads remain available in code for any future return to real auth

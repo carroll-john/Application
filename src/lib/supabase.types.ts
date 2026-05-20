@@ -14,21 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      allowed_email_domains: {
-        Row: {
-          created_at: string
-          domain: string
-        }
-        Insert: {
-          created_at?: string
-          domain: string
-        }
-        Update: {
-          created_at?: string
-          domain?: string
-        }
-        Relationships: []
-      }
       applicant_profiles: {
         Row: {
           created_at: string
@@ -499,12 +484,10 @@ export type Database = {
         Returns: string[]
       }
       generate_application_number: { Args: never; Returns: string }
-      is_allowed_company_user: { Args: never; Returns: boolean }
       submit_application: {
         Args: { target_application_id: string }
         Returns: Json
       }
-      user_email_domain: { Args: never; Returns: string }
     }
     Enums: {
       application_status: "draft" | "submitted"

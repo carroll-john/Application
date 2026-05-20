@@ -51,7 +51,7 @@ const dashboardTabs: DashboardTabDefinition[] = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { companyUserDisplayName, signOut } = useAuth();
+  const { signOut, userDisplayName } = useAuth();
   const {
     activeApplicationId,
     applicantProfile,
@@ -102,7 +102,7 @@ export default function Dashboard() {
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-slate-950 sm:text-4xl">
-              Welcome back, {companyUserDisplayName}
+              Welcome back, {userDisplayName}
             </h1>
             <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
               {applicantProfile

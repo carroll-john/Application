@@ -371,6 +371,15 @@ function getRemoteDocumentId(document?: UploadedDocument) {
   return document?.source === "remote" ? document.id : null;
 }
 
+function getRemoteUuid(id: string | undefined) {
+  return id &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      id,
+    )
+    ? id
+    : undefined;
+}
+
 export async function saveRemoteApplication(
   session: Session,
   data: ApplicationData,
@@ -464,7 +473,7 @@ export async function saveRemoteApplication(
         course_name: qualification.courseName,
         end_month: qualification.endMonth,
         end_year: qualification.endYear,
-        id: qualification.id,
+        id: getRemoteUuid(qualification.id),
         institution: qualification.institution,
         level: qualification.level,
         start_month: qualification.startMonth,
@@ -488,7 +497,7 @@ export async function saveRemoteApplication(
         employment_type: experience.type,
         end_month: experience.endMonth || null,
         end_year: experience.endYear || null,
-        id: experience.id,
+        id: getRemoteUuid(experience.id),
         is_current_role: experience.currentRole,
         position: experience.position,
         start_month: experience.startMonth,
@@ -505,7 +514,7 @@ export async function saveRemoteApplication(
         application_id: applicationId,
         document_id: getRemoteDocumentId(accreditation.document),
         document_name: accreditation.documentName ?? null,
-        id: accreditation.id,
+        id: getRemoteUuid(accreditation.id),
         name: accreditation.name,
         status: accreditation.status,
       })),
@@ -520,7 +529,7 @@ export async function saveRemoteApplication(
         application_id: applicationId,
         completion_year: qualification.year,
         country: qualification.country,
-        id: qualification.id,
+        id: getRemoteUuid(qualification.id),
         qualification_name: qualification.qualification,
         qualification_type: qualification.type,
         school: qualification.school,
@@ -538,7 +547,7 @@ export async function saveRemoteApplication(
         completion_year: test.year,
         document_id: getRemoteDocumentId(test.document),
         document_name: test.documentName ?? null,
-        id: test.id,
+        id: getRemoteUuid(test.id),
         test_name: test.name,
         test_type: test.type,
       })),

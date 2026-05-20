@@ -17,9 +17,10 @@ export default function ApplicantProfile() {
   const navigate = useNavigate();
   const { refreshApplicantProfile } = useApplication();
   const {
-    companyUserDisplayName,
-    companyUserEmail,
+    session,
     signOut,
+    userDisplayName,
+    userEmail,
   } = useAuth();
   const [profileRecordId, setProfileRecordId] = useState<string | undefined>();
   const [email, setEmail] = useState("");
@@ -35,18 +36,18 @@ export default function ApplicantProfile() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const signedInLabel =
-    companyUserDisplayName || companyUserEmail || "your Keypath account";
+    userDisplayName || userEmail || "your applicant account";
 
   const applyProfile = useCallback(
     (profile: StoredApplicantProfile | null) => {
-      const fallbackEmail = companyUserEmail ?? "";
+      const fallbackEmail = userEmail ?? "";
 
       setProfileRecordId(profile?.id);
       setEmail(profile?.email ?? fallbackEmail);
       setFirstName(profile?.firstName ?? "");
       setLastName(profile?.lastName ?? "");
     },
-    [companyUserEmail],
+    [userEmail],
   );
 
   useEffect(() => {
@@ -55,8 +56,8 @@ export default function ApplicantProfile() {
     const hydrate = async () => {
       try {
         const profile = await ensureApplicantProfile(
-          null,
-          companyUserEmail ?? undefined,
+          session,
+          userEmail ?? undefined,
         );
 
         if (isCancelled) {
@@ -84,7 +85,7 @@ export default function ApplicantProfile() {
     return () => {
       isCancelled = true;
     };
-  }, [applyProfile, companyUserEmail]);
+  }, [applyProfile, session, userEmail]);
 
   async function handleSave() {
     const trimmedEmail = email.trim().toLowerCase();
@@ -115,7 +116,7 @@ export default function ApplicantProfile() {
 
     try {
       const savedProfile = await saveApplicantProfile(
-        null,
+        session,
         {
           email: trimmedEmail,
           firstName: firstName.trim(),

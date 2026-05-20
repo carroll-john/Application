@@ -17,15 +17,16 @@ export function canUseLocalDevAuthBypassForHostname(
   return ["127.0.0.1", "localhost"].includes(hostname ?? "");
 }
 
-export const allowedEmailDomains = (
-  import.meta.env.VITE_ALLOWED_EMAIL_DOMAINS ?? ""
-)
-  .split(",")
-  .map((domain: string) => domain.trim().toLowerCase())
-  .filter(Boolean);
+export function hasSupabaseConfig(
+  url: string | null | undefined,
+  anonKey: string | null | undefined,
+) {
+  return Boolean(url?.trim() && anonKey?.trim());
+}
 
-export const isSupabaseConfigured = Boolean(
-  supabaseUrl && supabaseAnonKey && allowedEmailDomains.length > 0,
+export const isSupabaseConfigured = hasSupabaseConfig(
+  supabaseUrl,
+  supabaseAnonKey,
 );
 
 export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
@@ -44,8 +45,3 @@ export const canUseLocalDevAuthBypass =
     import.meta.env.DEV,
     window.location.hostname,
   );
-
-export function isAllowedCompanyEmail(email: string) {
-  const [, domain = ""] = email.trim().toLowerCase().split("@");
-  return allowedEmailDomains.includes(domain);
-}
