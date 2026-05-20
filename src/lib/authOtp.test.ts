@@ -56,4 +56,28 @@ describe("authOtp", () => {
     expect(auth.signInWithOtp).not.toHaveBeenCalled();
     expect(auth.verifyOtp).not.toHaveBeenCalled();
   });
+
+  it("returns a helpful message when the OTP request cannot reach Supabase", async () => {
+    const auth = createAuthMock();
+    auth.signInWithOtp.mockResolvedValue({
+      error: new Error("Failed to fetch"),
+    });
+
+    await expect(requestEmailOtp(auth, "user@example.com")).resolves.toEqual({
+      error:
+        "We couldn't reach the sign-in service. Check your connection and try again.",
+    });
+  });
+
+  it("returns a helpful message when OTP verification cannot reach Supabase", async () => {
+    const auth = createAuthMock();
+    auth.verifyOtp.mockRejectedValue(new Error("fetch failed"));
+
+    await expect(
+      verifyEmailOtpCode(auth, "user@example.com", "123456"),
+    ).resolves.toEqual({
+      error:
+        "We couldn't reach the sign-in service. Check your connection and try again.",
+    });
+  });
 });
