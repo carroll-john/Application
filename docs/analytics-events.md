@@ -2,9 +2,8 @@
 
 This app sends page and funnel events to PostHog through `src/lib/posthog.ts`.
 
-## Consent And Identity
+## Identity
 
-- Analytics capture is disabled by default until consent is granted (`application-prototype:analytics-consent=granted`), unless overridden by `VITE_ANALYTICS_CONSENT_DEFAULT`.
 - PostHog runs in manual mode (`autocapture: false`), so only explicit app events are sent.
 - PostHog user identity uses a salted hash (raw email/user IDs are not used as analytics distinct IDs).
 - `applicant_profile_id` event property is hashed before capture.
@@ -146,8 +145,6 @@ Application-step events also include:
 ## Bot And Agent Exclusion
 
 Client-side PostHog capture is disabled for detected automation or bot traffic before events are sent.
-
-Capture is also disabled when analytics consent is denied.
 
 Current exclusion checks:
 

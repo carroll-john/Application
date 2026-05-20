@@ -6,10 +6,6 @@ import {
   useLocation,
   useNavigationType,
 } from "react-router-dom";
-import {
-  hasAnalyticsConsent,
-  onAnalyticsConsentChange,
-} from "./analyticsConsent";
 import { hashAnalyticsIdentifierSync } from "./analyticsIdentity";
 
 type SentryUserContext = {
@@ -41,20 +37,6 @@ const SENTRY_SMOKE_MARKERS = [
 ];
 
 let sentryStarted = false;
-let sentryConsentListenerAttached = false;
-
-function ensureSentryConsentListener() {
-  if (sentryConsentListenerAttached || typeof window === "undefined") {
-    return;
-  }
-
-  sentryConsentListenerAttached = true;
-  onAnalyticsConsentChange(() => {
-    if (hasAnalyticsConsent()) {
-      initSentry();
-    }
-  });
-}
 
 function parseSampleRate(value: string | undefined, fallback: number) {
   const parsed = Number.parseFloat(value ?? "");
@@ -117,9 +99,7 @@ function isSmokeTestEvent(event: Sentry.Event) {
 }
 
 export function initSentry() {
-  ensureSentryConsentListener();
-
-  if (!isSentryEnabled || sentryStarted || !hasAnalyticsConsent()) {
+  if (!isSentryEnabled || sentryStarted) {
     return;
   }
 

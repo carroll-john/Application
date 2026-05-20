@@ -1,8 +1,3 @@
-import {
-  hasAnalyticsConsent,
-  onAnalyticsConsentChange,
-} from "./analyticsConsent";
-
 type ClarityArgument = string | number | boolean | null | undefined;
 
 type ClarityFn = ((...args: ClarityArgument[]) => void) & {
@@ -38,7 +33,6 @@ const CLARITY_PII_ROUTE_PATTERNS = [
 ];
 
 let clarityStarted = false;
-let clarityConsentListenerAttached = false;
 
 export const isClarityEnabled = Boolean(CLARITY_PROJECT_ID);
 
@@ -60,27 +54,6 @@ function applyClarityMask(shouldMask: boolean) {
 
     element.removeAttribute(CLARITY_MASK_ATTRIBUTE);
   }
-}
-
-function ensureClarityConsentListener() {
-  if (clarityConsentListenerAttached || typeof window === "undefined") {
-    return;
-  }
-
-  clarityConsentListenerAttached = true;
-  onAnalyticsConsentChange(() => {
-    if (!hasAnalyticsConsent()) {
-      window.clarity?.("consent", false);
-      return;
-    }
-
-    if (isClarityPiiRoute(window.location.pathname)) {
-      return;
-    }
-
-    initClarity();
-    window.clarity?.("consent", true);
-  });
 }
 
 export function isClarityPiiRoute(pathname: string) {
@@ -176,10 +149,6 @@ function canTrackClaritySession() {
     return false;
   }
 
-  if (!hasAnalyticsConsent()) {
-    return false;
-  }
-
   if (isClarityPiiRoute(window.location.pathname)) {
     return false;
   }
@@ -205,8 +174,6 @@ function createClarityStub() {
 }
 
 export function initClarity() {
-  ensureClarityConsentListener();
-
   if (
     !canTrackClaritySession() ||
     clarityStarted ||
@@ -249,10 +216,6 @@ export function syncClarityRoutePrivacy(pathname: string) {
 
   if (piiRoute) {
     window.clarity?.("consent", false);
-    return;
-  }
-
-  if (!hasAnalyticsConsent()) {
     return;
   }
 
