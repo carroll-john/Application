@@ -3,19 +3,6 @@ import type { Database } from "./supabase.types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
-export const DEV_AUTH_BYPASS_STORAGE_KEY =
-  "application-prototype:dev-auth-bypass";
-
-export function canUseLocalDevAuthBypassForHostname(
-  isDev: boolean,
-  hostname: string | null | undefined,
-) {
-  if (!isDev) {
-    return false;
-  }
-
-  return ["127.0.0.1", "localhost"].includes(hostname ?? "");
-}
 
 export function hasSupabaseConfig(
   url: string | null | undefined,
@@ -38,10 +25,3 @@ export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
       },
     })
   : null;
-
-export const canUseLocalDevAuthBypass =
-  typeof window !== "undefined" &&
-  canUseLocalDevAuthBypassForHostname(
-    import.meta.env.DEV,
-    window.location.hostname,
-  );
