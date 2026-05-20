@@ -57,17 +57,8 @@ export interface CourseCatalogEntry {
   eligibility: CourseEligibilityConfig;
 }
 
-const DEFAULT_GOALS: readonly string[] = [
-  "Career advancement",
-  "Career change",
-  "Expand knowledge",
-];
-
-const UNDERGRADUATE_GOALS: readonly string[] = [
-  "Start a new qualification",
-  "Career change",
-  "Expand knowledge",
-];
+const DEFAULT_MIN_EDUCATION: CourseEducationLevel = "Bachelor degree";
+const DEFAULT_MIN_EXPERIENCE_YEARS = 3;
 
 const DEFAULT_EDUCATION_OPTIONS: readonly CourseEducationLevel[] = [
   "High school",
@@ -78,9 +69,9 @@ const DEFAULT_EDUCATION_OPTIONS: readonly CourseEducationLevel[] = [
 ];
 
 const DEFAULT_EXPERIENCE_OPTIONS: readonly CourseExperienceLevel[] = [
-  "Less than 2 years",
-  "2-5 years",
-  "5+ years",
+  "1-2 years",
+  "3-5 years",
+  "5 years plus",
 ];
 
 function slugify(value: string) {
@@ -486,7 +477,7 @@ function inferEducationMinimum(course: RawCourseEntry, studyLevel: string): Cour
     return "High school";
   }
 
-  return studyLevel === "Undergraduate" ? "High school" : "Bachelor degree";
+  return DEFAULT_MIN_EDUCATION;
 }
 
 function inferExperienceMinimum(course: RawCourseEntry) {
@@ -494,6 +485,11 @@ function inferExperienceMinimum(course: RawCourseEntry) {
   const years = [...requirements.matchAll(/(\d+)\s*\+?\s*years?/g)].map((match) =>
     Number.parseInt(match[1] ?? "0", 10),
   );
+
+  if (years.length === 0) {
+    return DEFAULT_MIN_EXPERIENCE_YEARS;
+  }
+
   const maximumYears = Math.max(0, ...years);
 
   if (maximumYears >= 5) {
@@ -514,6 +510,10 @@ function inferExperienceMinimum(course: RawCourseEntry) {
 function formatExperienceMinimum(minimumYears: number) {
   if (minimumYears >= 5) {
     return "five or more years";
+  }
+
+  if (minimumYears >= 3) {
+    return "three or more years";
   }
 
   if (minimumYears >= 2) {
@@ -717,8 +717,6 @@ function transformCourse(course: RawCourseEntry): CourseCatalogEntry {
     feeNotes,
     outcomes: sanitizeText(course.outcomes) || undefined,
     eligibility: {
-      goalsOptions:
-        studyLevel === "Undergraduate" ? [...UNDERGRADUATE_GOALS] : [...DEFAULT_GOALS],
       educationOptions: [...DEFAULT_EDUCATION_OPTIONS],
       experienceOptions: [...DEFAULT_EXPERIENCE_OPTIONS],
       rules:
