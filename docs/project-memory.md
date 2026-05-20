@@ -87,7 +87,7 @@ This file stores durable product, UX, and implementation rules for the applicati
 - Auth, database, and storage target: Supabase.
 - Hosting target: Vercel at `https://application-prototype.vercel.app`.
 - Error monitoring target: Sentry for frontend runtime errors plus `/api/parse-cv` server failures.
-- Analytics are consent-gated (`application-prototype:analytics-consent`); PostHog runs manual events only (autocapture disabled) with hashed analytics user IDs.
+- PostHog runs manual events only (autocapture disabled) with hashed analytics user IDs.
 - Clarity should stay masked/disabled on PII-heavy routes (`/sign-in`, `/profile`, `/dashboard`, `/overview`, `/section1/*`, `/section2/*`, `/review`, `/submitted`, `/profile-recommendations`).
 - `/api/parse-cv` now emits Sentry Agent Insights spans (`gen_ai.invoke_agent` + `gen_ai.response`) for OpenAI parsing calls.
 - Sensitive remote documents should be delivered through `/api/document-delivery` with bearer auth, `no-store` caching headers, and attachment disposition rather than exposing direct signed URLs in the browser.

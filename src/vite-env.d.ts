@@ -1,7 +1,6 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_ANALYTICS_CONSENT_DEFAULT?: string;
   readonly VITE_ANALYTICS_HASH_SALT?: string;
   readonly VITE_CLARITY_PROJECT_ID?: string;
   readonly VITE_GOOGLE_MAPS_API_KEY?: string;

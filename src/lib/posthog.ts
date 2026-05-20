@@ -1,9 +1,5 @@
 import type { ApplicationData } from "./applicationData";
 import {
-  hasAnalyticsConsent,
-  onAnalyticsConsentChange,
-} from "./analyticsConsent";
-import {
   hashAnalyticsIdentifier,
   hashAnalyticsIdentifierSync,
 } from "./analyticsIdentity";
@@ -124,7 +120,6 @@ let postHogStarted = false;
 let lastTrackedPageKey: string | null = null;
 let lastTrackedApplicationStepKey: string | null = null;
 let postHogBlockReason: string | null = null;
-let postHogConsentListenerAttached = false;
 let postHogIdentifyRequestId = 0;
 
 export interface CvParserExperimentState {
@@ -507,26 +502,6 @@ function registerBaseProperties() {
 
 export const isPostHogEnabled = Boolean(POSTHOG_KEY);
 
-function ensurePostHogConsentListener() {
-  if (postHogConsentListenerAttached || typeof window === "undefined") {
-    return;
-  }
-
-  postHogConsentListenerAttached = true;
-  onAnalyticsConsentChange(() => {
-    if (hasAnalyticsConsent()) {
-      initPostHog();
-      return;
-    }
-
-    postHogIdentifyRequestId += 1;
-    postHogStarted = false;
-    lastTrackedPageKey = null;
-    lastTrackedApplicationStepKey = null;
-    window.posthog?.reset?.();
-  });
-}
-
 function detectPostHogBlockReason() {
   if (typeof window === "undefined" || typeof navigator === "undefined") {
     return null;
@@ -565,10 +540,6 @@ function canCapturePostHog() {
     return false;
   }
 
-  if (!hasAnalyticsConsent()) {
-    return false;
-  }
-
   if (!postHogBlockReason) {
     postHogBlockReason = detectPostHogBlockReason();
     if (postHogBlockReason && import.meta.env.DEV) {
@@ -592,8 +563,6 @@ function normalizeFeatureFlagVariant(value: unknown) {
 }
 
 export function initPostHog() {
-  ensurePostHogConsentListener();
-
   if (!canCapturePostHog() || postHogStarted) {
     return;
   }
