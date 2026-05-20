@@ -4,11 +4,6 @@ import type { Database } from "../src/lib/supabase.types";
 import { callLlm, type LlmContent } from "./_ai/callLlm";
 import { cvEmploymentPromptV1 } from "./_ai/prompts/cvEmployment.v1";
 import { cvEmploymentSchemaV1 } from "./_ai/schemas/cvEmployment.v1";
-import {
-  handleApiRequest,
-  type NodeRequestLike,
-  type NodeResponseLike,
-} from "./_shared/nodeWebHandler";
 import { createRateLimiter } from "./_shared/rateLimiter";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
@@ -1193,13 +1188,6 @@ async function handleWebRequest(request: Request) {
   }
 }
 
-export default async function handler(
-  request: Request | NodeRequestLike,
-  response?: NodeResponseLike,
-) {
-  return handleApiRequest(request, response, {
-    defaultPath: "/api/parse-cv",
-    handleWebRequest,
-    unsupportedResponse: () => errorResponse("CV_PARSER_UNSUPPORTED_REQUEST_SHAPE"),
-  });
-}
+export default {
+  fetch: handleWebRequest,
+};

@@ -35,3 +35,22 @@ export function resolveSupabaseAnonKey(
 
   return undefined;
 }
+
+export function isLocalSupabaseUrl(url: string | null | undefined) {
+  if (!url?.trim()) {
+    return false;
+  }
+
+  try {
+    const host = new URL(url).hostname;
+    return host === "127.0.0.1" || host === "localhost";
+  } catch {
+    return false;
+  }
+}
+
+export function isHostedSupabaseProjectUrl(url: string | null | undefined) {
+  return Boolean(url?.trim().includes(".supabase.co"));
+}
+
+export const LOCAL_DEV_MAILPIT_URL = "http://127.0.0.1:54324";

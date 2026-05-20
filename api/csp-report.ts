@@ -1,9 +1,4 @@
 import { createRateLimiter } from "./_shared/rateLimiter";
-import {
-  handleApiRequest,
-  type NodeRequestLike,
-  type NodeResponseLike,
-} from "./_shared/nodeWebHandler";
 
 const NO_STORE_HEADERS = {
   "cache-control": "no-store, max-age=0",
@@ -200,22 +195,6 @@ async function handleWebRequest(request: Request) {
   });
 }
 
-export default async function handler(
-  request: Request | NodeRequestLike,
-  response?: NodeResponseLike,
-) {
-  return handleApiRequest(request, response, {
-    defaultPath: "/api/csp-report",
-    endHeadWithoutBody: true,
-    handleWebRequest,
-    origin: "https://application-prototype.local",
-    unsupportedResponse: () =>
-      jsonResponse(
-        {
-          code: "CSP_REPORT_UNSUPPORTED_REQUEST_SHAPE",
-          error: "Unsupported request shape.",
-        },
-        500,
-      ),
-  });
-}
+export default {
+  fetch: handleWebRequest,
+};

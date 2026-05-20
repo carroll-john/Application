@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  formatAuthConnectivityError,
   normalizeOtpCode,
   requestEmailOtp,
   verifyEmailOtpCode,
@@ -26,6 +27,25 @@ describe("authOtp", () => {
     expect(auth.signInWithOtp).toHaveBeenCalledWith({
       email: "user@example.com",
       options: { shouldCreateUser: true },
+    });
+  });
+
+  it("passes emailRedirectTo when a magic-link callback URL is provided", async () => {
+    const auth = createAuthMock();
+
+    await expect(
+      requestEmailOtp(auth, "user@example.com", {
+        emailRedirectTo:
+          "http://localhost:5173/auth/callback?redirect=%2Fcourses%2FMBA",
+      }),
+    ).resolves.toEqual({ error: null });
+    expect(auth.signInWithOtp).toHaveBeenCalledWith({
+      email: "user@example.com",
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo:
+          "http://localhost:5173/auth/callback?redirect=%2Fcourses%2FMBA",
+      },
     });
   });
 
@@ -66,6 +86,36 @@ describe("authOtp", () => {
     await expect(requestEmailOtp(auth, "user@example.com")).resolves.toEqual({
       error:
         "We couldn't reach the sign-in service. Check your connection and try again.",
+    });
+  });
+
+  it("returns a local Mailpit hint when local Supabase is unreachable", async () => {
+    const auth = createAuthMock();
+    auth.signInWithOtp.mockResolvedValue({
+      error: new Error("Failed to fetch"),
+    });
+
+    await expect(
+      requestEmailOtp(auth, "user@example.com", {
+        supabaseUrl: "http://127.0.0.1:54321",
+      }),
+    ).resolves.toEqual({
+      error: formatAuthConnectivityError("http://127.0.0.1:54321"),
+    });
+  });
+
+  it("returns a hosted-project hint when cloud Supabase is unreachable", async () => {
+    const auth = createAuthMock();
+    auth.verifyOtp.mockRejectedValue(new Error("fetch failed"));
+
+    await expect(
+      verifyEmailOtpCode(auth, "user@example.com", "123456", {
+        supabaseUrl: "https://weyxnhykyyetquqprfnu.supabase.co",
+      }),
+    ).resolves.toEqual({
+      error: formatAuthConnectivityError(
+        "https://weyxnhykyyetquqprfnu.supabase.co",
+      ),
     });
   });
 

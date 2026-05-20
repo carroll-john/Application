@@ -1,10 +1,29 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  isHostedSupabaseProjectUrl,
+  isLocalSupabaseUrl,
+  LOCAL_DEV_MAILPIT_URL,
+} from "./supabaseConfig";
 import type { Database } from "./supabase.types";
 
 type AuthClient = Pick<SupabaseClient<Database>["auth"], "signInWithOtp" | "verifyOtp">;
 
 const AUTH_SERVICE_UNAVAILABLE_MESSAGE =
   "We couldn't reach the sign-in service. Check your connection and try again.";
+
+export function formatAuthConnectivityError(
+  supabaseUrl: string | null | undefined,
+) {
+  if (isLocalSupabaseUrl(supabaseUrl)) {
+    return `We couldn't reach local Supabase. Run \`supabase start\`, then retry. Local OTP emails go to Mailpit at ${LOCAL_DEV_MAILPIT_URL}, not your real inbox.`;
+  }
+
+  if (isHostedSupabaseProjectUrl(supabaseUrl)) {
+    return "We couldn't reach the hosted Supabase project. It may be paused or deleted — restore the Application project in the Supabase dashboard, then confirm Vercel uses the restored URL and anon key.";
+  }
+
+  return AUTH_SERVICE_UNAVAILABLE_MESSAGE;
+}
 
 export function normalizeAuthEmail(email: string) {
   return email.trim().toLowerCase();
@@ -42,17 +61,25 @@ function isFetchFailure(message: string) {
   return /failed to fetch|fetch failed|networkerror/i.test(message);
 }
 
-function formatAuthRequestError(error: unknown) {
+function formatAuthRequestError(
+  error: unknown,
+  supabaseUrl?: string | null,
+) {
   const message = getErrorMessage(error);
 
   if (!message) {
     return null;
   }
 
-  return isFetchFailure(message) ? AUTH_SERVICE_UNAVAILABLE_MESSAGE : message;
+  return isFetchFailure(message)
+    ? formatAuthConnectivityError(supabaseUrl)
+    : message;
 }
 
-function formatAuthVerificationError(error: unknown) {
+function formatAuthVerificationError(
+  error: unknown,
+  supabaseUrl?: string | null,
+) {
   const message = getErrorMessage(error);
 
   if (!message) {
@@ -60,7 +87,7 @@ function formatAuthVerificationError(error: unknown) {
   }
 
   if (isFetchFailure(message)) {
-    return AUTH_SERVICE_UNAVAILABLE_MESSAGE;
+    return formatAuthConnectivityError(supabaseUrl);
   }
 
   return "That code is invalid or expired. Request a new code and try again.";
@@ -69,6 +96,7 @@ function formatAuthVerificationError(error: unknown) {
 export async function requestEmailOtp(
   auth: AuthClient,
   email: string,
+  options?: { supabaseUrl?: string | null; emailRedirectTo?: string },
 ): Promise<{ error: string | null }> {
   const normalizedEmail = normalizeAuthEmail(email);
 
@@ -83,12 +111,17 @@ export async function requestEmailOtp(
   try {
     const { error } = await auth.signInWithOtp({
       email: normalizedEmail,
-      options: { shouldCreateUser: true },
+      options: {
+        shouldCreateUser: true,
+        ...(options?.emailRedirectTo
+          ? { emailRedirectTo: options.emailRedirectTo }
+          : {}),
+      },
     });
 
-    return { error: formatAuthRequestError(error) };
+    return { error: formatAuthRequestError(error, options?.supabaseUrl) };
   } catch (error) {
-    return { error: formatAuthRequestError(error) };
+    return { error: formatAuthRequestError(error, options?.supabaseUrl) };
   }
 }
 
@@ -96,6 +129,7 @@ export async function verifyEmailOtpCode(
   auth: AuthClient,
   email: string,
   token: string,
+  options?: { supabaseUrl?: string | null },
 ): Promise<{ error: string | null }> {
   const normalizedEmail = normalizeAuthEmail(email);
   const normalizedToken = normalizeOtpCode(token);
@@ -115,8 +149,8 @@ export async function verifyEmailOtpCode(
       type: "email",
     });
 
-    return { error: formatAuthVerificationError(error) };
+    return { error: formatAuthVerificationError(error, options?.supabaseUrl) };
   } catch (error) {
-    return { error: formatAuthVerificationError(error) };
+    return { error: formatAuthVerificationError(error, options?.supabaseUrl) };
   }
 }

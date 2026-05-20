@@ -1,14 +1,21 @@
 import { Mail, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useAuth } from "../context/AuthContext";
+import { resolveAuthRedirectPath } from "../lib/authCallback";
 import {
   isValidEmailAddress,
   normalizeAuthEmail,
   normalizeOtpCode,
 } from "../lib/authOtp";
 import { capturePostHogEvent } from "../lib/posthog";
+import { configuredSupabaseUrl } from "../lib/supabase";
+import {
+  isLocalSupabaseUrl,
+  LOCAL_DEV_MAILPIT_URL,
+} from "../lib/supabaseConfig";
 
 interface AuthPanelProps {
   context?: "apply" | "eligibility" | "header" | "route";
@@ -19,6 +26,11 @@ export function AuthPanel({
   context = "route",
   onAuthenticated,
 }: AuthPanelProps) {
+  const location = useLocation();
+  const redirectPath = resolveAuthRedirectPath({
+    pathname: location.pathname,
+    search: location.search,
+  });
   const {
     isAuthenticated,
     isConfigured,
@@ -36,6 +48,8 @@ export function AuthPanel({
   const hasNotifiedAuthenticatedRef = useRef(false);
   const normalizedEmail = normalizeAuthEmail(email);
   const normalizedCode = normalizeOtpCode(code);
+  const showLocalMailpitHint =
+    import.meta.env.DEV && isLocalSupabaseUrl(configuredSupabaseUrl);
 
   useEffect(() => {
     if (!isAuthenticated || hasNotifiedAuthenticatedRef.current) {
@@ -60,7 +74,9 @@ export function AuthPanel({
       auth_context: context,
       email_domain: normalizedEmail.split("@")[1] ?? "unknown",
     });
-    const { error: sendError } = await sendEmailOtp(normalizedEmail);
+    const { error: sendError } = await sendEmailOtp(normalizedEmail, {
+      redirectPath,
+    });
     setIsSending(false);
 
     if (sendError) {
@@ -122,7 +138,9 @@ export function AuthPanel({
 
     setError(null);
     setIsResending(true);
-    const { error: resendError } = await resendEmailOtp(sentEmail);
+    const { error: resendError } = await resendEmailOtp(sentEmail, {
+      redirectPath,
+    });
     setIsResending(false);
 
     if (resendError) {
@@ -153,6 +171,21 @@ export function AuthPanel({
             ? `We sent a 6-digit sign-in code to ${sentEmail}.`
             : "Use your email to sign in or create an applicant account. No password required."}
         </p>
+        {showLocalMailpitHint && sentEmail ? (
+          <p className="text-sm leading-6 text-slate-600">
+            Local dev: open{" "}
+            <a
+              className="font-medium text-[var(--cta-secondary)] hover:underline"
+              href={LOCAL_DEV_MAILPIT_URL}
+              rel="noreferrer"
+              target="_blank"
+            >
+              Mailpit
+            </a>{" "}
+            to read the code. Supabase does not deliver local auth emails to a
+            real inbox.
+          </p>
+        ) : null}
       </div>
 
       {!isConfigured ? (
