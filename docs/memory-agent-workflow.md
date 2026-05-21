@@ -43,7 +43,7 @@ Load only these files for typical tasks (~5–15 files each):
 `src/context/ApplicationContext.tsx`, `src/features/application/hooks/useApplicationData.ts`, `src/features/application/hooks/useApplicationProfile.ts`, `src/lib/applicationData.ts`, `src/lib/validation/*`
 
 ### application-persistence
-`src/features/application/hooks/useApplicationStorageOrchestration.ts`, `src/features/application/hooks/useApplicationDraftImport.ts`, `src/features/application/hooks/useApplicationHydration.ts`, `src/lib/applicationStorageAdapter.ts`, `src/lib/storage/*`, `src/lib/applicantProfileStore.ts`
+`src/features/application/hooks/useApplicationStorageOrchestration.ts`, `src/features/application/hooks/useApplicationPersistence.ts`, `src/features/application/hooks/useApplicationLifecycle.ts`, `src/features/application/hooks/useApplicationSummaries.ts`, `src/features/application/hooks/useApplicationDraftImport.ts`, `src/features/application/hooks/useApplicationHydration.ts`, `src/lib/applicationStorageAdapter.ts`, `src/lib/storage/*`, `src/lib/applicantProfileStore.ts`
 
 ### documents
 `src/lib/storage/documents.ts`, `src/lib/documentAttachment.ts`, `src/components/FileUpload.tsx`, `src/components/DocumentUploadField.tsx`, `api/document-delivery.ts`
