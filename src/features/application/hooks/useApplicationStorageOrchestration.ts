@@ -1,42 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  clearLocalApplications,
-  saveLocalActiveApplicationId,
-  summarizeApplication,
-  upsertLocalApplication,
-  type ApplicationSummary,
-} from "../../../lib/applicationRecords";
-import {
-  clearLocalApplicantProfile,
-  type StoredApplicantProfile,
-} from "../../../lib/applicantProfileStore";
-import type {
-  ApplicationData,
-  SelectedCourse,
-} from "../../../lib/applicationData";
+import type { StoredApplicantProfile } from "../../../lib/applicantProfileStore";
 import {
   initialApplicationData,
-  mergeStoredApplicationData,
+  type ApplicationData,
+  type SelectedCourse,
 } from "../../../lib/applicationData";
 import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageAdapter";
 import { beginCourseApplication as runBeginCourseApplication } from "./beginCourseApplication";
-import {
-  useApplicationDraftImport,
-  type LocalDraftImportState,
-} from "./useApplicationDraftImport";
+import type { BeginCourseApplicationOptions } from "./applicationOrchestrationTypes";
+import { useApplicationDraftImport, type LocalDraftImportState } from "./useApplicationDraftImport";
 import { hydrateApplicationState } from "./useApplicationHydration";
+import { useApplicationLifecycle } from "./useApplicationLifecycle";
+import { useApplicationPersistence } from "./useApplicationPersistence";
+import { useApplicationSummaries } from "./useApplicationSummaries";
 
-export interface PersistApplicationOptions {
-  applicantProfileId?: string | null;
-  forceCreate?: boolean;
-  keepActive?: boolean;
-}
-
-export interface BeginCourseApplicationOptions {
-  prefillFromApplicationId?: string | null;
-  startFresh?: boolean;
-}
-
+export type {
+  BeginCourseApplicationOptions,
+  PersistApplicationOptions,
+} from "./applicationOrchestrationTypes";
 export type { LocalDraftImportState };
 
 interface UseApplicationStorageOrchestrationOptions {
@@ -68,12 +49,12 @@ export function useApplicationStorageOrchestration({
   trackDraftResumed,
 }: UseApplicationStorageOrchestrationOptions) {
   const [data, setData] = useState<ApplicationData>(initialApplicationData);
-  const [applications, setApplications] = useState<ApplicationSummary[]>([]);
   const [activeApplicationId, setActiveApplicationId] = useState<string | null>(
     null,
   );
   const [isHydrating, setIsHydrating] = useState(true);
   const isMountedRef = useRef(true);
+  const { applications, setApplications, upsertSummary } = useApplicationSummaries();
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -83,51 +64,29 @@ export function useApplicationStorageOrchestration({
     };
   }, []);
 
-  const upsertSummary = useCallback((application: ApplicationData) => {
-    const summary = summarizeApplication(application);
+  const { ensureRemoteRecordId, persistApplication } = useApplicationPersistence({
+    activeApplicationId,
+    applicantProfileId,
+    data,
+    setActiveApplicationId,
+    setData,
+    storageAdapter,
+    upsertSummary,
+  });
 
-    if (!summary) {
-      return;
-    }
-
-    setApplications((previous) => {
-      const next = previous.filter((item) => item.id !== summary.id);
-      return [summary, ...next].sort((left, right) =>
-        right.updatedAt.localeCompare(left.updatedAt),
-      );
+  const { markApplicationSubmitted, openApplication, resetApplication } =
+    useApplicationLifecycle({
+      activeApplicationId,
+      applications,
+      data,
+      setActiveApplicationId,
+      setApplicantProfile,
+      setApplications,
+      setData,
+      storageAdapter,
+      trackApplicationSubmitted,
+      upsertSummary,
     });
-  }, []);
-
-  const persistApplication = useCallback(
-    async (nextData: ApplicationData, options?: PersistApplicationOptions) => {
-      const mergedData = mergeStoredApplicationData(nextData);
-      const resolvedApplicantProfileId =
-        options?.applicantProfileId ??
-        mergedData.applicationMeta.applicantProfileId ??
-        applicantProfileId ??
-        null;
-
-      const persistedData = await storageAdapter.saveApplication(mergedData, {
-        applicantProfileId: resolvedApplicantProfileId,
-        forceCreate: options?.forceCreate,
-      });
-
-      upsertLocalApplication(persistedData);
-      upsertSummary(persistedData);
-      setData(persistedData);
-
-      const nextActiveId =
-        persistedData.applicationMeta.recordId ?? activeApplicationId;
-
-      if (!options?.keepActive && nextActiveId) {
-        setActiveApplicationId(nextActiveId);
-        saveLocalActiveApplicationId(nextActiveId);
-      }
-
-      return persistedData;
-    },
-    [activeApplicationId, applicantProfileId, storageAdapter, upsertSummary],
-  );
 
   const loadApplicationState = useCallback(async () => {
     setIsHydrating(true);
@@ -146,7 +105,7 @@ export function useApplicationStorageOrchestration({
         setIsHydrating(false);
       }
     }
-  }, [ensureApplicantProfile, storageAdapter]);
+  }, [ensureApplicantProfile, setApplications, storageAdapter]);
 
   useEffect(() => {
     void loadApplicationState();
@@ -167,23 +126,6 @@ export function useApplicationStorageOrchestration({
       storageAdapter,
       upsertSummary,
     });
-
-  const openApplication = useCallback(
-    async (applicationId: string) => {
-      const application = await storageAdapter.loadApplicationById(applicationId);
-
-      if (!application) {
-        return;
-      }
-
-      setData(application);
-      setActiveApplicationId(applicationId);
-      saveLocalActiveApplicationId(applicationId);
-      storageAdapter.syncLoadedApplication(application);
-      upsertSummary(application);
-    },
-    [storageAdapter, upsertSummary],
-  );
 
   const beginCourseApplication = useCallback(
     async (
@@ -211,59 +153,6 @@ export function useApplicationStorageOrchestration({
       trackDraftResumed,
     ],
   );
-
-  const ensureRemoteRecordId = useCallback(async () => {
-    if (data.applicationMeta.recordId) {
-      return data.applicationMeta.recordId;
-    }
-
-    const persisted = await persistApplication(data, { forceCreate: true });
-
-    if (!persisted.applicationMeta.recordId) {
-      throw new Error("Unable to create an application record.");
-    }
-
-    return persisted.applicationMeta.recordId;
-  }, [data, persistApplication]);
-
-  const markApplicationSubmitted = useCallback(async () => {
-    const submittedApplication = await storageAdapter.submitApplication(data);
-
-    upsertLocalApplication(submittedApplication);
-    upsertSummary(submittedApplication);
-    setData(submittedApplication);
-
-    const nextActiveId =
-      submittedApplication.applicationMeta.recordId ?? activeApplicationId;
-
-    if (nextActiveId) {
-      setActiveApplicationId(nextActiveId);
-      saveLocalActiveApplicationId(nextActiveId);
-    }
-
-    trackApplicationSubmitted(submittedApplication, storageAdapter.mode);
-  }, [
-    activeApplicationId,
-    data,
-    storageAdapter,
-    trackApplicationSubmitted,
-    upsertSummary,
-  ]);
-
-  const resetApplication = useCallback(async () => {
-    await Promise.all(
-      applications.map((application) =>
-        storageAdapter.deleteApplication(application.id),
-      ),
-    );
-
-    clearLocalApplications();
-    clearLocalApplicantProfile();
-    setApplications([]);
-    setActiveApplicationId(null);
-    setData(initialApplicationData);
-    setApplicantProfile(null);
-  }, [applications, setApplicantProfile, storageAdapter]);
 
   return useMemo(
     () => ({
