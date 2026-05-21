@@ -6,6 +6,13 @@ export type Section1StepKey =
   | "cultural-background"
   | "family-support";
 
+export interface Section1StepAnalytics {
+  routeKey: string;
+  routeLabel: string;
+  stepKey: string;
+  stepLabel: string;
+}
+
 export interface Section1StepDefinition {
   key: Section1StepKey;
   path: string;
@@ -15,6 +22,7 @@ export interface Section1StepDefinition {
   title: string;
   description: string;
   sectionLabel: "Section 1 of 3";
+  analytics: Section1StepAnalytics;
 }
 
 export const SECTION1_SECTION_LABEL = "Section 1 of 3" as const;
@@ -29,6 +37,12 @@ export const section1Steps: Section1StepDefinition[] = [
     title: "Your basic information",
     description: "Let's start with some basic details about you.",
     sectionLabel: SECTION1_SECTION_LABEL,
+    analytics: {
+      routeKey: "basic_information",
+      routeLabel: "Basic information",
+      stepKey: "section1_basic_info",
+      stepLabel: "Basic information",
+    },
   },
   {
     key: "personal-contact",
@@ -39,6 +53,12 @@ export const section1Steps: Section1StepDefinition[] = [
     title: "Personal contact details",
     description: "Tell us about your gender, date of birth, and how to contact you.",
     sectionLabel: SECTION1_SECTION_LABEL,
+    analytics: {
+      routeKey: "personal_contact_details",
+      routeLabel: "Personal contact details",
+      stepKey: "section1_personal_contact",
+      stepLabel: "Personal contact details",
+    },
   },
   {
     key: "contact-info",
@@ -49,6 +69,12 @@ export const section1Steps: Section1StepDefinition[] = [
     title: "Citizenship information",
     description: "We need a few details about your citizenship and country of birth.",
     sectionLabel: SECTION1_SECTION_LABEL,
+    analytics: {
+      routeKey: "citizenship_information",
+      routeLabel: "Citizenship information",
+      stepKey: "section1_contact_info",
+      stepLabel: "Citizenship information",
+    },
   },
   {
     key: "address",
@@ -59,6 +85,12 @@ export const section1Steps: Section1StepDefinition[] = [
     title: "Address details",
     description: "Tell us where you live and whether your postal address is different.",
     sectionLabel: SECTION1_SECTION_LABEL,
+    analytics: {
+      routeKey: "address_details",
+      routeLabel: "Address details",
+      stepKey: "section1_address",
+      stepLabel: "Address details",
+    },
   },
   {
     key: "cultural-background",
@@ -70,6 +102,12 @@ export const section1Steps: Section1StepDefinition[] = [
     description:
       "These questions support government reporting and student support planning. They do not affect your admission outcome.",
     sectionLabel: SECTION1_SECTION_LABEL,
+    analytics: {
+      routeKey: "cultural_background",
+      routeLabel: "Cultural background",
+      stepKey: "section1_cultural_background",
+      stepLabel: "Cultural background",
+    },
   },
   {
     key: "family-support",
@@ -81,6 +119,12 @@ export const section1Steps: Section1StepDefinition[] = [
     description:
       "These answers support required reporting and help us arrange reasonable adjustments if you need them. They do not affect your admission outcome.",
     sectionLabel: SECTION1_SECTION_LABEL,
+    analytics: {
+      routeKey: "family_support",
+      routeLabel: "Family support",
+      stepKey: "section1_family_support",
+      stepLabel: "Family support",
+    },
   },
 ];
 
@@ -94,4 +138,27 @@ export function getSection1Step(key: Section1StepKey) {
 
 export function getSection1StepByPath(path: string) {
   return section1Steps.find((step) => step.path === path) ?? null;
+}
+
+export function section1PathPattern(path: string) {
+  return new RegExp(`^${path.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`);
+}
+
+export function buildSection1ApplicationStepDefinitions() {
+  return section1Steps.map((step, index) => ({
+    group: "section1" as const,
+    key: step.analytics.stepKey,
+    label: step.analytics.stepLabel,
+    order: index + 2,
+    pattern: section1PathPattern(step.path),
+  }));
+}
+
+export function buildSection1RouteAnalyticsDefinitions() {
+  return section1Steps.map((step) => ({
+    group: "application" as const,
+    key: step.analytics.routeKey,
+    label: step.analytics.routeLabel,
+    pattern: section1PathPattern(step.path),
+  }));
 }

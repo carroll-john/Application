@@ -1,3 +1,8 @@
+import {
+  buildSection1ApplicationStepDefinitions,
+  buildSection1RouteAnalyticsDefinitions,
+} from "../section1Steps";
+
 export type ApplicationStepDefinition = {
   group: "overview" | "review" | "section1" | "section2" | "submitted";
   key: string;
@@ -72,42 +77,7 @@ export const routeAnalyticsDefinitions: RouteAnalyticsDefinition[] = [
     label: "Application overview",
     pattern: /^\/overview$/,
   },
-  {
-    group: "application",
-    key: "basic_information",
-    label: "Basic information",
-    pattern: /^\/section1\/basic-info$/,
-  },
-  {
-    group: "application",
-    key: "personal_contact_details",
-    label: "Personal contact details",
-    pattern: /^\/section1\/personal-contact$/,
-  },
-  {
-    group: "application",
-    key: "citizenship_information",
-    label: "Citizenship information",
-    pattern: /^\/section1\/contact-info$/,
-  },
-  {
-    group: "application",
-    key: "address_details",
-    label: "Address details",
-    pattern: /^\/section1\/address$/,
-  },
-  {
-    group: "application",
-    key: "cultural_background",
-    label: "Cultural background",
-    pattern: /^\/section1\/cultural-background$/,
-  },
-  {
-    group: "application",
-    key: "family_support",
-    label: "Family support",
-    pattern: /^\/section1\/family-support$/,
-  },
+  ...buildSection1RouteAnalyticsDefinitions(),
   {
     group: "application",
     key: "qualifications_overview",
@@ -184,48 +154,7 @@ export const applicationStepDefinitions: ApplicationStepDefinition[] = [
     order: 1,
     pattern: /^\/overview$/,
   },
-  {
-    group: "section1",
-    key: "section1_basic_info",
-    label: "Basic information",
-    order: 2,
-    pattern: /^\/section1\/basic-info$/,
-  },
-  {
-    group: "section1",
-    key: "section1_personal_contact",
-    label: "Personal contact details",
-    order: 3,
-    pattern: /^\/section1\/personal-contact$/,
-  },
-  {
-    group: "section1",
-    key: "section1_contact_info",
-    label: "Citizenship information",
-    order: 4,
-    pattern: /^\/section1\/contact-info$/,
-  },
-  {
-    group: "section1",
-    key: "section1_address",
-    label: "Address details",
-    order: 5,
-    pattern: /^\/section1\/address$/,
-  },
-  {
-    group: "section1",
-    key: "section1_cultural_background",
-    label: "Cultural background",
-    order: 6,
-    pattern: /^\/section1\/cultural-background$/,
-  },
-  {
-    group: "section1",
-    key: "section1_family_support",
-    label: "Family support",
-    order: 7,
-    pattern: /^\/section1\/family-support$/,
-  },
+  ...buildSection1ApplicationStepDefinitions(),
   {
     group: "section2",
     key: "section2_qualifications",

@@ -29,7 +29,7 @@ npm run finish-task -- "Task name"
 | CV parser API | `api/_ai/callLlm.test.ts`, `npm run test:cv-parser` (needs dev server + OPENAI_API_KEY) |
 | Course catalog / eligibility | `src/lib/courseCatalog.test.ts`, `courseEligibility.test.ts`, `courseBrowse.test.ts` |
 | Analytics | `src/lib/posthog.test.ts`, `analyticsIdentity.test.ts`, `clarity.test.ts` |
-| Hooks (Section 1/2) | `src/hooks/*.test.ts` |
+| Hooks (Section 1/2) | `src/hooks/*.test.ts`, `src/hooks/section1Navigation.test.ts` |
 | Full CI parity | `npm run lint && npm test && npm run build` |
 
 ## Module Working Sets
@@ -49,7 +49,7 @@ Load only these files for typical tasks (~5–15 files each):
 `src/lib/storage/documents.ts`, `src/lib/documentAttachment.ts`, `src/components/FileUpload.tsx`, `src/components/DocumentUploadField.tsx`, `api/document-delivery.ts`
 
 ### form-wizard-section1
-`src/pages/Section1*.tsx`, `src/components/ApplicationShell.tsx`, `src/hooks/useSection1Step.ts`, `src/lib/section1Steps.ts`, `src/hooks/useReviewReturn.ts`, `src/lib/address.ts`
+`src/pages/Section1*.tsx`, `src/components/ApplicationShell.tsx`, `src/hooks/useSection1Step.ts`, `src/hooks/section1Navigation.ts`, `src/lib/section1Steps.ts`, `src/lib/analytics/applicationSteps.ts`, `src/hooks/useReviewReturn.ts`, `src/lib/address.ts`
 
 ### form-wizard-section2
 `src/pages/Section2*.tsx`, `src/hooks/useEditableRecord.ts`, `src/hooks/useSection2Navigation.ts`, `src/lib/section2Requirements.ts`
