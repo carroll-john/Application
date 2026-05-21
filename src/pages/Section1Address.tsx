@@ -33,9 +33,8 @@ export default function Section1Address() {
     "Live address lookup is not configured in this environment. Keep typing to enter the address manually.";
 
   const persist = () => updateContactDetails(formData);
-  const { shellProps } = useSection1Step({
-    previousPath: "/section1/contact-info",
-    continuePath: "/section1/cultural-background",
+  const { shellProps, step } = useSection1Step({
+    step: "address",
     persist,
   });
 
@@ -112,10 +111,10 @@ export default function Section1Address() {
 
   return (
     <ApplicationShell
-      sectionLabel="Section 1 of 3"
-      progress={56}
-      title="Address details"
-      description="Tell us where you live and whether your postal address is different."
+      sectionLabel={step.sectionLabel}
+      progress={step.progress}
+      title={step.title}
+      description={step.description}
       {...shellProps}
     >
       <div className="space-y-6">

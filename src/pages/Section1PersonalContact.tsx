@@ -22,18 +22,17 @@ export default function Section1PersonalContact() {
   });
 
   const persist = () => updatePersonalDetails(formData);
-  const { shellProps } = useSection1Step({
-    previousPath: "/section1/basic-info",
-    continuePath: "/section1/contact-info",
+  const { shellProps, step } = useSection1Step({
+    step: "personal-contact",
     persist,
   });
 
   return (
     <ApplicationShell
-      sectionLabel="Section 1 of 3"
-      progress={33}
-      title="Personal contact details"
-      description="Tell us about your gender, date of birth, and how to contact you."
+      sectionLabel={step.sectionLabel}
+      progress={step.progress}
+      title={step.title}
+      description={step.description}
       {...shellProps}
     >
       <div className="space-y-6">

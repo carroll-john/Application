@@ -18,18 +18,17 @@ export default function Section1BasicInfo() {
   });
 
   const persist = () => updatePersonalDetails(formData);
-  const { shellProps } = useSection1Step({
-    previousPath: "/overview",
-    continuePath: "/section1/personal-contact",
+  const { shellProps, step } = useSection1Step({
+    step: "basic-info",
     persist,
   });
 
   return (
     <ApplicationShell
-      sectionLabel="Section 1 of 3"
-      progress={17}
-      title="Your basic information"
-      description="Let's start with some basic details about you."
+      sectionLabel={step.sectionLabel}
+      progress={step.progress}
+      title={step.title}
+      description={step.description}
       {...shellProps}
     >
       <div className="space-y-6">
