@@ -12,7 +12,7 @@ import type { StartApplicationOptions } from "./EligibilityResultModal";
 
 export type AuthGateContext = "apply" | "eligibility";
 
-type BeginCourseApplication = (
+export type BeginCourseApplication = (
   course: SelectedCourse,
   options?: StartApplicationOptions,
 ) => Promise<ApplicationData>;

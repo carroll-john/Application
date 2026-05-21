@@ -1,5 +1,6 @@
 export { AuthModal } from "../auth/AuthModal";
 export { CourseChecklist } from "./CourseChecklist";
+export { CourseDetailsPresentation } from "./CourseDetailsPresentation";
 export { EligibilityCheckModal } from "./EligibilityCheckModal";
 export {
   ApplicationStartPicker,
@@ -16,3 +17,4 @@ export {
   useCourseApplicationStart,
   type AuthGateContext,
 } from "./useCourseApplicationStart";
+export { useCourseEligibilityFlow } from "./useCourseEligibilityFlow";

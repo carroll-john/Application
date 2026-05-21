@@ -72,7 +72,7 @@ export default function Section2AddAccreditation() {
           progress={66}
           sectionLabel="Section 2 of 3"
           title={
-            existing
+            isEditing
               ? "Edit Professional Accreditation"
               : "Add Professional Accreditation"
           }
