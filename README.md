@@ -11,8 +11,11 @@ University application prototype built with React, Vite, TypeScript, Tailwind, a
   - `lib/` business logic, validation, persistence, and backend helpers
   - `pages/` route-level screens
 - `docs/`
-  - `project-memory.md` durable product and implementation decisions
+  - `project-memory.md` cross-cutting contracts index
+  - `memory-*.md` domain memory for agents (auth, applications, documents, UI, workflow)
   - `backend-rollout.md` Supabase and deployment setup
+  - `decisions.md` dated architecture decisions
+  - `current-phase.md` active priorities
 - `supabase/`
   - `migrations/` SQL migrations
   - `reset_test_data.sql` clean hosted test reset
@@ -219,9 +222,40 @@ If you are offline and want to skip the `origin/master` refresh during cleanup:
 npm run finish-task -- --no-fetch "Offline cleanup"
 ```
 
+## Applicant sign-in (email OTP)
+
+Local Supabase does **not** deliver auth emails to real inboxes. After `supabase start`, request a code on `/sign-in` and read it in Mailpit at `http://127.0.0.1:54324`.
+
+```bash
+supabase start
+npm run sync-supabase-env   # optional: refresh .env.local keys
+npm run dev
+```
+
+Hosted/Vercel OTP requires an **active** Supabase project and `VITE_SUPABASE_*` env vars on Vercel. See [docs/auth-otp-troubleshooting.md](docs/auth-otp-troubleshooting.md).
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [docs/project-memory.md](docs/project-memory.md) | Cross-cutting contracts index |
+| [docs/memory-auth.md](docs/memory-auth.md) | Auth, OTP, redirects, session |
+| [docs/memory-applications.md](docs/memory-applications.md) | Applications, validation, submit |
+| [docs/memory-documents.md](docs/memory-documents.md) | Uploads, storage, delivery proxy |
+| [docs/memory-ui.md](docs/memory-ui.md) | UI primitives, forms, CTAs |
+| [docs/memory-agent-workflow.md](docs/memory-agent-workflow.md) | Tests, module boundaries, dev ops |
+| [docs/current-phase.md](docs/current-phase.md) | Active priorities and tracks |
+| [docs/decisions.md](docs/decisions.md) | Dated architecture decisions |
+| [docs/backend-rollout.md](docs/backend-rollout.md) | Supabase, Vercel, migrations |
+| [docs/auth-otp-troubleshooting.md](docs/auth-otp-troubleshooting.md) | OTP delivery runbook |
+| [docs/analytics-events.md](docs/analytics-events.md) | PostHog event contract |
+| [docs/demo-scope-tuesday.md](docs/demo-scope-tuesday.md) | Historical Tuesday demo scope |
+| [docs/eligibility-check-roadmap.md](docs/eligibility-check-roadmap.md) | Eligibility backend roadmap |
+| [docs/integration-platform-mvp.md](docs/integration-platform-mvp.md) | Separate integration platform initiative |
+| [docs/multi-program-flow-options.md](docs/multi-program-flow-options.md) | Multi-program product exploration |
+
 ## Notes
 
-- Read `docs/project-memory.md` before making product or UX changes.
-- The app is currently dogfooded behind a Keypath-only site gate.
-- Localhost has a dev-only auth bypass for post-auth verification.
+- Read `docs/project-memory.md` and the relevant `docs/memory-*.md` before making product or UX changes.
+- Applicant auth uses public email OTP (no company-domain gate). See `docs/auth-otp-troubleshooting.md`.
 - PostHog is optional and activates when `VITE_POSTHOG_KEY` is set and bot/automation filters pass. Use `VITE_POSTHOG_HOST` to point at your PostHog region, for example `https://us.i.posthog.com`.

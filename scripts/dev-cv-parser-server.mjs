@@ -76,7 +76,7 @@ const server = createServer(async (request, response) => {
       method: request.method || "GET",
     });
 
-    const handlerResponse = await parseCvHandler(handlerRequest);
+    const handlerResponse = await parseCvHandler.fetch(handlerRequest);
 
     response.statusCode = handlerResponse.status;
     handlerResponse.headers.forEach((value, key) => {

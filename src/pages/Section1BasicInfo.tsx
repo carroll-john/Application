@@ -1,16 +1,13 @@
 import { Smile, User } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ApplicationShell } from "../components/ApplicationShell";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
-import { useReviewReturn } from "../hooks/useReviewReturn";
+import { useSection1Step } from "../hooks/useSection1Step";
 
 export default function Section1BasicInfo() {
-  const navigate = useNavigate();
-  const { fromReview, previousLabel, returnPath } = useReviewReturn();
   const { data, updatePersonalDetails } = useApplication();
   const [formData, setFormData] = useState({
     title: data.personalDetails.title,
@@ -21,6 +18,11 @@ export default function Section1BasicInfo() {
   });
 
   const persist = () => updatePersonalDetails(formData);
+  const { shellProps } = useSection1Step({
+    previousPath: "/overview",
+    continuePath: "/section1/personal-contact",
+    persist,
+  });
 
   return (
     <ApplicationShell
@@ -28,24 +30,7 @@ export default function Section1BasicInfo() {
       progress={17}
       title="Your basic information"
       description="Let's start with some basic details about you."
-      onPrevious={() => {
-        persist();
-        navigate(returnPath("/overview"));
-      }}
-      onSaveAndExit={
-        fromReview
-          ? undefined
-          : () => {
-              persist();
-              navigate("/dashboard");
-            }
-      }
-      onContinue={() => {
-        persist();
-        navigate(returnPath("/section1/personal-contact"));
-      }}
-      previousLabel={previousLabel}
-      continueLabel={fromReview ? "Save & Return to Review" : "Continue"}
+      {...shellProps}
     >
       <div className="space-y-6">
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">

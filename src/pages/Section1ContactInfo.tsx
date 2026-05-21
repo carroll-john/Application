@@ -1,16 +1,13 @@
 import { Globe2, Landmark } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ApplicationShell } from "../components/ApplicationShell";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
-import { useReviewReturn } from "../hooks/useReviewReturn";
+import { useSection1Step } from "../hooks/useSection1Step";
 import { countries } from "../lib/formOptions";
 
 export default function Section1ContactInfo() {
-  const navigate = useNavigate();
-  const { fromReview, previousLabel, returnPath } = useReviewReturn();
   const { data, updateContactDetails } = useApplication();
   const [formData, setFormData] = useState({
     citizenCountry: data.contactDetails.citizenCountry,
@@ -19,6 +16,11 @@ export default function Section1ContactInfo() {
   });
 
   const persist = () => updateContactDetails(formData);
+  const { shellProps } = useSection1Step({
+    previousPath: "/section1/personal-contact",
+    continuePath: "/section1/address",
+    persist,
+  });
 
   return (
     <ApplicationShell
@@ -26,24 +28,7 @@ export default function Section1ContactInfo() {
       progress={45}
       title="Citizenship information"
       description="We need a few details about your citizenship and country of birth."
-      onPrevious={() => {
-        persist();
-        navigate(returnPath("/section1/personal-contact"));
-      }}
-      onSaveAndExit={
-        fromReview
-          ? undefined
-          : () => {
-              persist();
-              navigate("/dashboard");
-            }
-      }
-      onContinue={() => {
-        persist();
-        navigate(returnPath("/section1/address"));
-      }}
-      previousLabel={previousLabel}
-      continueLabel={fromReview ? "Save & Return to Review" : "Continue"}
+      {...shellProps}
     >
       <div className="space-y-6">
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">

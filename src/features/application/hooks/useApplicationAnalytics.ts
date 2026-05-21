@@ -1,10 +1,10 @@
 import { useCallback } from "react";
-import type { ApplicationData, SelectedCourse } from "../../lib/applicationData";
+import type { ApplicationData, SelectedCourse } from "../../../lib/applicationData";
 import {
   capturePostHogEvent,
   getApplicationAnalyticsProperties,
   getCourseAnalyticsProperties,
-} from "../../lib/posthog";
+} from "../../../lib/posthog";
 
 interface UseApplicationAnalyticsOptions {
   storageMode: "local" | "remote";

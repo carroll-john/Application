@@ -1,10 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../src/lib/supabase.types";
-import {
-  handleApiRequest,
-  type NodeRequestLike,
-  type NodeResponseLike,
-} from "./_shared/nodeWebHandler";
 
 type DocumentDisposition = "attachment" | "inline";
 
@@ -258,15 +253,6 @@ async function handleWebRequest(request: Request) {
   }
 }
 
-export default async function handler(
-  request: Request | NodeRequestLike,
-  response?: NodeResponseLike,
-) {
-  return handleApiRequest(request, response, {
-    defaultPath: "/api/document-delivery",
-    endHeadWithoutBody: true,
-    handleWebRequest,
-    origin: "https://application-prototype.local",
-    unsupportedResponse: () => errorResponse("DOCUMENT_PROXY_UNEXPECTED_FAILURE"),
-  });
-}
+export default {
+  fetch: handleWebRequest,
+};

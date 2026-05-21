@@ -1,6 +1,5 @@
 import { Home, Mailbox } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ApplicationShell } from "../components/ApplicationShell";
 import {
   AddressAutocomplete,
@@ -9,7 +8,7 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { useApplication } from "../context/ApplicationContext";
-import { useReviewReturn } from "../hooks/useReviewReturn";
+import { useSection1Step } from "../hooks/useSection1Step";
 import {
   createEmptyStructuredAddress,
   hasStructuredAddressParts,
@@ -21,8 +20,6 @@ import {
 } from "../lib/googlePlaces";
 
 export default function Section1Address() {
-  const navigate = useNavigate();
-  const { fromReview, previousLabel, returnPath } = useReviewReturn();
   const { data, updateContactDetails } = useApplication();
   const [formData, setFormData] = useState({
     residentialAddress: data.contactDetails.residentialAddress,
@@ -36,6 +33,11 @@ export default function Section1Address() {
     "Live address lookup is not configured in this environment. Keep typing to enter the address manually.";
 
   const persist = () => updateContactDetails(formData);
+  const { shellProps } = useSection1Step({
+    previousPath: "/section1/contact-info",
+    continuePath: "/section1/cultural-background",
+    persist,
+  });
 
   const updateManualAddress = (
     key: "residentialAddress" | "postalAddress",
@@ -114,24 +116,7 @@ export default function Section1Address() {
       progress={56}
       title="Address details"
       description="Tell us where you live and whether your postal address is different."
-      onPrevious={() => {
-        persist();
-        navigate(returnPath("/section1/contact-info"));
-      }}
-      onSaveAndExit={
-        fromReview
-          ? undefined
-          : () => {
-              persist();
-              navigate("/dashboard");
-            }
-      }
-      onContinue={() => {
-        persist();
-        navigate(returnPath("/section1/cultural-background"));
-      }}
-      previousLabel={previousLabel}
-      continueLabel={fromReview ? "Save & Return to Review" : "Continue"}
+      {...shellProps}
     >
       <div className="space-y-6">
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">

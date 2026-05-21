@@ -65,25 +65,35 @@ Current workspace values:
 - Clarity excludes likely automated traffic (for example `navigator.webdriver`, headless/bot user agents), supports explicit opt-out via `?clarity=off` or local/session storage key `application-prototype:disable-clarity=1`, and is masked/disabled on PII-heavy application routes.
 - keep the publishable key only in local env and Vercel envs, not in checked-in docs
 
-## Supabase Project Setup
-Run [supabase/migrations/0001_initial.sql](/Users/jc/Documents/New%20project/supabase/migrations/0001_initial.sql) in the Supabase SQL editor.
+## Restore a paused or inactive hosted project
+Free-tier Supabase projects auto-pause after inactivity. While paused, the project API hostname does not resolve (`NXDOMAIN` / `Failed to fetch`), so hosted OTP sign-in and `supabase db push` both fail until the project is restored.
 
-Then run [supabase/migrations/0002_server_submit.sql](/Users/jc/Documents/New%20project/supabase/migrations/0002_server_submit.sql) to add:
+1. Open the [Supabase dashboard projects list](https://supabase.com/dashboard/projects) and select **Application** (`weyxnhykyyetquqprfnu`, ap-south-1).
+2. If the project shows **Paused** or **Inactive**, use **Restore project** on [General settings](https://supabase.com/dashboard/project/weyxnhykyyetquqprfnu/settings/general). Wait for the restore email; DNS for `https://weyxnhykyyetquqprfnu.supabase.co` should resolve again.
+3. Confirm CLI status: `supabase projects list -o json` should show `ACTIVE_HEALTHY` (not `INACTIVE`).
+4. Re-run the post-restore checklist below (auth URLs, email template, Vercel env vars, migration verification).
+
+Projects paused longer than 90 days may lose one-click restore. Download backups from the project overview and follow [Supabase restore guidance](https://supabase.com/docs/guides/platform/upgrading#pause-and-restore) or create a new project and re-apply migrations from `supabase/migrations/`.
+
+## Supabase Project Setup
+Run [supabase/migrations/0001_initial.sql](/Users/jc/Documents/Applications/supabase/migrations/0001_initial.sql) in the Supabase SQL editor.
+
+Then run [supabase/migrations/0002_server_submit.sql](/Users/jc/Documents/Applications/supabase/migrations/0002_server_submit.sql) to add:
 - server-side submission validation
 - server-side application number generation
 - the `submit_application` RPC used by the review screen
 
-Then run [supabase/migrations/0003_business_users_and_applicant_profiles.sql](/Users/jc/Documents/New%20project/supabase/migrations/0003_business_users_and_applicant_profiles.sql) to add:
+Then run [supabase/migrations/0003_business_users_and_applicant_profiles.sql](/Users/jc/Documents/Applications/supabase/migrations/0003_business_users_and_applicant_profiles.sql) to add:
 - `business_users`
 - `applicant_profiles`
 - `applications.applicant_profile_id`
 - the RLS foundation for separating internal site users from applicant records
 
-Then run [supabase/migrations/0004_submission_rpc_grants.sql](/Users/jc/Documents/New%20project/supabase/migrations/0004_submission_rpc_grants.sql) to add:
+Then run [supabase/migrations/0004_submission_rpc_grants.sql](/Users/jc/Documents/Applications/supabase/migrations/0004_submission_rpc_grants.sql) to add:
 - authenticated execute grants for `submit_application` and supporting RPC functions
 - authenticated sequence permissions for server-generated application numbers
 
-Then run [supabase/migrations/0005_document_upload_limits.sql](/Users/jc/Documents/New%20project/supabase/migrations/0005_document_upload_limits.sql) to add:
+Then run [supabase/migrations/0005_document_upload_limits.sql](/Users/jc/Documents/Applications/supabase/migrations/0005_document_upload_limits.sql) to add:
 - explicit application-document upload quotas and rate limits
 - indexes for user/rate-limit document checks
 
@@ -91,6 +101,14 @@ Then run the applicant auth migration to remove the old company-domain RLS depen
 - use the latest `*_applicant_email_otp_auth.sql` migration
 - set the local and deployed site URLs in Supabase Auth
 - configure the email template with `{{ .Token }}` so users receive an in-app verification code
+
+### Applicant OTP troubleshooting
+
+See [auth-otp-troubleshooting.md](./auth-otp-troubleshooting.md).
+
+- **Local:** `supabase start`, then read codes in Mailpit at `http://127.0.0.1:54324` (not a real inbox). Run `npm run sync-supabase-env` to refresh `.env.local`.
+- **Hosted:** if the linked project ref `weyxnhykyyetquqprfnu` is `INACTIVE`, restore it in the Supabase dashboard before OTP or API calls will work. There is no CLI restore command.
+- **Vercel:** after restore, confirm `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` match the live project and redeploy.
 
 Important:
 - database and storage access are enforced by owner-scoped RLS using `auth.uid()`
@@ -182,7 +200,7 @@ Notes:
 
 ## Clean Test Reset
 To reset hosted test data before a fresh run, execute:
-- [supabase/reset_test_data.sql](/Users/jc/Documents/New%20project/supabase/reset_test_data.sql)
+- [supabase/reset_test_data.sql](/Users/jc/Documents/Applications/supabase/reset_test_data.sql)
 
 This will:
 - delete all application records

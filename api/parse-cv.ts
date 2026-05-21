@@ -4,12 +4,8 @@ import type { Database } from "../src/lib/supabase.types";
 import { callLlm, type LlmContent } from "./_ai/callLlm";
 import { cvEmploymentPromptV1 } from "./_ai/prompts/cvEmployment.v1";
 import { cvEmploymentSchemaV1 } from "./_ai/schemas/cvEmployment.v1";
-import {
-  handleApiRequest,
-  type NodeRequestLike,
-  type NodeResponseLike,
-} from "./_shared/nodeWebHandler";
 import { createRateLimiter } from "./_shared/rateLimiter";
+import { normalizeRequiredWhitespace } from "../src/lib/cvEmployment/text";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const DEFAULT_MODEL = "gpt-4.1-mini";
@@ -674,7 +670,7 @@ function normalizeExperienceEntry(entry: unknown): NormalizedExperienceEntry {
 }
 
 function normalizeWhitespace(value: string) {
-  return value.replace(/\s+/g, " ").trim();
+  return normalizeRequiredWhitespace(value);
 }
 
 function splitListSegments(value: string, allowComma = false) {
@@ -1193,13 +1189,6 @@ async function handleWebRequest(request: Request) {
   }
 }
 
-export default async function handler(
-  request: Request | NodeRequestLike,
-  response?: NodeResponseLike,
-) {
-  return handleApiRequest(request, response, {
-    defaultPath: "/api/parse-cv",
-    handleWebRequest,
-    unsupportedResponse: () => errorResponse("CV_PARSER_UNSUPPORTED_REQUEST_SHAPE"),
-  });
-}
+export default {
+  fetch: handleWebRequest,
+};

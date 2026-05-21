@@ -63,9 +63,7 @@ const EMPLOYMENT_TYPE_LOOKUP = new Map<string, EmploymentExperience["type"]>([
   ["internship", "Internship"],
 ]);
 
-function normalizeWhitespace(value: string | null | undefined) {
-  return value?.replace(/\s+/g, " ").trim() ?? "";
-}
+import { normalizeWhitespace } from "./cvEmployment/text";
 
 export function normalizeEmploymentType(
   value: string | null | undefined,

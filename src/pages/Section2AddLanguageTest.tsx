@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
 import { DocumentUploadField } from "../components/DocumentUploadField";
 import { FormActionBar } from "../components/FormActionBar";
 import { FormSectionCard } from "../components/FormSectionCard";
@@ -10,30 +9,29 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
-import { useReviewReturn } from "../hooks/useReviewReturn";
+import { useEditableRecord } from "../hooks/useEditableRecord";
+import { useSection2Navigation } from "../hooks/useSection2Navigation";
 import { saveDocumentAttachment } from "../lib/documentAttachment";
 import { getDocumentUploadErrorMessage } from "../lib/documentStorage";
 import { years } from "../lib/formOptions";
 
 export default function Section2AddLanguageTest() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { returnPath } = useReviewReturn();
+  const { returnToQualifications } = useSection2Navigation();
   const { data, ensureRemoteRecordId, addLanguageTest, updateLanguageTest } =
     useApplication();
-  const existing = useMemo(
-    () => data.languageTests.find((test) => test.id === id),
-    [data.languageTests, id],
+  const { existing, isEditing, initialRecord } = useEditableRecord(
+    data.languageTests,
+    () => ({
+      id: crypto.randomUUID(),
+      type: "",
+      name: "",
+      year: "",
+      document: undefined,
+      documentName: undefined,
+    }),
   );
 
-  const [formData, setFormData] = useState({
-    id: existing?.id ?? crypto.randomUUID(),
-    type: existing?.type ?? "",
-    name: existing?.name ?? "",
-    year: existing?.year ?? "",
-    document: existing?.document,
-    documentName: existing?.documentName,
-  });
+  const [formData, setFormData] = useState(initialRecord);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [statusMessage, setStatusMessage] = useState<{
     message: string;
@@ -71,7 +69,7 @@ export default function Section2AddLanguageTest() {
           description="Add your English language test details."
           progress={66}
           sectionLabel="Section 2 of 3"
-          title={existing ? "Edit English Language Test" : "Add English Language Test"}
+          title={isEditing ? "Edit English Language Test" : "Add English Language Test"}
         />
 
         {statusMessage ? (
@@ -167,13 +165,13 @@ export default function Section2AddLanguageTest() {
         <FormActionBar
           previousLabel="Cancel"
           primaryLabel="Save & Continue"
-          onPrevious={() => navigate(returnPath("/section2/qualifications"))}
+          onPrevious={returnToQualifications}
           onPrimary={async () => {
             setStatusMessage(null);
 
             try {
               await saveRecord();
-              navigate(returnPath("/section2/qualifications"));
+              returnToQualifications();
             } catch (error) {
               setStatusMessage({
                 message:

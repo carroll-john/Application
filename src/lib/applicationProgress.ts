@@ -1,4 +1,5 @@
-import type { ApplicationMeta, SelectedCourse } from "./applicationData";
+import type { ApplicationData, ApplicationMeta, SelectedCourse } from "./applicationData";
+import { getStepCompletionSummary } from "./applicationValidationSchema";
 import {
   getCourseByCode,
   getDefaultCourse,
@@ -7,50 +8,15 @@ import {
 
 export type ApplicationCourse = CourseCatalogEntry;
 
-interface ApplicationProgressSnapshot {
-  personalDetails: {
-    title: string;
-    firstName: string;
-    middleName: string;
-    lastName: string;
-    preferredName: string;
-    gender: string;
-    dateOfBirth: string;
-    email: string;
-    phone: string;
-  };
-  contactDetails: {
-    citizenCountry: string;
-    birthCountry: string;
-    citizenshipStatus: string;
-    residentialAddress: { formattedAddress: string };
-    postalDifferent: boolean;
-    postalAddress: { formattedAddress: string };
-    language: string;
-    aboriginal: string;
-    schoolLevel: string;
-    parentsCount: string;
-    parent1Details: string;
-    parent2Details: string;
-    parent3Details: string;
-    parent4Details: string;
-    parent5Details: string;
-    hasDisability: boolean | null;
-    disabilityDetails: string;
-  };
-  tertiaryQualifications: unknown[];
-  employmentExperiences: unknown[];
-  professionalAccreditations: unknown[];
-  secondaryQualifications: unknown[];
-  languageTests: unknown[];
-  cvUploaded: boolean;
-  applicationMeta?: {
-    applicationNumber?: string;
-    submittedAt?: string;
-  };
-}
+export function hasStartedApplication(data: ApplicationData) {
+  if (isApplicationSubmitted(data)) {
+    return true;
+  }
 
-export function hasStartedApplication(data: ApplicationProgressSnapshot) {
+  if (data.applicationMeta.recordId) {
+    return true;
+  }
+
   return Boolean(
     data.personalDetails.title ||
       data.personalDetails.firstName ||
@@ -87,7 +53,7 @@ export function hasStartedApplication(data: ApplicationProgressSnapshot) {
   );
 }
 
-export function isApplicationSubmitted(data: ApplicationProgressSnapshot) {
+export function isApplicationSubmitted(data: ApplicationData) {
   return Boolean(data.applicationMeta?.submittedAt);
 }
 
@@ -143,4 +109,8 @@ export function formatApplicationDate(isoDate?: string) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+export function getApplicationProgressSummary(data: ApplicationData) {
+  return getStepCompletionSummary(data);
 }

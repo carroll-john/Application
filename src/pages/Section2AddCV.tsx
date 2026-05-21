@@ -8,7 +8,7 @@ import { StatusMessage } from "../components/StatusMessage";
 import { FileUpload } from "../components/FileUpload";
 import { useApplication } from "../context/ApplicationContext";
 import { useAiExperiment } from "../hooks/useAiExperiment";
-import { useReviewReturn } from "../hooks/useReviewReturn";
+import { useSection2Navigation } from "../hooks/useSection2Navigation";
 import {
   getCvParserErrorMessage,
   parseEmploymentExperiencesFromCv,
@@ -24,7 +24,7 @@ import {
 
 export default function Section2AddCV() {
   const navigate = useNavigate();
-  const { returnPath } = useReviewReturn();
+  const { qualificationsPath, returnToQualifications } = useSection2Navigation();
   const {
     data,
     ensureRemoteRecordId,
@@ -199,7 +199,7 @@ export default function Section2AddCV() {
         detail: "Taking you to the next step.",
         title: "Finalising...",
       });
-      navigate(returnPath("/section2/qualifications"), {
+      navigate(qualificationsPath, {
         state: flashMessage ? { section2StatusMessage: flashMessage } : undefined,
       });
     } catch (error) {
@@ -216,7 +216,7 @@ export default function Section2AddCV() {
     }
   }
 
-  const handlePrevious = () => navigate(returnPath("/section2/qualifications"));
+  const handlePrevious = returnToQualifications;
 
   return (
     <div className="bg-gray-50 pb-12">

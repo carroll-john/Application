@@ -1,18 +1,15 @@
 import { Mail, Phone, UserCircle } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ApplicationShell } from "../components/ApplicationShell";
 import { DatePickerField } from "../components/ui/date-controls";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
-import { useReviewReturn } from "../hooks/useReviewReturn";
+import { useSection1Step } from "../hooks/useSection1Step";
 import { getBirthDateOpenToDate } from "../lib/datePickerHelpers";
 
 export default function Section1PersonalContact() {
-  const navigate = useNavigate();
-  const { fromReview, previousLabel, returnPath } = useReviewReturn();
   const { data, updatePersonalDetails } = useApplication();
   const [birthDateOpenToDate] = useState(() =>
     getBirthDateOpenToDate(new Date()),
@@ -25,6 +22,11 @@ export default function Section1PersonalContact() {
   });
 
   const persist = () => updatePersonalDetails(formData);
+  const { shellProps } = useSection1Step({
+    previousPath: "/section1/basic-info",
+    continuePath: "/section1/contact-info",
+    persist,
+  });
 
   return (
     <ApplicationShell
@@ -32,24 +34,7 @@ export default function Section1PersonalContact() {
       progress={33}
       title="Personal contact details"
       description="Tell us about your gender, date of birth, and how to contact you."
-      onPrevious={() => {
-        persist();
-        navigate(returnPath("/section1/basic-info"));
-      }}
-      onSaveAndExit={
-        fromReview
-          ? undefined
-          : () => {
-              persist();
-              navigate("/dashboard");
-            }
-      }
-      onContinue={() => {
-        persist();
-        navigate(returnPath("/section1/contact-info"));
-      }}
-      previousLabel={previousLabel}
-      continueLabel={fromReview ? "Save & Return to Review" : "Continue"}
+      {...shellProps}
     >
       <div className="space-y-6">
         <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">

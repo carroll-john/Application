@@ -8,11 +8,19 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import {
+  buildAuthCallbackUrl,
+  sanitizeRedirectPath,
+} from "../lib/authCallback";
+import {
   normalizeAuthEmail,
   requestEmailOtp,
   verifyEmailOtpCode,
 } from "../lib/authOtp";
-import { isSupabaseConfigured, supabase } from "../lib/supabase";
+import {
+  configuredSupabaseUrl,
+  isSupabaseConfigured,
+  supabase,
+} from "../lib/supabase";
 import { syncPostHogUser } from "../lib/posthog";
 import { syncSentryUser } from "../lib/sentry";
 
@@ -27,12 +35,18 @@ interface AuthContextType {
   isAuthenticated: boolean;
   userEmail: string | null;
   userDisplayName: string;
-  sendEmailOtp: (email: string) => Promise<{ error: string | null }>;
+  sendEmailOtp: (
+    email: string,
+    options?: { redirectPath?: string },
+  ) => Promise<{ error: string | null }>;
   verifyEmailOtp: (
     email: string,
     token: string,
   ) => Promise<{ error: string | null }>;
-  resendEmailOtp: (email: string) => Promise<{ error: string | null }>;
+  resendEmailOtp: (
+    email: string,
+    options?: { redirectPath?: string },
+  ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -129,14 +143,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       userEmail,
       userDisplayName: formatUserDisplayName(userEmail),
-      sendEmailOtp: async (email) => {
+      sendEmailOtp: async (email, otpOptions) => {
         if (!supabase) {
           return {
             error: "Authentication is not configured on this deployment.",
           };
         }
 
-        return requestEmailOtp(supabase.auth, email);
+        const redirectPath = sanitizeRedirectPath(otpOptions?.redirectPath);
+        const emailRedirectTo =
+          typeof window !== "undefined"
+            ? buildAuthCallbackUrl(window.location.origin, redirectPath)
+            : undefined;
+
+        return requestEmailOtp(supabase.auth, email, {
+          supabaseUrl: configuredSupabaseUrl,
+          emailRedirectTo,
+        });
       },
       verifyEmailOtp: async (email, token) => {
         if (!supabase) {
@@ -145,16 +168,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
         }
 
-        return verifyEmailOtpCode(supabase.auth, email, token);
+        return verifyEmailOtpCode(supabase.auth, email, token, {
+          supabaseUrl: configuredSupabaseUrl,
+        });
       },
-      resendEmailOtp: async (email) => {
+      resendEmailOtp: async (email, otpOptions) => {
         if (!supabase) {
           return {
             error: "Authentication is not configured on this deployment.",
           };
         }
 
-        return requestEmailOtp(supabase.auth, email);
+        const redirectPath = sanitizeRedirectPath(otpOptions?.redirectPath);
+        const emailRedirectTo =
+          typeof window !== "undefined"
+            ? buildAuthCallbackUrl(window.location.origin, redirectPath)
+            : undefined;
+
+        return requestEmailOtp(supabase.auth, email, {
+          supabaseUrl: configuredSupabaseUrl,
+          emailRedirectTo,
+        });
       },
       signOut: async () => {
         if (supabase) {
