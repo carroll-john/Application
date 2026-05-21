@@ -1,5 +1,5 @@
 import { AlertTriangle, Edit } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { CopiedApplicationNotice } from "../components/CopiedApplicationNotice";
 import { FormActionBar } from "../components/FormActionBar";
@@ -10,32 +10,28 @@ import {
   ReviewGrid,
   ReviewList,
 } from "../features/review/ReviewSections";
+import { useSubmitApplication } from "../features/review/useSubmitApplication";
 import { Button } from "../components/ui/button";
 import { formatIsoDateForDisplay } from "../components/ui/date-controls";
 import { useApplication } from "../context/ApplicationContext";
-import {
-  getSubmissionValidationIssues,
-  type ValidationIssue,
-} from "../lib/applicationValidationSchema";
-import {
-  captureApplicationStepEvent,
-  capturePostHogEvent,
-  getCourseAnalyticsProperties,
-} from "../lib/posthog";
+import type { ValidationIssue } from "../lib/applicationValidationSchema";
 import {
   consumeReviewValidationFlag,
   getAddressReviewItems,
   setReviewValidationFlag,
 } from "../lib/reviewFormatters";
-import { captureSentryException } from "../lib/sentry";
-import { sleep } from "../lib/utils";
 
 export default function ReviewAndSubmit() {
   const navigate = useNavigate();
-  const { data, markApplicationSubmitted } = useApplication();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
-  const validationErrors = useMemo(() => getSubmissionValidationIssues(data), [data]);
+  const { data } = useApplication();
+  const {
+    groupedErrors,
+    handleSaveAndExit,
+    handleSubmit,
+    isSubmitting,
+    submitError,
+    validationErrors,
+  } = useSubmitApplication();
   const parentCount = Number(data.contactDetails.parentsCount || 0);
   const prefilledFrom = data.applicationMeta.prefilledFrom;
 
@@ -46,79 +42,6 @@ export default function ReviewAndSubmit() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [validationErrors]);
-
-  const groupedErrors = useMemo(
-    () =>
-      validationErrors.reduce<Record<string, Record<string, ValidationIssue[]>>>(
-        (accumulator, error) => {
-          accumulator[error.section] ??= {};
-          accumulator[error.section][error.subsection] ??= [];
-          accumulator[error.section][error.subsection].push(error);
-          return accumulator;
-        },
-        {},
-      ),
-    [validationErrors],
-  );
-
-  async function handleSubmit() {
-    setSubmitError(null);
-
-    if (validationErrors.length > 0) {
-      capturePostHogEvent("application_submit_blocked", {
-        ...getCourseAnalyticsProperties(data.applicationMeta.selectedCourse),
-        application_id: data.applicationMeta.recordId ?? null,
-        validation_error_count: validationErrors.length,
-      });
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      captureApplicationStepEvent("application_submit_started", {
-        application: data,
-        pathname: "/review",
-        properties: {
-          validation_error_count: 0,
-        },
-      });
-      await sleep(300);
-      await markApplicationSubmitted();
-      navigate("/submitted");
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "We couldn't submit the application right now. Please try again.";
-      capturePostHogEvent("application_submit_failed", {
-        ...getCourseAnalyticsProperties(data.applicationMeta.selectedCourse),
-        application_id: data.applicationMeta.recordId ?? null,
-        error_message: message,
-      });
-      captureSentryException(error, {
-        extras: {
-          activeApplicationId: data.applicationMeta.recordId ?? null,
-          courseCode: data.applicationMeta.selectedCourse?.code ?? null,
-          courseTitle: data.applicationMeta.selectedCourse?.title ?? null,
-        },
-        tags: {
-          flow: "application_submit",
-          screen: "review_and_submit",
-        },
-      });
-      setSubmitError(message);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function handleSaveAndExit() {
-    setIsSubmitting(true);
-    await sleep(600);
-    navigate("/dashboard");
-  }
 
   function navigateToReviewEdit(path: string) {
     setReviewValidationFlag();
@@ -186,7 +109,9 @@ export default function ReviewAndSubmit() {
                   >
                     <h3 className="text-base font-bold text-gray-900">{section}</h3>
                     <div className="mt-3 space-y-3">
-                      {Object.entries(subsections).map(([subsection, errors]) => (
+                      {Object.entries(
+                        subsections as Record<string, ValidationIssue[]>,
+                      ).map(([subsection, errors]) => (
                         <div key={subsection} className="border-l-2 border-gray-200 pl-3">
                           <div className="mb-2 flex items-center justify-between gap-4">
                             <p className="text-sm font-semibold text-gray-900">

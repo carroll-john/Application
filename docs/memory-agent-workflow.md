@@ -37,16 +37,16 @@ npm run finish-task -- "Task name"
 Load only these files for typical tasks (~5–15 files each):
 
 ### auth
-`src/context/AuthContext.tsx`, `src/lib/authOtp.ts`, `src/lib/authCallback.ts`, `src/components/AuthPanel.tsx`, `src/components/AuthModal.tsx`, `src/pages/SignIn.tsx`, `src/pages/AuthCallback.tsx`, `src/lib/supabase.ts`
+`src/context/AuthContext.tsx`, `src/lib/authOtp.ts`, `src/lib/authCallback.ts`, `src/features/auth/*`, `src/pages/SignIn.tsx`, `src/pages/AuthCallback.tsx`, `src/lib/supabase.ts`
 
 ### application-state
-`src/context/ApplicationContext.tsx`, `src/context/application/useApplicationData.ts`, `src/context/application/useApplicationProfile.ts`, `src/lib/applicationData.ts`, `src/lib/applicationValidationSchema.ts`
+`src/context/ApplicationContext.tsx`, `src/features/application/hooks/useApplicationData.ts`, `src/features/application/hooks/useApplicationProfile.ts`, `src/lib/applicationData.ts`, `src/lib/validation/*`
 
 ### application-persistence
-`src/context/application/useApplicationStorageOrchestration.ts`, `src/lib/applicationStorageAdapter.ts`, `src/lib/applicationRecords.ts`, `src/lib/applicationRemoteStore.ts`, `src/lib/applicantProfileStore.ts`
+`src/features/application/hooks/useApplicationStorageOrchestration.ts`, `src/features/application/hooks/useApplicationDraftImport.ts`, `src/features/application/hooks/useApplicationHydration.ts`, `src/lib/applicationStorageAdapter.ts`, `src/lib/storage/*`, `src/lib/applicantProfileStore.ts`
 
 ### documents
-`src/lib/documentStorage.ts`, `src/lib/documentAttachment.ts`, `src/components/FileUpload.tsx`, `src/components/DocumentUploadField.tsx`, `api/document-delivery.ts`
+`src/lib/storage/documents.ts`, `src/lib/documentAttachment.ts`, `src/components/FileUpload.tsx`, `src/components/DocumentUploadField.tsx`, `api/document-delivery.ts`
 
 ### form-wizard-section1
 `src/pages/Section1*.tsx`, `src/components/ApplicationShell.tsx`, `src/hooks/useSection1Step.ts`, `src/hooks/useReviewReturn.ts`, `src/lib/address.ts`
@@ -58,13 +58,13 @@ Load only these files for typical tasks (~5–15 files each):
 `src/pages/CourseDetails.tsx`, `src/pages/CourseList.tsx`, `src/lib/courseCatalog.ts`, `src/lib/courseEligibility.ts`, `src/features/course/*`
 
 ### review-submit
-`src/pages/ReviewAndSubmit.tsx`, `src/lib/reviewFormatters.ts`, `src/lib/applicationProgress.ts`
+`src/pages/ReviewAndSubmit.tsx`, `src/features/review/*`, `src/lib/reviewFormatters.ts`, `src/lib/applicationProgress.ts`
 
 ### cv-ai-pipeline
 `api/parse-cv.ts`, `api/_ai/*`, `src/lib/cvParser.ts`, `src/lib/cvParserClient.ts`, `src/lib/cvEmployment/*`
 
 ### analytics
-`src/lib/posthog.ts`, `src/lib/analytics/applicationSteps.ts`, `src/lib/clarity.ts`, `src/lib/sentry.ts`, `src/context/application/useApplicationAnalytics.ts`
+`src/lib/posthog.ts`, `src/lib/analytics/applicationSteps.ts`, `src/lib/clarity.ts`, `src/lib/sentry.ts`, `src/features/application/hooks/useApplicationAnalytics.ts`
 
 ## Parallel Agent Rules
 
