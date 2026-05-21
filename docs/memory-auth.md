@@ -1,0 +1,51 @@
+# Memory: Auth
+
+## Model
+
+- Public applicant auth via Supabase email OTP (`signInWithOtp` / `verifyOtp`).
+- Same flow for sign-in and sign-up. No company-domain gate. `VITE_ALLOWED_EMAIL_DOMAINS` is obsolete.
+- Configured by `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+- Local dev: `supabase start` + Mailpit at http://127.0.0.1:54324 (codes do not go to real inboxes).
+- Troubleshooting: [auth-otp-troubleshooting.md](auth-otp-troubleshooting.md)
+
+## Entry Points
+
+- Header sign-in
+- Eligibility completion (before showing result)
+- Apply actions on course pages
+- `/sign-in?redirect=…` for protected routes
+
+## Redirect Contract
+
+- Capture redirect intent from current route or `?redirect=` on `/sign-in`.
+- Magic links use `emailRedirectTo` → `/auth/callback?redirect=…` (see `buildAuthCallbackUrl` in `src/lib/authCallback.ts`).
+- Post-sign-in redirects must pass `sanitizeRedirectPath` (internal absolute paths only).
+- In-app 6-digit code path does not use the email link.
+
+## Key Files
+
+| File | Role |
+|------|------|
+| `src/context/AuthContext.tsx` | Session, `storageMode`, OTP send/verify |
+| `src/lib/authOtp.ts` | OTP request/verify helpers |
+| `src/lib/authCallback.ts` | Redirect resolution, callback URL builder |
+| `src/components/AuthPanel.tsx` | Shared sign-in UI |
+| `src/pages/SignIn.tsx` | Route-level sign-in |
+| `src/pages/AuthCallback.tsx` | Magic-link callback handler |
+
+## Supabase Dashboard
+
+- Email template must include `{{ .Token }}` for in-app code entry.
+- Site URL: `https://application-prototype.vercel.app`
+- Redirect URLs: production `/**`, localhost `http://localhost:5173/**`
+
+## Storage Mode
+
+- `AuthContext.storageMode`: `remote` when session exists, `local` when signed out.
+- Signed-in users use Supabase-backed profile/application/document storage.
+- Offer one-time local draft import when a signed-in user has anonymous local drafts.
+
+## Profile
+
+- `/profile` is profile management only (email, first name, last name) — not an auth step.
+- Profile seeds new applications; must not overwrite existing application values after creation.

@@ -1,6 +1,5 @@
 import { Briefcase, Building, Calendar, FileText } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
 import { FormActionBar } from "../components/FormActionBar";
 import { FormSectionCard } from "../components/FormSectionCard";
 import { SectionProgressHeader } from "../components/SectionProgressHeader";
@@ -9,33 +8,32 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
-import { useReviewReturn } from "../hooks/useReviewReturn";
+import { useEditableRecord } from "../hooks/useEditableRecord";
+import { useSection2Navigation } from "../hooks/useSection2Navigation";
 import { months, years } from "../lib/formOptions";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
 
 export default function Section2AddEmployment() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { returnPath } = useReviewReturn();
+  const { returnToQualifications } = useSection2Navigation();
   const { data, addEmploymentExperience, updateEmploymentExperience } =
     useApplication();
-  const existing = useMemo(
-    () => data.employmentExperiences.find((experience) => experience.id === id),
-    [data.employmentExperiences, id],
+  const { existing, isEditing, initialRecord } = useEditableRecord(
+    data.employmentExperiences,
+    () => ({
+      id: crypto.randomUUID(),
+      company: "",
+      position: "",
+      type: "",
+      startMonth: "",
+      startYear: "",
+      endMonth: "",
+      endYear: "",
+      currentRole: false,
+      duties: "",
+    }),
   );
 
-  const [formData, setFormData] = useState({
-    id: existing?.id ?? crypto.randomUUID(),
-    company: existing?.company ?? "",
-    position: existing?.position ?? "",
-    type: existing?.type ?? "",
-    startMonth: existing?.startMonth ?? "",
-    startYear: existing?.startYear ?? "",
-    endMonth: existing?.endMonth ?? "",
-    endYear: existing?.endYear ?? "",
-    currentRole: existing?.currentRole ?? false,
-    duties: existing?.duties ?? "",
-  });
+  const [formData, setFormData] = useState(initialRecord);
   const [showValidation, setShowValidation] = useState(false);
   const dateRangeError =
     !formData.currentRole &&
@@ -63,7 +61,7 @@ export default function Section2AddEmployment() {
           description="Add your work history and experience."
           progress={66}
           sectionLabel="Section 2 of 3"
-          title={existing ? "Edit Employment Experience" : "Add Employment Experience"}
+          title={isEditing ? "Edit Employment Experience" : "Add Employment Experience"}
         />
 
         <div className="space-y-6">
@@ -239,7 +237,7 @@ export default function Section2AddEmployment() {
         <FormActionBar
           previousLabel="Cancel"
           primaryLabel="Save & Continue"
-          onPrevious={() => navigate(returnPath("/section2/qualifications"))}
+          onPrevious={() => returnToQualifications()}
           onPrimary={() => {
             setShowValidation(true);
 
@@ -248,7 +246,7 @@ export default function Section2AddEmployment() {
             }
 
             saveRecord();
-            navigate(returnPath("/section2/qualifications"));
+            returnToQualifications();
           }}
         />
       </div>

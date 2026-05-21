@@ -1,0 +1,7 @@
+---
+description: Application state and persistence — load domain memory first
+globs: src/context/**,src/lib/application*.ts,src/lib/applicantProfileStore.ts
+alwaysApply: false
+---
+
+Before editing application state or storage, read docs/memory-applications.md and docs/memory-documents.md.

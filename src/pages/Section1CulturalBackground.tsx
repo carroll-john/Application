@@ -1,17 +1,14 @@
 import { BookOpen, Languages, Users } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { ApplicationShell } from "../components/ApplicationShell";
 import { FormSectionCard } from "../components/FormSectionCard";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
-import { useReviewReturn } from "../hooks/useReviewReturn";
+import { useSection1Step } from "../hooks/useSection1Step";
 import { languages } from "../lib/formOptions";
 
 export default function Section1CulturalBackground() {
-  const navigate = useNavigate();
-  const { fromReview, previousLabel, returnPath } = useReviewReturn();
   const { data, updateContactDetails } = useApplication();
   const [formData, setFormData] = useState({
     language: data.contactDetails.language,
@@ -20,6 +17,11 @@ export default function Section1CulturalBackground() {
   });
 
   const persist = () => updateContactDetails(formData);
+  const { shellProps } = useSection1Step({
+    previousPath: "/section1/address",
+    continuePath: "/section1/family-support",
+    persist,
+  });
 
   return (
     <ApplicationShell
@@ -27,24 +29,7 @@ export default function Section1CulturalBackground() {
       progress={67}
       title="Cultural and education background"
       description="These questions support government reporting and student support planning. They do not affect your admission outcome."
-      onPrevious={() => {
-        persist();
-        navigate(returnPath("/section1/address"));
-      }}
-      onSaveAndExit={
-        fromReview
-          ? undefined
-          : () => {
-              persist();
-              navigate("/dashboard");
-            }
-      }
-      onContinue={() => {
-        persist();
-        navigate(returnPath("/section1/family-support"));
-      }}
-      previousLabel={previousLabel}
-      continueLabel={fromReview ? "Save & Return to Review" : "Continue"}
+      {...shellProps}
     >
       <div className="grid gap-6">
         <FormSectionCard

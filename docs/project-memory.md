@@ -1,117 +1,41 @@
 # Project Memory
 
 ## Purpose
-This file stores durable product, UX, and implementation rules for the application prototype. Keep it short. Put temporary phase state in `docs/current-phase.md` and one-off scope details in `docs/demo-scope-tuesday.md`.
 
-## Documentation Operating Rhythm
-- Treat docs as first-class project state. Update the relevant `.md` file in the same PR whenever scope, contracts, or priorities change.
-- Use this split:
-  - `docs/project-memory.md`: durable constraints and non-negotiable product contracts.
-  - `docs/current-phase.md`: current execution focus, active milestones, and immediate next tasks.
-  - `docs/decisions.md`: dated ADR-style decisions with short rationale.
-  - `docs/eligibility-check-roadmap.md`: eligibility-check backend scope, ingestion/extraction/rules plan, and implementation backlog.
-  - `docs/stakeholder-updates/`: date-stamped stakeholder notes formatted for Notion/chat sharing.
-- For every feature touching eligibility flow, document three things before or during implementation:
-  1. data contract changes (input/output fields)
-  2. rule or policy changes (eligibility logic)
-  3. operational impact (storage, queues, retries, cost, or risk)
-- Keep entries append-only where possible, especially in `docs/decisions.md`, to preserve historical context for future agents.
-- If code and docs disagree, treat docs as stale and update them immediately in the same branch.
+Durable product, UX, and implementation contracts. For task-specific detail, load the domain memory files below instead of duplicating rules here.
 
-## Core Product Rules
-- The app should follow the Figma Make prototype unless a newer documented decision overrides it.
-- Primary CTA is yellow and reserved for the main forward action.
-- Secondary CTA is deep blue and used for save, manage, add, and other section actions.
-- Tertiary CTA is white or outline with blue text and border.
-- Form navigation belongs to the form layout, not the site footer. Use the shared form action bar.
-- Mobile UX matters as much as desktop UX.
-- Review should immediately reshow missing-fields state after a user returns from an edit path with unresolved validation issues.
-- Submission requirements and page-save requirements are separate unless the product explicitly says otherwise.
+## Domain Memory (load by task)
 
-## Auth And Identity
-- Applicant auth uses Supabase email one-time codes. Users sign in or create an account through the same email-code flow.
-- Do not restore the Keypath/company-domain gate for applicants. The app is open to public applicant email addresses.
-- Supabase Auth is configured by `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`; `VITE_ALLOWED_EMAIL_DOMAINS` is obsolete.
-- Supabase email templates must include `{{ .Token }}` so emails send a code that can be verified in-app.
-- Auth entry points are the header, eligibility completion before showing the result, and apply actions before starting/resuming an application.
-- Signed-in users use Supabase-backed profile/application/document storage. Signed-out browsing and pre-auth draft work may remain local.
-- When a signed-in user has anonymous local drafts on the device, offer a one-time import into the Supabase account.
-- `/profile` is profile management, not an auth step.
-- Reusable profile fields are limited to email, first name, and last name.
-- Profile changes affect future applications by default. Existing applications keep the values they were created with.
-- After sign-in, users should land on the intended course or app route, or `/` by default.
-- Post-sign-in redirects must be sanitized to internal absolute app paths.
+| File | Scope |
+|------|--------|
+| [memory-auth.md](memory-auth.md) | OTP, session, redirects, profile |
+| [memory-applications.md](memory-applications.md) | Multi-app model, validation, submit, course catalog |
+| [memory-documents.md](memory-documents.md) | Uploads, hybrid storage, delivery proxy |
+| [memory-ui.md](memory-ui.md) | Primitives, CTAs, form navigation |
+| [memory-agent-workflow.md](memory-agent-workflow.md) | Tests, module boundaries, local dev |
 
-## Course And Application Model
-- The app supports multiple applications per signed-in user.
-- Tuesday-demo rule: one open draft per course, with submitted applications retained separately.
-- The selected course is part of the persisted application and must be stored in `applicationMeta.selectedCourse`.
-- Eligibility is course-specific.
-- Do not bypass eligibility with a direct apply shortcut on the course page.
-- Course catalog source of truth is `src/data/courses.raw.json`, mapped through `src/lib/courseCatalog.ts`.
-- Preserve raw academic source fields such as `subjectArea`, `coreSubjects`, and `recognitionOfPriorLearning`.
-- Visible course category chips should be normalized to `Business`, `Technology`, and `Health`. A course may show more than one.
-- Intake labels should be normalized to month-style labels where possible.
-- Fees should be shown as simple approximate fee figures.
-- Support options should be kept separate from fees and normalized to the fixed labels `CSP`, `FEE-HELP`, and `HECS-HELP`.
-- Where pricing is per unit or per subject, normalize the headline fee to an approximate annual figure based on 8 units or subjects.
-- Normalize duration to year-based labels where possible, preferably `x.y years full-time or part-time equivalent`.
+## Phase and History
 
-## Shared UI Contracts
-- Prefer shared primitives over page-local wrappers.
-- Use `AppBrandHeader` for branded top bars on browse, overview, dashboard, and similar summary surfaces.
-- Use `SurfaceCard`, `StatusPill`, `AccentIconBadge`, and shared button variants before creating new local treatments.
-- `FileUpload` is the shared uploader and should keep the native label-linked file input pattern.
-- Upload actions should stay minimal and consistent: `add`, `view`, `remove`.
-- `native-select` should keep dropdowns visually attached to the field that opened them.
+| File | Scope |
+|------|--------|
+| [current-phase.md](current-phase.md) | Active priorities and tracks |
+| [decisions.md](decisions.md) | Dated ADR-style decisions (append-only) |
+| [demo-scope-tuesday.md](demo-scope-tuesday.md) | **Historical** Tuesday demo scope |
+| [backend-rollout.md](backend-rollout.md) | Supabase, Vercel, migrations, env |
+| [auth-otp-troubleshooting.md](auth-otp-troubleshooting.md) | OTP ops runbook |
 
-## State And Persistence
-- `ApplicationContext` is the shared application state layer.
-- It currently runs in local-first mode for the Tuesday demo because the access gate no longer creates a real Supabase session.
-- `AuthContext` is the source of truth for selecting `storageMode` (`local` vs `remote`).
-- `ApplicationStorageAdapter` is the shared storage contract; route/page code should not branch local-vs-remote persistence logic.
-- Keep shared draft persistence in `ApplicationContext`; do not scatter it into page-local state.
-- Shared application types and local cache helpers live in `src/lib/applicationData.ts`.
-- Document storage should fall back cleanly to local IndexedDB when no authenticated Supabase session is present.
+## Documentation Rhythm
 
-## Validation Rules
-- Use one shared validation schema for step completion and submission readiness (`src/lib/applicationValidationSchema.ts`).
-- Section 2 submission rule: the user must have either at least one tertiary qualification, or both a CV and employment experience.
-- Tertiary document requirements are submission-gated, not save-gated:
-  - every tertiary qualification requires a transcript before submission
-  - completed tertiary qualifications also require a certificate before submission
-- Review should show enough data to validate the application without dumping every stored field.
+- Update the relevant `.md` in the same PR when scope, contracts, or priorities change.
+- If code and docs disagree, treat docs as stale and fix them in the same branch.
+- For eligibility backend work, see [eligibility-check-roadmap.md](eligibility-check-roadmap.md).
+- For integration platform (separate repo), see [integration-platform-mvp.md](integration-platform-mvp.md).
 
-## Integrations
-- Auth, database, and storage target: Supabase.
-- Hosting target: Vercel at `https://application-prototype.vercel.app`.
-- Error monitoring target: Sentry for frontend runtime errors plus `/api/parse-cv` server failures.
-- PostHog runs manual events only (autocapture disabled) with hashed analytics user IDs.
-- Clarity should stay masked/disabled on PII-heavy routes (`/sign-in`, `/profile`, `/dashboard`, `/overview`, `/section1/*`, `/section2/*`, `/review`, `/submitted`, `/profile-recommendations`).
-- `/api/parse-cv` now emits Sentry Agent Insights spans (`gen_ai.invoke_agent` + `gen_ai.response`) for OpenAI parsing calls.
-- Sensitive remote documents should be delivered through `/api/document-delivery` with bearer auth, `no-store` caching headers, and attachment disposition rather than exposing direct signed URLs in the browser.
-- Remote document uploads should enforce explicit controls in both client and database layers (see `supabase/migrations/0005_document_upload_limits.sql`): per-application file-count quota, per-application total-byte quota, and per-user upload rate limits.
-- Enforced CSP should remain active through `vercel.json`, with reports collected at `/api/csp-report` and logged with `[csp-report]`.
-- Sentry smoke-test events are intentionally filtered before send in non-development environments (known smoke markers and `/dev/sentry-smoke`) so demo checks do not pollute issue triage.
-- Address autocomplete uses Google Places when `VITE_GOOGLE_MAPS_API_KEY` is configured, with local fallback otherwise.
-- Server-backed submission depends on `supabase/migrations/0002_server_submit.sql`, `supabase/migrations/0004_submission_rpc_grants.sql`, and the `submit_application` RPC.
-- Business-user and applicant-profile separation depends on `supabase/migrations/0003_business_users_and_applicant_profiles.sql`.
+## Cross-Cutting Contracts
 
-## Integration Platform Boundary
-- Strategy-learning university integration work should run as a separate repository/service, not inside the applicant UX codebase.
-- Keep the existing `application-prototype` repo focused on browse, apply, dashboard, and applicant-facing profile/flow UX.
-- The applicant app remains an active UX-improvement track after Tuesday demo completion; it is not in maintenance-only mode.
-- Integrate cross-repo behavior through versioned contracts and APIs/events, not shared tables or in-process imports.
-- Do not share databases across the applicant app and integration platform.
-- Use idempotency keys and correlation IDs on decision-to-provisioning handoff events.
-- Keep adapter architecture pluggable (`ApiAdapter`, `FileAdapter`, `ImportWorkflowAdapter`, `PortalRpaAdapter`, `EdgeConnectorAdapter`) with a shared `prepare -> execute -> verify -> reconcile` lifecycle.
-- Keep structured file/import delivery as a mandatory baseline capability.
-- Treat portal automation as optional fallback, not the core architecture.
-
-## Operational Rules
-- Keep `docs/backend-rollout.md` aligned with backend assumptions and migration requirements.
-- Keep `docs/integration-platform-mvp.md` aligned with the active integration initiative scope, contracts, and Linear mapping.
-- Regenerate `src/lib/supabase.types.ts` after schema changes instead of adding manual row casts in remote-store code.
-- Use `supabase/reset_test_data.sql` plus a private/incognito browser session for clean hosted test runs.
-- If localhost behavior and source disagree, check for a stale Vite process and retest in a fresh browser tab before refactoring.
-- When cleaning up, remove dead prototype-era state and behavior rather than carrying it forward.
+- Follow Figma Make prototype unless a documented decision overrides it.
+- Submission requirements and page-save requirements are separate.
+- `applicationData.ts` types and `ApplicationStorageAdapter` interface are stable contracts — extend, do not fork.
+- Integration platform runs in a separate repository; keep this repo focused on applicant UX.
+- Regenerate `src/lib/supabase.types.ts` after schema changes.
+- Hosted app: `https://application-prototype.vercel.app`

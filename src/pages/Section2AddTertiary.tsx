@@ -4,8 +4,7 @@ import {
   FileText,
   GraduationCap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
 import { DocumentUploadField } from "../components/DocumentUploadField";
 import { FormActionBar } from "../components/FormActionBar";
 import { FormSectionCard } from "../components/FormSectionCard";
@@ -17,45 +16,44 @@ import { InstitutionAutocomplete } from "../components/ui/institution-autocomple
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
-import { useReviewReturn } from "../hooks/useReviewReturn";
+import { useEditableRecord } from "../hooks/useEditableRecord";
+import { useSection2Navigation } from "../hooks/useSection2Navigation";
 import { saveDocumentAttachment } from "../lib/documentAttachment";
 import { getDocumentUploadErrorMessage } from "../lib/documentStorage";
 import { countries, months, years } from "../lib/formOptions";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
 
 export default function Section2AddTertiary() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { returnPath } = useReviewReturn();
+  const { returnToQualifications } = useSection2Navigation();
   const {
     data,
     ensureRemoteRecordId,
     addTertiaryQualification,
     updateTertiaryQualification,
   } = useApplication();
-  const existing = useMemo(
-    () => data.tertiaryQualifications.find((qualification) => qualification.id === id),
-    [data.tertiaryQualifications, id],
+  const { existing, isEditing, initialRecord } = useEditableRecord(
+    data.tertiaryQualifications,
+    () => ({
+      id: crypto.randomUUID(),
+      institution: "",
+      country: "Australia",
+      level: "",
+      courseName: "",
+      startMonth: "",
+      startYear: "",
+      completed: true,
+      endMonth: "",
+      endYear: "",
+      transcriptDocument: undefined,
+      transcriptDocumentName: undefined,
+      certificateDocument: undefined,
+      certificateDocumentName: undefined,
+    }),
   );
   const originalTranscriptDocument = existing?.transcriptDocument;
   const originalCertificateDocument = existing?.certificateDocument;
 
-  const [formData, setFormData] = useState({
-    id: existing?.id ?? crypto.randomUUID(),
-    institution: existing?.institution ?? "",
-    country: existing?.country ?? "Australia",
-    level: existing?.level ?? "",
-    courseName: existing?.courseName ?? "",
-    startMonth: existing?.startMonth ?? "",
-    startYear: existing?.startYear ?? "",
-    completed: existing?.completed ?? true,
-    endMonth: existing?.endMonth ?? "",
-    endYear: existing?.endYear ?? "",
-    transcriptDocument: existing?.transcriptDocument,
-    transcriptDocumentName: existing?.transcriptDocumentName,
-    certificateDocument: existing?.certificateDocument,
-    certificateDocumentName: existing?.certificateDocumentName,
-  });
+  const [formData, setFormData] = useState(initialRecord);
   const [selectedTranscriptFile, setSelectedTranscriptFile] = useState<File | null>(
     null,
   );
@@ -143,7 +141,7 @@ export default function Section2AddTertiary() {
           description="Add the details of your university degree or diploma."
           progress={66}
           sectionLabel="Section 2 of 3"
-          title={existing ? "Edit Tertiary Qualification" : "Add Tertiary Qualification"}
+          title={isEditing ? "Edit Tertiary Qualification" : "Add Tertiary Qualification"}
         />
 
         {statusMessage ? (
@@ -396,7 +394,7 @@ export default function Section2AddTertiary() {
         <FormActionBar
           previousLabel="Cancel"
           primaryLabel="Save & Continue"
-          onPrevious={() => navigate(returnPath("/section2/qualifications"))}
+          onPrevious={returnToQualifications}
           onPrimary={async () => {
             setShowValidation(true);
             setStatusMessage(null);
@@ -407,7 +405,7 @@ export default function Section2AddTertiary() {
 
             try {
               await saveRecord();
-              navigate(returnPath("/section2/qualifications"));
+              returnToQualifications();
             } catch (error) {
               setStatusMessage({
                 message:

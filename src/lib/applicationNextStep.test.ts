@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { initialApplicationData } from "./applicationData";
-import { getNextIncompleteSection } from "./applicationNextStep";
+import { getNextIncompleteStep } from "./applicationValidationSchema";
 
-describe("getNextIncompleteSection", () => {
+describe("getNextIncompleteStep", () => {
   it("keeps applicant-profile seed data from skipping the real section 1 requirements", () => {
     expect(
-      getNextIncompleteSection({
+      getNextIncompleteStep({
         ...initialApplicationData,
         personalDetails: {
           ...initialApplicationData.personalDetails,
@@ -20,7 +20,7 @@ describe("getNextIncompleteSection", () => {
 
   it("moves to personal contact details until gender and date of birth are captured", () => {
     expect(
-      getNextIncompleteSection({
+      getNextIncompleteStep({
         ...initialApplicationData,
         personalDetails: {
           ...initialApplicationData.personalDetails,
@@ -36,7 +36,7 @@ describe("getNextIncompleteSection", () => {
 
   it("returns null once the core section 2 submission rule is satisfied", () => {
     expect(
-      getNextIncompleteSection({
+      getNextIncompleteStep({
         ...initialApplicationData,
         personalDetails: {
           ...initialApplicationData.personalDetails,

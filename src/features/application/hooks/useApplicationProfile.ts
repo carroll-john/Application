@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ApplicationStorageAdapter } from "../../lib/applicationStorageAdapter";
-import type { StoredApplicantProfile } from "../../lib/applicantProfileStore";
+import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageAdapter";
+import type { StoredApplicantProfile } from "../../../lib/applicantProfileStore";
 
 interface UseApplicationProfileOptions {
   userEmail: string | null;

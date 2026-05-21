@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
 import { FormActionBar } from "../components/FormActionBar";
 import { FormSectionCard } from "../components/FormSectionCard";
 import { SectionProgressHeader } from "../components/SectionProgressHeader";
@@ -8,29 +7,28 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
-import { useReviewReturn } from "../hooks/useReviewReturn";
+import { useEditableRecord } from "../hooks/useEditableRecord";
+import { useSection2Navigation } from "../hooks/useSection2Navigation";
 import { countries, years } from "../lib/formOptions";
 
 export default function Section2AddSecondary() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { returnPath } = useReviewReturn();
+  const { returnToQualifications } = useSection2Navigation();
   const { data, addSecondaryQualification, updateSecondaryQualification } =
     useApplication();
-  const existing = useMemo(
-    () => data.secondaryQualifications.find((qualification) => qualification.id === id),
-    [data.secondaryQualifications, id],
+  const { existing, isEditing, initialRecord } = useEditableRecord(
+    data.secondaryQualifications,
+    () => ({
+      id: crypto.randomUUID(),
+      type: "",
+      country: "Australia",
+      state: "",
+      school: "",
+      qualification: "",
+      year: "",
+    }),
   );
 
-  const [formData, setFormData] = useState({
-    id: existing?.id ?? crypto.randomUUID(),
-    type: existing?.type ?? "",
-    country: existing?.country ?? "Australia",
-    state: existing?.state ?? "",
-    school: existing?.school ?? "",
-    qualification: existing?.qualification ?? "",
-    year: existing?.year ?? "",
-  });
+  const [formData, setFormData] = useState(initialRecord);
 
   const saveRecord = () => {
     if (existing) {
@@ -47,7 +45,7 @@ export default function Section2AddSecondary() {
           description="Add your high school qualification."
           progress={66}
           sectionLabel="Section 2 of 3"
-          title={existing ? "Edit Secondary Qualification" : "Add Secondary Qualification"}
+          title={isEditing ? "Edit Secondary Qualification" : "Add Secondary Qualification"}
         />
 
         <FormSectionCard className="lg:p-8">
@@ -152,10 +150,10 @@ export default function Section2AddSecondary() {
         <FormActionBar
           previousLabel="Cancel"
           primaryLabel="Save & Continue"
-          onPrevious={() => navigate(returnPath("/section2/qualifications"))}
+          onPrevious={returnToQualifications}
           onPrimary={() => {
             saveRecord();
-            navigate(returnPath("/section2/qualifications"));
+            returnToQualifications();
           }}
         />
       </div>

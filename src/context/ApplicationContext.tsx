@@ -20,14 +20,14 @@ import type {
 } from "../lib/applicationData";
 import type { StepCompletionLabel } from "../lib/applicationValidationSchema";
 import { createApplicationStorageAdapter } from "../lib/applicationStorageAdapter";
-import { useApplicationAnalytics } from "./application/useApplicationAnalytics";
-import { useApplicationData } from "./application/useApplicationData";
-import { useApplicationProfile } from "./application/useApplicationProfile";
+import { useApplicationAnalytics } from "../features/application/hooks/useApplicationAnalytics";
+import { useApplicationData } from "../features/application/hooks/useApplicationData";
+import { useApplicationProfile } from "../features/application/hooks/useApplicationProfile";
 import {
   useApplicationStorageOrchestration,
   type BeginCourseApplicationOptions,
   type LocalDraftImportState,
-} from "./application/useApplicationStorageOrchestration";
+} from "../features/application/hooks/useApplicationStorageOrchestration";
 import { useAuth } from "./AuthContext";
 
 interface ApplicationContextType {

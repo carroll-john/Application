@@ -1,5 +1,5 @@
 import { Button } from "./ui/button";
-import type { LocalDraftImportState } from "../context/application/useApplicationStorageOrchestration";
+import type { LocalDraftImportState } from "../features/application/hooks/useApplicationStorageOrchestration";
 
 interface LocalDraftImportPromptProps {
   state: LocalDraftImportState;

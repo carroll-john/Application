@@ -1,5 +1,7 @@
 # Tuesday Demo Scope
 
+> **Historical.** This document describes the original Tuesday demo (Keypath email gate, local-first persistence). Superseded for auth by [decisions.md](decisions.md) (2026-05-20 public email OTP). For current behavior, read [memory-auth.md](memory-auth.md) and [memory-applications.md](memory-applications.md).
+
 ## In Scope
 - Browse a real range of seeded courses.
 - Open a course detail page for each course.
