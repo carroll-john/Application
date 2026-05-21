@@ -9,6 +9,7 @@ import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { useReviewReturn } from "../hooks/useReviewReturn";
+import { getSection1Step } from "../lib/section1Steps";
 
 const educationLevels = [
   "Did not complete high school",
@@ -32,6 +33,7 @@ export default function Section1FamilySupport() {
   const navigate = useNavigate();
   const { fromReview, previousLabel, returnPath } = useReviewReturn();
   const { data, updateContactDetails } = useApplication();
+  const step = getSection1Step("family-support");
 
   const [formData, setFormData] = useState({
     parentsCount: data.contactDetails.parentsCount || "",
@@ -93,7 +95,7 @@ export default function Section1FamilySupport() {
 
   function handlePrevious() {
     persist();
-    navigate(returnPath("/section1/cultural-background"));
+    navigate(returnPath(step.previousPath));
   }
 
   function handleSaveAndContinue() {
@@ -123,7 +125,7 @@ export default function Section1FamilySupport() {
     }
 
     persist();
-    navigate(returnPath("/section2/qualifications"));
+    navigate(returnPath(step.continuePath));
   }
 
   function handleSaveAndExit() {
@@ -135,10 +137,10 @@ export default function Section1FamilySupport() {
     <div className="bg-gray-50 pb-12">
       <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <SectionProgressHeader
-          description="These answers support required reporting and help us arrange reasonable adjustments if you need them. They do not affect your admission outcome."
-          progress={100}
-          sectionLabel="Section 1 of 3"
-          title="Family & Support Information"
+          description={step.description}
+          progress={step.progress}
+          sectionLabel={step.sectionLabel}
+          title={step.title}
         />
 
         <div className="space-y-6">

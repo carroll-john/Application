@@ -17,18 +17,17 @@ export default function Section1CulturalBackground() {
   });
 
   const persist = () => updateContactDetails(formData);
-  const { shellProps } = useSection1Step({
-    previousPath: "/section1/address",
-    continuePath: "/section1/family-support",
+  const { shellProps, step } = useSection1Step({
+    step: "cultural-background",
     persist,
   });
 
   return (
     <ApplicationShell
-      sectionLabel="Section 1 of 3"
-      progress={67}
-      title="Cultural and education background"
-      description="These questions support government reporting and student support planning. They do not affect your admission outcome."
+      sectionLabel={step.sectionLabel}
+      progress={step.progress}
+      title={step.title}
+      description={step.description}
       {...shellProps}
     >
       <div className="grid gap-6">

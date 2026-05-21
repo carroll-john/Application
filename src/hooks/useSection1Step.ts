@@ -1,19 +1,16 @@
 import { useNavigate } from "react-router-dom";
+import { getSection1Step, type Section1StepKey } from "../lib/section1Steps";
 import { useReviewReturn } from "./useReviewReturn";
 
 interface UseSection1StepOptions {
-  previousPath: string;
-  continuePath: string;
+  step: Section1StepKey;
   persist: () => void | Promise<void>;
 }
 
-export function useSection1Step({
-  previousPath,
-  continuePath,
-  persist,
-}: UseSection1StepOptions) {
+export function useSection1Step({ step, persist }: UseSection1StepOptions) {
   const navigate = useNavigate();
   const { fromReview, previousLabel, returnPath } = useReviewReturn();
+  const definition = getSection1Step(step);
 
   const runPersist = () => {
     void persist();
@@ -21,10 +18,11 @@ export function useSection1Step({
 
   return {
     fromReview,
+    step: definition,
     shellProps: {
       onPrevious: () => {
         runPersist();
-        navigate(returnPath(previousPath));
+        navigate(returnPath(definition.previousPath));
       },
       onSaveAndExit: fromReview
         ? undefined
@@ -34,7 +32,7 @@ export function useSection1Step({
           },
       onContinue: () => {
         runPersist();
-        navigate(returnPath(continuePath));
+        navigate(returnPath(definition.continuePath));
       },
       previousLabel,
       continueLabel: fromReview ? "Save & Return to Review" : "Continue",

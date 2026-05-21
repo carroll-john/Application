@@ -23,7 +23,7 @@ npm run finish-task -- "Task name"
 | Supabase config | `src/lib/supabase.test.ts` |
 | Application storage | `src/lib/applicationStorageAdapter.test.ts`, `applicationRecords.test.ts`, `applicationRemoteStore.test.ts` |
 | Documents | `src/lib/documentStorage.test.ts`, `documentUploadLimits.test.ts` |
-| Validation / progress | `src/lib/applicationValidationSchema.test.ts`, `applicationValidationSchema.integration.test.ts`, `applicationProgress.test.ts` |
+| Validation / progress | `src/lib/applicationValidationSchema.test.ts`, `applicationValidationSchema.integration.test.ts`, `applicationProgress.test.ts`, `section1Steps.test.ts` |
 | Section 2 requirements | `src/lib/section2Requirements.test.ts` |
 | CV parser client | `src/lib/cvParserClient.test.ts`, `cvParser.test.ts` |
 | CV parser API | `api/_ai/callLlm.test.ts`, `npm run test:cv-parser` (needs dev server + OPENAI_API_KEY) |
@@ -49,13 +49,13 @@ Load only these files for typical tasks (~5–15 files each):
 `src/lib/storage/documents.ts`, `src/lib/documentAttachment.ts`, `src/components/FileUpload.tsx`, `src/components/DocumentUploadField.tsx`, `api/document-delivery.ts`
 
 ### form-wizard-section1
-`src/pages/Section1*.tsx`, `src/components/ApplicationShell.tsx`, `src/hooks/useSection1Step.ts`, `src/hooks/useReviewReturn.ts`, `src/lib/address.ts`
+`src/pages/Section1*.tsx`, `src/components/ApplicationShell.tsx`, `src/hooks/useSection1Step.ts`, `src/lib/section1Steps.ts`, `src/hooks/useReviewReturn.ts`, `src/lib/address.ts`
 
 ### form-wizard-section2
 `src/pages/Section2*.tsx`, `src/hooks/useEditableRecord.ts`, `src/hooks/useSection2Navigation.ts`, `src/lib/section2Requirements.ts`
 
 ### course-browse
-`src/pages/CourseDetails.tsx`, `src/pages/CourseList.tsx`, `src/lib/courseCatalog.ts`, `src/lib/courseEligibility.ts`, `src/features/course/*`
+`src/pages/CourseDetails.tsx`, `src/pages/CourseList.tsx`, `src/lib/courseCatalog.ts`, `src/lib/courseCatalog/*`, `src/lib/courseEligibility.ts`, `src/features/course/*`
 
 ### review-submit
 `src/pages/ReviewAndSubmit.tsx`, `src/features/review/*`, `src/lib/reviewFormatters.ts`, `src/lib/applicationProgress.ts`
