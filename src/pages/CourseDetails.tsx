@@ -1,41 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  useNavigate,
-  useParams,
-  useSearchParams,
-} from "react-router-dom";
-import { AccentIconBadge } from "../components/AccentIconBadge";
+import { useMemo } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
-import { SurfaceCard } from "../components/SurfaceCard";
-import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
 import { useAuth } from "../context/AuthContext";
 import {
   AuthModal,
-  clearPendingEligibilityCheck,
-  CourseChecklist,
+  CourseDetailsPresentation,
   EligibilityCheckModal,
   EligibilityResultModal,
-  loadPendingEligibilityCheck,
-  savePendingEligibilityCheck,
-  useCourseApplicationStart,
-  type AuthGateContext,
+  useCourseEligibilityFlow,
 } from "../features/course";
-import {
-  getCourseByCode,
-  getDefaultCourse,
-} from "../lib/courseCatalog";
-import {
-  evaluateCourseEligibility,
-  hasCourseExperienceAlternative,
-  type EligibilityAnswers,
-} from "../lib/courseEligibility";
-import {
-  capturePostHogEvent,
-  getCourseAnalyticsProperties,
-} from "../lib/posthog";
-
-type EligibilityOutcome = "success" | "fail" | null;
+import { getCourseByCode, getDefaultCourse } from "../lib/courseCatalog";
 
 export default function CourseDetails() {
   const navigate = useNavigate();
@@ -52,21 +27,6 @@ export default function CourseDetails() {
     () => getCourseByCode(courseCode) ?? getDefaultCourse(),
     [courseCode],
   );
-  const [showEligibility, setShowEligibility] = useState(false);
-  const [eligibilityOutcome, setEligibilityOutcome] =
-    useState<EligibilityOutcome>(null);
-  const [eligibilityReason, setEligibilityReason] = useState("");
-  const [eligibilityForm, setEligibilityForm] = useState<EligibilityAnswers>({
-    educationLevel: "",
-    experienceRange: "",
-  });
-  const [authGateContext, setAuthGateContext] =
-    useState<AuthGateContext | null>(null);
-  const [pendingAuthAction, setPendingAuthAction] =
-    useState<AuthGateContext | null>(null);
-  const courseDetailsSectionRef = useRef<HTMLElement | null>(null);
-  const entryRequirementsRef = useRef<HTMLDivElement | null>(null);
-  const requiresExperienceInput = hasCourseExperienceAlternative(course.eligibility);
   const shouldAutoApply =
     searchParams.get("apply") === "1" && searchParams.get("eligible") === "1";
   const selectedCourse = useMemo(
@@ -78,37 +38,7 @@ export default function CourseDetails() {
     }),
     [course.code, course.intakeLabel, course.provider, course.title],
   );
-  const resetEligibilityView = useCallback(() => {
-    setEligibilityOutcome(null);
-    setEligibilityReason("");
-    setShowEligibility(false);
-  }, []);
-  const showEligibleResult = useCallback((reason: string) => {
-    setEligibilityOutcome("success");
-    setEligibilityReason(reason);
-  }, []);
-  const openAuthGate = useCallback(
-    (context: AuthGateContext) => {
-      setPendingAuthAction(context);
-      setAuthGateContext(context);
-      capturePostHogEvent("auth_gate_opened", {
-        ...getCourseAnalyticsProperties(course),
-        auth_context: context,
-      });
-    },
-    [course],
-  );
-  const {
-    applyError,
-    currentCourseDraft,
-    handleEligibleApplyNow,
-    isApplyActionPending,
-    resetApplicationStartState,
-    reusableSourceApplications,
-    setApplyError,
-    showApplicationStartPicker,
-    startApplication,
-  } = useCourseApplicationStart({
+  const eligibility = useCourseEligibilityFlow({
     activeApplicationId,
     applications,
     beginCourseApplication,
@@ -116,120 +46,9 @@ export default function CourseDetails() {
     isAuthenticated,
     isHydrating,
     navigate,
-    onAuthRequired: openAuthGate,
-    onEligibleResult: showEligibleResult,
-    onResetEligibilityState: resetEligibilityView,
     selectedCourse,
     shouldAutoApply,
   });
-  const resetEligibilityState = useCallback(() => {
-    resetApplicationStartState();
-    resetEligibilityView();
-  }, [resetApplicationStartState, resetEligibilityView]);
-
-  const isEligibilityFormComplete =
-    Boolean(eligibilityForm.educationLevel) &&
-    (!requiresExperienceInput || Boolean(eligibilityForm.experienceRange));
-  const resolveEligibilityResult = useCallback(
-    (answers: EligibilityAnswers) => {
-      const result = evaluateCourseEligibility(course.eligibility, answers);
-
-      capturePostHogEvent("eligibility_check_completed", {
-        ...getCourseAnalyticsProperties(course),
-        education_level: answers.educationLevel,
-        eligible: result.eligible,
-        experience_range: answers.experienceRange,
-      });
-      clearPendingEligibilityCheck();
-      setEligibilityOutcome(result.eligible ? "success" : "fail");
-      setEligibilityReason(result.reason ?? "");
-    },
-    [course],
-  );
-  const handleEligibilityComplete = useCallback(() => {
-    setApplyError(null);
-
-    if (!isAuthenticated) {
-      savePendingEligibilityCheck(course.code, eligibilityForm);
-      openAuthGate("eligibility");
-      return;
-    }
-
-    resolveEligibilityResult(eligibilityForm);
-  }, [
-    course.code,
-    eligibilityForm,
-    isAuthenticated,
-    openAuthGate,
-    resolveEligibilityResult,
-    setApplyError,
-  ]);
-  const handleTryEligibilityAgain = useCallback(() => {
-    setApplyError(null);
-    setEligibilityReason("");
-    setEligibilityOutcome(null);
-  }, [setApplyError]);
-  const handleBrowseCourses = useCallback(() => {
-    resetEligibilityState();
-    navigate("/");
-  }, [navigate, resetEligibilityState]);
-
-  useEffect(() => {
-    if (!isAuthenticated || !pendingAuthAction) {
-      return;
-    }
-
-    if (pendingAuthAction === "apply" && isHydrating) {
-      return;
-    }
-
-    setAuthGateContext(null);
-
-    if (pendingAuthAction === "eligibility") {
-      const pendingAnswers =
-        loadPendingEligibilityCheck(course.code) ?? eligibilityForm;
-      setPendingAuthAction(null);
-      resolveEligibilityResult(pendingAnswers);
-      return;
-    }
-
-    setPendingAuthAction(null);
-    void handleEligibleApplyNow();
-  }, [
-    course.code,
-    eligibilityForm,
-    handleEligibleApplyNow,
-    isAuthenticated,
-    isHydrating,
-    pendingAuthAction,
-    resolveEligibilityResult,
-  ]);
-
-  useEffect(() => {
-    if (isAuthenticated && !eligibilityOutcome && !pendingAuthAction) {
-      const pendingAnswers = loadPendingEligibilityCheck(course.code);
-
-      if (pendingAnswers) {
-        setEligibilityForm(pendingAnswers);
-        resolveEligibilityResult(pendingAnswers);
-      }
-    }
-  }, [
-    course.code,
-    eligibilityOutcome,
-    isAuthenticated,
-    pendingAuthAction,
-    resolveEligibilityResult,
-  ]);
-
-  function handleReviewRequirements() {
-    resetEligibilityState();
-
-    window.requestAnimationFrame(() => {
-      const target = entryRequirementsRef.current ?? courseDetailsSectionRef.current;
-      target?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -239,315 +58,62 @@ export default function CourseDetails() {
         </div>
       </AppBrandHeader>
 
-      <section className="bg-[linear-gradient(135deg,#1f2a3a_0%,#16202d_55%,#1f2a3a_100%)] text-white">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-16">
-          <div className="max-w-2xl">
-            <div className="flex flex-wrap gap-3">
-              <span className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold tracking-wide text-white/90">
-                {course.delivery}
-              </span>
-              {course.categories.map((category) => (
-                <span
-                  key={category}
-                  className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold tracking-wide text-white/90"
-                >
-                  {category}
-                </span>
-              ))}
-            </div>
-            <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
-              {course.title}
-            </h1>
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.16em] text-white/70">
-                  Provider
-                </p>
-                <p className="mt-2 text-sm font-semibold text-white">{course.provider}</p>
-              </div>
-              <div className="rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.16em] text-white/70">
-                  Duration
-                </p>
-                <p className="mt-2 text-sm font-semibold text-white">
-                  {course.duration || "Flexible study"}
-                </p>
-              </div>
-              <div className="rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.16em] text-white/70">
-                  Intake
-                </p>
-                <p className="mt-2 text-sm font-semibold text-white">
-                  {course.intakeLabel}
-                </p>
-              </div>
-            </div>
-          </div>
+      <CourseDetailsPresentation
+        course={course}
+        courseDetailsSectionRef={eligibility.courseDetailsSectionRef}
+        entryRequirementsRef={eligibility.entryRequirementsRef}
+        onOpenEligibilityCheck={() => eligibility.setShowEligibility(true)}
+      />
 
-          <SurfaceCard className="rounded-[36px] border-0 bg-[var(--background-soft-blue)] p-6 text-slate-900 shadow-[0_32px_60px_rgba(31, 42, 58,0.25)] sm:p-8">
-            <AccentIconBadge className="mb-6" size="lg" tone="brandSoft">
-              <svg
-                aria-hidden="true"
-                className="h-8 w-8"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <rect
-                  x="3"
-                  y="4"
-                  width="18"
-                  height="16"
-                  rx="2"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <path
-                  d="M7 8h10M7 12h6"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeWidth="2"
-                />
-              </svg>
-            </AccentIconBadge>
-            <h2 className="text-2xl font-bold text-[var(--cta-secondary)]">
-              Accelerated application process
-            </h2>
-            <CourseChecklist
-              items={[
-                "Start with a course-specific eligibility check",
-                "Create or reuse your profile after sign in",
-                "Save and resume applications across courses",
-              ]}
-            />
-            <div className="mt-6 rounded-[28px] border border-slate-200 bg-white px-5 py-4 text-sm text-slate-700">
-              <p className="font-semibold text-slate-900">At a glance</p>
-              <dl className="mt-3 space-y-3">
-                <div>
-                  <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    Study level
-                  </dt>
-                  <dd className="mt-1 font-medium">{course.studyLevel}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                    Course type
-                  </dt>
-                  <dd className="mt-1 font-medium">{course.courseType}</dd>
-                </div>
-                {course.feeSummary ? (
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      Fees
-                    </dt>
-                    <dd className="mt-1 font-medium">{course.feeSummary}</dd>
-                  </div>
-                ) : null}
-                {course.supportSummary ? (
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      Support
-                    </dt>
-                    <dd className="mt-1 text-slate-600">{course.supportSummary}</dd>
-                  </div>
-                ) : null}
-              </dl>
-            </div>
-            <Button
-              className="mt-8 w-full"
-              onClick={() => {
-                capturePostHogEvent("eligibility_check_opened", {
-                  ...getCourseAnalyticsProperties(course),
-                });
-                setShowEligibility(true);
-              }}
-            >
-              Eligibility Check
-            </Button>
-          </SurfaceCard>
-        </div>
-      </section>
-
-      <section
-        ref={courseDetailsSectionRef}
-        className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16"
-      >
-        <div>
-          <h2 className="text-3xl font-bold text-[var(--cta-secondary)]">Course details</h2>
-        </div>
-
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-6">
-            <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
-              <h3 className="text-2xl font-bold text-slate-950">
-                Course overview
-              </h3>
-              <p className="mt-4 text-base leading-7 text-slate-600">
-                {course.description || course.summary}
-              </p>
-            </SurfaceCard>
-
-            {course.entryRequirements ? (
-              <div ref={entryRequirementsRef}>
-                <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
-                  <h3 className="text-2xl font-bold text-slate-950">
-                    Entry requirements
-                  </h3>
-                  <p className="mt-4 text-base leading-7 text-slate-600">
-                    {course.entryRequirements}
-                  </p>
-                </SurfaceCard>
-              </div>
-            ) : null}
-
-            {course.recognitionOfPriorLearning ? (
-              <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
-                <h3 className="text-2xl font-bold text-slate-950">
-                  Recognition of prior learning
-                </h3>
-                <p className="mt-4 text-base leading-7 text-slate-600">
-                  {course.recognitionOfPriorLearning}
-                </p>
-              </SurfaceCard>
-            ) : null}
-          </div>
-
-          <div className="space-y-6">
-            <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
-              <h3 className="text-2xl font-bold text-slate-950">
-                Core subjects
-              </h3>
-              {course.coreSubjects.length ? (
-                <ul className="mt-4 space-y-3">
-                  {course.coreSubjects.map((subject) => (
-                    <li key={subject} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">
-                      {subject}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-4 text-sm text-slate-600">
-                  Subject list available on request.
-                </p>
-              )}
-            </SurfaceCard>
-
-            <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
-              <h3 className="text-2xl font-bold text-slate-950">
-                Course facts
-              </h3>
-              <dl className="mt-4 space-y-4 text-sm text-slate-700">
-                {course.subjectArea ? (
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      Subject area
-                    </dt>
-                    <dd className="mt-1 font-medium">{course.subjectArea}</dd>
-                  </div>
-                ) : null}
-                {course.duration ? (
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      Duration
-                    </dt>
-                    <dd className="mt-1 font-medium">{course.duration}</dd>
-                  </div>
-                ) : null}
-                {course.feeSummary ? (
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      Fees
-                    </dt>
-                    <dd className="mt-1 font-medium">{course.feeSummary}</dd>
-                  </div>
-                ) : null}
-                {course.supportOptions.length ? (
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      Support options
-                    </dt>
-                    <dd className="mt-1 space-y-2">
-                      {course.supportOptions.map((option) => (
-                        <p key={option} className="leading-6">
-                          {option}
-                        </p>
-                      ))}
-                    </dd>
-                  </div>
-                ) : null}
-                {course.feeNotes.length ? (
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      Good to know
-                    </dt>
-                    <dd className="mt-1 space-y-2">
-                      {course.feeNotes.map((note) => (
-                        <p key={note} className="leading-6">
-                          {note}
-                        </p>
-                      ))}
-                    </dd>
-                  </div>
-                ) : null}
-                {course.outcomes ? (
-                  <div>
-                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      Outcomes
-                    </dt>
-                    <dd className="mt-1 leading-6">{course.outcomes}</dd>
-                  </div>
-                ) : null}
-              </dl>
-            </SurfaceCard>
-          </div>
-        </div>
-      </section>
-
-      {showEligibility && !eligibilityOutcome ? (
+      {eligibility.showEligibility && !eligibility.eligibilityOutcome ? (
         <EligibilityCheckModal
           course={course}
-          eligibilityForm={eligibilityForm}
-          isComplete={isEligibilityFormComplete}
-          requiresExperienceInput={requiresExperienceInput}
+          eligibilityForm={eligibility.eligibilityForm}
+          isComplete={eligibility.isEligibilityFormComplete}
+          requiresExperienceInput={eligibility.requiresExperienceInput}
           onAnswerChange={(updates) =>
-            setEligibilityForm((previous) => ({ ...previous, ...updates }))
+            eligibility.setEligibilityForm((previous) => ({
+              ...previous,
+              ...updates,
+            }))
           }
           onClose={() => {
-            setApplyError(null);
-            setShowEligibility(false);
+            eligibility.setApplyError(null);
+            eligibility.setShowEligibility(false);
           }}
-          onComplete={handleEligibilityComplete}
+          onComplete={eligibility.handleEligibilityComplete}
         />
       ) : null}
 
-      {eligibilityOutcome ? (
+      {eligibility.eligibilityOutcome ? (
         <EligibilityResultModal
-          activeApplicationId={activeApplicationId}
-          applyError={applyError}
-          currentCourseDraft={currentCourseDraft}
-          eligibilityOutcome={eligibilityOutcome}
-          eligibilityReason={eligibilityReason}
-          isApplyActionPending={isApplyActionPending}
-          isAuthenticated={isAuthenticated}
-          reusableSourceApplications={reusableSourceApplications}
-          showApplicationStartPicker={showApplicationStartPicker}
-          onBrowseCourses={handleBrowseCourses}
-          onClose={resetEligibilityState}
-          onEligibleApplyNow={handleEligibleApplyNow}
-          onReviewRequirements={handleReviewRequirements}
-          onStartApplication={startApplication}
-          onTryAgain={handleTryEligibilityAgain}
+          activeApplicationId={eligibility.activeApplicationId}
+          applyError={eligibility.applyError}
+          currentCourseDraft={eligibility.currentCourseDraft}
+          eligibilityOutcome={eligibility.eligibilityOutcome}
+          eligibilityReason={eligibility.eligibilityReason}
+          isApplyActionPending={eligibility.isApplyActionPending}
+          isAuthenticated={eligibility.isAuthenticated}
+          reusableSourceApplications={eligibility.reusableSourceApplications}
+          showApplicationStartPicker={eligibility.showApplicationStartPicker}
+          onBrowseCourses={eligibility.handleBrowseCourses}
+          onClose={eligibility.resetEligibilityState}
+          onEligibleApplyNow={eligibility.handleEligibleApplyNow}
+          onReviewRequirements={eligibility.handleReviewRequirements}
+          onStartApplication={eligibility.startApplication}
+          onTryAgain={eligibility.handleTryEligibilityAgain}
         />
       ) : null}
 
-      {authGateContext ? (
+      {eligibility.authGateContext ? (
         <AuthModal
-          context={authGateContext}
+          context={eligibility.authGateContext}
           onAuthenticated={() => {
-            setAuthGateContext(null);
+            eligibility.setAuthGateContext(null);
           }}
           onClose={() => {
-            setAuthGateContext(null);
-            setPendingAuthAction(null);
+            eligibility.setAuthGateContext(null);
+            eligibility.setPendingAuthAction(null);
           }}
         />
       ) : null}

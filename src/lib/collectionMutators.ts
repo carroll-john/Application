@@ -8,7 +8,7 @@ function replaceItemById<T extends { id: string }>(
   return items.map((item) => (item.id === id ? nextItem : item));
 }
 
-interface CollectionMutatorConfig<T extends { id: string }> {
+interface CollectionMutatorConfig<_T extends { id: string }> {
   collectionKey: keyof ApplicationData;
   savedEvent: string;
   removedEvent: string;
