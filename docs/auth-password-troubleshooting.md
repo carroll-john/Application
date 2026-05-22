@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | Sign-in says email not confirmed | Either | User has not clicked the confirmation link yet |
 | No confirmation email arrives | Hosted | Built-in Supabase mail quota or missing custom SMTP |
+| OTP / confirmation emails stop after a few tries | Hosted | Supabase built-in sender (`noreply@mail.app.supabase.io`) hit `over_email_send_rate_limit` — configure Resend SMTP |
 | Confirmation link opens but user is not signed in | Either | Redirect URL not allow-listed, or project paused |
 | Invalid credentials on sign-in | Either | Wrong password, or account was created under the old OTP flow without a password |
 | Create account succeeds but sign-in still fails | Hosted | Confirm email is disabled in Supabase dashboard |
@@ -37,15 +38,48 @@ Project ref: `weyxnhykyyetquqprfnu`
 
 ### Resend SMTP example
 
+Production sender (verified domain `carroll.consulting` in Resend):
+
+`Applications <noreply@carroll.consulting>`
+
 | Field | Value |
 | --- | --- |
 | Host | `smtp.resend.com` |
 | Port | `465` |
 | Username | `resend` |
 | Password | Your Resend API key |
-| Sender email | An address on a domain verified in Resend |
+| Sender email | `noreply@carroll.consulting` |
 
-After saving SMTP settings, create a test account and confirm delivery in Mailpit or the provider logs before testing production sign-in.
+After saving SMTP settings, create a test account and confirm delivery in Resend logs before testing production sign-in.
+
+### Supabase SMTP — paste these values
+
+Open [Authentication → SMTP](https://supabase.com/dashboard/project/weyxnhykyyetquqprfnu/auth/smtp), enable custom SMTP, and save:
+
+| Field | Value |
+| --- | --- |
+| Host | `smtp.resend.com` |
+| Port number | `465` |
+| Username | `resend` |
+| Password | Your Resend API key (`re_...`) |
+| Sender email | `noreply@carroll.consulting` |
+| Sender name | `Applications` (optional) |
+
+After saving, hosted auth emails should leave `noreply@carroll.consulting` via Resend instead of `noreply@mail.app.supabase.io`.
+
+### Resend plugin / CLI verification
+
+1. Connect the Cursor **Resend** plugin: **Settings → Plugins → Resend → Environment variables → `RESEND_API_KEY`** (paste your `re_...` token from [resend.com/api-keys](https://resend.com/api-keys)). Do **not** edit the plugin cache file under `~/.cursor/plugins/cache/.../.mcp.json` — that template is overwritten on plugin update.
+2. From the repo root, run:
+
+   ```bash
+   RESEND_API_KEY=re_... npm run verify-resend
+   RESEND_API_KEY=re_... npm run verify-resend -- --smoke-test john.carroll@keypathedu.com.au
+   ```
+
+   This lists or verifies `carroll.consulting`, prints DNS records if needed, and optionally sends a smoke-test email. Use Resend MCP `list-domains`, `list-emails`, and `list-logs` to confirm delivery after Supabase SMTP is saved.
+
+Hosted Supabase auth logs (2026-05-22) showed confirmation mail still sent from `noreply@mail.app.supabase.io` with `over_email_send_rate_limit` — custom Resend SMTP removes that quota ceiling.
 
 ## Existing OTP-only accounts
 

@@ -40,6 +40,7 @@
 - Enable **Confirm email** under Authentication → Providers → Email.
 - Confirm signup email template must include `{{ .ConfirmationURL }}`.
 - Configure **custom SMTP** for reliable hosted confirmation email delivery.
+- Production sender (Resend): `Applications <noreply@carroll.consulting>` — see [auth-password-troubleshooting.md](auth-password-troubleshooting.md) and `npm run verify-resend`.
 - Site URL: `https://application-prototype.vercel.app`
 - Redirect URLs: production `/**`, localhost `http://localhost:5173/**`
 
