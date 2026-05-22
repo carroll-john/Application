@@ -31,7 +31,7 @@ describe("authOtp", () => {
     });
   });
 
-  it("verifies an email OTP with the expected Supabase payload", async () => {
+  it("verifies an email OTP with a single Supabase request", async () => {
     const auth = createAuthMock();
 
     await expect(
@@ -45,26 +45,23 @@ describe("authOtp", () => {
     expect(auth.verifyOtp).toHaveBeenCalledTimes(1);
   });
 
-  it("falls back to magiclink verification when email type fails", async () => {
+  it("does not retry verification with alternate OTP types", async () => {
     const auth = createAuthMock();
-    auth.verifyOtp
-      .mockResolvedValueOnce({
-        error: { message: "Token has expired or is invalid" },
-      })
-      .mockResolvedValueOnce({ error: null });
+    auth.verifyOtp.mockResolvedValue({
+      error: { message: "Token has expired or is invalid" },
+    });
 
     await expect(
       verifyEmailOtpCode(auth, "user@example.com", "123456"),
-    ).resolves.toEqual({ error: null });
-    expect(auth.verifyOtp).toHaveBeenNthCalledWith(1, {
+    ).resolves.toEqual({
+      error:
+        "That code is invalid or expired. Request a new code and use the one from your most recent email.",
+    });
+    expect(auth.verifyOtp).toHaveBeenCalledTimes(1);
+    expect(auth.verifyOtp).toHaveBeenCalledWith({
       email: "user@example.com",
       token: "123456",
       type: "email",
-    });
-    expect(auth.verifyOtp).toHaveBeenNthCalledWith(2, {
-      email: "user@example.com",
-      token: "123456",
-      type: "magiclink",
     });
   });
 

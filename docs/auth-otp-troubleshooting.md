@@ -7,7 +7,7 @@
 | UI says code was sent, nothing in Gmail/Outlook | **Local** (`npm run dev`) | Local Supabase sends auth mail to **Mailpit**, not real inboxes |
 | `We couldn't reach the sign-in service` on Vercel | **Production** | Hosted Supabase project is **INACTIVE** (DNS for `*.supabase.co` fails) |
 | Same error on localhost | **Local** | `supabase start` is not running or `.env.local` points at a dead URL |
-| Code arrives but verify fails | Either | Wrong code, expired code, or email template missing `{{ .Token }}` on hosted |
+| Code arrives but verify fails immediately | **Production** | Hosted `otp_length` was **8** while the app accepts **6** digits, Magic Link template included `{{ .ConfirmationURL }}` (link prefetch burns the token), or the app retried verify with the wrong OTP type |
 | `email rate limit exceeded` | **Production** | Hosted project still uses Supabase built-in email (~4 auth emails/hour). Configure custom SMTP. |
 
 ## Local development
@@ -53,7 +53,8 @@ There is **no** `supabase projects restore` CLI command. Restoration must be don
 4. **Authentication → URL configuration**
    - Site URL: `https://application-prototype.vercel.app`
    - Redirect URLs: include `https://application-prototype.vercel.app/**` and local URLs if needed
-5. **Authentication → Email templates** (Magic Link)
+5. **Authentication → Email** — set **OTP length** to **6** (must match the app input and `supabase/config.toml` `auth.email.otp_length`)
+6. **Authentication → Email templates** (Magic Link)
    - Use OTP-only content with `{{ .Token }}` and remove `{{ .ConfirmationURL }}`, e.g. `Your sign-in code is {{ .Token }}`
 6. **Vercel → Project → Environment variables** (Production + Preview)
    - `VITE_SUPABASE_URL=https://weyxnhykyyetquqprfnu.supabase.co`
@@ -76,7 +77,7 @@ Applicant sign-in verifies a **6-digit OTP in the app** (`verifyOtp` with `type:
 Your sign-in code is {{ .Token }}
 ```
 
-If the template includes `{{ .ConfirmationURL }}`, Supabase sends a magic link email instead of an OTP-first email.
+If the template includes `{{ .ConfirmationURL }}`, email security scanners or link tracking can consume the token before you enter the 6-digit code. Keep the Magic Link template OTP-only (see repo `supabase/templates/magic_link.html`) and push it to hosted with `supabase config push`.
 
 ## Email rate limits (hosted)
 

@@ -132,29 +132,22 @@ function formatAuthVerificationError(
   return "That code is invalid or expired. Request a new code and try again.";
 }
 
-async function verifyEmailOtpWithFallback(
+async function verifyEmailOtpOnce(
   auth: AuthClient,
   email: string,
   token: string,
 ) {
-  const verifyTypes = ["email", "magiclink"] as const;
-  let lastError: unknown = null;
+  // signInWithOtp stores codes in recovery_token for returning users. GoTrue
+  // accepts type "email" for 6-digit OTP entry against either confirmation or
+  // recovery tokens. Retrying other types triggers a second /verify request,
+  // which surfaced as immediate otp_expired failures in hosted auth logs.
+  const { error } = await auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
 
-  for (const type of verifyTypes) {
-    const { error } = await auth.verifyOtp({
-      email,
-      token,
-      type,
-    });
-
-    if (!error) {
-      return { error: null as string | null };
-    }
-
-    lastError = error;
-  }
-
-  return { error: lastError };
+  return { error };
 }
 
 export async function requestEmailOtp(
@@ -204,7 +197,7 @@ export async function verifyEmailOtpCode(
   }
 
   try {
-    const { error: verificationError } = await verifyEmailOtpWithFallback(
+    const { error: verificationError } = await verifyEmailOtpOnce(
       auth,
       normalizedEmail,
       normalizedToken,
