@@ -40,3 +40,10 @@ export function buildAuthCallbackUrl(origin: string, redirectPath: string) {
 
   return `${base}/auth/callback?redirect=${encodeURIComponent(sanitized)}`;
 }
+
+export function buildPasswordResetRedirectUrl(origin: string, redirectPath: string) {
+  const sanitized = sanitizeRedirectPath(redirectPath);
+  const base = origin.replace(/\/$/, "");
+
+  return `${base}/sign-in?redirect=${encodeURIComponent(sanitized)}`;
+}

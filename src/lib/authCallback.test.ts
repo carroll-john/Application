@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAuthCallbackUrl,
+  buildPasswordResetRedirectUrl,
   resolveAuthRedirectPath,
   sanitizeRedirectPath,
 } from "./authCallback";
@@ -67,6 +68,19 @@ describe("buildAuthCallbackUrl", () => {
       ),
     ).toBe(
       "https://application-prototype.vercel.app/auth/callback?redirect=%2Fcourses%2FMBA%3Fapply%3D1",
+    );
+  });
+});
+
+describe("buildPasswordResetRedirectUrl", () => {
+  it("builds a sign-in URL with a sanitized redirect param", () => {
+    expect(
+      buildPasswordResetRedirectUrl(
+        "https://application-prototype.vercel.app",
+        "/profile",
+      ),
+    ).toBe(
+      "https://application-prototype.vercel.app/sign-in?redirect=%2Fprofile",
     );
   });
 });

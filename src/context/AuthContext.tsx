@@ -7,11 +7,13 @@ import {
   type ReactNode,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { buildAuthCallbackUrl } from "../lib/authCallback";
+import { buildAuthCallbackUrl, buildPasswordResetRedirectUrl } from "../lib/authCallback";
 import {
   normalizeAuthEmail,
+  requestPasswordReset as requestPasswordResetRequest,
   signInWithPassword as signInWithPasswordRequest,
   signUpWithPassword as signUpWithPasswordRequest,
+  updatePasswordAfterRecovery as updatePasswordAfterRecoveryRequest,
   type SignUpWithPasswordResult,
 } from "../lib/authPassword";
 import {
@@ -31,6 +33,7 @@ interface AuthContextType {
   isLoading: boolean;
   isConfigured: boolean;
   isAuthenticated: boolean;
+  isPasswordRecovery: boolean;
   userEmail: string | null;
   userDisplayName: string;
   signInWithPassword: (
@@ -42,6 +45,13 @@ interface AuthContextType {
     password: string,
     options?: { redirectPath?: string },
   ) => Promise<SignUpWithPasswordResult>;
+  requestPasswordReset: (
+    email: string,
+    options?: { redirectPath?: string },
+  ) => Promise<{ error: string | null }>;
+  updatePasswordAfterRecovery: (
+    password: string,
+  ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -71,6 +81,7 @@ function getEmailDomain(email: string | null) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(supabase));
 
   useEffect(() => {
@@ -96,8 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
+      setIsPasswordRecovery(event === "PASSWORD_RECOVERY");
       setIsLoading(false);
     });
 
@@ -136,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       isConfigured: isSupabaseConfigured,
       isAuthenticated,
+      isPasswordRecovery,
       userEmail,
       userDisplayName: formatUserDisplayName(userEmail),
       signInWithPassword: async (email, password) => {
@@ -167,6 +180,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           supabaseUrl: configuredSupabaseUrl,
         });
       },
+      requestPasswordReset: async (email, options) => {
+        if (!supabase) {
+          return {
+            error: "Authentication is not configured on this deployment.",
+          };
+        }
+
+        const redirectPath = options?.redirectPath ?? "/";
+        const redirectTo =
+          typeof window !== "undefined"
+            ? buildPasswordResetRedirectUrl(window.location.origin, redirectPath)
+            : undefined;
+
+        return requestPasswordResetRequest(supabase.auth, email, {
+          redirectTo,
+          supabaseUrl: configuredSupabaseUrl,
+        });
+      },
+      updatePasswordAfterRecovery: async (password) => {
+        if (!supabase) {
+          return {
+            error: "Authentication is not configured on this deployment.",
+          };
+        }
+
+        const { error } = await updatePasswordAfterRecoveryRequest(
+          supabase.auth,
+          password,
+          { supabaseUrl: configuredSupabaseUrl },
+        );
+
+        if (!error) {
+          setIsPasswordRecovery(false);
+        }
+
+        return { error };
+      },
       signOut: async () => {
         if (supabase) {
           await supabase.auth.signOut();
@@ -176,7 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         syncSentryUser(null);
       },
     }),
-    [isAuthenticated, isLoading, session, userEmail],
+    [isAuthenticated, isLoading, isPasswordRecovery, session, userEmail],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

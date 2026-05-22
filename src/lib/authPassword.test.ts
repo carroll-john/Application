@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import {
   AUTH_MIN_PASSWORD_LENGTH,
   formatAuthConnectivityError,
+  requestPasswordReset,
   signInWithPassword,
   signUpWithPassword,
+  updatePasswordAfterRecovery,
 } from "./authPassword";
 
 function createAuthMock() {
@@ -13,6 +15,8 @@ function createAuthMock() {
       data: { user: { identities: [{ provider: "email" }] } },
       error: null,
     }),
+    resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
+    updateUser: vi.fn().mockResolvedValue({ error: null }),
   };
 }
 
@@ -79,7 +83,7 @@ describe("authPassword", () => {
     expect(auth.signUp).not.toHaveBeenCalled();
   });
 
-  it("maps invalid credentials to a generic message", async () => {
+  it("maps invalid credentials to a helpful message", async () => {
     const auth = createAuthMock();
     auth.signInWithPassword.mockResolvedValue({
       error: { message: "Invalid login credentials" },
@@ -88,7 +92,8 @@ describe("authPassword", () => {
     await expect(
       signInWithPassword(auth, "user@example.com", "wrong-password"),
     ).resolves.toEqual({
-      error: "Email or password is incorrect.",
+      error:
+        "Email or password is incorrect. If you previously signed in with email codes, use Forgot password to set one.",
     });
   });
 
@@ -117,6 +122,30 @@ describe("authPassword", () => {
     ).resolves.toEqual({
       error: "An account with this email already exists. Sign in instead.",
     });
+  });
+
+  it("requests a password reset with redirect URL", async () => {
+    const auth = createAuthMock();
+
+    await expect(
+      requestPasswordReset(auth, "user@example.com", {
+        redirectTo:
+          "https://application-prototype.vercel.app/sign-in?redirect=%2Fprofile",
+      }),
+    ).resolves.toEqual({ error: null });
+    expect(auth.resetPasswordForEmail).toHaveBeenCalledWith("user@example.com", {
+      redirectTo:
+        "https://application-prototype.vercel.app/sign-in?redirect=%2Fprofile",
+    });
+  });
+
+  it("updates the password after recovery", async () => {
+    const auth = createAuthMock();
+
+    await expect(
+      updatePasswordAfterRecovery(auth, "secret123"),
+    ).resolves.toEqual({ error: null });
+    expect(auth.updateUser).toHaveBeenCalledWith({ password: "secret123" });
   });
 
   it("returns a helpful message when auth cannot reach Supabase", async () => {
