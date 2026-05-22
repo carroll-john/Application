@@ -139,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       userEmail,
       userDisplayName: formatUserDisplayName(userEmail),
-      sendEmailOtp: async (email, otpOptions) => {
+      sendEmailOtp: async (email) => {
         if (!supabase) {
           return {
             error: "Authentication is not configured on this deployment.",
@@ -161,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           supabaseUrl: configuredSupabaseUrl,
         });
       },
-      resendEmailOtp: async (email, otpOptions) => {
+      resendEmailOtp: async (email) => {
         if (!supabase) {
           return {
             error: "Authentication is not configured on this deployment.",
