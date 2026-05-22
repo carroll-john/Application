@@ -17,7 +17,7 @@
 4. Request a code on `/sign-in`
 5. Open **Mailpit**: [http://127.0.0.1:54324](http://127.0.0.1:54324)
 
-The auth email subject may still say "Your Magic Link" locally. The body should include a line like `Alternatively, enter the code: 123456`. Use that 6-digit value in the app.
+The auth email subject should say "Your sign-in code". The body should contain only the 6-digit code (`{{ .Token }}`), not a magic link. Use that value in the app.
 
 ### Verify the API directly
 
@@ -29,6 +29,8 @@ curl -sS -X POST "http://127.0.0.1:54321/auth/v1/otp" \
   -H "Content-Type: application/json" \
   -d '{"email":"you@example.com","create_user":true}'
 ```
+
+Do not pass `email_redirect_to` in this payload unless you intentionally want magic-link emails.
 
 Then confirm a new message appears in Mailpit.
 
@@ -50,8 +52,8 @@ There is **no** `supabase projects restore` CLI command. Restoration must be don
 4. **Authentication → URL configuration**
    - Site URL: `https://application-prototype.vercel.app`
    - Redirect URLs: include `https://application-prototype.vercel.app/**` and local URLs if needed
-5. **Authentication → Email templates** (Magic link / OTP email)
-   - Include `{{ .Token }}` so users receive a 6-digit code, e.g. `Your sign-in code is {{ .Token }}`
+5. **Authentication → Email templates** (Magic Link)
+   - Use OTP-only content with `{{ .Token }}` and remove `{{ .ConfirmationURL }}`, e.g. `Your sign-in code is {{ .Token }}`
 6. **Vercel → Project → Environment variables** (Production + Preview)
    - `VITE_SUPABASE_URL=https://weyxnhykyyetquqprfnu.supabase.co`
    - `VITE_SUPABASE_ANON_KEY=<publishable/anon key from Supabase API settings>`
@@ -67,13 +69,13 @@ supabase projects list -o json | jq '.[] | select(.ref=="weyxnhykyyetquqprfnu") 
 
 ## Email template requirement
 
-Applicant sign-in verifies a **6-digit OTP in the app** (`verifyOtp` with `type: "email"`). Hosted templates must expose the token:
+Applicant sign-in verifies a **6-digit OTP in the app** (`verifyOtp` with `type: "email"`). Hosted Magic Link templates must expose the token and must **not** include `{{ .ConfirmationURL }}`:
 
 ```text
 Your sign-in code is {{ .Token }}
 ```
 
-Without `{{ .Token }}`, users may only receive a magic link and not see the code the UI asks for.
+If the template includes `{{ .ConfirmationURL }}`, Supabase sends a magic link email instead of an OTP-first email.
 
 ## Related docs
 

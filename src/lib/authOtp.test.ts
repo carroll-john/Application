@@ -30,25 +30,6 @@ describe("authOtp", () => {
     });
   });
 
-  it("passes emailRedirectTo when a magic-link callback URL is provided", async () => {
-    const auth = createAuthMock();
-
-    await expect(
-      requestEmailOtp(auth, "user@example.com", {
-        emailRedirectTo:
-          "http://localhost:5173/auth/callback?redirect=%2Fcourses%2FMBA",
-      }),
-    ).resolves.toEqual({ error: null });
-    expect(auth.signInWithOtp).toHaveBeenCalledWith({
-      email: "user@example.com",
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo:
-          "http://localhost:5173/auth/callback?redirect=%2Fcourses%2FMBA",
-      },
-    });
-  });
-
   it("verifies an email OTP with the expected Supabase payload", async () => {
     const auth = createAuthMock();
 
