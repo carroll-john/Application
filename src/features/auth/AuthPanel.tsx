@@ -1,4 +1,4 @@
-import { Lock, Mail, ShieldCheck } from "lucide-react";
+import { Mail, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Button } from "../../components/ui/button";
@@ -6,19 +6,18 @@ import { Input } from "../../components/ui/input";
 import { useAuth } from "../../context/AuthContext";
 import { resolveAuthRedirectPath } from "../../lib/authCallback";
 import {
-  AUTH_MIN_PASSWORD_LENGTH,
+  AUTH_OTP_MIN_RESEND_SECONDS,
+  getAuthOtpRetryAfterSeconds,
   isValidEmailAddress,
-  isValidPassword,
   normalizeAuthEmail,
-} from "../../lib/authPassword";
+  normalizeOtpCode,
+} from "../../lib/authOtp";
 import { capturePostHogEvent } from "../../lib/posthog";
 import { configuredSupabaseUrl } from "../../lib/supabase";
 import {
   isLocalSupabaseUrl,
   LOCAL_DEV_MAILPIT_URL,
 } from "../../lib/supabaseConfig";
-
-type AuthTab = "sign-in" | "sign-up";
 
 interface AuthPanelProps {
   context?: "apply" | "eligibility" | "header" | "route";
@@ -34,17 +33,24 @@ export function AuthPanel({
     pathname: location.pathname,
     search: location.search,
   });
-  const { isAuthenticated, isConfigured, signInWithPassword, signUpWithPassword } =
-    useAuth();
-  const [activeTab, setActiveTab] = useState<AuthTab>("sign-in");
+  const {
+    isAuthenticated,
+    isConfigured,
+    resendEmailOtp,
+    sendEmailOtp,
+    verifyEmailOtp,
+  } = useAuth();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sentEmail, setSentEmail] = useState<string | null>(null);
+  const [isSending, setIsSending] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0);
   const hasNotifiedAuthenticatedRef = useRef(false);
   const normalizedEmail = normalizeAuthEmail(email);
+  const normalizedCode = normalizeOtpCode(code);
   const showLocalMailpitHint =
     import.meta.env.DEV && isLocalSupabaseUrl(configuredSupabaseUrl);
 
@@ -57,19 +63,33 @@ export function AuthPanel({
     onAuthenticated?.();
   }, [isAuthenticated, onAuthenticated]);
 
-  function resetFormState() {
-    setPassword("");
-    setConfirmPassword("");
-    setError(null);
-    setConfirmationEmail(null);
+  useEffect(() => {
+    if (otpCooldownSeconds <= 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setOtpCooldownSeconds((current) => Math.max(current - 1, 0));
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [otpCooldownSeconds]);
+
+  function startOtpCooldown(seconds = AUTH_OTP_MIN_RESEND_SECONDS) {
+    setOtpCooldownSeconds(Math.max(seconds, 1));
   }
 
-  function switchTab(nextTab: AuthTab) {
-    setActiveTab(nextTab);
-    resetFormState();
+  function applyOtpRequestError(requestError: string) {
+    const retryAfterSeconds = getAuthOtpRetryAfterSeconds(requestError);
+    if (retryAfterSeconds) {
+      startOtpCooldown(retryAfterSeconds);
+    }
+    setError(requestError);
   }
 
-  async function handleSignIn(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSendCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
@@ -78,84 +98,100 @@ export function AuthPanel({
       return;
     }
 
-    if (!password) {
-      setError("Enter your password.");
+    if (otpCooldownSeconds > 0) {
+      setError(
+        `Please wait ${otpCooldownSeconds} seconds before requesting another sign-in code.`,
+      );
       return;
     }
 
-    setIsSubmitting(true);
-    capturePostHogEvent("auth_sign_in_attempted", {
+    setIsSending(true);
+    capturePostHogEvent("auth_otp_requested", {
       auth_context: context,
       email_domain: normalizedEmail.split("@")[1] ?? "unknown",
     });
-    const { error: signInError } = await signInWithPassword(
-      normalizedEmail,
-      password,
-    );
-    setIsSubmitting(false);
+    const { error: sendError } = await sendEmailOtp(normalizedEmail, {
+      redirectPath,
+    });
+    setIsSending(false);
 
-    if (signInError) {
-      capturePostHogEvent("auth_sign_in_failed", {
+    if (sendError) {
+      capturePostHogEvent("auth_otp_failed", {
         auth_context: context,
+        auth_step: "request",
       });
-      setError(signInError);
+      applyOtpRequestError(sendError);
       return;
     }
 
-    capturePostHogEvent("auth_sign_in_succeeded", {
+    capturePostHogEvent("auth_otp_sent", {
       auth_context: context,
       email_domain: normalizedEmail.split("@")[1] ?? "unknown",
+    });
+    setSentEmail(normalizedEmail);
+    setCode("");
+    startOtpCooldown();
+  }
+
+  async function handleVerifyCode(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+
+    if (!sentEmail) {
+      setError("Enter your email address first.");
+      return;
+    }
+
+    if (normalizedCode.length !== 6) {
+      setError("Enter the 6-digit code from your email.");
+      return;
+    }
+
+    setIsVerifying(true);
+    const { error: verifyError } = await verifyEmailOtp(sentEmail, normalizedCode);
+    setIsVerifying(false);
+
+    if (verifyError) {
+      capturePostHogEvent("auth_otp_failed", {
+        auth_context: context,
+        auth_step: "verify",
+      });
+      setError(verifyError);
+      return;
+    }
+
+    capturePostHogEvent("auth_otp_verified", {
+      auth_context: context,
+      email_domain: sentEmail.split("@")[1] ?? "unknown",
     });
     hasNotifiedAuthenticatedRef.current = true;
     onAuthenticated?.();
   }
 
-  async function handleSignUp(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleResendCode() {
+    if (!sentEmail || otpCooldownSeconds > 0) {
+      return;
+    }
+
     setError(null);
-
-    if (!isValidEmailAddress(normalizedEmail)) {
-      setError("Enter a valid email address.");
-      return;
-    }
-
-    if (!isValidPassword(password)) {
-      setError(`Password must be at least ${AUTH_MIN_PASSWORD_LENGTH} characters.`);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    capturePostHogEvent("auth_sign_up_attempted", {
-      auth_context: context,
-      email_domain: normalizedEmail.split("@")[1] ?? "unknown",
+    setIsResending(true);
+    const { error: resendError } = await resendEmailOtp(sentEmail, {
+      redirectPath,
     });
-    const { error: signUpError } = await signUpWithPassword(
-      normalizedEmail,
-      password,
-      { redirectPath },
-    );
-    setIsSubmitting(false);
+    setIsResending(false);
 
-    if (signUpError) {
-      capturePostHogEvent("auth_sign_up_failed", {
-        auth_context: context,
-      });
-      setError(signUpError);
+    if (resendError) {
+      applyOtpRequestError(resendError);
       return;
     }
 
-    capturePostHogEvent("auth_sign_up_confirmation_sent", {
+    capturePostHogEvent("auth_otp_sent", {
       auth_context: context,
-      email_domain: normalizedEmail.split("@")[1] ?? "unknown",
+      auth_step: "resend",
+      email_domain: sentEmail.split("@")[1] ?? "unknown",
     });
-    setConfirmationEmail(normalizedEmail);
-    setPassword("");
-    setConfirmPassword("");
+    setCode("");
+    startOtpCooldown();
   }
 
   return (
@@ -167,18 +203,16 @@ export function AuthPanel({
 
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-slate-950">
-          {confirmationEmail ? "Confirm your email" : "Continue with email"}
+          {sentEmail ? "Enter your code" : "Continue with email"}
         </h2>
         <p className="text-sm leading-6 text-slate-600">
-          {confirmationEmail
-            ? `We sent a confirmation link to ${confirmationEmail}. Open it to activate your account, then return here to sign in.`
-            : activeTab === "sign-in"
-              ? "Sign in with your applicant account email and password."
-              : "Create an applicant account with your email and a password."}
+          {sentEmail
+            ? `We sent a 6-digit sign-in code to ${sentEmail}. Use the code from your most recent email.`
+            : "Use your email to sign in or create an applicant account. No password required."}
         </p>
         {showLocalMailpitHint ? (
           <p className="text-sm leading-6 text-slate-600">
-            Local dev: confirmation emails are captured in{" "}
+            Local dev: auth emails are captured in{" "}
             <a
               className="font-medium text-[var(--cta-secondary)] hover:underline"
               href={LOCAL_DEV_MAILPIT_URL}
@@ -187,7 +221,8 @@ export function AuthPanel({
             >
               Mailpit
             </a>
-            , not your real inbox.
+            , not your real inbox. Open Mailpit and use the 6-digit code from the
+            message body.
           </p>
         ) : null}
       </div>
@@ -199,207 +234,117 @@ export function AuthPanel({
         </div>
       ) : null}
 
-      {confirmationEmail ? (
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-[var(--info-border)] bg-[var(--info-bg)] p-4 text-sm text-[var(--info-text)]">
-            After confirming your email, switch to Sign in and use the password
-            you just created.
+      {sentEmail ? (
+        <form className="space-y-4" onSubmit={handleVerifyCode}>
+          <div className="space-y-2">
+            <label
+              className="text-sm font-medium text-slate-800"
+              htmlFor="auth-code"
+            >
+              One-time code
+            </label>
+            <Input
+              autoComplete="one-time-code"
+              className="h-12 text-center text-lg font-semibold tracking-[0.45em]"
+              id="auth-code"
+              inputMode="numeric"
+              maxLength={6}
+              pattern="[0-9]*"
+              placeholder="000000"
+              value={code}
+              onChange={(event) => {
+                setCode(normalizeOtpCode(event.target.value));
+                setError(null);
+              }}
+            />
           </div>
+
+          {error ? (
+            <p className="text-sm font-medium text-[var(--error-text)]">
+              {error}
+            </p>
+          ) : null}
+
           <Button
             className="h-12 w-full justify-center text-base"
-            type="button"
-            variant="outline"
-            onClick={() => {
-              setConfirmationEmail(null);
-              switchTab("sign-in");
-            }}
+            disabled={isVerifying || !isConfigured}
+            type="submit"
           >
-            Back to sign in
+            {isVerifying ? "Checking code..." : "Continue"}
           </Button>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+
+          <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
             <button
-              className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
-                activeTab === "sign-in"
-                  ? "bg-white text-slate-950 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
+              className="font-medium text-[var(--cta-secondary)] hover:underline"
               type="button"
-              onClick={() => switchTab("sign-in")}
+              onClick={() => {
+                setSentEmail(null);
+                setCode("");
+                setError(null);
+              }}
             >
-              Sign in
+              Use a different email
             </button>
             <button
-              className={`rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
-                activeTab === "sign-up"
-                  ? "bg-white text-slate-950 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
+              className="font-medium text-[var(--cta-secondary)] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isResending || otpCooldownSeconds > 0}
               type="button"
-              onClick={() => switchTab("sign-up")}
+              onClick={() => {
+                void handleResendCode();
+              }}
             >
-              Create account
+              {isResending
+                ? "Sending..."
+                : otpCooldownSeconds > 0
+                  ? `Resend in ${otpCooldownSeconds}s`
+                  : "Resend code"}
             </button>
           </div>
+        </form>
+      ) : (
+        <form className="space-y-4" onSubmit={handleSendCode}>
+          <div className="space-y-2">
+            <label
+              className="text-sm font-medium text-slate-800"
+              htmlFor="auth-email"
+            >
+              Email
+            </label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                autoComplete="email"
+                className="h-12 pl-11 text-base"
+                id="auth-email"
+                placeholder="you@example.com"
+                type="email"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setError(null);
+                }}
+              />
+            </div>
+          </div>
 
-          {activeTab === "sign-in" ? (
-            <form className="space-y-4" onSubmit={handleSignIn}>
-              <div className="space-y-2">
-                <label
-                  className="text-sm font-medium text-slate-800"
-                  htmlFor="auth-email"
-                >
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    autoComplete="email"
-                    className="h-12 pl-11 text-base"
-                    id="auth-email"
-                    placeholder="you@example.com"
-                    type="email"
-                    value={email}
-                    onChange={(event) => {
-                      setEmail(event.target.value);
-                      setError(null);
-                    }}
-                  />
-                </div>
-              </div>
+          {error ? (
+            <p className="text-sm font-medium text-[var(--error-text)]">
+              {error}
+            </p>
+          ) : null}
 
-              <div className="space-y-2">
-                <label
-                  className="text-sm font-medium text-slate-800"
-                  htmlFor="auth-password"
-                >
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    autoComplete="current-password"
-                    className="h-12 pl-11 text-base"
-                    id="auth-password"
-                    placeholder="Enter your password"
-                    type="password"
-                    value={password}
-                    onChange={(event) => {
-                      setPassword(event.target.value);
-                      setError(null);
-                    }}
-                  />
-                </div>
-              </div>
-
-              {error ? (
-                <p className="text-sm font-medium text-[var(--error-text)]">
-                  {error}
-                </p>
-              ) : null}
-
-              <Button
-                className="h-12 w-full justify-center text-base"
-                disabled={isSubmitting || !isConfigured}
-                type="submit"
-              >
-                {isSubmitting ? "Signing in..." : "Sign in"}
-              </Button>
-            </form>
-          ) : (
-            <form className="space-y-4" onSubmit={handleSignUp}>
-              <div className="space-y-2">
-                <label
-                  className="text-sm font-medium text-slate-800"
-                  htmlFor="auth-sign-up-email"
-                >
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    autoComplete="email"
-                    className="h-12 pl-11 text-base"
-                    id="auth-sign-up-email"
-                    placeholder="you@example.com"
-                    type="email"
-                    value={email}
-                    onChange={(event) => {
-                      setEmail(event.target.value);
-                      setError(null);
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  className="text-sm font-medium text-slate-800"
-                  htmlFor="auth-sign-up-password"
-                >
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    autoComplete="new-password"
-                    className="h-12 pl-11 text-base"
-                    id="auth-sign-up-password"
-                    minLength={AUTH_MIN_PASSWORD_LENGTH}
-                    placeholder={`At least ${AUTH_MIN_PASSWORD_LENGTH} characters`}
-                    type="password"
-                    value={password}
-                    onChange={(event) => {
-                      setPassword(event.target.value);
-                      setError(null);
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  className="text-sm font-medium text-slate-800"
-                  htmlFor="auth-confirm-password"
-                >
-                  Confirm password
-                </label>
-                <div className="relative">
-                  <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    autoComplete="new-password"
-                    className="h-12 pl-11 text-base"
-                    id="auth-confirm-password"
-                    minLength={AUTH_MIN_PASSWORD_LENGTH}
-                    placeholder="Re-enter your password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(event) => {
-                      setConfirmPassword(event.target.value);
-                      setError(null);
-                    }}
-                  />
-                </div>
-              </div>
-
-              {error ? (
-                <p className="text-sm font-medium text-[var(--error-text)]">
-                  {error}
-                </p>
-              ) : null}
-
-              <Button
-                className="h-12 w-full justify-center text-base"
-                disabled={isSubmitting || !isConfigured}
-                type="submit"
-              >
-                {isSubmitting ? "Creating account..." : "Create account"}
-              </Button>
-            </form>
-          )}
-        </>
+          <Button
+            className="h-12 w-full justify-center text-base"
+            disabled={isSending || !isConfigured || otpCooldownSeconds > 0}
+            type="submit"
+          >
+            {isSending
+              ? "Sending code..."
+              : otpCooldownSeconds > 0
+                ? `Wait ${otpCooldownSeconds}s`
+                : "Email me a code"}
+          </Button>
+        </form>
       )}
     </div>
   );
