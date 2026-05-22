@@ -12,7 +12,7 @@ import { Suspense, lazy, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AccentIconBadge } from "../components/AccentIconBadge";
 import { AppBrandHeader } from "../components/AppBrandHeader";
-import { FormSectionCard } from "../components/FormSectionCard";
+import { FormSectionCard } from "../features/forms";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
 import { formatApplicationDate } from "../lib/applicationProgress";

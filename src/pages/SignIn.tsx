@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
-import { AuthPanel } from "../components/AuthPanel";
+import { AuthPanel } from "../features/auth";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { useAuth } from "../context/AuthContext";
 import { sanitizeRedirectPath } from "../lib/authCallback";

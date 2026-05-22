@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ApplicationShell } from "../../components/ApplicationShell";
+import { ApplicationShell } from "../../features/forms";
 import { SECTION2_SECTION_LABEL } from "../../lib/section2Steps";
 
 const SECTION2_PROGRESS = 66;

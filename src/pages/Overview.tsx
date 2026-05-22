@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { CopiedApplicationNotice } from "../components/CopiedApplicationNotice";
-import { FormActionBar } from "../components/FormActionBar";
+import { FormActionBar } from "../features/forms";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";

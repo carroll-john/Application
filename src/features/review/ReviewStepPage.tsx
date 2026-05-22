@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ApplicationShell } from "../../components/ApplicationShell";
+import { ApplicationShell } from "../../features/forms";
 
 const REVIEW_PROGRESS = 100;
 const REVIEW_SECTION_LABEL = "Section 3 of 3";

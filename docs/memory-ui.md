@@ -27,8 +27,20 @@ Follow the Figma Make prototype unless a newer documented decision overrides it.
 | `FileUpload` | Document uploads |
 | `FormActionBar` | Step navigation |
 | `ApplicationShell` | Section 1/2 wizard layout |
-| `SectionProgressHeader` | Step progress |
 | `ModalShell` | Modals (e.g. auth) |
+
+## Step Wrappers
+
+Use feature step shells instead of page-local layout:
+
+| Wrapper | Use for |
+|---------|---------|
+| `Section1StepPage` | Section 1 wizard steps |
+| `Section2RecordPage` | Section 2 add/edit record flows |
+| `Section2QualificationsPage` | Section 2 qualifications hub |
+| `ReviewStepPage` | Review and submit step |
+
+Import form/auth shells from `features/forms` and `features/auth`, not `components/*` re-exports.
 
 ## Mobile
 
@@ -42,7 +54,10 @@ Mobile UX matters as much as desktop. Validate meaningful UI changes at both siz
 
 | File | Role |
 |------|------|
-| `src/components/ApplicationShell.tsx` | Wizard shell |
-| `src/components/FormActionBar.tsx` | Step actions |
+| `src/features/forms/layout.tsx` | `ApplicationShell`, `FormSectionCard` |
+| `src/features/forms/FormActionBar.tsx` | Step actions |
+| `src/features/section1/Section1StepPage.tsx` | Section 1 step shell |
+| `src/features/section2/Section2RecordPage.tsx` | Section 2 record shell |
+| `src/features/review/ReviewStepPage.tsx` | Review step shell |
 | `src/components/ui/*` | Primitives |
 | `src/hooks/useReviewReturn.ts` | Review edit return paths |

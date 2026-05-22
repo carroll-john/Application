@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ApplicationShell } from "../../components/ApplicationShell";
+import { ApplicationShell } from "../../features/forms";
 import { StatusMessage } from "../../components/StatusMessage";
 import { useSection2Navigation } from "../../hooks/useSection2Navigation";
 import type { Section2RecordStatusMessage } from "../../hooks/useSection2RecordSave";

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ApplicationShell } from "../../components/ApplicationShell";
+import { ApplicationShell } from "../../features/forms";
 import { useSection1Step } from "../../hooks/useSection1Step";
 import type { Section1StepKey } from "../../lib/section1Steps";
 
