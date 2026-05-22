@@ -1,7 +1,7 @@
 ---
-description: Auth and OTP changes — load domain memory first
+description: Auth and password sign-in changes — load domain memory first
 globs: src/**/Auth*.tsx,src/lib/auth*.ts,src/pages/SignIn.tsx,src/pages/AuthCallback.tsx
 alwaysApply: false
 ---
 
-Before editing auth files, read docs/memory-auth.md and docs/decisions.md (2026-05-20 OTP).
+Before editing auth files, read docs/memory-auth.md and docs/decisions.md (2026-05-22 password auth).

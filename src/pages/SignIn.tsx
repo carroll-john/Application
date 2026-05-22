@@ -29,8 +29,8 @@ export default function SignIn() {
               Sign in or create your application account
             </h1>
             <p className="text-lg leading-8 text-slate-600">
-              We&apos;ll email you a one-time code so you can continue your
-              application securely from this device.
+              Sign in or create an applicant account with your email and
+              password to continue your application securely from this device.
             </p>
           </div>
 

@@ -2,11 +2,12 @@
 
 ## Model
 
-- Public applicant auth via Supabase email OTP (`signInWithOtp` / `verifyOtp`).
-- Same flow for sign-in and sign-up. No company-domain gate. `VITE_ALLOWED_EMAIL_DOMAINS` is obsolete.
+- Public applicant auth via Supabase email + password (`signInWithPassword` / `signUp`).
+- Same panel supports sign-in and create-account tabs. No company-domain gate. `VITE_ALLOWED_EMAIL_DOMAINS` is obsolete.
+- New accounts require email confirmation before first sign-in.
 - Configured by `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-- Local dev: `supabase start` + Mailpit at http://127.0.0.1:54324 (codes do not go to real inboxes).
-- Troubleshooting: [auth-otp-troubleshooting.md](auth-otp-troubleshooting.md)
+- Local dev: `supabase start` + Mailpit at http://127.0.0.1:54324 (confirmation emails do not go to real inboxes).
+- Troubleshooting: [auth-password-troubleshooting.md](auth-password-troubleshooting.md)
 
 ## Entry Points
 
@@ -18,27 +19,27 @@
 ## Redirect Contract
 
 - Capture redirect intent from current route or `?redirect=` on `/sign-in`.
-- Post-sign-in redirects use in-app navigation after OTP verification (`verifyOtp` with `type: "email"`).
+- Sign-up passes `emailRedirectTo` to `/auth/callback?redirect=…` so confirmed users return to the intended in-app path.
+- Post-sign-in redirects use in-app navigation after `signInWithPassword` succeeds or after the confirmation link establishes a session on `/auth/callback`.
 - Post-sign-in redirects must pass `sanitizeRedirectPath` (internal absolute paths only).
-- Do not pass `emailRedirectTo` to `signInWithOtp`; that switches auth emails to magic-link mode.
-- `/auth/callback` remains as a fallback for older magic-link emails only.
 - PostHog must not capture pageviews on `/auth/callback`; `$current_url` elsewhere is sanitized (no hash, no auth query params). See [analytics-events.md](analytics-events.md).
 
 ## Key Files
 
 | File | Role |
 |------|------|
-| `src/context/AuthContext.tsx` | Session, `storageMode`, OTP send/verify |
-| `src/lib/authOtp.ts` | OTP request/verify helpers |
+| `src/context/AuthContext.tsx` | Session, `storageMode`, password sign-in/sign-up |
+| `src/lib/authPassword.ts` | Password auth helpers and error mapping |
 | `src/lib/authCallback.ts` | Redirect resolution, callback URL builder |
-| `src/components/AuthPanel.tsx` | Shared sign-in UI |
+| `src/features/auth/AuthPanel.tsx` | Shared sign-in / create-account UI |
 | `src/pages/SignIn.tsx` | Route-level sign-in |
-| `src/pages/AuthCallback.tsx` | Magic-link callback handler |
+| `src/pages/AuthCallback.tsx` | Email confirmation callback handler |
 
 ## Supabase Dashboard
 
-- Magic Link email template must use `{{ .Token }}` only — do not include `{{ .ConfirmationURL }}` or users receive a link instead of a code-first email.
-- Configure **custom SMTP** for hosted auth email; built-in Supabase mail is capped at a few OTP emails per hour.
+- Enable **Confirm email** under Authentication → Providers → Email.
+- Confirm signup email template must include `{{ .ConfirmationURL }}`.
+- Configure **custom SMTP** for reliable hosted confirmation email delivery.
 - Site URL: `https://application-prototype.vercel.app`
 - Redirect URLs: production `/**`, localhost `http://localhost:5173/**`
 

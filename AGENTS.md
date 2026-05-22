@@ -6,7 +6,7 @@ Load the domain memory file for your task (do not rely on stale bullets here):
 
 | Task area | Read first |
 |-----------|------------|
-| Auth, sign-in, OTP, callback | [docs/memory-auth.md](docs/memory-auth.md) |
+| Auth, sign-in, password, callback | [docs/memory-auth.md](docs/memory-auth.md) |
 | Applications, course selection, validation, submit | [docs/memory-applications.md](docs/memory-applications.md) |
 | Uploads, document storage, delivery proxy | [docs/memory-documents.md](docs/memory-documents.md) |
 | UI primitives, forms, layout, CTAs | [docs/memory-ui.md](docs/memory-ui.md) |

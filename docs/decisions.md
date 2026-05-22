@@ -154,3 +154,20 @@
   anonymous users can still browse and keep pre-auth draft state locally.
 - Applicant RLS now relies on `auth.uid()` ownership checks instead of
   `is_allowed_company_user()` or `allowed_email_domains`.
+
+### Public applicant auth via email + password
+- Supersedes the 2026-05-20 public email OTP decision.
+- `/sign-in` now uses Sign in and Create account tabs with Supabase
+  `signInWithPassword` and `signUp`.
+- New accounts require email confirmation before first sign-in. Sign-up passes
+  `emailRedirectTo` to `/auth/callback?redirect=…` so confirmed users return to
+  the intended in-app path.
+- Auth can still be initiated from the header, eligibility completion, and apply
+  actions before an application is started.
+- Signed-in users continue to use remote Supabase profile/application/document
+  storage; anonymous users can browse and keep pre-auth draft state locally.
+- Applicant RLS remains `auth.uid()` ownership checks; no schema migration required.
+- Hosted Supabase must enable Confirm email, use a Confirm signup template with
+  `{{ .ConfirmationURL }}`, and configure custom SMTP for reliable delivery.
+- Accounts created under the OTP flow may not have passwords; those users need new
+  accounts or a future password-reset flow.

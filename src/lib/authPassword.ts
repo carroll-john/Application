@@ -1,0 +1,181 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  isHostedSupabaseProjectUrl,
+  isLocalSupabaseUrl,
+  LOCAL_DEV_MAILPIT_URL,
+} from "./supabaseConfig";
+import type { Database } from "./supabase.types";
+
+type AuthClient = Pick<
+  SupabaseClient<Database>["auth"],
+  "signInWithPassword" | "signUp"
+>;
+
+export const AUTH_MIN_PASSWORD_LENGTH = 6;
+
+const AUTH_SERVICE_UNAVAILABLE_MESSAGE =
+  "We couldn't reach the sign-in service. Check your connection and try again.";
+
+export function formatAuthConnectivityError(
+  supabaseUrl: string | null | undefined,
+) {
+  if (isLocalSupabaseUrl(supabaseUrl)) {
+    return `We couldn't reach local Supabase. Run \`supabase start\`, then retry. Local confirmation emails go to Mailpit at ${LOCAL_DEV_MAILPIT_URL}, not your real inbox.`;
+  }
+
+  if (isHostedSupabaseProjectUrl(supabaseUrl)) {
+    return "We couldn't reach the hosted Supabase project. It may be paused or deleted — restore the Application project in the Supabase dashboard, then confirm Vercel uses the restored URL and anon key.";
+  }
+
+  return AUTH_SERVICE_UNAVAILABLE_MESSAGE;
+}
+
+export function normalizeAuthEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
+export function isValidEmailAddress(email: string) {
+  return /^\S+@\S+\.\S+$/.test(normalizeAuthEmail(email));
+}
+
+export function isValidPassword(password: string) {
+  return password.length >= AUTH_MIN_PASSWORD_LENGTH;
+}
+
+function getErrorMessage(error: unknown) {
+  if (!error) {
+    return null;
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  return String(error);
+}
+
+function isFetchFailure(message: string) {
+  return /failed to fetch|fetch failed|networkerror/i.test(message);
+}
+
+function formatAuthPasswordError(
+  error: unknown,
+  supabaseUrl?: string | null,
+) {
+  const message = getErrorMessage(error);
+
+  if (!message) {
+    return null;
+  }
+
+  if (isFetchFailure(message)) {
+    return formatAuthConnectivityError(supabaseUrl);
+  }
+
+  if (/email not confirmed|confirm your email/i.test(message)) {
+    return "Confirm your email before signing in. Check your inbox for the confirmation link.";
+  }
+
+  if (/invalid login credentials|invalid email or password/i.test(message)) {
+    return "Email or password is incorrect.";
+  }
+
+  if (/user already registered|already been registered/i.test(message)) {
+    return "An account with this email already exists. Sign in instead.";
+  }
+
+  if (/password.*(short|least|weak|characters)/i.test(message)) {
+    return `Password must be at least ${AUTH_MIN_PASSWORD_LENGTH} characters.`;
+  }
+
+  if (/email rate limit exceeded|over_email_send_rate_limit/i.test(message)) {
+    return "Confirmation emails are rate-limited on the hosted Supabase project. Configure custom SMTP under Authentication → SMTP in the Supabase dashboard, then retry.";
+  }
+
+  if (/rate limit|too many requests|429/i.test(message)) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+
+  return message;
+}
+
+export async function signInWithPassword(
+  auth: AuthClient,
+  email: string,
+  password: string,
+  options?: { supabaseUrl?: string | null },
+): Promise<{ error: string | null }> {
+  const normalizedEmail = normalizeAuthEmail(email);
+
+  if (!normalizedEmail) {
+    return { error: "Enter your email address." };
+  }
+
+  if (!isValidEmailAddress(normalizedEmail)) {
+    return { error: "Enter a valid email address." };
+  }
+
+  if (!password) {
+    return { error: "Enter your password." };
+  }
+
+  try {
+    const { error } = await auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
+
+    return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
+  } catch (error) {
+    return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
+  }
+}
+
+export async function signUpWithPassword(
+  auth: AuthClient,
+  email: string,
+  password: string,
+  options?: { emailRedirectTo?: string; supabaseUrl?: string | null },
+): Promise<{ error: string | null }> {
+  const normalizedEmail = normalizeAuthEmail(email);
+
+  if (!normalizedEmail) {
+    return { error: "Enter your email address." };
+  }
+
+  if (!isValidEmailAddress(normalizedEmail)) {
+    return { error: "Enter a valid email address." };
+  }
+
+  if (!password) {
+    return { error: "Enter a password." };
+  }
+
+  if (!isValidPassword(password)) {
+    return {
+      error: `Password must be at least ${AUTH_MIN_PASSWORD_LENGTH} characters.`,
+    };
+  }
+
+  try {
+    const { error } = await auth.signUp({
+      email: normalizedEmail,
+      password,
+      options: options?.emailRedirectTo
+        ? { emailRedirectTo: options.emailRedirectTo }
+        : undefined,
+    });
+
+    return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
+  } catch (error) {
+    return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
+  }
+}
