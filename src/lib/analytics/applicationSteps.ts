@@ -2,6 +2,10 @@ import {
   buildSection1ApplicationStepDefinitions,
   buildSection1RouteAnalyticsDefinitions,
 } from "../section1Steps";
+import {
+  buildSection2ApplicationStepDefinitions,
+  buildSection2RouteAnalyticsDefinitions,
+} from "../section2Steps";
 
 export type ApplicationStepDefinition = {
   group: "overview" | "review" | "section1" | "section2" | "submitted";
@@ -78,48 +82,7 @@ export const routeAnalyticsDefinitions: RouteAnalyticsDefinition[] = [
     pattern: /^\/overview$/,
   },
   ...buildSection1RouteAnalyticsDefinitions(),
-  {
-    group: "application",
-    key: "qualifications_overview",
-    label: "Qualifications overview",
-    pattern: /^\/section2\/qualifications$/,
-  },
-  {
-    group: "application",
-    key: "tertiary_qualification",
-    label: "Tertiary qualification",
-    pattern: /^\/section2\/(?:add-tertiary|edit-tertiary\/[^/]+)$/,
-  },
-  {
-    group: "application",
-    key: "employment_experience",
-    label: "Employment experience",
-    pattern: /^\/section2\/(?:add-employment|edit-employment\/[^/]+)$/,
-  },
-  {
-    group: "application",
-    key: "professional_accreditation",
-    label: "Professional accreditation",
-    pattern: /^\/section2\/(?:add-accreditation|edit-accreditation\/[^/]+)$/,
-  },
-  {
-    group: "application",
-    key: "secondary_qualification",
-    label: "Secondary qualification",
-    pattern: /^\/section2\/(?:add-secondary|edit-secondary\/[^/]+)$/,
-  },
-  {
-    group: "application",
-    key: "language_test",
-    label: "Language test",
-    pattern: /^\/section2\/(?:add-language-test|edit-language-test\/[^/]+)$/,
-  },
-  {
-    group: "application",
-    key: "cv_upload",
-    label: "CV upload",
-    pattern: /^\/section2\/add-cv$/,
-  },
+  ...buildSection2RouteAnalyticsDefinitions(),
   {
     group: "application",
     key: "review_and_submit",
@@ -155,55 +118,7 @@ export const applicationStepDefinitions: ApplicationStepDefinition[] = [
     pattern: /^\/overview$/,
   },
   ...buildSection1ApplicationStepDefinitions(),
-  {
-    group: "section2",
-    key: "section2_qualifications",
-    label: "Qualifications overview",
-    order: 8,
-    pattern: /^\/section2\/qualifications$/,
-  },
-  {
-    group: "section2",
-    key: "section2_tertiary_qualification",
-    label: "Tertiary qualification",
-    order: 9,
-    pattern: /^\/section2\/(?:add-tertiary|edit-tertiary\/[^/]+)$/,
-  },
-  {
-    group: "section2",
-    key: "section2_employment_experience",
-    label: "Employment experience",
-    order: 10,
-    pattern: /^\/section2\/(?:add-employment|edit-employment\/[^/]+)$/,
-  },
-  {
-    group: "section2",
-    key: "section2_professional_accreditation",
-    label: "Professional accreditation",
-    order: 11,
-    pattern: /^\/section2\/(?:add-accreditation|edit-accreditation\/[^/]+)$/,
-  },
-  {
-    group: "section2",
-    key: "section2_secondary_qualification",
-    label: "Secondary qualification",
-    order: 12,
-    pattern: /^\/section2\/(?:add-secondary|edit-secondary\/[^/]+)$/,
-  },
-  {
-    group: "section2",
-    key: "section2_language_test",
-    label: "Language test",
-    order: 13,
-    pattern: /^\/section2\/(?:add-language-test|edit-language-test\/[^/]+)$/,
-  },
-  {
-    group: "section2",
-    key: "section2_cv",
-    label: "CV upload",
-    order: 14,
-    pattern: /^\/section2\/add-cv$/,
-  },
+  ...buildSection2ApplicationStepDefinitions(),
   {
     group: "review",
     key: "review_and_submit",

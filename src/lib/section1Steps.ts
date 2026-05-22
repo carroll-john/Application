@@ -1,3 +1,5 @@
+import { SECTION2_QUALIFICATIONS_PATH } from "./section2Steps";
+
 export type Section1StepKey =
   | "basic-info"
   | "personal-contact"
@@ -113,7 +115,7 @@ export const section1Steps: Section1StepDefinition[] = [
     key: "family-support",
     path: "/section1/family-support",
     previousPath: "/section1/cultural-background",
-    continuePath: "/section2/qualifications",
+    continuePath: SECTION2_QUALIFICATIONS_PATH,
     progress: 100,
     title: "Family & Support Information",
     description:
