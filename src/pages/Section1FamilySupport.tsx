@@ -1,12 +1,10 @@
 import { AlertCircle, Heart, Users } from "lucide-react";
 import { useState } from "react";
-import { ApplicationShell } from "../components/ApplicationShell";
-import { FormSectionCard } from "../components/FormSectionCard";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
-import { useSection1Step } from "../hooks/useSection1Step";
+import { Section1FormCard, Section1StepPage } from "../features/section1";
 
 const educationLevels = [
   "Did not complete high school",
@@ -50,10 +48,6 @@ export default function Section1FamilySupport() {
     formData.hasDisability === true && !formData.disabilityDetails.trim();
 
   const persist = () => updateContactDetails(formData);
-  const { shellProps, step } = useSection1Step({
-    step: "family-support",
-    persist,
-  });
 
   function scrollToField(fieldId: string) {
     window.requestAnimationFrame(() => {
@@ -88,46 +82,42 @@ export default function Section1FamilySupport() {
     });
   }
 
-  function handleContinue() {
+  function beforeContinue() {
     if (isParentCountMissing) {
       setShowValidation(true);
       scrollToField("parentsCount");
-      return;
+      return false;
     }
 
     if (missingParentEducationFields.length > 0) {
       setShowValidation(true);
       scrollToField(missingParentEducationFields[0]);
-      return;
+      return false;
     }
 
     if (isDisabilityChoiceMissing) {
       setShowValidation(true);
       scrollToField("hasDisability-options");
-      return;
+      return false;
     }
 
     if (isDisabilityDetailsMissing) {
       setShowValidation(true);
       scrollToField("disabilityDetails");
-      return;
+      return false;
     }
 
-    shellProps.onContinue();
+    return true;
   }
 
   return (
-    <ApplicationShell
-      sectionLabel={step.sectionLabel}
-      progress={step.progress}
-      title={step.title}
-      description={step.description}
-      {...shellProps}
-      onContinue={handleContinue}
+    <Section1StepPage
+      beforeContinue={beforeContinue}
+      persist={persist}
+      step="family-support"
     >
       <div className="space-y-6">
-        <FormSectionCard
-          className="rounded-[30px] border-slate-200 p-5 sm:p-6"
+        <Section1FormCard
           description="Answer for the parent(s) or guardian(s) who mainly raised you. This is used for reporting only and does not affect your application outcome."
           icon={<Users className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
           title="Parent/Guardian Information"
@@ -226,10 +216,9 @@ export default function Section1FamilySupport() {
               </div>
             ) : null}
           </div>
-        </FormSectionCard>
+        </Section1FormCard>
 
-        <FormSectionCard
-          className="rounded-[30px] border-slate-200 p-5 sm:p-6"
+        <Section1FormCard
           description="Tell us if you need support or reasonable adjustments. This information is confidential and is not used to assess your suitability for the course."
           icon={<Heart className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
           title="Disability & Support Needs"
@@ -314,8 +303,8 @@ export default function Section1FamilySupport() {
               </div>
             ) : null}
           </div>
-        </FormSectionCard>
+        </Section1FormCard>
       </div>
-    </ApplicationShell>
+    </Section1StepPage>
   );
 }

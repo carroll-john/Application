@@ -1,11 +1,10 @@
-import { ApplicationShell } from "../components/ApplicationShell";
 import { useApplication } from "../context/ApplicationContext";
 import {
   AddressSectionCards,
   renderStructuredAddressMeta,
+  Section1StepPage,
   useSection1AddressForm,
 } from "../features/section1";
-import { useSection1Step } from "../hooks/useSection1Step";
 
 export default function Section1Address() {
   const { data, updateContactDetails } = useApplication();
@@ -22,10 +21,6 @@ export default function Section1Address() {
   } = useSection1AddressForm(data.contactDetails);
 
   const persist = () => updateContactDetails(formData);
-  const { shellProps, step } = useSection1Step({
-    step: "address",
-    persist,
-  });
 
   const renderAddressMeta = (address: Parameters<typeof renderStructuredAddressMeta>[0]) => {
     const meta = renderStructuredAddressMeta(address);
@@ -33,13 +28,7 @@ export default function Section1Address() {
   };
 
   return (
-    <ApplicationShell
-      sectionLabel={step.sectionLabel}
-      progress={step.progress}
-      title={step.title}
-      description={step.description}
-      {...shellProps}
-    >
+    <Section1StepPage step="address" persist={persist}>
       <AddressSectionCards
         formData={formData}
         onApplyResolvedAddress={applyResolvedAddress}
@@ -52,6 +41,6 @@ export default function Section1Address() {
         unavailableLookupMessage={unavailableLookupMessage}
         useGoogleAddressSearch={useGoogleAddressSearch}
       />
-    </ApplicationShell>
+    </Section1StepPage>
   );
 }

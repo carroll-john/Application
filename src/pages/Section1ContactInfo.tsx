@@ -1,10 +1,9 @@
 import { Globe2, Landmark } from "lucide-react";
 import { useState } from "react";
-import { ApplicationShell } from "../components/ApplicationShell";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
-import { useSection1Step } from "../hooks/useSection1Step";
+import { Section1FormCard, Section1StepPage } from "../features/section1";
 import { countries } from "../lib/formOptions";
 
 export default function Section1ContactInfo() {
@@ -16,30 +15,15 @@ export default function Section1ContactInfo() {
   });
 
   const persist = () => updateContactDetails(formData);
-  const { shellProps, step } = useSection1Step({
-    step: "contact-info",
-    persist,
-  });
 
   return (
-    <ApplicationShell
-      sectionLabel={step.sectionLabel}
-      progress={step.progress}
-      title={step.title}
-      description={step.description}
-      {...shellProps}
-    >
+    <Section1StepPage step="contact-info" persist={persist}>
       <div className="space-y-6">
-        <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-5 flex items-start gap-3">
-            <Globe2 className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">Citizenship</h2>
-              <p className="text-sm text-slate-600">
-                These details help us confirm your admissions pathway.
-              </p>
-            </div>
-          </div>
+        <Section1FormCard
+          description="These details help us confirm your admissions pathway."
+          icon={<Globe2 className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
+          title="Citizenship"
+        >
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <Label htmlFor="citizenCountry">Citizen country</Label>
@@ -82,20 +66,13 @@ export default function Section1ContactInfo() {
               </NativeSelect>
             </div>
           </div>
-        </div>
+        </Section1FormCard>
 
-        <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-5 flex items-start gap-3">
-            <Landmark className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                Australian citizenship status
-              </h2>
-              <p className="text-sm text-slate-600">
-                Select the option that best describes your current status.
-              </p>
-            </div>
-          </div>
+        <Section1FormCard
+          description="Select the option that best describes your current status."
+          icon={<Landmark className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
+          title="Australian citizenship status"
+        >
           <Label htmlFor="citizenshipStatus">Status *</Label>
           <NativeSelect
             id="citizenshipStatus"
@@ -113,8 +90,8 @@ export default function Section1ContactInfo() {
             <option value="New Zealand Citizen">New Zealand Citizen</option>
             <option value="International Applicant">International Applicant</option>
           </NativeSelect>
-        </div>
+        </Section1FormCard>
       </div>
-    </ApplicationShell>
+    </Section1StepPage>
   );
 }

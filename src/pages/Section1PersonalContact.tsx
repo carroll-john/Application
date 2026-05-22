@@ -1,12 +1,11 @@
 import { Mail, Phone, UserCircle } from "lucide-react";
 import { useState } from "react";
-import { ApplicationShell } from "../components/ApplicationShell";
 import { DatePickerField } from "../components/ui/date-controls";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
-import { useSection1Step } from "../hooks/useSection1Step";
+import { Section1FormCard, Section1StepPage } from "../features/section1";
 import { getBirthDateOpenToDate } from "../lib/datePickerHelpers";
 
 export default function Section1PersonalContact() {
@@ -22,30 +21,15 @@ export default function Section1PersonalContact() {
   });
 
   const persist = () => updatePersonalDetails(formData);
-  const { shellProps, step } = useSection1Step({
-    step: "personal-contact",
-    persist,
-  });
 
   return (
-    <ApplicationShell
-      sectionLabel={step.sectionLabel}
-      progress={step.progress}
-      title={step.title}
-      description={step.description}
-      {...shellProps}
-    >
+    <Section1StepPage step="personal-contact" persist={persist}>
       <div className="space-y-6">
-        <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-5 flex items-start gap-3">
-            <UserCircle className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                Personal information
-              </h2>
-              <p className="text-sm text-slate-600">Basic details about you.</p>
-            </div>
-          </div>
+        <Section1FormCard
+          description="Basic details about you."
+          icon={<UserCircle className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
+          title="Personal information"
+        >
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
               <Label htmlFor="gender">Gender *</Label>
@@ -82,20 +66,13 @@ export default function Section1PersonalContact() {
               />
             </div>
           </div>
-        </div>
+        </Section1FormCard>
 
-        <div className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="mb-5 flex items-start gap-3">
-            <Phone className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                Contact details
-              </h2>
-              <p className="text-sm text-slate-600">
-                How we can reach you during the application process.
-              </p>
-            </div>
-          </div>
+        <Section1FormCard
+          description="How we can reach you during the application process."
+          icon={<Phone className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
+          title="Contact details"
+        >
           <div className="space-y-5">
             <div>
               <Label htmlFor="email">Email address *</Label>
@@ -136,8 +113,8 @@ export default function Section1PersonalContact() {
               </div>
             </div>
           </div>
-        </div>
+        </Section1FormCard>
       </div>
-    </ApplicationShell>
+    </Section1StepPage>
   );
 }
