@@ -90,6 +90,7 @@ vi.mock("./supabase", () => ({
 const {
   createSeededLocalApplicantProfile,
   ensureApplicantProfile,
+  loadApplicantProfile,
   saveLocalApplicantProfile,
 } = await import("./applicantProfileStore");
 
@@ -162,6 +163,21 @@ describe("applicantProfileStore", () => {
     });
   });
 
+  it("ignores stale remote profile ids cached locally when no remote profile exists", async () => {
+    saveLocalApplicantProfile({
+      email: "john.carroll@keypathedu.com.au",
+      firstName: "John",
+      lastName: "Carroll",
+      id: "550e8400-e29b-41d4-a716-446655440000",
+    });
+
+    mockClient.tableResults.set("applicant_profiles", [{ data: null, error: null }]);
+
+    const profile = await loadApplicantProfile(session);
+
+    expect(profile).toBeNull();
+  });
+
   it("creates a remote profile when a signed-in user only has a local profile id", async () => {
     mockClient.tableResults.set("applicant_profiles", [
       { data: null, error: null },
@@ -188,5 +204,36 @@ describe("applicantProfileStore", () => {
     const upsertQuery = mockClient.fromCalls[1]?.query;
     expect(upsertQuery?.calls.some((call) => call.method === "upsert")).toBe(true);
     expect(upsertQuery?.calls.some((call) => call.method === "update")).toBe(false);
+  });
+
+  it("recreates a remote profile when local storage only has a stale remote id", async () => {
+    saveLocalApplicantProfile({
+      email: "john.carroll@keypathedu.com.au",
+      firstName: "John",
+      lastName: "Carroll",
+      id: "550e8400-e29b-41d4-a716-446655440000",
+    });
+
+    mockClient.tableResults.set("applicant_profiles", [
+      { data: null, error: null },
+      {
+        data: {
+          id: "661e8400-e29b-41d4-a716-446655440001",
+          email: "john.carroll@keypathedu.com.au",
+          first_name: "John",
+          last_name: "Carroll",
+        },
+        error: null,
+      },
+    ]);
+
+    const profile = await ensureApplicantProfile(session);
+
+    expect(profile).toEqual({
+      id: "661e8400-e29b-41d4-a716-446655440001",
+      email: "john.carroll@keypathedu.com.au",
+      firstName: "John",
+      lastName: "Carroll",
+    });
   });
 });

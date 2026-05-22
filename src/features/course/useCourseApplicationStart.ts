@@ -87,7 +87,8 @@ export function useCourseApplicationStart({
             ? "/review"
             : "/overview",
         );
-      } catch {
+      } catch (error) {
+        console.error("Failed to start application", error);
         setApplyError(
           "We couldn't start your application right now. Try again.",
         );
@@ -160,7 +161,8 @@ export function useCourseApplicationStart({
         .then(() => {
           navigate("/overview", { replace: true });
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error("Failed to auto-start existing draft", error);
           autoApplyStartedRef.current = false;
           onEligibleResult(`You meet the entry criteria for ${course.title}.`);
           setApplyError(
@@ -180,7 +182,8 @@ export function useCourseApplicationStart({
       .then(() => {
         navigate("/overview", { replace: true });
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Failed to auto-start fresh application", error);
         autoApplyStartedRef.current = false;
         onEligibleResult(`You meet the entry criteria for ${course.title}.`);
         setApplyError(

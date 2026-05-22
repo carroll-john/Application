@@ -297,6 +297,65 @@ describe("saveRemoteApplication", () => {
       expect.arrayContaining([expect.objectContaining({ method: "update", args: expect.any(Array) })]),
     );
   });
+
+  it("drops local-only applicant profile ids before insert", async () => {
+    mockClient.tableResults.set("applications", [
+      {
+        data: {
+          id: "550e8400-e29b-41d4-a716-446655440000",
+          applicant_profile_id: null,
+          application_number: null,
+          submitted_at: null,
+          updated_at: "2026-04-10T00:00:00Z",
+        },
+        error: null,
+      },
+    ]);
+    mockClient.tableResults.set("tertiary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("employment_experiences", [{ data: null, error: null }]);
+    mockClient.tableResults.set("professional_accreditations", [{ data: null, error: null }]);
+    mockClient.tableResults.set("secondary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("language_tests", [{ data: null, error: null }]);
+
+    await saveRemoteApplication(
+      session,
+      {
+        applicationMeta: {
+          recordId: "local-550e8400-e29b-41d4-a716-446655440000",
+          applicantProfileId: "local-profile:john.carroll@keypathedu.com.au",
+          selectedCourse: {
+            code: "MATCHED-202",
+            title: "Matched Course",
+            provider: "Matched University",
+            intake: "Matched Intake",
+          },
+        },
+        personalDetails: {},
+        contactDetails: {},
+        cvDocument: undefined,
+        cvFileName: undefined,
+        cvUploaded: false,
+        tertiaryQualifications: [],
+        employmentExperiences: [],
+        professionalAccreditations: [],
+        secondaryQualifications: [],
+        languageTests: [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      {
+        applicantProfileId: "local-profile:john.carroll@keypathedu.com.au",
+        forceCreate: true,
+      },
+    );
+
+    const insertCall = mockClient.fromCalls[0]?.query.calls.find(
+      (call) => call.method === "insert",
+    );
+
+    expect(insertCall?.args[0]).toMatchObject({
+      applicant_profile_id: null,
+    });
+  });
 });
 
 describe("submitRemoteApplication", () => {

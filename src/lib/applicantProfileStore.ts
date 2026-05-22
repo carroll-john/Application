@@ -176,7 +176,13 @@ export async function loadApplicantProfile(
   }
 
   if (!data) {
-    return loadLocalApplicantProfile();
+    const localProfile = loadLocalApplicantProfile();
+
+    if (localProfile?.id?.startsWith("local-profile:")) {
+      return localProfile;
+    }
+
+    return null;
   }
 
   const profile = mapRemoteProfile(data);
