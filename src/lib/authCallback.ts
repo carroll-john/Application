@@ -41,7 +41,7 @@ export function buildAuthCallbackUrl(origin: string, redirectPath: string) {
   return `${base}/auth/callback?redirect=${encodeURIComponent(sanitized)}`;
 }
 
-export function isPasswordRecoveryCallback(
+export function hasPasswordRecoveryTokenInUrl(
   href: string = typeof window !== "undefined" ? window.location.href : "",
 ) {
   if (!href) {
@@ -56,14 +56,44 @@ export function isPasswordRecoveryCallback(
       return true;
     }
 
-    if (url.searchParams.get("type") === "recovery") {
-      return true;
-    }
-
-    return url.searchParams.get("recovery") === "1";
+    return url.searchParams.get("type") === "recovery";
   } catch {
     return false;
   }
+}
+
+/** @deprecated Use hasPasswordRecoveryTokenInUrl for auth-state decisions. */
+export function isPasswordRecoveryCallback(
+  href: string = typeof window !== "undefined" ? window.location.href : "",
+) {
+  return hasPasswordRecoveryTokenInUrl(href);
+}
+
+export function withoutPasswordRecoveryQuery(href: string) {
+  const url = new URL(href);
+
+  if (url.searchParams.get("recovery") !== "1") {
+    return href;
+  }
+
+  url.searchParams.delete("recovery");
+  const nextSearch = url.searchParams.toString();
+
+  return `${url.origin}${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
+}
+
+export function clearPasswordRecoveryQueryFromUrl() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const nextUrl = withoutPasswordRecoveryQuery(window.location.href);
+
+  if (nextUrl === window.location.href) {
+    return;
+  }
+
+  window.history.replaceState(window.history.state, "", nextUrl);
 }
 
 export function buildPasswordResetRedirectUrl(origin: string) {

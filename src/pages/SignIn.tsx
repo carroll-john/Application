@@ -1,21 +1,19 @@
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { AuthPanel } from "../features/auth";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { useAuth } from "../context/AuthContext";
-import { isPasswordRecoveryCallback, sanitizeRedirectPath } from "../lib/authCallback";
+import { hasPasswordRecoveryTokenInUrl, sanitizeRedirectPath } from "../lib/authCallback";
 
 export default function SignIn() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAuthenticated, isLoading, isPasswordRecovery } = useAuth();
   const redirectPath = sanitizeRedirectPath(
     new URLSearchParams(location.search).get("redirect"),
   );
-  const isRecoveryRoute =
-    isPasswordRecovery ||
-    isPasswordRecoveryCallback() ||
-    new URLSearchParams(location.search).get("recovery") === "1";
+  const isRecoveryRoute = isPasswordRecovery || hasPasswordRecoveryTokenInUrl();
 
   if (isLoading) {
     return (
@@ -51,7 +49,10 @@ export default function SignIn() {
           </div>
 
           <SurfaceCard className="p-8 sm:p-10">
-            <AuthPanel context="route" />
+            <AuthPanel
+              context="route"
+              onAuthenticated={() => navigate(redirectPath, { replace: true })}
+            />
           </SurfaceCard>
         </div>
       </div>

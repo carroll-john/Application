@@ -10,7 +10,8 @@ import type { Session, User } from "@supabase/supabase-js";
 import {
   buildAuthCallbackUrl,
   buildPasswordResetRedirectUrl,
-  isPasswordRecoveryCallback,
+  clearPasswordRecoveryQueryFromUrl,
+  hasPasswordRecoveryTokenInUrl,
 } from "../lib/authCallback";
 import {
   normalizeAuthEmail,
@@ -84,7 +85,7 @@ function getEmailDomain(email: string | null) {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(() =>
-    isPasswordRecoveryCallback(),
+    hasPasswordRecoveryTokenInUrl(),
   );
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(supabase));
 
@@ -100,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(({ data }) => {
         if (isActive) {
           setSession(data.session);
-          if (isPasswordRecoveryCallback()) {
+          if (hasPasswordRecoveryTokenInUrl()) {
             setIsPasswordRecovery(true);
           }
           setIsLoading(false);
@@ -225,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!error) {
           setIsPasswordRecovery(false);
+          clearPasswordRecoveryQueryFromUrl();
         }
 
         return { error };
