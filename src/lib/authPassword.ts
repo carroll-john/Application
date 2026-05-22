@@ -8,7 +8,7 @@ import type { Database } from "./supabase.types";
 
 type AuthClient = Pick<
   SupabaseClient<Database>["auth"],
-  "signInWithPassword" | "signUp"
+  "signInWithPassword" | "signUp" | "resetPasswordForEmail" | "updateUser"
 >;
 
 export type SignUpWithPasswordResult = {
@@ -94,7 +94,7 @@ function formatAuthPasswordError(
   }
 
   if (/invalid login credentials|invalid email or password/i.test(message)) {
-    return "Email or password is incorrect.";
+    return "Email or password is incorrect. If you previously signed in with email codes, use Forgot password to set one.";
   }
 
   if (/user already registered|already been registered/i.test(message)) {
@@ -196,6 +196,56 @@ export async function signUpWithPassword(
     }
 
     return { error: null, outcome: "confirmation_sent" };
+  } catch (error) {
+    return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
+  }
+}
+
+export async function requestPasswordReset(
+  auth: AuthClient,
+  email: string,
+  options?: { redirectTo?: string; supabaseUrl?: string | null },
+): Promise<{ error: string | null }> {
+  const normalizedEmail = normalizeAuthEmail(email);
+
+  if (!normalizedEmail) {
+    return { error: "Enter your email address." };
+  }
+
+  if (!isValidEmailAddress(normalizedEmail)) {
+    return { error: "Enter a valid email address." };
+  }
+
+  try {
+    const { error } = await auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: options?.redirectTo,
+    });
+
+    return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
+  } catch (error) {
+    return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
+  }
+}
+
+export async function updatePasswordAfterRecovery(
+  auth: AuthClient,
+  password: string,
+  options?: { supabaseUrl?: string | null },
+): Promise<{ error: string | null }> {
+  if (!password) {
+    return { error: "Enter a password." };
+  }
+
+  if (!isValidPassword(password)) {
+    return {
+      error: `Password must be at least ${AUTH_MIN_PASSWORD_LENGTH} characters.`,
+    };
+  }
+
+  try {
+    const { error } = await auth.updateUser({ password });
+
+    return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
   } catch (error) {
     return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
   }
