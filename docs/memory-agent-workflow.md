@@ -29,7 +29,7 @@ npm run finish-task -- "Task name"
 | CV parser API | `api/_ai/callLlm.test.ts`, `npm run test:cv-parser` (needs dev server + OPENAI_API_KEY) |
 | Course catalog / eligibility | `src/lib/courseCatalog.test.ts`, `courseEligibility.test.ts`, `courseBrowse.test.ts` |
 | Analytics | `src/lib/posthog.test.ts`, `analyticsIdentity.test.ts`, `clarity.test.ts` |
-| Hooks (Section 1/2) | `src/hooks/*.test.ts`, `src/hooks/section1Navigation.test.ts` |
+| Hooks (Section 1/2) | `src/hooks/*.test.ts`, `src/hooks/section1Navigation.test.ts`, `src/hooks/useSection1Step.ts` |
 | Full CI parity | `npm run lint && npm test && npm run build` |
 
 ## Module Working Sets

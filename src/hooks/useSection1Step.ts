@@ -6,23 +6,38 @@ import { useReviewReturn } from "./useReviewReturn";
 interface UseSection1StepOptions {
   step: Section1StepKey;
   persist: () => void | Promise<void>;
+  beforeContinue?: () => boolean;
 }
 
-export function useSection1Step({ step, persist }: UseSection1StepOptions) {
+export function useSection1Step({
+  step,
+  persist,
+  beforeContinue,
+}: UseSection1StepOptions) {
   const navigate = useNavigate();
   const { fromReview, previousLabel, returnPath } = useReviewReturn();
   const definition = getSection1Step(step);
+  const shellProps = createSection1ShellNavigation({
+    definition,
+    fromReview,
+    navigate,
+    persist,
+    previousLabel,
+    returnPath,
+  });
 
   return {
     fromReview,
     step: definition,
-    shellProps: createSection1ShellNavigation({
-      definition,
-      fromReview,
-      navigate,
-      persist,
-      previousLabel,
-      returnPath,
-    }),
+    shellProps: {
+      ...shellProps,
+      onContinue: () => {
+        if (beforeContinue && !beforeContinue()) {
+          return;
+        }
+
+        shellProps.onContinue();
+      },
+    },
   };
 }
