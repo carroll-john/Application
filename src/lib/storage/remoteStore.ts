@@ -15,6 +15,7 @@ import {
   summarizeApplication,
   type ApplicationSummary,
 } from "../applicationRecords";
+import { isSubmissionReadyDocument } from "../documentAttachment";
 import type { UploadedDocument } from "../documentStorage";
 import type { Json, Tables, TablesInsert } from "../supabase.types";
 import { supabase } from "../supabase";
@@ -138,7 +139,7 @@ function mapApplicationSummary(row: RemoteApplicationRow): ApplicationSummary | 
       contactDetails: toContactDetails(row.contact_details),
       cvDocument: undefined,
       cvFileName: row.cv_file_name ?? undefined,
-      cvUploaded: Boolean(row.cv_document_id || row.cv_file_name),
+      cvUploaded: false,
       employmentExperiences: [],
       languageTests: [],
       personalDetails: toPersonalDetails(row.personal_details),
@@ -294,7 +295,11 @@ export async function loadRemoteApplicationById(
       ? documentMap.get(application.cv_document_id)
       : undefined,
     cvFileName: application.cv_file_name ?? undefined,
-    cvUploaded: Boolean(application.cv_document_id || application.cv_file_name),
+    cvUploaded: isSubmissionReadyDocument(
+      application.cv_document_id
+        ? documentMap.get(application.cv_document_id)
+        : undefined,
+    ),
     employmentExperiences: (employmentExperiencesResponse.data ?? []).map<
       EmploymentExperience
     >((experience) => ({

@@ -4,7 +4,25 @@ import {
   type ApplicationData,
   type TertiaryQualification,
 } from "./applicationData";
+import type { UploadedDocument } from "./documentStorage";
 import { getSubmissionValidationIssues } from "./applicationValidationSchema";
+
+function makeRemoteDocument(
+  overrides: Partial<UploadedDocument> = {},
+): UploadedDocument {
+  return {
+    id: "doc-1",
+    name: "document.pdf",
+    size: 1024,
+    type: "application/pdf",
+    lastModified: Date.now(),
+    uploadedAt: new Date().toISOString(),
+    source: "remote",
+    storageBucket: "application-documents",
+    storagePath: "user-1/app-1/cv/doc-1-document.pdf",
+    ...overrides,
+  };
+}
 
 function makeValidTertiaryQualification(
   overrides: Partial<TertiaryQualification> = {},
@@ -20,8 +38,16 @@ function makeValidTertiaryQualification(
     completed: true,
     endMonth: "December",
     endYear: "2022",
-    transcriptDocumentName: "transcript.pdf",
-    certificateDocumentName: "certificate.pdf",
+    transcriptDocument: makeRemoteDocument({
+      id: "doc-transcript",
+      name: "transcript.pdf",
+      storagePath: "user-1/app-1/transcript/doc-transcript-transcript.pdf",
+    }),
+    certificateDocument: makeRemoteDocument({
+      id: "doc-certificate",
+      name: "certificate.pdf",
+      storagePath: "user-1/app-1/certificate/doc-certificate-certificate.pdf",
+    }),
     ...overrides,
   };
 }
@@ -86,6 +112,11 @@ describe("getSubmissionValidationIssues", () => {
       makeValidApplication({
         tertiaryQualifications: [],
         cvUploaded: true,
+        cvDocument: makeRemoteDocument({
+          id: "doc-cv",
+          name: "resume.pdf",
+          storagePath: "user-1/app-1/cv/doc-cv-resume.pdf",
+        }),
         employmentExperiences: [
           {
             id: "emp-1",
@@ -157,12 +188,71 @@ describe("getSubmissionValidationIssues", () => {
     );
   });
 
+  it("does not treat document names without stored files as uploaded", () => {
+    const errors = getSubmissionValidationIssues(
+      makeValidApplication({
+        tertiaryQualifications: [
+          makeValidTertiaryQualification({
+            transcriptDocument: undefined,
+            transcriptDocumentName: "transcript.pdf",
+            certificateDocument: undefined,
+            certificateDocumentName: "certificate.pdf",
+          }),
+        ],
+      }),
+    );
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "Qualification 1: Academic Transcript",
+        }),
+        expect.objectContaining({
+          field: "Qualification 1: Certificate of Completion",
+        }),
+      ]),
+    );
+  });
+
+  it("does not treat cv file names without stored documents as uploaded", () => {
+    const errors = getSubmissionValidationIssues(
+      makeValidApplication({
+        tertiaryQualifications: [],
+        cvUploaded: true,
+        cvFileName: "resume.pdf",
+        cvDocument: undefined,
+        employmentExperiences: [
+          {
+            id: "emp-1",
+            company: "Keypath",
+            position: "Advisor",
+            type: "Full-time",
+            startMonth: "January",
+            startYear: "2022",
+            endMonth: "",
+            endYear: "",
+            currentRole: true,
+            duties: "Support students",
+          },
+        ],
+      }),
+    );
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          subsection: "Submission requirements",
+          field: "CV upload or a tertiary qualification",
+        }),
+      ]),
+    );
+  });
+
   it("requires a certificate when a tertiary qualification is marked completed", () => {
     const errors = getSubmissionValidationIssues(
       makeValidApplication({
         tertiaryQualifications: [
           makeValidTertiaryQualification({
-            certificateDocumentName: undefined,
             certificateDocument: undefined,
           }),
         ],

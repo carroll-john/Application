@@ -3,6 +3,7 @@ import type {
   ApplicationMeta,
   TertiaryQualification,
 } from "./applicationData";
+import { isSubmissionReadyDocument } from "./documentAttachment";
 import type { CourseCatalogEntry } from "./courseCatalog";
 import { getCourseByCode } from "./courseCatalog";
 import {
@@ -135,7 +136,7 @@ export function getSection2RequirementInput(
   data: ApplicationData,
 ): Section2RequirementInput {
   return {
-    cvUploaded: data.cvUploaded,
+    cvUploaded: isSubmissionReadyDocument(data.cvDocument),
     employmentExperiencesCount: data.employmentExperiences.length,
     secondaryQualificationsCount: data.secondaryQualifications.length,
     selectedCourse: resolveSelectedCourse(data.applicationMeta),

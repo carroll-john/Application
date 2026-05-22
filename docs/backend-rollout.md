@@ -7,8 +7,8 @@
 - File storage: Supabase Storage
 
 ## Access Model
-- Current access model: public applicant auth through Supabase email one-time codes.
-- `/sign-in` is a unified sign up/sign in flow. Supabase Auth emails a 6-digit code and the app verifies it in-place.
+- Current access model: public applicant auth through Supabase email + password.
+- `/sign-in` exposes Sign in and Create account tabs. New accounts must confirm email before first sign-in.
 - No company-domain allowlist is used in the frontend, RLS policies, storage policies, or submit RPC.
 - Signed-in users use Supabase-backed profile, application, and document storage. Anonymous users can browse courses and keep pre-auth local drafts.
 - RLS protects applicant data with `auth.uid()` ownership checks.
@@ -66,7 +66,7 @@ Current workspace values:
 - keep the publishable key only in local env and Vercel envs, not in checked-in docs
 
 ## Restore a paused or inactive hosted project
-Free-tier Supabase projects auto-pause after inactivity. While paused, the project API hostname does not resolve (`NXDOMAIN` / `Failed to fetch`), so hosted OTP sign-in and `supabase db push` both fail until the project is restored.
+Free-tier Supabase projects auto-pause after inactivity. While paused, the project API hostname does not resolve (`NXDOMAIN` / `Failed to fetch`), so hosted auth and `supabase db push` both fail until the project is restored.
 
 1. Open the [Supabase dashboard projects list](https://supabase.com/dashboard/projects) and select **Application** (`weyxnhykyyetquqprfnu`, ap-south-1).
 2. If the project shows **Paused** or **Inactive**, use **Restore project** on [General settings](https://supabase.com/dashboard/project/weyxnhykyyetquqprfnu/settings/general). Wait for the restore email; DNS for `https://weyxnhykyyetquqprfnu.supabase.co` should resolve again.
@@ -97,17 +97,17 @@ Then run [supabase/migrations/0005_document_upload_limits.sql](/Users/jc/Documen
 - explicit application-document upload quotas and rate limits
 - indexes for user/rate-limit document checks
 
-Then run the applicant auth migration to remove the old company-domain RLS dependency and configure email OTP:
-- use the latest `*_applicant_email_otp_auth.sql` migration
+Then run the applicant auth migration to remove the old company-domain RLS dependency:
+- use the latest `*_applicant_email_otp_auth.sql` migration (filename is historical; policy changes are auth-method agnostic)
 - set the local and deployed site URLs in Supabase Auth
-- configure the email template with `{{ .Token }}` so users receive an in-app verification code
+- enable email confirmation and configure the Confirm signup template with `{{ .ConfirmationURL }}`
 
-### Applicant OTP troubleshooting
+### Applicant password auth troubleshooting
 
-See [auth-otp-troubleshooting.md](./auth-otp-troubleshooting.md).
+See [auth-password-troubleshooting.md](./auth-password-troubleshooting.md).
 
-- **Local:** `supabase start`, then read codes in Mailpit at `http://127.0.0.1:54324` (not a real inbox). Run `npm run sync-supabase-env` to refresh `.env.local`.
-- **Hosted:** if the linked project ref `weyxnhykyyetquqprfnu` is `INACTIVE`, restore it in the Supabase dashboard before OTP or API calls will work. There is no CLI restore command.
+- **Local:** `supabase start`, then read confirmation emails in Mailpit at `http://127.0.0.1:54324` (not a real inbox). Run `npm run sync-supabase-env` to refresh `.env.local`.
+- **Hosted:** if the linked project ref `weyxnhykyyetquqprfnu` is `INACTIVE`, restore it in the Supabase dashboard before auth or API calls will work. There is no CLI restore command.
 - **Vercel:** after restore, confirm `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` match the live project and redeploy.
 
 Important:
@@ -158,7 +158,7 @@ Notes:
 5. Run `supabase/migrations/0004_submission_rpc_grants.sql`.
 6. Run `supabase/migrations/0005_document_upload_limits.sql`.
 7. Run the latest `*_applicant_email_otp_auth.sql` migration.
-8. Configure Supabase Auth email OTP templates, site URL, and redirect URLs.
+8. Configure Supabase Auth email confirmation, Confirm signup template, site URL, and redirect URLs.
 9. Configure the Vercel env vars.
 
 ## Current Frontend State
@@ -168,10 +168,10 @@ Notes:
   - sign-in page
   - callback route
   - protected routing
-- The app now uses public applicant email OTP auth:
+- The app now uses public applicant email + password auth:
   - users browse courses publicly
   - header, eligibility, and apply entry points can initiate auth
-  - entering a valid one-time code returns them to the intended course flow
+  - new users confirm email via link, then sign in with password
   - signed-in profile and draft storage use Supabase
 - `/profile` is now a plain reusable profile-management screen, not an auth step.
 - Course selection is catalog-driven and attached to each application through `applicationMeta.selectedCourse`.

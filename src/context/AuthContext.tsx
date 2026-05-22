@@ -7,11 +7,12 @@ import {
   type ReactNode,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { buildAuthCallbackUrl } from "../lib/authCallback";
 import {
   normalizeAuthEmail,
-  requestEmailOtp,
-  verifyEmailOtpCode,
-} from "../lib/authOtp";
+  signInWithPassword as signInWithPasswordRequest,
+  signUpWithPassword as signUpWithPasswordRequest,
+} from "../lib/authPassword";
 import {
   configuredSupabaseUrl,
   isSupabaseConfigured,
@@ -31,16 +32,13 @@ interface AuthContextType {
   isAuthenticated: boolean;
   userEmail: string | null;
   userDisplayName: string;
-  sendEmailOtp: (
+  signInWithPassword: (
     email: string,
-    options?: { redirectPath?: string },
+    password: string,
   ) => Promise<{ error: string | null }>;
-  verifyEmailOtp: (
+  signUpWithPassword: (
     email: string,
-    token: string,
-  ) => Promise<{ error: string | null }>;
-  resendEmailOtp: (
-    email: string,
+    password: string,
     options?: { redirectPath?: string },
   ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -139,36 +137,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated,
       userEmail,
       userDisplayName: formatUserDisplayName(userEmail),
-      sendEmailOtp: async (email) => {
+      signInWithPassword: async (email, password) => {
         if (!supabase) {
           return {
             error: "Authentication is not configured on this deployment.",
           };
         }
 
-        return requestEmailOtp(supabase.auth, email, {
+        return signInWithPasswordRequest(supabase.auth, email, password, {
           supabaseUrl: configuredSupabaseUrl,
         });
       },
-      verifyEmailOtp: async (email, token) => {
+      signUpWithPassword: async (email, password, options) => {
         if (!supabase) {
           return {
             error: "Authentication is not configured on this deployment.",
           };
         }
 
-        return verifyEmailOtpCode(supabase.auth, email, token, {
-          supabaseUrl: configuredSupabaseUrl,
-        });
-      },
-      resendEmailOtp: async (email) => {
-        if (!supabase) {
-          return {
-            error: "Authentication is not configured on this deployment.",
-          };
-        }
+        const redirectPath = options?.redirectPath ?? "/";
+        const emailRedirectTo =
+          typeof window !== "undefined"
+            ? buildAuthCallbackUrl(window.location.origin, redirectPath)
+            : undefined;
 
-        return requestEmailOtp(supabase.auth, email, {
+        return signUpWithPasswordRequest(supabase.auth, email, password, {
+          emailRedirectTo,
           supabaseUrl: configuredSupabaseUrl,
         });
       },

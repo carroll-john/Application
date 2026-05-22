@@ -8,7 +8,7 @@ Durable product, UX, and implementation contracts. For task-specific detail, loa
 
 | File | Scope |
 |------|--------|
-| [memory-auth.md](memory-auth.md) | OTP, session, redirects, profile |
+| [memory-auth.md](memory-auth.md) | Password auth, session, redirects, profile |
 | [memory-applications.md](memory-applications.md) | Multi-app model, validation, submit, course catalog |
 | [memory-documents.md](memory-documents.md) | Uploads, hybrid storage, delivery proxy |
 | [memory-ui.md](memory-ui.md) | Primitives, CTAs, form navigation |
@@ -22,7 +22,7 @@ Durable product, UX, and implementation contracts. For task-specific detail, loa
 | [decisions.md](decisions.md) | Dated ADR-style decisions (append-only) |
 | [demo-scope-tuesday.md](demo-scope-tuesday.md) | **Historical** Tuesday demo scope |
 | [backend-rollout.md](backend-rollout.md) | Supabase, Vercel, migrations, env |
-| [auth-otp-troubleshooting.md](auth-otp-troubleshooting.md) | OTP ops runbook |
+| [auth-password-troubleshooting.md](auth-password-troubleshooting.md) | Password auth ops runbook |
 
 ## Documentation Rhythm
 

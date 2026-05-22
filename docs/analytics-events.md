@@ -8,6 +8,12 @@ This app sends page and funnel events to PostHog through `src/lib/posthog.ts`.
 - PostHog user identity uses a salted hash (raw email/user IDs are not used as analytics distinct IDs).
 - `applicant_profile_id` event property is hashed before capture.
 
+## URL privacy
+
+- `$pageview` `$current_url` is sanitized: URL fragments (hash) are stripped and auth-related query parameters are removed before capture.
+- PostHog does not capture pageviews on `/auth/callback` (magic-link tokens must not reach analytics).
+- `/sign-in` pageviews are skipped when the query string contains auth tokens.
+
 ## Page Naming
 
 `$pageview` events now include:
@@ -81,10 +87,12 @@ Important submit-path rules:
 
 | Event | Trigger |
 | --- | --- |
-| `auth_otp_requested` | User submits an email address for an auth code |
-| `auth_otp_sent` | Supabase accepts the email OTP request |
-| `auth_otp_failed` | Supabase rejects an OTP request or verification |
-| `auth_otp_verified` | User verifies the emailed OTP and establishes a session |
+| `auth_sign_in_attempted` | User submits the sign-in form |
+| `auth_sign_in_succeeded` | Password sign-in establishes a session |
+| `auth_sign_in_failed` | Password sign-in is rejected |
+| `auth_sign_up_attempted` | User submits the create-account form |
+| `auth_sign_up_confirmation_sent` | Supabase accepts sign-up and sends a confirmation email |
+| `auth_sign_up_failed` | Create-account sign-up is rejected |
 | `auth_gate_opened` | An in-flow auth modal opens from eligibility or apply |
 | `local_draft_import_started` | Signed-in user starts importing local anonymous drafts |
 | `local_draft_import_completed` | Local draft import completes without failed drafts |
