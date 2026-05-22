@@ -52,7 +52,7 @@ Load only these files for typical tasks (~5–15 files each):
 `src/pages/Section1*.tsx`, `src/features/forms/*`, `src/hooks/useSection1Step.ts`, `src/hooks/section1Navigation.ts`, `src/lib/section1Steps.ts`, `src/lib/analytics/applicationSteps.ts`, `src/hooks/useReviewReturn.ts`, `src/lib/address.ts`
 
 ### form-wizard-section2
-`src/pages/Section2*.tsx`, `src/features/forms/*`, `src/hooks/useEditableRecord.ts`, `src/hooks/useSection2Navigation.ts`, `src/lib/section2Steps.ts`, `src/lib/section2Requirements.ts`
+`src/pages/Section2*.tsx`, `src/features/forms/*`, `src/features/section2/*`, `src/hooks/useEditableRecord.ts`, `src/hooks/useSection2Navigation.ts`, `src/lib/section2Steps.ts`, `src/lib/section2Requirements.ts`
 
 ### course-browse
 `src/pages/CourseDetails.tsx`, `src/pages/CourseList.tsx`, `src/lib/courseCatalog.ts`, `src/lib/courseCatalog/*`, `src/lib/courseEligibility.ts`, `src/features/course/*`
