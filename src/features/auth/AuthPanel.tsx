@@ -134,7 +134,7 @@ export function AuthPanel({
       auth_context: context,
       email_domain: normalizedEmail.split("@")[1] ?? "unknown",
     });
-    const { error: signUpError } = await signUpWithPassword(
+    const { error: signUpError, outcome } = await signUpWithPassword(
       normalizedEmail,
       password,
       { redirectPath },
@@ -144,8 +144,12 @@ export function AuthPanel({
     if (signUpError) {
       capturePostHogEvent("auth_sign_up_failed", {
         auth_context: context,
+        sign_up_outcome: outcome ?? "error",
       });
       setError(signUpError);
+      if (outcome === "existing_account") {
+        setActiveTab("sign-in");
+      }
       return;
     }
 

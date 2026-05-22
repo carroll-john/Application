@@ -12,6 +12,7 @@ import {
   normalizeAuthEmail,
   signInWithPassword as signInWithPasswordRequest,
   signUpWithPassword as signUpWithPasswordRequest,
+  type SignUpWithPasswordResult,
 } from "../lib/authPassword";
 import {
   configuredSupabaseUrl,
@@ -40,7 +41,7 @@ interface AuthContextType {
     email: string,
     password: string,
     options?: { redirectPath?: string },
-  ) => Promise<{ error: string | null }>;
+  ) => Promise<SignUpWithPasswordResult>;
   signOut: () => Promise<void>;
 }
 
