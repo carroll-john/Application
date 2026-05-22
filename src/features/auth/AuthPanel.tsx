@@ -94,6 +94,12 @@ export function AuthPanel({
       return;
     }
 
+    if (isAuthenticated && !isPasswordRecovery) {
+      hasNotifiedAuthenticatedRef.current = true;
+      onAuthenticated?.();
+      return;
+    }
+
     setIsSubmitting(true);
     capturePostHogEvent("auth_sign_in_attempted", {
       auth_context: context,
