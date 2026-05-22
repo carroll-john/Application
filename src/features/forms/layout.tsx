@@ -14,6 +14,8 @@ interface ApplicationShellProps {
   continueLabel?: string;
   continueDisabled?: boolean;
   previousDisabled?: boolean;
+  secondaryDisabled?: boolean;
+  secondaryLabel?: string;
   className?: string;
   children: ReactNode;
 }
@@ -30,6 +32,8 @@ export function ApplicationShell({
   continueLabel = "Continue",
   continueDisabled = false,
   previousDisabled = false,
+  secondaryDisabled = false,
+  secondaryLabel,
   className,
   children,
 }: ApplicationShellProps) {
@@ -62,9 +66,10 @@ export function ApplicationShell({
           onSecondary={onSaveAndExit}
           previousDisabled={previousDisabled}
           primaryDisabled={continueDisabled}
+          secondaryDisabled={secondaryDisabled}
           previousLabel={previousLabel}
           primaryLabel={continueLabel}
-          secondaryLabel={onSaveAndExit ? "Save & Exit" : undefined}
+          secondaryLabel={secondaryLabel ?? (onSaveAndExit ? "Save & Exit" : undefined)}
         />
       </div>
     </div>
