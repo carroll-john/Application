@@ -128,6 +128,7 @@ const {
   deleteRemoteApplication,
   listRemoteApplications,
   loadRemoteApplicationById,
+  saveRemoteApplication,
   submitRemoteApplication,
 } = await import("./applicationRemoteStore");
 
@@ -229,6 +230,72 @@ describe("loadRemoteApplicationById", () => {
     ]);
 
     await expect(loadRemoteApplicationById(session, "any")).rejects.toThrow("network down");
+  });
+});
+
+describe("saveRemoteApplication", () => {
+  it("inserts a new remote row when the draft only has a local record id", async () => {
+    mockClient.tableResults.set("applications", [
+      {
+        data: {
+          id: "550e8400-e29b-41d4-a716-446655440000",
+          applicant_profile_id: "profile-1",
+          application_number: null,
+          submitted_at: null,
+          updated_at: "2026-04-10T00:00:00Z",
+        },
+        error: null,
+      },
+    ]);
+    mockClient.tableResults.set("tertiary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("employment_experiences", [{ data: null, error: null }]);
+    mockClient.tableResults.set("professional_accreditations", [{ data: null, error: null }]);
+    mockClient.tableResults.set("secondary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("language_tests", [{ data: null, error: null }]);
+
+    const result = await saveRemoteApplication(
+      session,
+      {
+        applicationMeta: {
+          recordId: "local-550e8400-e29b-41d4-a716-446655440000",
+          applicantProfileId: "profile-1",
+          selectedCourse: {
+            code: "MATCHED-202",
+            title: "Matched Course",
+            provider: "Matched University",
+            intake: "Matched Intake",
+          },
+        },
+        personalDetails: {},
+        contactDetails: {},
+        cvDocument: undefined,
+        cvFileName: undefined,
+        cvUploaded: false,
+        tertiaryQualifications: [],
+        employmentExperiences: [],
+        professionalAccreditations: [],
+        secondaryQualifications: [],
+        languageTests: [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      { forceCreate: true },
+    );
+
+    expect(result).toEqual({
+      applicantProfileId: "profile-1",
+      applicationId: "550e8400-e29b-41d4-a716-446655440000",
+      applicationNumber: undefined,
+      submittedAt: undefined,
+      updatedAt: "2026-04-10T00:00:00Z",
+    });
+
+    const query = mockClient.fromCalls[0]?.query;
+    expect(query?.calls).toEqual(
+      expect.arrayContaining([expect.objectContaining({ method: "insert", args: [expect.any(Object)] })]),
+    );
+    expect(query?.calls).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ method: "update", args: expect.any(Array) })]),
+    );
   });
 });
 

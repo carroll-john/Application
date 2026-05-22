@@ -397,6 +397,7 @@ export async function saveRemoteApplication(
 
   const defaultCourse = getDefaultCourse();
   const selectedCourse = data.applicationMeta.selectedCourse;
+  const remoteApplicationId = getRemoteUuid(data.applicationMeta.recordId);
   const applicationPayload: TablesInsert<"applications"> = {
     applicant_profile_id:
       options?.applicantProfileId ??
@@ -408,7 +409,7 @@ export async function saveRemoteApplication(
     course_title: selectedCourse?.title ?? defaultCourse.title,
     cv_document_id: getRemoteDocumentId(data.cvDocument),
     cv_file_name: data.cvFileName ?? null,
-    id: data.applicationMeta.recordId ?? undefined,
+    id: remoteApplicationId ?? undefined,
     intake_label: selectedCourse?.intake ?? defaultCourse.intakeLabel,
     personal_details: toJsonValue(data.personalDetails),
     status: data.applicationMeta.submittedAt ? "submitted" : "draft",
@@ -416,11 +417,11 @@ export async function saveRemoteApplication(
     user_id: session.user.id,
   };
 
-  const applicationQuery = data.applicationMeta.recordId
+  const applicationQuery = remoteApplicationId
     ? client
         .from("applications")
         .update(applicationPayload)
-        .eq("id", data.applicationMeta.recordId)
+        .eq("id", remoteApplicationId)
         .eq("user_id", session.user.id)
         .select("id, applicant_profile_id, application_number, submitted_at, updated_at")
         .single()
