@@ -18,9 +18,10 @@
 ## Redirect Contract
 
 - Capture redirect intent from current route or `?redirect=` on `/sign-in`.
-- Magic links use `emailRedirectTo` → `/auth/callback?redirect=…` (see `buildAuthCallbackUrl` in `src/lib/authCallback.ts`).
+- Post-sign-in redirects use in-app navigation after OTP verification (`verifyOtp` with `type: "email"`).
 - Post-sign-in redirects must pass `sanitizeRedirectPath` (internal absolute paths only).
-- In-app 6-digit code path does not use the email link.
+- Do not pass `emailRedirectTo` to `signInWithOtp`; that switches auth emails to magic-link mode.
+- `/auth/callback` remains as a fallback for older magic-link emails only.
 
 ## Key Files
 
@@ -35,7 +36,7 @@
 
 ## Supabase Dashboard
 
-- Email template must include `{{ .Token }}` for in-app code entry.
+- Magic Link email template must use `{{ .Token }}` only — do not include `{{ .ConfirmationURL }}` or users receive a link instead of a code-first email.
 - Site URL: `https://application-prototype.vercel.app`
 - Redirect URLs: production `/**`, localhost `http://localhost:5173/**`
 

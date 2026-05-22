@@ -96,7 +96,7 @@ function formatAuthVerificationError(
 export async function requestEmailOtp(
   auth: AuthClient,
   email: string,
-  options?: { supabaseUrl?: string | null; emailRedirectTo?: string },
+  options?: { supabaseUrl?: string | null },
 ): Promise<{ error: string | null }> {
   const normalizedEmail = normalizeAuthEmail(email);
 
@@ -113,9 +113,6 @@ export async function requestEmailOtp(
       email: normalizedEmail,
       options: {
         shouldCreateUser: true,
-        ...(options?.emailRedirectTo
-          ? { emailRedirectTo: options.emailRedirectTo }
-          : {}),
       },
     });
 
