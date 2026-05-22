@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { DocumentUploadField } from "../components/DocumentUploadField";
-import { FormActionBar } from "../components/FormActionBar";
-import { FormSectionCard } from "../components/FormSectionCard";
-import { SectionProgressHeader } from "../components/SectionProgressHeader";
 import { StatusMessage } from "../components/StatusMessage";
 import { YearPickerField } from "../components/ui/date-controls";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
+import { Section2FormCard, Section2RecordPage } from "../features/section2";
 import { useEditableRecord } from "../hooks/useEditableRecord";
 import { useSection2Navigation } from "../hooks/useSection2Navigation";
 import { saveDocumentAttachment } from "../lib/documentAttachment";
@@ -63,126 +61,116 @@ export default function Section2AddLanguageTest() {
   };
 
   return (
-    <div className="bg-gray-50 pb-12">
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <SectionProgressHeader
-          description="Add your English language test details."
-          progress={66}
-          sectionLabel="Section 2 of 3"
-          title={isEditing ? "Edit English Language Test" : "Add English Language Test"}
-        />
+    <Section2RecordPage
+      addTitle="Add English Language Test"
+      description="Add your English language test details."
+      editTitle="Edit English Language Test"
+      isEditing={isEditing}
+      onContinue={async () => {
+        setStatusMessage(null);
 
-        {statusMessage ? (
-          <div className="mt-4">
-            <StatusMessage
-              message={statusMessage.message}
-              type={statusMessage.type}
-              onDismiss={() => setStatusMessage(null)}
-            />
-          </div>
-        ) : null}
+        try {
+          await saveRecord();
+          returnToQualifications();
+        } catch (error) {
+          setStatusMessage({
+            message:
+              getDocumentUploadErrorMessage(error) ??
+              "We couldn't save this language test right now. Please try again.",
+            type: "error",
+          });
+        }
+      }}
+    >
+      {statusMessage ? (
+        <div className="mb-6">
+          <StatusMessage
+            message={statusMessage.message}
+            type={statusMessage.type}
+            onDismiss={() => setStatusMessage(null)}
+          />
+        </div>
+      ) : null}
 
-        <FormSectionCard className="lg:p-8">
-          <div className="space-y-6">
-            <div>
-              <Label>Test Type *</Label>
-              <NativeSelect
-                value={formData.type}
-                onChange={(event) =>
-                  setFormData((previous) => ({
-                    ...previous,
-                    type: event.target.value,
-                  }))
-                }
-              >
-                <option value="">Select test type</option>
-                <option value="IELTS">IELTS</option>
-                <option value="TOEFL">TOEFL</option>
-                <option value="PTE">PTE Academic</option>
-                <option value="Cambridge">Cambridge English</option>
-                <option value="Duolingo">Duolingo English Test</option>
-                <option value="Other">Other</option>
-              </NativeSelect>
-            </div>
-            <div>
-              <Label>Test Name/Details *</Label>
-              <Input
-                placeholder="e.g. IELTS Academic"
-                value={formData.name}
-                onChange={(event) =>
-                  setFormData((previous) => ({
-                    ...previous,
-                    name: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            <div>
-              <Label>Test Year *</Label>
-              <YearPickerField
-                description="Choose the year you took this test."
-                label="Test year"
-                title="Select test year"
-                value={formData.year}
-                years={years}
-                onChange={(year) =>
-                  setFormData((previous) => ({
-                    ...previous,
-                    year,
-                  }))
-                }
-              />
-            </div>
-
-            <DocumentUploadField
-              attachedDescription="Your test results document is attached. You can view or remove it below."
-              attachedStatus="Results document attached"
-              description="Upload the score report or official result."
-              document={formData.document}
-              documentName={formData.documentName}
-              label="Test Results Document"
-              missingStatus="Add your score report now, or come back to it later."
-              onClearDocument={() =>
+      <Section2FormCard>
+        <div className="space-y-6">
+          <div>
+            <Label>Test Type *</Label>
+            <NativeSelect
+              value={formData.type}
+              onChange={(event) =>
                 setFormData((previous) => ({
                   ...previous,
-                  document: undefined,
-                  documentName: undefined,
+                  type: event.target.value,
                 }))
               }
-              onClearSelectedFile={() => setSelectedFile(null)}
-              onFileSelect={setSelectedFile}
-              selectedFile={selectedFile}
-            />
-
-            <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
-              <p className="text-sm text-[var(--info-text)]">
-                <strong>Note:</strong> Check that your score meets the course requirement.
-              </p>
-            </div>
+            >
+              <option value="">Select test type</option>
+              <option value="IELTS">IELTS</option>
+              <option value="TOEFL">TOEFL</option>
+              <option value="PTE">PTE Academic</option>
+              <option value="Cambridge">Cambridge English</option>
+              <option value="Duolingo">Duolingo English Test</option>
+              <option value="Other">Other</option>
+            </NativeSelect>
           </div>
-        </FormSectionCard>
+          <div>
+            <Label>Test Name/Details *</Label>
+            <Input
+              placeholder="e.g. IELTS Academic"
+              value={formData.name}
+              onChange={(event) =>
+                setFormData((previous) => ({
+                  ...previous,
+                  name: event.target.value,
+                }))
+              }
+            />
+          </div>
+          <div>
+            <Label>Test Year *</Label>
+            <YearPickerField
+              description="Choose the year you took this test."
+              label="Test year"
+              title="Select test year"
+              value={formData.year}
+              years={years}
+              onChange={(year) =>
+                setFormData((previous) => ({
+                  ...previous,
+                  year,
+                }))
+              }
+            />
+          </div>
 
-        <FormActionBar
-          previousLabel="Cancel"
-          primaryLabel="Save & Continue"
-          onPrevious={returnToQualifications}
-          onPrimary={async () => {
-            setStatusMessage(null);
-
-            try {
-              await saveRecord();
-              returnToQualifications();
-            } catch (error) {
-              setStatusMessage({
-                message:
-                  getDocumentUploadErrorMessage(error) ??
-                  "We couldn't save this language test right now. Please try again.",
-                type: "error",
-              });
+          <DocumentUploadField
+            attachedDescription="Your test results document is attached. You can view or remove it below."
+            attachedStatus="Results document attached"
+            description="Upload the score report or official result."
+            document={formData.document}
+            documentName={formData.documentName}
+            label="Test Results Document"
+            missingStatus="Add your score report now, or come back to it later."
+            onClearDocument={() =>
+              setFormData((previous) => ({
+                ...previous,
+                document: undefined,
+                documentName: undefined,
+              }))
             }
-          }}
-        />
-      </div>
-    </div>
+            onClearSelectedFile={() => setSelectedFile(null)}
+            onFileSelect={setSelectedFile}
+            selectedFile={selectedFile}
+          />
+
+          <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
+            <p className="text-sm text-[var(--info-text)]">
+              <strong>Note:</strong> Check that your score meets the course requirement.
+            </p>
+          </div>
+        </div>
+      </Section2FormCard>
+    </Section2RecordPage>
   );
 }

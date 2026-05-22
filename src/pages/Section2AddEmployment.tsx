@@ -1,20 +1,16 @@
 import { Briefcase, Building, Calendar, FileText } from "lucide-react";
 import { useState } from "react";
-import { FormActionBar } from "../components/FormActionBar";
-import { FormSectionCard } from "../components/FormSectionCard";
-import { SectionProgressHeader } from "../components/SectionProgressHeader";
 import { MonthYearPickerField } from "../components/ui/date-controls";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
+import { Section2FormCard, Section2RecordPage } from "../features/section2";
 import { useEditableRecord } from "../hooks/useEditableRecord";
-import { useSection2Navigation } from "../hooks/useSection2Navigation";
 import { months, years } from "../lib/formOptions";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
 
 export default function Section2AddEmployment() {
-  const { returnToQualifications } = useSection2Navigation();
   const { data, addEmploymentExperience, updateEmploymentExperience } =
     useApplication();
   const { existing, isEditing, initialRecord } = useEditableRecord(
@@ -55,17 +51,20 @@ export default function Section2AddEmployment() {
   };
 
   return (
-    <div className="overflow-x-hidden bg-gray-50 pb-12">
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <SectionProgressHeader
-          description="Add your work history and experience."
-          progress={66}
-          sectionLabel="Section 2 of 3"
-          title={isEditing ? "Edit Employment Experience" : "Add Employment Experience"}
-        />
-
-        <div className="space-y-6">
-          <FormSectionCard
+    <Section2RecordPage
+      addTitle="Add Employment Experience"
+      beforeContinue={() => {
+        setShowValidation(true);
+        return !dateRangeError;
+      }}
+      className="overflow-x-hidden"
+      description="Add your work history and experience."
+      editTitle="Edit Employment Experience"
+      isEditing={isEditing}
+      onSave={saveRecord}
+    >
+      <div className="space-y-6">
+        <Section2FormCard
             description="Tell us where you worked."
             icon={<Building className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Employer Details"
@@ -82,9 +81,9 @@ export default function Section2AddEmployment() {
                 }))
               }
             />
-          </FormSectionCard>
+          </Section2FormCard>
 
-          <FormSectionCard
+          <Section2FormCard
             description="Tell us about the role."
             icon={<Briefcase className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Role Details"
@@ -124,9 +123,9 @@ export default function Section2AddEmployment() {
                 </NativeSelect>
               </div>
             </div>
-          </FormSectionCard>
+          </Section2FormCard>
 
-          <FormSectionCard
+          <Section2FormCard
             description="When did you work here?"
             icon={<Calendar className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Employment Period"
@@ -206,9 +205,9 @@ export default function Section2AddEmployment() {
                 </div>
               ) : null}
             </div>
-          </FormSectionCard>
+          </Section2FormCard>
 
-          <FormSectionCard
+          <Section2FormCard
             description="Summarise your responsibilities and achievements."
             icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
             title="Key Responsibilities"
@@ -231,25 +230,8 @@ export default function Section2AddEmployment() {
             <p className="mt-2 text-xs text-gray-500">
               Focus on your main responsibilities, achievements, and skills used.
             </p>
-          </FormSectionCard>
-        </div>
-
-        <FormActionBar
-          previousLabel="Cancel"
-          primaryLabel="Save & Continue"
-          onPrevious={() => returnToQualifications()}
-          onPrimary={() => {
-            setShowValidation(true);
-
-            if (dateRangeError) {
-              return;
-            }
-
-            saveRecord();
-            returnToQualifications();
-          }}
-        />
+          </Section2FormCard>
       </div>
-    </div>
+    </Section2RecordPage>
   );
 }

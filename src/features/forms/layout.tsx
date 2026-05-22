@@ -12,6 +12,9 @@ interface ApplicationShellProps {
   onSaveAndExit?: () => void;
   previousLabel?: string;
   continueLabel?: string;
+  continueDisabled?: boolean;
+  previousDisabled?: boolean;
+  className?: string;
   children: ReactNode;
 }
 
@@ -25,10 +28,13 @@ export function ApplicationShell({
   onSaveAndExit,
   previousLabel = "Previous",
   continueLabel = "Continue",
+  continueDisabled = false,
+  previousDisabled = false,
+  className,
   children,
 }: ApplicationShellProps) {
   return (
-    <div className="bg-[#f7f7f4] pb-12">
+    <div className={cn("bg-[#f7f7f4] pb-12", className)}>
       <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="mb-6 sm:mb-8">
           <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700">
@@ -54,6 +60,8 @@ export function ApplicationShell({
           onPrevious={onPrevious}
           onPrimary={onContinue}
           onSecondary={onSaveAndExit}
+          previousDisabled={previousDisabled}
+          primaryDisabled={continueDisabled}
           previousLabel={previousLabel}
           primaryLabel={continueLabel}
           secondaryLabel={onSaveAndExit ? "Save & Exit" : undefined}
