@@ -64,7 +64,7 @@ Load only these files for typical tasks (~5–15 files each):
 `api/parse-cv.ts`, `api/_ai/*`, `src/lib/cvParser.ts`, `src/lib/cvParserClient.ts`, `src/lib/cvEmployment/*`
 
 ### analytics
-`src/lib/posthog.ts`, `src/lib/analytics/applicationSteps.ts`, `src/lib/clarity.ts`, `src/lib/sentry.ts`, `src/features/application/hooks/useApplicationAnalytics.ts`
+`src/lib/posthog.ts`, `src/lib/analytics/*`, `src/lib/clarity.ts`, `src/lib/sentry.ts`, `src/features/application/hooks/useApplicationAnalytics.ts`
 
 ## Parallel Agent Rules
 
