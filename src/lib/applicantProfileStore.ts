@@ -18,6 +18,15 @@ function createLocalApplicantProfileId(email: string) {
   return `local-profile:${email.trim().toLowerCase()}`;
 }
 
+function getRemoteApplicantProfileId(id: string | undefined) {
+  return id &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      id,
+    )
+    ? id
+    : undefined;
+}
+
 function toTitleCasePart(part: string) {
   if (!part) {
     return "";
@@ -167,7 +176,13 @@ export async function loadApplicantProfile(
   }
 
   if (!data) {
-    return loadLocalApplicantProfile();
+    const localProfile = loadLocalApplicantProfile();
+
+    if (localProfile?.id?.startsWith("local-profile:")) {
+      return localProfile;
+    }
+
+    return null;
   }
 
   const profile = mapRemoteProfile(data);
@@ -193,8 +208,9 @@ export async function saveApplicantProfile(
     };
   }
 
+  const remoteProfileId = getRemoteApplicantProfileId(applicantProfileId);
   const payload = {
-    id: applicantProfileId,
+    id: remoteProfileId,
     owner_user_id: session.user.id,
     email: normalizedProfile.email,
     first_name: normalizedProfile.firstName || null,
@@ -203,11 +219,11 @@ export async function saveApplicantProfile(
     phone: null,
   };
 
-  const profileQuery = applicantProfileId
+  const profileQuery = remoteProfileId
     ? supabase
         .from("applicant_profiles")
         .update(payload)
-        .eq("id", applicantProfileId)
+        .eq("id", remoteProfileId)
         .eq("owner_user_id", session.user.id)
         .select("id, email, first_name, last_name")
         .single()
@@ -263,12 +279,15 @@ export async function ensureApplicantProfile(
 
   const existingProfile = await loadApplicantProfile(session);
 
-  if (existingProfile) {
+  if (getRemoteApplicantProfileId(existingProfile?.id)) {
     return existingProfile;
   }
 
+  const localProfile = existingProfile ?? loadLocalApplicantProfile();
   const metadata = session.user.user_metadata;
-  const email = session.user.email?.trim().toLowerCase();
+  const email =
+    localProfile?.email?.trim().toLowerCase() ??
+    session.user.email?.trim().toLowerCase();
 
   if (!email) {
     return null;
@@ -277,10 +296,12 @@ export async function ensureApplicantProfile(
   return saveApplicantProfile(session, {
     email,
     firstName:
+      localProfile?.firstName ||
       metadata?.given_name?.trim?.() ||
       metadata?.first_name?.trim?.() ||
       "",
     lastName:
+      localProfile?.lastName ||
       metadata?.family_name?.trim?.() ||
       metadata?.last_name?.trim?.() ||
       "",

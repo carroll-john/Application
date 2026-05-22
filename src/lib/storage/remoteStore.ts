@@ -398,11 +398,12 @@ export async function saveRemoteApplication(
   const defaultCourse = getDefaultCourse();
   const selectedCourse = data.applicationMeta.selectedCourse;
   const remoteApplicationId = getRemoteUuid(data.applicationMeta.recordId);
+  const remoteApplicantProfileId =
+    getRemoteUuid(options?.applicantProfileId) ??
+    getRemoteUuid(data.applicationMeta.applicantProfileId) ??
+    null;
   const applicationPayload: TablesInsert<"applications"> = {
-    applicant_profile_id:
-      options?.applicantProfileId ??
-      data.applicationMeta.applicantProfileId ??
-      null,
+    applicant_profile_id: remoteApplicantProfileId,
     application_number: data.applicationMeta.applicationNumber ?? null,
     contact_details: toJsonValue(data.contactDetails),
     course_code: selectedCourse?.code ?? defaultCourse.code,
