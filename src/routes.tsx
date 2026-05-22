@@ -162,6 +162,7 @@ function AuthRequiredLayout() {
     isAuthenticated,
     isConfigured,
     isLoading,
+    isPasswordRecovery,
   } = useAuth();
   const location = useLocation();
 
@@ -183,6 +184,10 @@ function AuthRequiredLayout() {
         </div>
       </div>
     );
+  }
+
+  if (isPasswordRecovery) {
+    return <Navigate replace to="/sign-in?recovery=1" />;
   }
 
   if (!isAuthenticated) {

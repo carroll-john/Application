@@ -183,9 +183,7 @@ export function AuthPanel({
     }
 
     setIsSubmitting(true);
-    const { error: resetError } = await requestPasswordReset(normalizedEmail, {
-      redirectPath,
-    });
+    const { error: resetError } = await requestPasswordReset(normalizedEmail);
     setIsSubmitting(false);
 
     if (resetError) {

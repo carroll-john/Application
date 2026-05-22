@@ -6,7 +6,6 @@ import { Input } from "../../components/ui/input";
 interface ProfileDetailsFieldsProps {
   email: string;
   errors: {
-    email?: string;
     firstName?: string;
     form?: string;
     lastName?: string;
@@ -14,7 +13,6 @@ interface ProfileDetailsFieldsProps {
   firstName: string;
   isSubmitting: boolean;
   lastName: string;
-  onEmailChange: (value: string) => void;
   onFirstNameChange: (value: string) => void;
   onGoToDashboard: () => void;
   onLastNameChange: (value: string) => void;
@@ -28,7 +26,6 @@ export function ProfileDetailsFields({
   firstName,
   isSubmitting,
   lastName,
-  onEmailChange,
   onFirstNameChange,
   onGoToDashboard,
   onLastNameChange,
@@ -56,16 +53,15 @@ export function ProfileDetailsFields({
                 autoComplete="email"
                 className="h-12 pl-11 text-base"
                 id="profile-email"
+                readOnly
                 type="email"
                 value={email}
-                onChange={(event) => onEmailChange(event.target.value)}
               />
             </div>
-            {errors.email ? (
-              <p className="text-sm font-medium text-[var(--error-text)]">
-                {errors.email}
-              </p>
-            ) : null}
+            <p className="text-sm text-slate-500">
+              This is your sign-in email. Use forgot password on the sign-in
+              page if you need to reset access.
+            </p>
           </div>
 
           <div className="space-y-2">

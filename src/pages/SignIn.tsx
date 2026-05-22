@@ -1,18 +1,34 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { AuthPanel } from "../features/auth";
+import { LoadingSpinner } from "../components/LoadingSpinner";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { useAuth } from "../context/AuthContext";
-import { sanitizeRedirectPath } from "../lib/authCallback";
+import { isPasswordRecoveryCallback, sanitizeRedirectPath } from "../lib/authCallback";
 
 export default function SignIn() {
   const location = useLocation();
-  const { isAuthenticated, isPasswordRecovery } = useAuth();
+  const { isAuthenticated, isLoading, isPasswordRecovery } = useAuth();
   const redirectPath = sanitizeRedirectPath(
     new URLSearchParams(location.search).get("redirect"),
   );
+  const isRecoveryRoute =
+    isPasswordRecovery ||
+    isPasswordRecoveryCallback() ||
+    new URLSearchParams(location.search).get("recovery") === "1";
 
-  if (isAuthenticated && !isPasswordRecovery) {
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#f7f7f4] px-4">
+        <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm">
+          <LoadingSpinner />
+          <span>Loading sign in...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && !isRecoveryRoute) {
     return <Navigate replace to={redirectPath} />;
   }
 
