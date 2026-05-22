@@ -399,7 +399,7 @@ export async function saveRemoteApplication(
   const selectedCourse = data.applicationMeta.selectedCourse;
   const remoteApplicationId = getRemoteUuid(data.applicationMeta.recordId);
   const remoteApplicantProfileId =
-    getRemoteUuid(options?.applicantProfileId) ??
+    getRemoteUuid(options?.applicantProfileId ?? undefined) ??
     getRemoteUuid(data.applicationMeta.applicantProfileId) ??
     null;
   const applicationPayload: TablesInsert<"applications"> = {
