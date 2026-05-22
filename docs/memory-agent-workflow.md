@@ -82,6 +82,8 @@ Load only these files for typical tasks (~5–15 files each):
 - **Auth wrong locally:** confirm `supabase start`, check `.env.local`, try `npm run sync-supabase-env`.
 - **Clean hosted test:** run `supabase/reset_test_data.sql`, use incognito session.
 - **Schema change:** apply migration in Supabase SQL editor, regenerate types via `npm run supabase:types`.
+- **Agent browser logs:** in dev, console/error output is mirrored to `.cursor/dev-console.log` via `/__dev/console`. Reproduce in the running Vite app, then read that file or `curl http://localhost:5173/__dev/console`. Clear with `curl -X DELETE http://localhost:5173/__dev/console`.
+- **Dev console bridge missing:** delete stale gitignored `vite.config.js` if present — Vite prefers it over `vite.config.ts` and will skip dev-only plugins.
 
 ## CI
 

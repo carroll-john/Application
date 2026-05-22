@@ -4,10 +4,12 @@ import * as Sentry from "@sentry/react";
 import App from "./App";
 import "./index.css";
 import { initClarity, syncClarityRoutePrivacy } from "./lib/clarity";
+import { installDevConsoleBridge } from "./lib/devConsoleBridge";
 import { initPostHog } from "./lib/posthog";
 import { initSentry, isSentryEnabled } from "./lib/sentry";
 
 syncClarityRoutePrivacy(window.location.pathname);
+installDevConsoleBridge();
 initClarity();
 initPostHog();
 initSentry();

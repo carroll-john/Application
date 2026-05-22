@@ -171,9 +171,9 @@ export function AuthPanel({
             ? `We sent a 6-digit sign-in code to ${sentEmail}.`
             : "Use your email to sign in or create an applicant account. No password required."}
         </p>
-        {showLocalMailpitHint && sentEmail ? (
+        {showLocalMailpitHint ? (
           <p className="text-sm leading-6 text-slate-600">
-            Local dev: open{" "}
+            Local dev: auth emails are captured in{" "}
             <a
               className="font-medium text-[var(--cta-secondary)] hover:underline"
               href={LOCAL_DEV_MAILPIT_URL}
@@ -181,9 +181,9 @@ export function AuthPanel({
               target="_blank"
             >
               Mailpit
-            </a>{" "}
-            to read the code. Supabase does not deliver local auth emails to a
-            real inbox.
+            </a>
+            , not your real inbox. Open Mailpit and use the 6-digit code from the
+            message body.
           </p>
         ) : null}
       </div>
