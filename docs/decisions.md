@@ -26,11 +26,18 @@
 - Normalize fees to simple approximate figures.
 - Normalize duration to year-based labels where possible.
 
+## 2026-05-22
+
+### Document storage and submission integrity
+- Enforce upload quotas on `storage.objects` inserts (not only `application_documents`) so direct Storage API uploads cannot bypass limits.
+- Require `application_documents` rows to reference an existing storage object before insert.
+- Server submission checks use `application_document_is_ready()` (document row + storage object); file-name-only placeholders no longer satisfy submit.
+
 ## 2026-03-05
 
 ### Explicit document upload guardrails
 - Keep the 5 MB per-file limit and add explicit remote upload quotas/rate controls.
-- Enforce controls in both frontend storage logic and Supabase (`application_documents`) so future remote-primary flows remain bounded even if client checks are bypassed.
+- Enforce controls in frontend storage logic, `application_documents` triggers, and `storage.objects` triggers so client bypasses remain bounded.
 - Current remote guardrails:
   - per-application file quota: 30
   - per-application total bytes: 100 MB

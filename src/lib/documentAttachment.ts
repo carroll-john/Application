@@ -5,6 +5,18 @@ import {
   type UploadedDocument,
 } from "./documentStorage";
 
+export function isSubmissionReadyDocument(document?: UploadedDocument) {
+  if (!document?.id) {
+    return false;
+  }
+
+  if (document.source === "remote") {
+    return Boolean(document.storageBucket && document.storagePath);
+  }
+
+  return true;
+}
+
 export interface SaveDocumentAttachmentOptions {
   applicationId: string;
   currentDocument?: UploadedDocument;

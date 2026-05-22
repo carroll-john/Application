@@ -3,6 +3,7 @@ import type {
   EmploymentExperience,
   TertiaryQualification,
 } from "../../applicationData";
+import { isSubmissionReadyDocument } from "../../documentAttachment";
 import { isMonthYearRangeOutOfOrder } from "../../monthYearValidation";
 import {
   getSection2RequirementInput,
@@ -17,9 +18,8 @@ interface TertiaryFieldRule {
 
 function hasStoredDocument(
   document: TertiaryQualification["transcriptDocument"] | undefined,
-  documentName: string | undefined,
 ) {
-  return Boolean(document || documentName);
+  return isSubmissionReadyDocument(document);
 }
 
 const tertiaryFieldRules: TertiaryFieldRule[] = [
@@ -62,19 +62,13 @@ const tertiaryFieldRules: TertiaryFieldRule[] = [
     field: "Academic Transcript",
     isMissing: (qualification) =>
       Boolean(qualification.courseName.trim()) &&
-      !hasStoredDocument(
-        qualification.transcriptDocument,
-        qualification.transcriptDocumentName,
-      ),
+      !hasStoredDocument(qualification.transcriptDocument),
   },
   {
     field: "Certificate of Completion",
     isMissing: (qualification) =>
       qualification.completed &&
-      !hasStoredDocument(
-        qualification.certificateDocument,
-        qualification.certificateDocumentName,
-      ),
+      !hasStoredDocument(qualification.certificateDocument),
   },
 ];
 

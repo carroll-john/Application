@@ -22,6 +22,7 @@
 - Post-sign-in redirects must pass `sanitizeRedirectPath` (internal absolute paths only).
 - Do not pass `emailRedirectTo` to `signInWithOtp`; that switches auth emails to magic-link mode.
 - `/auth/callback` remains as a fallback for older magic-link emails only.
+- PostHog must not capture pageviews on `/auth/callback`; `$current_url` elsewhere is sanitized (no hash, no auth query params). See [analytics-events.md](analytics-events.md).
 
 ## Key Files
 

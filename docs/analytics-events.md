@@ -8,6 +8,12 @@ This app sends page and funnel events to PostHog through `src/lib/posthog.ts`.
 - PostHog user identity uses a salted hash (raw email/user IDs are not used as analytics distinct IDs).
 - `applicant_profile_id` event property is hashed before capture.
 
+## URL privacy
+
+- `$pageview` `$current_url` is sanitized: URL fragments (hash) are stripped and auth-related query parameters are removed before capture.
+- PostHog does not capture pageviews on `/auth/callback` (magic-link tokens must not reach analytics).
+- `/sign-in` pageviews are skipped when the query string contains auth tokens.
+
 ## Page Naming
 
 `$pageview` events now include:

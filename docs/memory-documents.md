@@ -20,7 +20,9 @@ Defaults (override via env):
 - Max 100 MB total per application
 - Max 20 uploads per 10 minutes per user
 
-Enforced in client and DB (`supabase/migrations/0005_document_upload_limits.sql`).
+Enforced in client and DB:
+- `supabase/migrations/0005_document_upload_limits.sql` — `application_documents` row limits
+- `supabase/migrations/20260522120000_storage_quota_and_document_integrity.sql` — `storage.objects` limits (closes direct-storage bypass), metadata rows must reference a real object, submission requires backed documents
 
 ## Delivery
 
