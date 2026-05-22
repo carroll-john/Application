@@ -6,6 +6,7 @@ import {
   ProfileDetailsFields,
   ProfileLoadingState,
   ProfilePage,
+  ProfilePasswordSection,
 } from "../features/profile";
 import {
   ensureApplicantProfile,
@@ -16,13 +17,12 @@ import {
 export default function ApplicantProfile() {
   const navigate = useNavigate();
   const { refreshApplicantProfile } = useApplication();
-  const { session, signOut, userDisplayName, userEmail } = useAuth();
+  const { changePassword, session, signOut, userDisplayName, userEmail } =
+    useAuth();
   const [profileRecordId, setProfileRecordId] = useState<string | undefined>();
-  const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [errors, setErrors] = useState<{
-    email?: string;
     firstName?: string;
     form?: string;
     lastName?: string;
@@ -32,18 +32,13 @@ export default function ApplicantProfile() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const signedInLabel =
     userDisplayName || userEmail || "your applicant account";
+  const accountEmail = userEmail ?? "";
 
-  const applyProfile = useCallback(
-    (profile: StoredApplicantProfile | null) => {
-      const fallbackEmail = userEmail ?? "";
-
-      setProfileRecordId(profile?.id);
-      setEmail(profile?.email ?? fallbackEmail);
-      setFirstName(profile?.firstName ?? "");
-      setLastName(profile?.lastName ?? "");
-    },
-    [userEmail],
-  );
+  const applyProfile = useCallback((profile: StoredApplicantProfile | null) => {
+    setProfileRecordId(profile?.id);
+    setFirstName(profile?.firstName ?? "");
+    setLastName(profile?.lastName ?? "");
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -83,13 +78,10 @@ export default function ApplicantProfile() {
   }, [applyProfile, session, userEmail]);
 
   async function handleSave() {
-    const trimmedEmail = email.trim().toLowerCase();
     const nextErrors: typeof errors = {};
 
-    if (!trimmedEmail) {
-      nextErrors.email = "Enter your email address.";
-    } else if (!/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
-      nextErrors.email = "Enter a valid email address.";
+    if (!accountEmail) {
+      nextErrors.form = "Your sign-in email is unavailable. Try signing in again.";
     }
 
     if (!firstName.trim()) {
@@ -100,7 +92,7 @@ export default function ApplicantProfile() {
       nextErrors.lastName = "Enter your last name.";
     }
 
-    if (nextErrors.email || nextErrors.firstName || nextErrors.lastName) {
+    if (nextErrors.firstName || nextErrors.lastName || nextErrors.form) {
       setErrors(nextErrors);
       return;
     }
@@ -113,7 +105,7 @@ export default function ApplicantProfile() {
       const savedProfile = await saveApplicantProfile(
         session,
         {
-          email: trimmedEmail,
+          email: accountEmail,
           firstName: firstName.trim(),
           lastName: lastName.trim(),
         },
@@ -146,19 +138,21 @@ export default function ApplicantProfile() {
         navigate("/", { replace: true });
       }}
     >
-      <ProfileDetailsFields
-        email={email}
-        errors={errors}
-        firstName={firstName}
-        isSubmitting={isSubmitting}
-        lastName={lastName}
-        statusMessage={statusMessage}
-        onEmailChange={setEmail}
-        onFirstNameChange={setFirstName}
-        onGoToDashboard={() => navigate("/dashboard")}
-        onLastNameChange={setLastName}
-        onSave={() => void handleSave()}
-      />
+      <div className="space-y-6">
+        <ProfileDetailsFields
+          email={accountEmail}
+          errors={errors}
+          firstName={firstName}
+          isSubmitting={isSubmitting}
+          lastName={lastName}
+          statusMessage={statusMessage}
+          onFirstNameChange={setFirstName}
+          onGoToDashboard={() => navigate("/dashboard")}
+          onLastNameChange={setLastName}
+          onSave={() => void handleSave()}
+        />
+        <ProfilePasswordSection onChangePassword={changePassword} />
+      </div>
     </ProfilePage>
   );
 }

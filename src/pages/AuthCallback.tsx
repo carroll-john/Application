@@ -5,7 +5,7 @@ import { sanitizeRedirectPath } from "../lib/authCallback";
 
 export default function AuthCallback() {
   const location = useLocation();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, isPasswordRecovery } = useAuth();
   const redirectPath = sanitizeRedirectPath(
     new URLSearchParams(location.search).get("redirect"),
   );
@@ -24,6 +24,10 @@ export default function AuthCallback() {
   }
 
   if (isAuthenticated) {
+    if (isPasswordRecovery) {
+      return <Navigate replace to="/sign-in?recovery=1" />;
+    }
+
     return <Navigate replace to={redirectPath} />;
   }
 

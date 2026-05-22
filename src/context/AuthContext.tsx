@@ -7,7 +7,11 @@ import {
   type ReactNode,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { buildAuthCallbackUrl, buildPasswordResetRedirectUrl } from "../lib/authCallback";
+import {
+  buildAuthCallbackUrl,
+  buildPasswordResetRedirectUrl,
+  isPasswordRecoveryCallback,
+} from "../lib/authCallback";
 import {
   normalizeAuthEmail,
   requestPasswordReset as requestPasswordResetRequest,
@@ -45,13 +49,11 @@ interface AuthContextType {
     password: string,
     options?: { redirectPath?: string },
   ) => Promise<SignUpWithPasswordResult>;
-  requestPasswordReset: (
-    email: string,
-    options?: { redirectPath?: string },
-  ) => Promise<{ error: string | null }>;
+  requestPasswordReset: (email: string) => Promise<{ error: string | null }>;
   updatePasswordAfterRecovery: (
     password: string,
   ) => Promise<{ error: string | null }>;
+  changePassword: (password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -81,7 +83,9 @@ function getEmailDomain(email: string | null) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(() =>
+    isPasswordRecoveryCallback(),
+  );
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(supabase));
 
   useEffect(() => {
@@ -96,6 +100,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(({ data }) => {
         if (isActive) {
           setSession(data.session);
+          if (isPasswordRecoveryCallback()) {
+            setIsPasswordRecovery(true);
+          }
           setIsLoading(false);
         }
       })
@@ -109,7 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
-      setIsPasswordRecovery(event === "PASSWORD_RECOVERY");
+
+      if (event === "PASSWORD_RECOVERY") {
+        setIsPasswordRecovery(true);
+      } else if (event === "SIGNED_OUT") {
+        setIsPasswordRecovery(false);
+      }
+
       setIsLoading(false);
     });
 
@@ -180,17 +193,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           supabaseUrl: configuredSupabaseUrl,
         });
       },
-      requestPasswordReset: async (email, options) => {
+      requestPasswordReset: async (email) => {
         if (!supabase) {
           return {
             error: "Authentication is not configured on this deployment.",
           };
         }
 
-        const redirectPath = options?.redirectPath ?? "/";
         const redirectTo =
           typeof window !== "undefined"
-            ? buildPasswordResetRedirectUrl(window.location.origin, redirectPath)
+            ? buildPasswordResetRedirectUrl(window.location.origin)
             : undefined;
 
         return requestPasswordResetRequest(supabase.auth, email, {
@@ -216,6 +228,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         return { error };
+      },
+      changePassword: async (password) => {
+        if (!supabase) {
+          return {
+            error: "Authentication is not configured on this deployment.",
+          };
+        }
+
+        return updatePasswordAfterRecoveryRequest(supabase.auth, password, {
+          supabaseUrl: configuredSupabaseUrl,
+        });
       },
       signOut: async () => {
         if (supabase) {

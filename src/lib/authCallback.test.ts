@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAuthCallbackUrl,
   buildPasswordResetRedirectUrl,
+  isPasswordRecoveryCallback,
   resolveAuthRedirectPath,
   sanitizeRedirectPath,
 } from "./authCallback";
@@ -73,14 +74,39 @@ describe("buildAuthCallbackUrl", () => {
 });
 
 describe("buildPasswordResetRedirectUrl", () => {
-  it("builds a sign-in URL with a sanitized redirect param", () => {
+  it("builds a sign-in URL with the recovery flag", () => {
     expect(
       buildPasswordResetRedirectUrl(
         "https://application-prototype.vercel.app",
-        "/profile",
       ),
     ).toBe(
-      "https://application-prototype.vercel.app/sign-in?redirect=%2Fprofile",
+      "https://application-prototype.vercel.app/sign-in?recovery=1",
     );
+  });
+});
+
+describe("isPasswordRecoveryCallback", () => {
+  it("detects recovery tokens in the URL hash", () => {
+    expect(
+      isPasswordRecoveryCallback(
+        "https://application-prototype.vercel.app/sign-in#access_token=abc&type=recovery",
+      ),
+    ).toBe(true);
+  });
+
+  it("detects the recovery query flag on sign-in", () => {
+    expect(
+      isPasswordRecoveryCallback(
+        "https://application-prototype.vercel.app/sign-in?recovery=1",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns false for normal sign-in URLs", () => {
+    expect(
+      isPasswordRecoveryCallback(
+        "https://application-prototype.vercel.app/sign-in?redirect=%2Fprofile",
+      ),
+    ).toBe(false);
   });
 });
