@@ -51,6 +51,35 @@ export function isValidPassword(password: string) {
   return password.length >= AUTH_MIN_PASSWORD_LENGTH;
 }
 
+export function validatePasswordPair(
+  password: string,
+  confirmPassword: string,
+): string | null {
+  if (!isValidPassword(password)) {
+    return `Password must be at least ${AUTH_MIN_PASSWORD_LENGTH} characters.`;
+  }
+
+  if (password !== confirmPassword) {
+    return "Passwords do not match.";
+  }
+
+  return null;
+}
+
+export function validateSignUpForm(
+  email: string,
+  password: string,
+  confirmPassword: string,
+): string | null {
+  const normalizedEmail = normalizeAuthEmail(email);
+
+  if (!isValidEmailAddress(normalizedEmail)) {
+    return "Enter a valid email address.";
+  }
+
+  return validatePasswordPair(password, confirmPassword);
+}
+
 function getErrorMessage(error: unknown) {
   if (!error) {
     return null;

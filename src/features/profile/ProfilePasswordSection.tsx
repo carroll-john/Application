@@ -1,12 +1,8 @@
-import { Lock } from "lucide-react";
 import { useState } from "react";
 import { SurfaceCard } from "../../components/SurfaceCard";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import {
-  AUTH_MIN_PASSWORD_LENGTH,
-  isValidPassword,
-} from "../../lib/authPassword";
+import { validatePasswordPair } from "../../lib/authPassword";
+import { AuthPasswordPair } from "../auth/components/AuthPasswordPair";
 
 interface ProfilePasswordSectionProps {
   onChangePassword: (password: string) => Promise<{ error: string | null }>;
@@ -26,13 +22,10 @@ export function ProfilePasswordSection({
     setError(null);
     setStatusMessage(null);
 
-    if (!isValidPassword(password)) {
-      setError(`Password must be at least ${AUTH_MIN_PASSWORD_LENGTH} characters.`);
-      return;
-    }
+    const validationError = validatePasswordPair(password, confirmPassword);
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -61,53 +54,24 @@ export function ProfilePasswordSection({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2 sm:col-span-2">
-            <label
-              className="text-sm font-medium text-slate-800"
-              htmlFor="profile-new-password"
-            >
-              New password
-            </label>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input
-                autoComplete="new-password"
-                className="h-12 pl-11 text-base"
-                id="profile-new-password"
-                minLength={AUTH_MIN_PASSWORD_LENGTH}
-                type="password"
-                value={password}
-                onChange={(event) => {
-                  setPassword(event.target.value);
-                  setError(null);
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2 sm:col-span-2">
-            <label
-              className="text-sm font-medium text-slate-800"
-              htmlFor="profile-confirm-password"
-            >
-              Confirm new password
-            </label>
-            <div className="relative">
-              <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <Input
-                autoComplete="new-password"
-                className="h-12 pl-11 text-base"
-                id="profile-confirm-password"
-                minLength={AUTH_MIN_PASSWORD_LENGTH}
-                type="password"
-                value={confirmPassword}
-                onChange={(event) => {
-                  setConfirmPassword(event.target.value);
-                  setError(null);
-                }}
-              />
-            </div>
-          </div>
+          <AuthPasswordPair
+            confirmPassword={confirmPassword}
+            confirmPasswordId="profile-confirm-password"
+            confirmPasswordLabel="Confirm new password"
+            layout="profile"
+            password={password}
+            passwordId="profile-new-password"
+            passwordLabel="New password"
+            passwordPlaceholder=""
+            onConfirmPasswordChange={(value) => {
+              setConfirmPassword(value);
+              setError(null);
+            }}
+            onPasswordChange={(value) => {
+              setPassword(value);
+              setError(null);
+            }}
+          />
         </div>
 
         {error ? (

@@ -93,6 +93,7 @@ Important submit-path rules:
 | `auth_sign_up_attempted` | User submits the create-account form |
 | `auth_sign_up_confirmation_sent` | Supabase accepts sign-up and sends a confirmation email |
 | `auth_sign_up_failed` | Create-account sign-up is rejected |
+| `auth_password_reset_completed` | User saves a new password after opening a reset link |
 | `auth_gate_opened` | An in-flow auth modal opens from eligibility or apply |
 | `local_draft_import_started` | Signed-in user starts importing local anonymous drafts |
 | `local_draft_import_completed` | Local draft import completes without failed drafts |

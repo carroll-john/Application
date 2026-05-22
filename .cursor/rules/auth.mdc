@@ -1,7 +1,39 @@
 ---
 description: Auth and password sign-in changes — load domain memory first
-globs: src/**/Auth*.tsx,src/lib/auth*.ts,src/pages/SignIn.tsx,src/pages/AuthCallback.tsx
+globs: src/**/Auth*.tsx,src/lib/auth*.ts,src/pages/SignIn.tsx,src/pages/AuthCallback.tsx,src/features/auth/**,src/features/profile/ProfilePasswordSection.tsx
 alwaysApply: false
 ---
 
-Before editing auth files, read docs/memory-auth.md and docs/decisions.md (2026-05-22 password auth).
+Before editing auth files, read [docs/memory-auth.md](docs/memory-auth.md) and [docs/decisions.md](docs/decisions.md) (2026-05-22 password auth).
+
+## Screen → file map
+
+| Task | Edit only |
+| --- | --- |
+| Sign-in form / forgot link | `src/features/auth/screens/SignInForm.tsx` |
+| Create account form | `src/features/auth/screens/SignUpForm.tsx` |
+| Forgot password form | `src/features/auth/screens/ForgotPasswordForm.tsx` |
+| Post sign-up email sent | `src/features/auth/screens/ConfirmEmailSent.tsx` |
+| Post reset email sent | `src/features/auth/screens/ResetEmailSent.tsx` |
+| Choose new password (reset link) | `src/features/auth/screens/SetNewPasswordForm.tsx` |
+| Screen routing / tab state | `src/features/auth/AuthPanel.tsx`, `src/features/auth/types.ts` |
+| Shared email/password fields | `src/features/auth/components/*` |
+| Supabase calls / validation / errors | `src/lib/authPassword.ts` |
+| Redirects / recovery URL detection | `src/lib/authCallback.ts` |
+| Session / recovery state | `src/context/AuthContext.tsx` |
+| Profile password change | `src/features/profile/ProfilePasswordSection.tsx` |
+
+## Do not
+
+- Add page-local auth checks — use `AuthContext` and route gates.
+- Re-check recovery tokens in pages — use `isPasswordRecovery` from context only.
+- Change redirect sanitization without updating `authCallback.test.ts`.
+- Store file names only for uploads (unrelated but common agent mistake).
+
+## Required tests
+
+After any auth change:
+
+```bash
+npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts
+```

@@ -169,5 +169,6 @@
 - Applicant RLS remains `auth.uid()` ownership checks; no schema migration required.
 - Hosted Supabase must enable Confirm email, use a Confirm signup template with
   `{{ .ConfirmationURL }}`, and configure custom SMTP for reliable delivery.
-- Accounts created under the OTP flow may not have passwords; those users need new
-  accounts or a future password-reset flow.
+- Accounts created under the OTP flow may not have passwords; those users should
+  use Forgot password on the Sign in tab to set one.
+- Password reset preserves redirect intent via `/sign-in?recovery=1&redirect=…`.

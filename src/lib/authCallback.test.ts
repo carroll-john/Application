@@ -76,13 +76,24 @@ describe("buildAuthCallbackUrl", () => {
 });
 
 describe("buildPasswordResetRedirectUrl", () => {
-  it("builds a sign-in URL with the recovery flag", () => {
+  it("builds a sign-in URL with the recovery flag and redirect", () => {
     expect(
       buildPasswordResetRedirectUrl(
         "https://application-prototype.vercel.app",
       ),
     ).toBe(
-      "https://application-prototype.vercel.app/sign-in?recovery=1",
+      "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2F",
+    );
+  });
+
+  it("preserves the intended in-app redirect path", () => {
+    expect(
+      buildPasswordResetRedirectUrl(
+        "https://application-prototype.vercel.app",
+        "/courses/MBA?apply=1",
+      ),
+    ).toBe(
+      "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fcourses%2FMBA%3Fapply%3D1",
     );
   });
 });
