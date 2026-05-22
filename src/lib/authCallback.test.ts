@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   buildAuthCallbackUrl,
   buildPasswordResetRedirectUrl,
-  clearPasswordRecoveryQueryFromUrl,
   hasPasswordRecoveryTokenInUrl,
   isPasswordRecoveryCallback,
   resolveAuthRedirectPath,
