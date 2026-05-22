@@ -9,7 +9,7 @@
 | OTP / confirmation emails stop after a few tries | Hosted | Supabase built-in sender (`noreply@mail.app.supabase.io`) hit `over_email_send_rate_limit` — configure Resend SMTP |
 | Confirmation link opens but user is not signed in | Either | Redirect URL not allow-listed, or project paused |
 | Invalid credentials on sign-in | Either | Wrong password, or account was created under the old OTP flow without a password |
-| Create account succeeds but sign-in still fails | Hosted | Confirm email is disabled in Supabase dashboard |
+| Create account says confirmation sent but no email arrives | **Production** | Email already registered — Supabase returns success without resending (anti-enumeration). Use **Sign in** instead. |
 
 ## Local development
 

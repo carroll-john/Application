@@ -9,7 +9,10 @@ import {
 function createAuthMock() {
   return {
     signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
-    signUp: vi.fn().mockResolvedValue({ error: null }),
+    signUp: vi.fn().mockResolvedValue({
+      data: { user: { identities: [{ provider: "email" }] } },
+      error: null,
+    }),
   };
 }
 
@@ -34,7 +37,7 @@ describe("authPassword", () => {
         emailRedirectTo:
           "https://application-prototype.vercel.app/auth/callback?redirect=%2F",
       }),
-    ).resolves.toEqual({ error: null });
+    ).resolves.toEqual({ error: null, outcome: "confirmation_sent" });
     expect(auth.signUp).toHaveBeenCalledWith({
       email: "user@example.com",
       password: "secret123",
@@ -42,6 +45,22 @@ describe("authPassword", () => {
         emailRedirectTo:
           "https://application-prototype.vercel.app/auth/callback?redirect=%2F",
       },
+    });
+  });
+
+  it("detects repeated sign-up responses that do not send email", async () => {
+    const auth = createAuthMock();
+    auth.signUp.mockResolvedValue({
+      data: { user: { identities: [] } },
+      error: null,
+    });
+
+    await expect(
+      signUpWithPassword(auth, "user@example.com", "secret123"),
+    ).resolves.toEqual({
+      error:
+        "An account with this email already exists. Switch to Sign in instead.",
+      outcome: "existing_account",
     });
   });
 

@@ -11,6 +11,15 @@ type AuthClient = Pick<
   "signInWithPassword" | "signUp"
 >;
 
+export type SignUpWithPasswordResult = {
+  error: string | null;
+  outcome?: "confirmation_sent" | "existing_account";
+};
+
+function isRepeatedSignUpResponse(user: { identities?: unknown[] } | null) {
+  return Boolean(user && (!user.identities || user.identities.length === 0));
+}
+
 export const AUTH_MIN_PASSWORD_LENGTH = 6;
 
 const AUTH_SERVICE_UNAVAILABLE_MESSAGE =
@@ -144,7 +153,7 @@ export async function signUpWithPassword(
   email: string,
   password: string,
   options?: { emailRedirectTo?: string; supabaseUrl?: string | null },
-): Promise<{ error: string | null }> {
+): Promise<SignUpWithPasswordResult> {
   const normalizedEmail = normalizeAuthEmail(email);
 
   if (!normalizedEmail) {
@@ -166,7 +175,7 @@ export async function signUpWithPassword(
   }
 
   try {
-    const { error } = await auth.signUp({
+    const { data, error } = await auth.signUp({
       email: normalizedEmail,
       password,
       options: options?.emailRedirectTo
@@ -174,7 +183,19 @@ export async function signUpWithPassword(
         : undefined,
     });
 
-    return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
+    if (error) {
+      return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
+    }
+
+    if (isRepeatedSignUpResponse(data.user)) {
+      return {
+        error:
+          "An account with this email already exists. Switch to Sign in instead.",
+        outcome: "existing_account",
+      };
+    }
+
+    return { error: null, outcome: "confirmation_sent" };
   } catch (error) {
     return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
   }
