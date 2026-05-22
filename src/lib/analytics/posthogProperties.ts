@@ -5,6 +5,11 @@ import {
   getRouteAnalyticsDefinition,
 } from "./applicationSteps";
 import {
+  isPostHogSensitiveRoute,
+  sanitizeAnalyticsSearch,
+  sanitizeAnalyticsUrl,
+} from "./sanitizeAnalyticsUrl";
+import {
   canCapturePostHog,
   capturePostHogEvent,
   initPostHog,
@@ -121,13 +126,14 @@ export function captureApplicationStepEvent(
 }
 
 export function trackPostHogPageView(pathname: string, search = "") {
-  if (!canCapturePostHog()) {
+  if (isPostHogSensitiveRoute(pathname, search) || !canCapturePostHog()) {
     return;
   }
 
   initPostHog();
 
-  const pageKey = `${pathname}${search}`;
+  const sanitizedSearch = sanitizeAnalyticsSearch(search);
+  const pageKey = `${pathname}${sanitizedSearch}`;
 
   if (pageKey === lastTrackedPageKey) {
     return;
@@ -136,9 +142,13 @@ export function trackPostHogPageView(pathname: string, search = "") {
   lastTrackedPageKey = pageKey;
 
   const route = getRouteAnalyticsDefinition(pathname);
+  const safeUrl =
+    typeof window !== "undefined"
+      ? sanitizeAnalyticsUrl(window.location.href)
+      : `${pathname}${sanitizedSearch}`;
 
   window.posthog?.capture?.("$pageview", {
-    $current_url: window.location.href,
+    $current_url: safeUrl,
     $pathname: pathname,
     app_environment: APP_ENVIRONMENT,
     page_group: route?.group ?? "system",

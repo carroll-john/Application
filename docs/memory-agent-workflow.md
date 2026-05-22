@@ -19,7 +19,7 @@ npm run finish-task -- "Task name"
 
 | Area changed | Run these tests |
 |--------------|-----------------|
-| Auth OTP / callback | `src/lib/authOtp.test.ts`, `src/lib/authCallback.test.ts` |
+| Auth password / callback | `src/lib/authPassword.test.ts`, `src/lib/authCallback.test.ts` |
 | Supabase config | `src/lib/supabase.test.ts` |
 | Application storage | `src/lib/applicationStorageAdapter.test.ts`, `applicationRecords.test.ts`, `applicationRemoteStore.test.ts` |
 | Documents | `src/lib/documentStorage.test.ts`, `documentUploadLimits.test.ts` |
@@ -37,7 +37,7 @@ npm run finish-task -- "Task name"
 Load only these files for typical tasks (~5–15 files each):
 
 ### auth
-`src/context/AuthContext.tsx`, `src/lib/authOtp.ts`, `src/lib/authCallback.ts`, `src/features/auth/*`, `src/pages/SignIn.tsx`, `src/pages/AuthCallback.tsx`, `src/lib/supabase.ts`
+`src/context/AuthContext.tsx`, `src/lib/authPassword.ts`, `src/lib/authCallback.ts`, `src/features/auth/*`, `src/pages/SignIn.tsx`, `src/pages/AuthCallback.tsx`, `src/lib/supabase.ts`
 
 ### application-state
 `src/context/ApplicationContext.tsx`, `src/features/application/hooks/useApplicationData.ts`, `src/features/application/hooks/useApplicationProfile.ts`, `src/lib/applicationData.ts`, `src/lib/validation/*`
@@ -70,7 +70,7 @@ Load only these files for typical tasks (~5–15 files each):
 
 | Module | Owns | Coordinate before touching |
 |--------|------|--------------------------|
-| `features/auth` | OTP, callback, sign-in UI | Supabase RLS migrations |
+| `features/auth` | Password auth, callback, sign-in UI | Supabase RLS migrations |
 | `features/application` | Context, orchestration | `api/*` |
 | `features/course` | Browse, eligibility UX | `courses.raw.json` shape |
 | `lib/storage` | Persistence internals | Form pages |

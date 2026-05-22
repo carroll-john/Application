@@ -23,6 +23,11 @@ export {
   trackPostHogPageView,
 } from "./analytics/posthogProperties";
 export {
+  isPostHogSensitiveRoute,
+  sanitizeAnalyticsSearch,
+  sanitizeAnalyticsUrl,
+} from "./analytics/sanitizeAnalyticsUrl";
+export {
   CV_PARSER_FEATURE_FLAG_KEY,
   type AiExperimentState,
   type CvParserExperimentState,

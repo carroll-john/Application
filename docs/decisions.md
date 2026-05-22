@@ -26,11 +26,18 @@
 - Normalize fees to simple approximate figures.
 - Normalize duration to year-based labels where possible.
 
+## 2026-05-22
+
+### Document storage and submission integrity
+- Enforce upload quotas on `storage.objects` inserts (not only `application_documents`) so direct Storage API uploads cannot bypass limits.
+- Require `application_documents` rows to reference an existing storage object before insert.
+- Server submission checks use `application_document_is_ready()` (document row + storage object); file-name-only placeholders no longer satisfy submit.
+
 ## 2026-03-05
 
 ### Explicit document upload guardrails
 - Keep the 5 MB per-file limit and add explicit remote upload quotas/rate controls.
-- Enforce controls in both frontend storage logic and Supabase (`application_documents`) so future remote-primary flows remain bounded even if client checks are bypassed.
+- Enforce controls in frontend storage logic, `application_documents` triggers, and `storage.objects` triggers so client bypasses remain bounded.
 - Current remote guardrails:
   - per-application file quota: 30
   - per-application total bytes: 100 MB
@@ -147,3 +154,20 @@
   anonymous users can still browse and keep pre-auth draft state locally.
 - Applicant RLS now relies on `auth.uid()` ownership checks instead of
   `is_allowed_company_user()` or `allowed_email_domains`.
+
+### Public applicant auth via email + password
+- Supersedes the 2026-05-20 public email OTP decision.
+- `/sign-in` now uses Sign in and Create account tabs with Supabase
+  `signInWithPassword` and `signUp`.
+- New accounts require email confirmation before first sign-in. Sign-up passes
+  `emailRedirectTo` to `/auth/callback?redirect=…` so confirmed users return to
+  the intended in-app path.
+- Auth can still be initiated from the header, eligibility completion, and apply
+  actions before an application is started.
+- Signed-in users continue to use remote Supabase profile/application/document
+  storage; anonymous users can browse and keep pre-auth draft state locally.
+- Applicant RLS remains `auth.uid()` ownership checks; no schema migration required.
+- Hosted Supabase must enable Confirm email, use a Confirm signup template with
+  `{{ .ConfirmationURL }}`, and configure custom SMTP for reliable delivery.
+- Accounts created under the OTP flow may not have passwords; those users need new
+  accounts or a future password-reset flow.

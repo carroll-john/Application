@@ -10,8 +10,8 @@ export default function AuthCallback() {
     new URLSearchParams(location.search).get("redirect"),
   );
 
-  // This remains as a fallback for older email links. The primary auth flow now
-  // verifies email OTP codes in the app.
+  // Handles email confirmation links after sign-up. The Supabase client picks up
+  // the session from the URL via detectSessionInUrl.
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f7f7f4] px-4">
