@@ -8,6 +8,7 @@
 | `We couldn't reach the sign-in service` on Vercel | **Production** | Hosted Supabase project is **INACTIVE** (DNS for `*.supabase.co` fails) |
 | Same error on localhost | **Local** | `supabase start` is not running or `.env.local` points at a dead URL |
 | Code arrives but verify fails | Either | Wrong code, expired code, or email template missing `{{ .Token }}` on hosted |
+| `email rate limit exceeded` | **Production** | Hosted project still uses Supabase built-in email (~4 auth emails/hour). Configure custom SMTP. |
 
 ## Local development
 
@@ -76,6 +77,32 @@ Your sign-in code is {{ .Token }}
 ```
 
 If the template includes `{{ .ConfirmationURL }}`, Supabase sends a magic link email instead of an OTP-first email.
+
+## Email rate limits (hosted)
+
+Supabase applies two separate limits to OTP sign-in:
+
+1. **Per-request cooldown** — default 60 seconds between OTP requests to the same email.
+2. **Built-in email quota** — when the project uses Supabase's default mail sender (`noreply@mail.app.supabase.io`), auth email is capped at roughly **4 messages per hour** for the whole project. This is easy to hit while testing resend flows.
+
+**Do not rely on waiting an hour.** For any shared/staging/production use:
+
+1. Open [Authentication → SMTP](https://supabase.com/dashboard/project/weyxnhykyyetquqprfnu/auth/smtp)
+2. Enable **Custom SMTP** (Resend, SendGrid, AWS SES, etc.)
+3. Set sender to a verified domain (for example `auth@yourdomain.com`)
+4. Open [Authentication → Rate limits](https://supabase.com/dashboard/project/weyxnhykyyetquqprfnu/auth/rate-limits) and confirm OTP limits meet your expected traffic
+
+### Resend SMTP example
+
+| Field | Value |
+| --- | --- |
+| Host | `smtp.resend.com` |
+| Port | `465` |
+| Username | `resend` |
+| Password | Your Resend API key |
+| Sender email | An address on a domain verified in Resend |
+
+After saving SMTP settings, request one OTP and verify delivery immediately — no hour-long wait required.
 
 ## Related docs
 

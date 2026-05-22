@@ -6,6 +6,9 @@ import { Input } from "../../components/ui/input";
 import { useAuth } from "../../context/AuthContext";
 import { resolveAuthRedirectPath } from "../../lib/authCallback";
 import {
+  AUTH_OTP_MIN_RESEND_SECONDS,
+  formatAuthRateLimitError,
+  getAuthOtpRetryAfterSeconds,
   isValidEmailAddress,
   normalizeAuthEmail,
   normalizeOtpCode,
@@ -45,6 +48,7 @@ export function AuthPanel({
   const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0);
   const hasNotifiedAuthenticatedRef = useRef(false);
   const normalizedEmail = normalizeAuthEmail(email);
   const normalizedCode = normalizeOtpCode(code);
@@ -60,12 +64,45 @@ export function AuthPanel({
     onAuthenticated?.();
   }, [isAuthenticated, onAuthenticated]);
 
+  useEffect(() => {
+    if (otpCooldownSeconds <= 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setOtpCooldownSeconds((current) => Math.max(current - 1, 0));
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [otpCooldownSeconds]);
+
+  function startOtpCooldown(seconds = AUTH_OTP_MIN_RESEND_SECONDS) {
+    setOtpCooldownSeconds(Math.max(seconds, 1));
+  }
+
+  function applyOtpRequestError(requestError: string) {
+    const retryAfterSeconds = getAuthOtpRetryAfterSeconds(requestError);
+    if (retryAfterSeconds) {
+      startOtpCooldown(retryAfterSeconds);
+    }
+    setError(requestError);
+  }
+
   async function handleSendCode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
     if (!isValidEmailAddress(normalizedEmail)) {
       setError("Enter a valid email address.");
+      return;
+    }
+
+    if (otpCooldownSeconds > 0) {
+      setError(
+        `Please wait ${otpCooldownSeconds} seconds before requesting another sign-in code.`,
+      );
       return;
     }
 
@@ -84,7 +121,7 @@ export function AuthPanel({
         auth_context: context,
         auth_step: "request",
       });
-      setError(sendError);
+      applyOtpRequestError(sendError);
       return;
     }
 
@@ -94,6 +131,7 @@ export function AuthPanel({
     });
     setSentEmail(normalizedEmail);
     setCode("");
+    startOtpCooldown();
   }
 
   async function handleVerifyCode(event: React.FormEvent<HTMLFormElement>) {
@@ -132,7 +170,7 @@ export function AuthPanel({
   }
 
   async function handleResendCode() {
-    if (!sentEmail) {
+    if (!sentEmail || otpCooldownSeconds > 0) {
       return;
     }
 
@@ -144,7 +182,7 @@ export function AuthPanel({
     setIsResending(false);
 
     if (resendError) {
-      setError(resendError);
+      applyOtpRequestError(resendError);
       return;
     }
 
@@ -154,6 +192,7 @@ export function AuthPanel({
       email_domain: sentEmail.split("@")[1] ?? "unknown",
     });
     setCode("");
+    startOtpCooldown();
   }
 
   return (
@@ -249,13 +288,17 @@ export function AuthPanel({
             </button>
             <button
               className="font-medium text-[var(--cta-secondary)] hover:underline disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isResending}
+              disabled={isResending || otpCooldownSeconds > 0}
               type="button"
               onClick={() => {
                 void handleResendCode();
               }}
             >
-              {isResending ? "Sending..." : "Resend code"}
+              {isResending
+                ? "Sending..."
+                : otpCooldownSeconds > 0
+                  ? `Resend in ${otpCooldownSeconds}s`
+                  : "Resend code"}
             </button>
           </div>
         </form>
@@ -293,10 +336,14 @@ export function AuthPanel({
 
           <Button
             className="h-12 w-full justify-center text-base"
-            disabled={isSending || !isConfigured}
+            disabled={isSending || !isConfigured || otpCooldownSeconds > 0}
             type="submit"
           >
-            {isSending ? "Sending code..." : "Email me a code"}
+            {isSending
+              ? "Sending code..."
+              : otpCooldownSeconds > 0
+                ? `Wait ${otpCooldownSeconds}s`
+                : "Email me a code"}
           </Button>
         </form>
       )}
