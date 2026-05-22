@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   formatAuthConnectivityError,
+  formatAuthRateLimitError,
   normalizeOtpCode,
   requestEmailOtp,
   verifyEmailOtpCode,
@@ -107,6 +108,17 @@ describe("authOtp", () => {
     ).resolves.toEqual({
       error: formatAuthConnectivityError("http://127.0.0.1:54321"),
     });
+  });
+
+  it("maps email rate limit errors to a clearer message", () => {
+    expect(formatAuthRateLimitError("email rate limit exceeded")).toContain(
+      "custom SMTP",
+    );
+    expect(
+      formatAuthRateLimitError(
+        "For security purposes, you can only request this after 33 seconds.",
+      ),
+    ).toBe("Please wait 33 seconds before requesting another sign-in code.");
   });
 
   it("returns a hosted-project hint when cloud Supabase is unreachable", async () => {

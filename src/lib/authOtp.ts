@@ -61,6 +61,39 @@ function isFetchFailure(message: string) {
   return /failed to fetch|fetch failed|networkerror/i.test(message);
 }
 
+function parseRateLimitCooldownSeconds(message: string) {
+  const match = message.match(/after (\d+) seconds?/i);
+  return match ? Number.parseInt(match[1] ?? "", 10) : null;
+}
+
+export const AUTH_OTP_MIN_RESEND_SECONDS = 60;
+
+export function getAuthOtpRetryAfterSeconds(errorMessage: string | null | undefined) {
+  if (!errorMessage) {
+    return null;
+  }
+
+  return parseRateLimitCooldownSeconds(errorMessage);
+}
+
+export function formatAuthRateLimitError(message: string) {
+  const cooldownSeconds = parseRateLimitCooldownSeconds(message);
+
+  if (/email rate limit exceeded|over_email_send_rate_limit/i.test(message)) {
+    return "Sign-in emails are rate-limited on the hosted Supabase project. Configure custom SMTP under Authentication → SMTP in the Supabase dashboard, then retry. Built-in Supabase email only allows a few auth messages per hour.";
+  }
+
+  if (cooldownSeconds && cooldownSeconds > 0) {
+    return `Please wait ${cooldownSeconds} seconds before requesting another sign-in code.`;
+  }
+
+  if (/rate limit|too many requests|429/i.test(message)) {
+    return `Please wait ${AUTH_OTP_MIN_RESEND_SECONDS} seconds before requesting another sign-in code.`;
+  }
+
+  return null;
+}
+
 function formatAuthRequestError(
   error: unknown,
   supabaseUrl?: string | null,
@@ -71,9 +104,11 @@ function formatAuthRequestError(
     return null;
   }
 
-  return isFetchFailure(message)
-    ? formatAuthConnectivityError(supabaseUrl)
-    : message;
+  if (isFetchFailure(message)) {
+    return formatAuthConnectivityError(supabaseUrl);
+  }
+
+  return formatAuthRateLimitError(message) ?? message;
 }
 
 function formatAuthVerificationError(

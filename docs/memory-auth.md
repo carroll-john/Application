@@ -37,6 +37,7 @@
 ## Supabase Dashboard
 
 - Magic Link email template must use `{{ .Token }}` only — do not include `{{ .ConfirmationURL }}` or users receive a link instead of a code-first email.
+- Configure **custom SMTP** for hosted auth email; built-in Supabase mail is capped at a few OTP emails per hour.
 - Site URL: `https://application-prototype.vercel.app`
 - Redirect URLs: production `/**`, localhost `http://localhost:5173/**`
 
