@@ -49,7 +49,7 @@ Load only these files for typical tasks (~5–15 files each):
 `src/lib/storage/documents.ts`, `src/lib/documentAttachment.ts`, `src/components/FileUpload.tsx`, `src/components/DocumentUploadField.tsx`, `api/document-delivery.ts`
 
 ### form-wizard-section1
-`src/pages/Section1*.tsx`, `src/features/forms/*`, `src/hooks/useSection1Step.ts`, `src/hooks/section1Navigation.ts`, `src/lib/section1Steps.ts`, `src/lib/analytics/applicationSteps.ts`, `src/hooks/useReviewReturn.ts`, `src/lib/address.ts`
+`src/pages/Section1*.tsx`, `src/features/forms/*`, `src/features/section1/*`, `src/hooks/useSection1Step.ts`, `src/hooks/section1Navigation.ts`, `src/lib/section1Steps.ts`, `src/lib/analytics/applicationSteps.ts`, `src/hooks/useReviewReturn.ts`, `src/lib/address.ts`
 
 ### form-wizard-section2
 `src/pages/Section2*.tsx`, `src/features/forms/*`, `src/features/section2/*`, `src/hooks/useEditableRecord.ts`, `src/hooks/useSection2Navigation.ts`, `src/lib/section2Steps.ts`, `src/lib/section2Requirements.ts`

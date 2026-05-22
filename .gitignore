@@ -10,3 +10,4 @@ dist/
 vite.config.js
 vite.config.d.ts
 supabase/.temp/
+supabase/.branches/
