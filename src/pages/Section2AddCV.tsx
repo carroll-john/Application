@@ -1,10 +1,14 @@
-import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StatusMessage } from "../components/StatusMessage";
-import { FileUpload } from "../components/FileUpload";
 import { useApplication } from "../context/ApplicationContext";
-import { Section2FormCard, Section2RecordPage } from "../features/section2";
+import {
+  CvParserInfoPanel,
+  CvSaveProgressPanel,
+  CvUploadPanel,
+  Section2FormCard,
+  Section2RecordPage,
+} from "../features/section2";
 import { useAiExperiment } from "../hooks/useAiExperiment";
 import { useSection2Navigation } from "../hooks/useSection2Navigation";
 import {
@@ -235,104 +239,39 @@ export default function Section2AddCV() {
             />
           ) : null}
           {isSaving && saveProgress ? (
-            <div
-              aria-live="polite"
-              className="rounded-2xl border border-[var(--info-border)] bg-[linear-gradient(140deg,#f4fbff_0%,#eef7fc_100%)] px-4 py-4 shadow-[0_14px_30px_rgba(31, 42, 58,0.08)]"
-              role="status"
-            >
-              <div className="flex items-start gap-3">
-                <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-[var(--info-text)]" />
-                <div>
-                  <p className="text-sm font-semibold text-[var(--info-text)]">
-                    {saveProgress.title}
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--info-text)]/80">
-                    {saveProgress.detail}
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/60">
-                <div className="h-full w-1/3 animate-pulse rounded-full bg-[var(--cta-secondary)]" />
-              </div>
-            </div>
+            <CvSaveProgressPanel
+              detail={saveProgress.detail}
+              title={saveProgress.title}
+            />
           ) : null}
-          <FileUpload
-            attachedDescription="Your CV or resume is attached. You can view or remove it below."
-            className={
-              hasDocument
-                ? "border-[var(--success-border)] bg-[linear-gradient(180deg,#ffffff_0%,#f7fcf9_100%)] shadow-[0_18px_40px_rgba(31,106,59,0.08)]"
-                : "border-[var(--info-border)] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfd_100%)]"
-            }
-            description="Include your recent experience, skills, and achievements."
-            fileName={selectedFile?.name || currentDocument?.name || currentFileName}
-            fileSize={selectedFile?.size || currentDocument?.size}
-            helperText=""
-            label="CV or Resume"
-            required
-            onRemove={
-              selectedFile || currentDocument
-                ? () => {
-                    if (selectedFile) {
-                      setSelectedFile(null);
-                      return;
-                    }
-
-                    setCurrentDocument(undefined);
-                    setCurrentFileName(undefined);
-                  }
-                : undefined
-            }
-            onView={
-              selectedFile
-                ? () => {
-                    viewLocalDocument(selectedFile);
-                  }
-                : currentDocument
-                  ? () => {
-                      void viewStoredDocument(currentDocument);
-                    }
-                  : undefined
-            }
+          <CvUploadPanel
+            currentDocument={currentDocument}
+            currentFileName={currentFileName}
+            hasDocument={hasDocument}
+            selectedFile={selectedFile}
+            onClearDocument={() => {
+              setCurrentDocument(undefined);
+              setCurrentFileName(undefined);
+            }}
+            onClearSelectedFile={() => setSelectedFile(null)}
             onFileSelect={(file) => {
               setSelectedFile(file);
               setCurrentFileName(file.name);
             }}
+            onViewDocument={() => {
+              if (currentDocument) {
+                void viewStoredDocument(currentDocument);
+              }
+            }}
+            onViewSelectedFile={() => {
+              if (selectedFile) {
+                viewLocalDocument(selectedFile);
+              }
+            }}
           />
-          <div className="flex items-center gap-2">
-            <p
-              className={`text-sm font-medium ${
-                hasDocument
-                  ? "text-[var(--success-text)]"
-                  : "text-[var(--info-text)]"
-              }`}
-            >
-              {hasDocument
-                ? "CV attached"
-                : "Add your CV now, or come back to it later."}
-            </p>
-          </div>
-
-          <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
-            <p className="mb-2 text-sm font-medium text-[var(--info-text)]">
-              Keep your CV:
-            </p>
-            <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--info-text)]">
-              <li>current and accurate</li>
-              <li>focused on recent experience</li>
-              <li>clearly named</li>
-            </ul>
-          </div>
-
-          <div className="rounded-lg border border-[var(--info-border)] bg-white p-4">
-            <p className="text-sm font-medium text-slate-900">
-              AI employment draft
-            </p>
-            <p className="mt-2 text-sm text-slate-600">
-              {data.employmentExperiences.length === 0
-                ? "When you save a new CV, we'll try to draft your employment history so you can review it instead of entering every role manually."
-                : "Employment history already exists on this application, so saving a new CV will not overwrite those rows automatically."}
-            </p>
-          </div>
+          <CvParserInfoPanel
+            hasExistingEmployment={data.employmentExperiences.length > 0}
+          />
         </div>
       </Section2FormCard>
     </Section2RecordPage>
