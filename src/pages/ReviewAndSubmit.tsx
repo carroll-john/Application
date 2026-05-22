@@ -1,13 +1,15 @@
 import { useNavigate } from "react-router-dom";
 import { CopiedApplicationNotice } from "../components/CopiedApplicationNotice";
-import { FormActionBar } from "../components/FormActionBar";
 import { LoadingSpinner } from "../components/LoadingSpinner";
-import { ReviewDeclaration } from "../features/review/ReviewDeclaration";
-import { ReviewSection1Summary } from "../features/review/ReviewSection1Summary";
-import { ReviewSection2Summary } from "../features/review/ReviewSection2Summary";
-import { ReviewValidationPanel } from "../features/review/ReviewValidationPanel";
-import { useReviewNavigation } from "../features/review/useReviewNavigation";
-import { useSubmitApplication } from "../features/review/useSubmitApplication";
+import {
+  ReviewDeclaration,
+  ReviewSection1Summary,
+  ReviewSection2Summary,
+  ReviewStepPage,
+  ReviewValidationPanel,
+  useReviewNavigation,
+  useSubmitApplication,
+} from "../features/review";
 import { useApplication } from "../context/ApplicationContext";
 
 export default function ReviewAndSubmit() {
@@ -25,38 +27,23 @@ export default function ReviewAndSubmit() {
   const prefilledFrom = data.applicationMeta.prefilledFrom;
 
   return (
-    <div className="bg-gray-50 pb-12">
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <div className="mb-6 sm:mb-8">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-700 sm:text-sm">
-              Section 3 of 3
-            </span>
-            <span className="text-xs font-medium text-gray-700 sm:text-sm">
-              100%
-            </span>
-          </div>
-          <div className="h-2 w-full rounded-full bg-gray-200">
-            <div className="h-2 w-full rounded-full bg-[var(--cta-secondary)] transition-all duration-300" />
-          </div>
-        </div>
-
+    <>
+      <ReviewStepPage
+        continueDisabled={isSubmitting}
+        onContinue={handleSubmit}
+        onPrevious={() => navigate("/section2/qualifications")}
+        onSaveAndExit={handleSaveAndExit}
+        previousDisabled={isSubmitting}
+        secondaryDisabled={isSubmitting}
+      >
         <div className="mb-6">
-          <h1 className="mb-2 text-2xl font-bold text-gray-900 sm:text-3xl">
-            Review and submit
-          </h1>
-          <p className="text-sm text-gray-600 sm:text-base">
-            Please review all information carefully before submitting your
-            application
-          </p>
           {prefilledFrom ? (
             <CopiedApplicationNotice
-              className="mt-4"
               prefilledFrom={prefilledFrom}
               readyToSubmit={validationErrors.length === 0}
             />
           ) : validationErrors.length === 0 ? (
-            <div className="mt-4 rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3">
+            <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3">
               <p className="text-sm font-medium text-[var(--info-text)]">
                 Review before submitting
               </p>
@@ -87,19 +74,7 @@ export default function ReviewAndSubmit() {
           <ReviewSection2Summary data={data} onEdit={navigateToReviewEdit} />
           <ReviewDeclaration />
         </div>
-
-        <FormActionBar
-          previousDisabled={isSubmitting}
-          previousLabel="Previous"
-          primaryDisabled={isSubmitting}
-          primaryLabel="Submit application"
-          onPrevious={() => navigate("/section2/qualifications")}
-          onPrimary={handleSubmit}
-          onSecondary={handleSaveAndExit}
-          secondaryDisabled={isSubmitting}
-          secondaryLabel="Save & Exit"
-        />
-      </div>
+      </ReviewStepPage>
 
       {isSubmitting ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50">
@@ -111,6 +86,6 @@ export default function ReviewAndSubmit() {
           </div>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }

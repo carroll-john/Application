@@ -1,5 +1,6 @@
 export * from "./ReviewSections";
 export { ReviewDeclaration } from "./ReviewDeclaration";
+export { ReviewStepPage } from "./ReviewStepPage";
 export { ReviewSection1Summary } from "./ReviewSection1Summary";
 export { ReviewSection2Summary } from "./ReviewSection2Summary";
 export { ReviewValidationPanel } from "./ReviewValidationPanel";
