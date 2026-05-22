@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { DocumentUploadField } from "../components/DocumentUploadField";
-import { StatusMessage } from "../components/StatusMessage";
 import { YearPickerField } from "../components/ui/date-controls";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -8,13 +7,11 @@ import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { Section2FormCard, Section2RecordPage } from "../features/section2";
 import { useEditableRecord } from "../hooks/useEditableRecord";
-import { useSection2Navigation } from "../hooks/useSection2Navigation";
+import { useSection2RecordSave } from "../hooks/useSection2RecordSave";
 import { saveDocumentAttachment } from "../lib/documentAttachment";
-import { getDocumentUploadErrorMessage } from "../lib/documentStorage";
 import { years } from "../lib/formOptions";
 
 export default function Section2AddLanguageTest() {
-  const { returnToQualifications } = useSection2Navigation();
   const { data, ensureRemoteRecordId, addLanguageTest, updateLanguageTest } =
     useApplication();
   const { existing, isEditing, initialRecord } = useEditableRecord(
@@ -31,10 +28,6 @@ export default function Section2AddLanguageTest() {
 
   const [formData, setFormData] = useState(initialRecord);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [statusMessage, setStatusMessage] = useState<{
-    message: string;
-    type: "success" | "warning" | "error" | "status";
-  } | null>(null);
   const originalDocument = existing?.document;
 
   const saveRecord = async () => {
@@ -60,38 +53,24 @@ export default function Section2AddLanguageTest() {
     }
   };
 
+  const { statusMessage, clearStatusMessage, handleSaveAndReturn } =
+    useSection2RecordSave({
+      errorFallbackMessage:
+        "We couldn't save this language test right now. Please try again.",
+      saveRecord,
+    });
+
   return (
     <Section2RecordPage
       addTitle="Add English Language Test"
       description="Add your English language test details."
       editTitle="Edit English Language Test"
       isEditing={isEditing}
-      onContinue={async () => {
-        setStatusMessage(null);
-
-        try {
-          await saveRecord();
-          returnToQualifications();
-        } catch (error) {
-          setStatusMessage({
-            message:
-              getDocumentUploadErrorMessage(error) ??
-              "We couldn't save this language test right now. Please try again.",
-            type: "error",
-          });
-        }
-      }}
+      navigateAfterSave={false}
+      statusMessage={statusMessage}
+      onDismissStatus={clearStatusMessage}
+      onSave={handleSaveAndReturn}
     >
-      {statusMessage ? (
-        <div className="mb-6">
-          <StatusMessage
-            message={statusMessage.message}
-            type={statusMessage.type}
-            onDismiss={() => setStatusMessage(null)}
-          />
-        </div>
-      ) : null}
-
       <Section2FormCard>
         <div className="space-y-6">
           <div>
