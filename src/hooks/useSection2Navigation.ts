@@ -1,14 +1,13 @@
 import { useNavigate } from "react-router-dom";
+import { SECTION2_QUALIFICATIONS_PATH } from "../lib/section2Steps";
 import { useReviewReturn } from "./useReviewReturn";
-
-const QUALIFICATIONS_PATH = "/section2/qualifications";
 
 export function useSection2Navigation() {
   const navigate = useNavigate();
   const { returnPath } = useReviewReturn();
 
   return {
-    returnToQualifications: () => navigate(returnPath(QUALIFICATIONS_PATH)),
-    qualificationsPath: returnPath(QUALIFICATIONS_PATH),
+    returnToQualifications: () => navigate(returnPath(SECTION2_QUALIFICATIONS_PATH)),
+    qualificationsPath: returnPath(SECTION2_QUALIFICATIONS_PATH),
   };
 }

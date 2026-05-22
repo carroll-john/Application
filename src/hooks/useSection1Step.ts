@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { getSection1Step, type Section1StepKey } from "../lib/section1Steps";
+import { createSection1ShellNavigation } from "./section1Navigation";
 import { useReviewReturn } from "./useReviewReturn";
 
 interface UseSection1StepOptions {
@@ -12,30 +13,16 @@ export function useSection1Step({ step, persist }: UseSection1StepOptions) {
   const { fromReview, previousLabel, returnPath } = useReviewReturn();
   const definition = getSection1Step(step);
 
-  const runPersist = () => {
-    void persist();
-  };
-
   return {
     fromReview,
     step: definition,
-    shellProps: {
-      onPrevious: () => {
-        runPersist();
-        navigate(returnPath(definition.previousPath));
-      },
-      onSaveAndExit: fromReview
-        ? undefined
-        : () => {
-            runPersist();
-            navigate("/dashboard");
-          },
-      onContinue: () => {
-        runPersist();
-        navigate(returnPath(definition.continuePath));
-      },
+    shellProps: createSection1ShellNavigation({
+      definition,
+      fromReview,
+      navigate,
+      persist,
       previousLabel,
-      continueLabel: fromReview ? "Save & Return to Review" : "Continue",
-    },
+      returnPath,
+    }),
   };
 }

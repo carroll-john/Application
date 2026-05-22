@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { getSection1Step, section1Steps } from "./section1Steps";
+import {
+  buildSection1ApplicationStepDefinitions,
+  buildSection1RouteAnalyticsDefinitions,
+  getSection1Step,
+  section1Steps,
+} from "./section1Steps";
+import {
+  getApplicationStepDefinition,
+  getRouteAnalyticsDefinition,
+} from "./analytics/applicationSteps";
 
 describe("section1Steps", () => {
   it("defines a continuous wizard chain from overview to section 2", () => {
@@ -22,5 +31,15 @@ describe("section1Steps", () => {
     expect(basicInfo.path).toBe("/section1/basic-info");
     expect(basicInfo.sectionLabel).toBe("Section 1 of 3");
     expect(basicInfo.progress).toBeGreaterThan(0);
+  });
+
+  it("derives analytics definitions that resolve Section 1 routes", () => {
+    for (const step of section1Steps) {
+      expect(getRouteAnalyticsDefinition(step.path)?.key).toBe(step.analytics.routeKey);
+      expect(getApplicationStepDefinition(step.path)?.key).toBe(step.analytics.stepKey);
+    }
+
+    expect(buildSection1RouteAnalyticsDefinitions()).toHaveLength(section1Steps.length);
+    expect(buildSection1ApplicationStepDefinitions()).toHaveLength(section1Steps.length);
   });
 });
