@@ -96,8 +96,16 @@ export function clearPasswordRecoveryQueryFromUrl() {
   window.history.replaceState(window.history.state, "", nextUrl);
 }
 
-export function buildPasswordResetRedirectUrl(origin: string) {
+export function buildPasswordResetRedirectUrl(
+  origin: string,
+  redirectPath?: string | null,
+) {
   const base = origin.replace(/\/$/, "");
+  const sanitized = sanitizeRedirectPath(redirectPath);
+  const params = new URLSearchParams({
+    recovery: "1",
+    redirect: sanitized,
+  });
 
-  return `${base}/sign-in?recovery=1`;
+  return `${base}/sign-in?${params.toString()}`;
 }

@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Sign-in says email not confirmed | Either | User has not clicked the confirmation link yet |
 | No confirmation email arrives | Hosted | Built-in Supabase mail quota or missing custom SMTP |
-| OTP / confirmation emails stop after a few tries | Hosted | Supabase built-in sender (`noreply@mail.app.supabase.io`) hit `over_email_send_rate_limit` — configure Resend SMTP |
+| Confirmation or reset emails stop after a few tries | Hosted | Supabase built-in sender (`noreply@mail.app.supabase.io`) hit `over_email_send_rate_limit` — configure Resend SMTP |
 | Confirmation link opens but user is not signed in | Either | Redirect URL not allow-listed, or project paused |
 | Invalid credentials on sign-in | Either | Wrong password, or the account was created under the old email-code flow and never got a password you chose |
 | Create account says confirmation sent but no email arrives | **Production** | Email already registered — Supabase returns success without resending (anti-enumeration). Use **Sign in** instead. |
@@ -84,7 +84,7 @@ Hosted Supabase auth logs (2026-05-22) showed confirmation mail still sent from 
 
 ## Existing OTP-only accounts
 
-Accounts created under the previous OTP flow may exist in `auth.users` without passwords. Those users cannot sign in with email + password until they create a new account or a password reset flow is added.
+Accounts created under the previous email-code flow may exist in `auth.users` without passwords. Those users should open **Sign in → Forgot password** to set a password for the existing account.
 
 ## Related docs
 

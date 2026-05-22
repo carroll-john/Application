@@ -50,7 +50,7 @@ interface AuthContextType {
     password: string,
     options?: { redirectPath?: string },
   ) => Promise<SignUpWithPasswordResult>;
-  requestPasswordReset: (email: string) => Promise<{ error: string | null }>;
+  requestPasswordReset: (email: string, options?: { redirectPath?: string }) => Promise<{ error: string | null }>;
   updatePasswordAfterRecovery: (
     password: string,
   ) => Promise<{ error: string | null }>;
@@ -194,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           supabaseUrl: configuredSupabaseUrl,
         });
       },
-      requestPasswordReset: async (email) => {
+      requestPasswordReset: async (email, options) => {
         if (!supabase) {
           return {
             error: "Authentication is not configured on this deployment.",
@@ -203,7 +203,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const redirectTo =
           typeof window !== "undefined"
-            ? buildPasswordResetRedirectUrl(window.location.origin)
+            ? buildPasswordResetRedirectUrl(
+                window.location.origin,
+                options?.redirectPath,
+              )
             : undefined;
 
         return requestPasswordResetRequest(supabase.auth, email, {

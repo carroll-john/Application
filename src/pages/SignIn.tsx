@@ -4,7 +4,7 @@ import { AuthPanel } from "../features/auth";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { useAuth } from "../context/AuthContext";
-import { hasPasswordRecoveryTokenInUrl, sanitizeRedirectPath } from "../lib/authCallback";
+import { sanitizeRedirectPath } from "../lib/authCallback";
 
 export default function SignIn() {
   const location = useLocation();
@@ -13,7 +13,6 @@ export default function SignIn() {
   const redirectPath = sanitizeRedirectPath(
     new URLSearchParams(location.search).get("redirect"),
   );
-  const isRecoveryRoute = isPasswordRecovery || hasPasswordRecoveryTokenInUrl();
 
   if (isLoading) {
     return (
@@ -26,7 +25,7 @@ export default function SignIn() {
     );
   }
 
-  if (isAuthenticated && !isRecoveryRoute) {
+  if (isAuthenticated && !isPasswordRecovery) {
     return <Navigate replace to={redirectPath} />;
   }
 

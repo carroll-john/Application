@@ -37,7 +37,7 @@ npm run finish-task -- "Task name"
 Load only these files for typical tasks (~5–15 files each):
 
 ### auth
-`src/context/AuthContext.tsx`, `src/lib/authPassword.ts`, `src/lib/authCallback.ts`, `src/features/auth/*`, `src/pages/SignIn.tsx`, `src/pages/AuthCallback.tsx`, `src/lib/supabase.ts`
+`src/context/AuthContext.tsx`, `src/lib/authPassword.ts`, `src/lib/authCallback.ts`, `src/features/auth/AuthPanel.tsx`, `src/features/auth/types.ts`, `src/features/auth/components/*`, `src/features/auth/screens/*`, `src/features/auth/AuthModal.tsx`, `src/features/profile/ProfilePasswordSection.tsx`, `src/pages/SignIn.tsx`, `src/pages/AuthCallback.tsx`, `src/lib/supabase.ts`
 
 ### application-state
 `src/context/ApplicationContext.tsx`, `src/features/application/hooks/useApplicationData.ts`, `src/features/application/hooks/useApplicationProfile.ts`, `src/lib/applicationData.ts`, `src/lib/validation/*`

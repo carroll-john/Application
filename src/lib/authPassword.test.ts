@@ -6,6 +6,8 @@ import {
   signInWithPassword,
   signUpWithPassword,
   updatePasswordAfterRecovery,
+  validatePasswordPair,
+  validateSignUpForm,
 } from "./authPassword";
 
 function createAuthMock() {
@@ -66,6 +68,19 @@ describe("authPassword", () => {
         "An account with this email already exists. Switch to Sign in instead.",
       outcome: "existing_account",
     });
+  });
+
+  it("validates matching password pairs", () => {
+    expect(validatePasswordPair("secret123", "secret123")).toBeNull();
+    expect(validatePasswordPair("123", "123")).toMatch(/at least/i);
+    expect(validatePasswordPair("secret123", "different")).toMatch(/do not match/i);
+  });
+
+  it("validates sign-up form input before calling Supabase", () => {
+    expect(validateSignUpForm("user@example.com", "secret123", "secret123")).toBeNull();
+    expect(validateSignUpForm("bad-email", "secret123", "secret123")).toMatch(
+      /valid email/i,
+    );
   });
 
   it("rejects invalid email and short passwords before calling Supabase", async () => {
@@ -130,12 +145,12 @@ describe("authPassword", () => {
     await expect(
       requestPasswordReset(auth, "user@example.com", {
         redirectTo:
-          "https://application-prototype.vercel.app/sign-in?redirect=%2Fprofile",
+          "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fprofile",
       }),
     ).resolves.toEqual({ error: null });
     expect(auth.resetPasswordForEmail).toHaveBeenCalledWith("user@example.com", {
       redirectTo:
-        "https://application-prototype.vercel.app/sign-in?redirect=%2Fprofile",
+        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fprofile",
     });
   });
 
