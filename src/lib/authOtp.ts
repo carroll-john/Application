@@ -90,7 +90,36 @@ function formatAuthVerificationError(
     return formatAuthConnectivityError(supabaseUrl);
   }
 
+  if (/expired|invalid|otp/i.test(message)) {
+    return "That code is invalid or expired. Request a new code and use the one from your most recent email.";
+  }
+
   return "That code is invalid or expired. Request a new code and try again.";
+}
+
+async function verifyEmailOtpWithFallback(
+  auth: AuthClient,
+  email: string,
+  token: string,
+) {
+  const verifyTypes = ["email", "magiclink"] as const;
+  let lastError: unknown = null;
+
+  for (const type of verifyTypes) {
+    const { error } = await auth.verifyOtp({
+      email,
+      token,
+      type,
+    });
+
+    if (!error) {
+      return { error: null as string | null };
+    }
+
+    lastError = error;
+  }
+
+  return { error: lastError };
 }
 
 export async function requestEmailOtp(
@@ -140,13 +169,19 @@ export async function verifyEmailOtpCode(
   }
 
   try {
-    const { error } = await auth.verifyOtp({
-      email: normalizedEmail,
-      token: normalizedToken,
-      type: "email",
-    });
+    const { error: verificationError } = await verifyEmailOtpWithFallback(
+      auth,
+      normalizedEmail,
+      normalizedToken,
+    );
 
-    return { error: formatAuthVerificationError(error, options?.supabaseUrl) };
+    if (verificationError instanceof Error && isFetchFailure(verificationError.message)) {
+      return { error: formatAuthConnectivityError(options?.supabaseUrl) };
+    }
+
+    return {
+      error: formatAuthVerificationError(verificationError, options?.supabaseUrl),
+    };
   } catch (error) {
     return { error: formatAuthVerificationError(error, options?.supabaseUrl) };
   }

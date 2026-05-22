@@ -41,6 +41,30 @@ describe("authOtp", () => {
       token: "123456",
       type: "email",
     });
+    expect(auth.verifyOtp).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to magiclink verification when email type fails", async () => {
+    const auth = createAuthMock();
+    auth.verifyOtp
+      .mockResolvedValueOnce({
+        error: { message: "Token has expired or is invalid" },
+      })
+      .mockResolvedValueOnce({ error: null });
+
+    await expect(
+      verifyEmailOtpCode(auth, "user@example.com", "123456"),
+    ).resolves.toEqual({ error: null });
+    expect(auth.verifyOtp).toHaveBeenNthCalledWith(1, {
+      email: "user@example.com",
+      token: "123456",
+      type: "email",
+    });
+    expect(auth.verifyOtp).toHaveBeenNthCalledWith(2, {
+      email: "user@example.com",
+      token: "123456",
+      type: "magiclink",
+    });
   });
 
   it("rejects invalid email and code values before calling Supabase", async () => {

@@ -153,6 +153,7 @@ export function AuthPanel({
       auth_step: "resend",
       email_domain: sentEmail.split("@")[1] ?? "unknown",
     });
+    setCode("");
   }
 
   return (
@@ -168,7 +169,7 @@ export function AuthPanel({
         </h2>
         <p className="text-sm leading-6 text-slate-600">
           {sentEmail
-            ? `We sent a 6-digit sign-in code to ${sentEmail}.`
+            ? `We sent a 6-digit sign-in code to ${sentEmail}. Use the code from your most recent email.`
             : "Use your email to sign in or create an applicant account. No password required."}
         </p>
         {showLocalMailpitHint ? (
