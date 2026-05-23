@@ -258,7 +258,8 @@ async function forwardToEligibilityService(
   }
 
   const forwardPayload = new FormData();
-  forwardPayload.append("file", file);
+  const forwardBlob = new Blob([fileBuffer], { type: mimeType });
+  forwardPayload.append("file", forwardBlob, file.name || "transcript");
   forwardPayload.append("context", JSON.stringify(context));
 
   const headers = new Headers();
