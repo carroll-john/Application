@@ -1,11 +1,14 @@
 import { Loader2 } from "lucide-react";
 
-interface CvSaveProgressPanelProps {
+interface Section2SaveProgressPanelProps {
   detail: string;
   title: string;
 }
 
-export function CvSaveProgressPanel({ detail, title }: CvSaveProgressPanelProps) {
+export function Section2SaveProgressPanel({
+  detail,
+  title,
+}: Section2SaveProgressPanelProps) {
   return (
     <div
       aria-live="polite"
