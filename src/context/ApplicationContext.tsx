@@ -39,6 +39,7 @@ interface ApplicationContextType {
     course: SelectedCourse,
     options?: BeginCourseApplicationOptions,
   ) => Promise<ApplicationData>;
+  ensureApplicationRow: () => Promise<string>;
   ensureRemoteRecordId: () => Promise<string>;
   getNextIncompleteSection: (
     application?: ApplicationData,
@@ -122,6 +123,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     beginCourseApplication,
     data,
     dismissLocalDraftImport,
+    ensureApplicationRow,
     ensureRemoteRecordId,
     importLocalDrafts,
     isHydrating,
@@ -155,6 +157,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       applications,
       data,
       beginCourseApplication,
+      ensureApplicationRow,
       ensureRemoteRecordId,
       dismissLocalDraftImport,
       getNextIncompleteSection: dataActions.getNextIncompleteSection,
@@ -197,6 +200,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       data,
       dataActions,
       dismissLocalDraftImport,
+      ensureApplicationRow,
       ensureRemoteRecordId,
       importLocalDrafts,
       isHydrating,

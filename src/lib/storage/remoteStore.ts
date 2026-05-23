@@ -409,7 +409,11 @@ function getRemoteUuid(id: string | undefined) {
 export async function saveRemoteApplication(
   session: Session,
   data: ApplicationData,
-  options?: { applicantProfileId?: string | null; forceCreate?: boolean },
+  options?: {
+    applicantProfileId?: string | null;
+    forceCreate?: boolean;
+    shellOnly?: boolean;
+  },
 ): Promise<RemoteSaveResult | null> {
   const client = requireSupabaseClient();
 
@@ -497,6 +501,16 @@ export async function saveRemoteApplication(
   }
 
   const applicationId = applicationRow.id;
+
+  if (options?.shellOnly) {
+    return {
+      applicantProfileId: applicationRow.applicant_profile_id ?? null,
+      applicationId,
+      applicationNumber: applicationRow.application_number ?? undefined,
+      submittedAt: applicationRow.submitted_at ?? undefined,
+      updatedAt: applicationRow.updated_at,
+    };
+  }
 
   const deleteResponses = await Promise.all([
     client.from("tertiary_qualifications").delete().eq("application_id", applicationId),

@@ -64,7 +64,7 @@ export function useApplicationStorageOrchestration({
     };
   }, []);
 
-  const { ensureRemoteRecordId, persistApplication } = useApplicationPersistence({
+  const { ensureApplicationRow, ensureRemoteRecordId, persistApplication } = useApplicationPersistence({
     activeApplicationId,
     applicantProfileId,
     data,
@@ -161,6 +161,7 @@ export function useApplicationStorageOrchestration({
       beginCourseApplication,
       data,
       dismissLocalDraftImport,
+      ensureApplicationRow,
       ensureRemoteRecordId,
       importLocalDrafts,
       isHydrating,
@@ -177,6 +178,7 @@ export function useApplicationStorageOrchestration({
       beginCourseApplication,
       data,
       dismissLocalDraftImport,
+      ensureApplicationRow,
       ensureRemoteRecordId,
       importLocalDrafts,
       isHydrating,

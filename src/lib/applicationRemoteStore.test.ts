@@ -698,6 +698,65 @@ describe("saveRemoteApplication", () => {
       false,
     );
   });
+
+  it("skips child-table rewrites when shellOnly is true", async () => {
+    mockClient.tableResults.set("applications", [
+      {
+        data: {
+          id: "770e8400-e29b-41d4-a716-446655440003",
+          applicant_profile_id: "profile-1",
+          application_number: null,
+          submitted_at: null,
+          updated_at: "2026-04-10T00:00:00Z",
+        },
+        error: null,
+      },
+    ]);
+
+    const result = await saveRemoteApplication(
+      session,
+      {
+        applicationMeta: {
+          recordId: "770e8400-e29b-41d4-a716-446655440003",
+          applicantProfileId: "profile-1",
+          selectedCourse: {
+            code: "MATCHED-202",
+            title: "Matched Course",
+            provider: "Matched University",
+            intake: "Matched Intake",
+          },
+        },
+        personalDetails: {},
+        contactDetails: {},
+        cvDocument: undefined,
+        cvFileName: undefined,
+        cvUploaded: false,
+        tertiaryQualifications: [
+          {
+            id: "qual-1",
+            institution: "Example Uni",
+            country: "Australia",
+            level: "Bachelor",
+            courseName: "Example",
+            startMonth: "January",
+            startYear: "2020",
+            completed: true,
+            endMonth: "December",
+            endYear: "2023",
+          },
+        ],
+        employmentExperiences: [],
+        professionalAccreditations: [],
+        secondaryQualifications: [],
+        languageTests: [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      { forceCreate: true, shellOnly: true },
+    );
+
+    expect(result?.applicationId).toBe("770e8400-e29b-41d4-a716-446655440003");
+    expect(mockClient.fromCalls.every((call) => call.table === "applications")).toBe(true);
+  });
 });
 
 describe("submitRemoteApplication", () => {
