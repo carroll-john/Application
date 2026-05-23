@@ -30,13 +30,26 @@ Enforced in client and DB:
 - Proxy returns `Cache-Control: no-store` and attachment disposition for sensitive MIME types.
 - Localhost may fall back to signed URLs only when proxy unavailable.
 
+## Section 2 upload sequence
+
+1. `ensureApplicationRow()` — shell-only application persist (no child-table rewrite). See [memory-applications.md](memory-applications.md).
+2. `saveDocumentAttachment({ kind, ... })` — replace/delete via hybrid storage.
+3. Collection mutator or CV exception (`uploadCV` / `removeCV`) — attach metadata to application state.
+
+Optional parse layer on top: [memory-document-parsing.md](memory-document-parsing.md).
+
 ## Key Files
 
 | File | Role |
 |------|------|
-| `src/lib/documentStorage.ts` | IndexedDB + remote upload + fetch |
+| `src/lib/documentStorage.ts` | Public barrel (re-exports storage modules) |
+| `src/lib/storage/localDocumentStore.ts` | IndexedDB local documents |
+| `src/lib/storage/remoteDocumentUpload.ts` | Supabase upload + metadata rows |
+| `src/lib/storage/documentDelivery.ts` | Proxy fetch, view, download |
+| `src/lib/storage/documentReplace.ts` | Replace, duplicate, delete orchestration |
 | `src/lib/documentAttachment.ts` | Attachment metadata helpers |
-| `src/lib/documentUploadLimits.ts` | Quota constants |
+| `src/features/section2/section2DocumentSave.ts` | Kind-generic Section 2 document save |
+| `src/lib/documentUploadLimits.ts` | Quota constants + friendly errors |
 | `src/components/DocumentUploadField.tsx` | Form field wrapper |
 | `api/document-delivery.ts` | Server proxy |
 

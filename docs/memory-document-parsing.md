@@ -1,0 +1,64 @@
+# Memory: Document Parsing
+
+Primary contract for kind-pluggable document parsing. Upload/save is kind-generic; parsing is optional and registered per `DocumentKind`.
+
+## Model
+
+- **Upload layer** — all Section 2 document pages use `saveSection2DocumentRecord({ kind })` + `saveDocumentAttachment`. See [memory-documents.md](memory-documents.md).
+- **Parse layer** — opt-in via `useSection2DocumentSaveWithParse` + a per-kind `DocumentParsePolicy` config in `src/features/section2/`.
+- **Registry** — client `documentParserRegistry` maps `ParseableDocumentKind` → API route + normalizer. Starts with `"cv"` only.
+- **API** — shared core in `api/_documentParser/`; kind-specific extraction in `api/_documentParser/kinds/{kind}/`. Thin route wrappers (e.g. `api/parse-cv.ts`) call shared core + kind module.
+
+## Gating
+
+Each kind policy defines `shouldParse(ctx)` — when false, save proceeds without parse. Example (CV): new file selected **and** employment section empty.
+
+## Parallel save + parse
+
+When gating passes, parse starts in parallel with document save. Upload failure is **blocking**; parse failure is **warning** (save succeeds, flash message on qualifications hub).
+
+## Progress UX
+
+`Section2SaveProgressPanel` shows in-save progress copy from policy config (not hardcoded in the hook). Navigate with `section2StatusMessage` flash per qualifications flow contract.
+
+## CV kind (first shipped parser)
+
+| Concern | Location |
+|---------|----------|
+| Page wiring | `src/pages/Section2AddCV.tsx` |
+| Parse policy | `src/features/section2/cvDocumentParsePolicy.ts` |
+| Client normalizer | `src/lib/documentParsers/cv.ts` |
+| Client registry entry | `documentParserRegistry.cv` |
+| API extraction | `api/_documentParser/kinds/cv/extraction.ts` |
+| Prompt + schema | `api/_ai/prompts/cvEmployment.v1.ts`, `api/_ai/schemas/cvEmployment.v1.ts` |
+| Apply draft | `replaceEmploymentExperiences` via `ApplicationContext` |
+| Analytics | `documentParserAnalytics.ts` (CV event names preserved for GA) |
+
+CV persist exception: after document save, call `uploadCV` / `removeCV` (app-scoped FK on `applications.cv_document_id`).
+
+## Adding kind #2 (future product — Phase 6)
+
+1. `api/_documentParser/kinds/{kind}/` + prompt/schema
+2. `src/lib/documentParsers/{kind}.ts`
+3. Extend `ParseableDocumentKind` + registry entry
+4. `src/features/section2/{kind}DocumentParsePolicy.ts`
+5. Page: `useSection2DocumentSaveWithParse(policy)` (1–5 lines)
+
+Do **not** copy upload hooks, storage paths, or save orchestration per kind.
+
+## Key Files
+
+| File | Role |
+|------|------|
+| `src/features/section2/useSection2DocumentSaveWithParse.ts` | Generic save + optional parse orchestration |
+| `src/features/section2/section2DocumentSave.ts` | Kind-generic document record save |
+| `src/lib/documentParserClient.ts` | `requestParseDocument(file, kind)` |
+| `src/lib/documentParserRegistry.ts` | Kind → client config |
+| `api/_documentParser/*` | Shared auth, file policy, errors, Sentry |
+| `src/lib/documentFilePolicy.ts` | Shared MIME/size constants (client) |
+| `api/_shared/documentFilePolicy.ts` | Shared MIME/size constants (server) |
+
+## Agent Module Boundary
+
+Owns: parse policies, registry, API parser framework, analytics with `document_kind`.
+Coordinate before changing: upload limits, `ApplicationContext` persist contracts.
