@@ -76,4 +76,37 @@ describe("getDocumentUploadErrorMessage", () => {
   it("returns null for unrelated errors", () => {
     expect(getDocumentUploadErrorMessage(new Error("boom"))).toBeNull();
   });
+
+  it("returns a friendly message for missing storage objects", () => {
+    expect(
+      getDocumentUploadErrorMessage({
+        message: "DOCUMENT_STORAGE_OBJECT_MISSING",
+      }),
+    ).toBe("Upload didn't finish storing your file. Please try again.");
+  });
+
+  it("returns a friendly message for storage owner mismatch", () => {
+    expect(
+      getDocumentUploadErrorMessage({
+        message: "UPLOAD_STORAGE_OWNER_MISMATCH",
+      }),
+    ).toBe("Session mismatch — sign out and back in, then retry.");
+  });
+
+  it("returns a friendly message for unsupported MIME types", () => {
+    expect(
+      getDocumentUploadErrorMessage({
+        message: "mime type application/octet-stream is not allowed",
+      }),
+    ).toBe("This file type isn't supported. Use PDF, DOC, DOCX, or TXT.");
+  });
+
+  it("returns a friendly message for unauthorized uploads", () => {
+    expect(
+      getDocumentUploadErrorMessage({
+        message: "JWT expired",
+        statusCode: 401,
+      }),
+    ).toBe("Sign in again before uploading.");
+  });
 });

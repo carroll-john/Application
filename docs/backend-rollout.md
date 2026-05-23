@@ -190,9 +190,14 @@ Notes:
   - localhost dev falls back to signed URLs only when the proxy endpoint is unavailable
 - CV parsing now runs through the Vercel server function `/api/parse-cv`:
   - requires `OPENAI_API_KEY`
+  - requires `SUPABASE_URL` and `SUPABASE_ANON_KEY` (or `VITE_*` fallbacks) on Vercel so deployed auth checks succeed
   - optionally uses `OPENAI_CV_PARSER_MODEL`
   - can be cohort-gated with the PostHog feature flag `cv_parser_autofill_experiment`
   - drafts employment history back into the same local application state used in Section 2
+- Production CV upload checklist (after deploy):
+  - confirm `20260522120000_storage_quota_and_document_integrity.sql` is applied in the Supabase SQL editor
+  - upload a `.docx` from Safari/macOS (empty `file.type`) on `/section2/add-cv` — should succeed with inferred MIME
+  - with empty employment history and the parser flag enabled, Save should draft roles or show a parser warning (CV still saved)
 - Remaining limitation:
   - the remote storage path still needs end-to-end verification against a real Supabase project and bucket configuration
   - document cleanup is best-effort today; orphaned remote file records are still possible if a document upload succeeds but a later draft save fails
