@@ -70,17 +70,16 @@ Optional flags:
 
 The script writes `results.json` and `results.csv` to a timestamped folder in `/tmp` by default.
 
-## PostHog CV Parser Experiment
+## CV Parser Analytics
 
-The CV employment auto-draft flow is gated by PostHog feature flag `cv_parser_autofill_experiment` by default.
+When a user saves a new CV with no existing employment history, the app drafts employment roles from the CV via `/api/parse-cv`.
 
-Configure these frontend env vars for experiment control:
+Configure these frontend env vars for analytics:
 
 ```env
 VITE_ANALYTICS_HASH_SALT=any_non_empty_string
 VITE_POSTHOG_KEY=your_posthog_project_api_key
 VITE_POSTHOG_HOST=https://us.i.posthog.com
-VITE_POSTHOG_CV_PARSER_FLAG=cv_parser_autofill_experiment
 ```
 
 > `VITE_ANALYTICS_HASH_SALT` is bundled into the client build and is therefore
@@ -90,16 +89,13 @@ VITE_POSTHOG_CV_PARSER_FLAG=cv_parser_autofill_experiment
 > identifier requires server-side hashing with a real secret, or a random
 > (non-PII-derived) id.
 
-When the flag resolves to `enabled`, `on`, `true`, `test`, `treatment`, or `variant*`, CV auto-drafting runs.
-All other variants are treated as control and skip the parser call after CV save.
-
-The app captures experiment events:
-- `cv_parser_experiment_exposure`
+The app captures CV parser events:
 - `cv_parser_save_continue_clicked`
-- `cv_parser_autofill_succeeded`
-- `cv_parser_autofill_empty`
-- `cv_parser_autofill_failed`
-- `cv_parser_autofill_skipped_control`
+- `cv_parser_draft_succeeded`
+- `cv_parser_draft_empty`
+- `cv_parser_draft_failed`
+
+These replaced the earlier experiment events (`cv_parser_autofill_*` and `cv_parser_experiment_exposure`) when the feature graduated from A/B testing.
 
 ## Document Upload Guardrails
 

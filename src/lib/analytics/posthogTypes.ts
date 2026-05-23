@@ -45,25 +45,3 @@ export const BOT_USER_AGENT_PATTERN =
   /(bot|spider|crawl|slurp|bingpreview|headless|phantomjs|ahrefsbot|semrushbot|mj12bot|dotbot|facebookexternalhit|gptbot|chatgpt-user|claudebot|anthropic-ai|perplexitybot|bytespider|duckduckbot|baiduspider|yandexbot|applebot)/i;
 export const AUTOMATION_USER_AGENT_PATTERN =
   /(playwright|puppeteer|cypress|selenium|webdriver|postmanruntime|insomnia|curl|wget|python-requests)/i;
-export const ENABLED_VARIANTS = new Set([
-  "enabled",
-  "on",
-  "true",
-  "test",
-  "treatment",
-  "variant",
-  "variant_a",
-  "variant_b",
-]);
-
-export interface CvParserExperimentState {
-  enabled: boolean;
-  source: "posthog" | "fallback";
-  variant: string | boolean | null;
-}
-
-export type AiExperimentState = CvParserExperimentState;
-
-export const CV_PARSER_FEATURE_FLAG_KEY =
-  import.meta.env.VITE_POSTHOG_CV_PARSER_FLAG?.trim() ||
-  "cv_parser_autofill_experiment";
