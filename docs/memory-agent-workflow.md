@@ -25,7 +25,7 @@ npm run finish-task -- "Task name"
 | Documents | `src/lib/documentStorage.test.ts`, `documentUploadLimits.test.ts` |
 | Validation / progress | `src/lib/applicationValidationSchema.test.ts`, `applicationValidationSchema.integration.test.ts`, `applicationProgress.test.ts`, `section1Steps.test.ts`, `section2Steps.test.ts` |
 | Section 2 requirements | `src/lib/section2Requirements.test.ts` |
-| Document parser client / registry | `src/lib/documentParserClient.test.ts`, `documentParserRegistry.test.ts`, `documentParsers/cv.test.ts` |
+| Document parser client / registry | `src/lib/documentParserClient.test.ts`, `documentParserRegistry.test.ts`, `cvParser.test.ts` |
 | CV parser client (compat) | `src/lib/cvParserClient.test.ts` |
 | CV parser API | `api/_ai/callLlm.test.ts`, `npm run test:cv-parser` (needs dev server + OPENAI_API_KEY) |
 | Section 2 document save | `src/features/section2/section2DocumentSave.test.ts`, `useSection2DocumentSaveWithParse.test.ts` |

@@ -11,6 +11,7 @@ Durable product, UX, and implementation contracts. For task-specific detail, loa
 | [memory-auth.md](memory-auth.md) | Password auth, session, redirects, profile |
 | [memory-applications.md](memory-applications.md) | Multi-app model, validation, submit, course catalog |
 | [memory-documents.md](memory-documents.md) | Uploads, hybrid storage, delivery proxy |
+| [memory-document-parsing.md](memory-document-parsing.md) | Kind-pluggable document parsing (CV first) |
 | [memory-ui.md](memory-ui.md) | Primitives, CTAs, form navigation |
 | [memory-agent-workflow.md](memory-agent-workflow.md) | Tests, module boundaries, local dev |
 
