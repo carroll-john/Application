@@ -42,6 +42,7 @@ export function useApplicationPersistence({
       const persistedData = await storageAdapter.saveApplication(mergedData, {
         applicantProfileId: resolvedApplicantProfileId,
         forceCreate: options?.forceCreate,
+        shellOnly: options?.shellOnly,
       });
 
       upsertLocalApplication(persistedData);
@@ -79,7 +80,29 @@ export function useApplicationPersistence({
     return recordId;
   }, [data, persistApplication, storageAdapter.mode]);
 
+  const ensureApplicationRow = useCallback(async () => {
+    const persisted = await persistApplication(data, {
+      forceCreate: true,
+      shellOnly: true,
+    });
+    const recordId = persisted.applicationMeta.recordId;
+
+    if (!recordId) {
+      throw new Error("Unable to create an application record.");
+    }
+
+    if (
+      storageAdapter.mode === "remote" &&
+      !isRemoteRecordId(recordId)
+    ) {
+      throw new Error("Unable to create an application record.");
+    }
+
+    return recordId;
+  }, [data, persistApplication, storageAdapter.mode]);
+
   return {
+    ensureApplicationRow,
     ensureRemoteRecordId,
     persistApplication,
   };

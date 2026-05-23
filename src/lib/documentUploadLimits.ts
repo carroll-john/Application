@@ -243,21 +243,21 @@ function getKnownDocumentUploadErrorMessage(error: unknown): string | null {
   }
 
   if (message === "UPLOAD_INVALID_STORAGE_PATH") {
-    return "We couldn't save your CV because the upload path was invalid. Refresh the page and try again.";
+    return "We couldn't save this document because the upload path was invalid. Refresh the page and try again.";
   }
 
   if (
     normalizedMessage.includes("row-level security") ||
     normalizedMessage.includes("violates row-level security")
   ) {
-    return "We couldn't save your CV because your session couldn't access this application. Sign out and back in, then try again.";
+    return "We couldn't save this document because your session couldn't access this application. Sign out and back in, then try again.";
   }
 
   if (
     normalizedMessage.includes("invalid input syntax for type uuid") ||
     normalizedMessage.includes("invalid uuid")
   ) {
-    return "We couldn't save your CV because this application draft is out of date. Refresh the page and try again.";
+    return "We couldn't save this document because this application draft is out of date. Refresh the page and try again.";
   }
 
   if (
@@ -301,7 +301,7 @@ function getKnownDocumentUploadErrorMessage(error: unknown): string | null {
     (normalizedMessage.includes("cv_document_id") &&
       normalizedMessage.includes("foreign key"))
   ) {
-    return "We couldn't save your CV because the previous file reference is out of date. Refresh the page and try again.";
+    return "We couldn't save this document because the previous file reference is out of date. Refresh the page and try again.";
   }
 
   if (

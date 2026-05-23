@@ -25,8 +25,10 @@ npm run finish-task -- "Task name"
 | Documents | `src/lib/documentStorage.test.ts`, `documentUploadLimits.test.ts` |
 | Validation / progress | `src/lib/applicationValidationSchema.test.ts`, `applicationValidationSchema.integration.test.ts`, `applicationProgress.test.ts`, `section1Steps.test.ts`, `section2Steps.test.ts` |
 | Section 2 requirements | `src/lib/section2Requirements.test.ts` |
-| CV parser client | `src/lib/cvParserClient.test.ts`, `cvParser.test.ts` |
+| Document parser client / registry | `src/lib/documentParserClient.test.ts`, `documentParserRegistry.test.ts`, `documentParsers/cv.test.ts` |
+| CV parser client (compat) | `src/lib/cvParserClient.test.ts` |
 | CV parser API | `api/_ai/callLlm.test.ts`, `npm run test:cv-parser` (needs dev server + OPENAI_API_KEY) |
+| Section 2 document save | `src/features/section2/section2DocumentSave.test.ts`, `useSection2DocumentSaveWithParse.test.ts` |
 | Course catalog / eligibility | `src/lib/courseCatalog.test.ts`, `courseEligibility.test.ts`, `courseBrowse.test.ts` |
 | Analytics | `src/lib/posthog.test.ts`, `analyticsIdentity.test.ts`, `clarity.test.ts` |
 | Hooks (Section 1/2) | `src/hooks/*.test.ts`, `src/hooks/section1Navigation.test.ts`, `src/hooks/useSection1Step.ts` |
@@ -60,8 +62,8 @@ Load only these files for typical tasks (~5–15 files each):
 ### review-submit
 `src/pages/ReviewAndSubmit.tsx`, `src/features/review/*`, `src/lib/reviewFormatters.ts`, `src/lib/applicationProgress.ts`
 
-### cv-ai-pipeline
-`api/parse-cv.ts`, `api/_cvParser/*`, `api/_ai/*`, `src/lib/cvParser.ts`, `src/lib/cvParserClient.ts`, `src/lib/cvEmployment/*`
+### document-parsing-pipeline
+`api/parse-cv.ts`, `api/_documentParser/*`, `api/_ai/*`, `src/lib/documentParserClient.ts`, `src/lib/documentParserRegistry.ts`, `src/lib/documentParsers/*`, `src/features/section2/cvDocumentParsePolicy.ts`, `src/features/section2/useSection2DocumentSaveWithParse.ts`, `src/lib/analytics/documentParserAnalytics.ts`
 
 ### analytics
 `src/lib/posthog.ts`, `src/lib/analytics/*`, `src/lib/clarity.ts`, `src/lib/sentry.ts`, `src/features/application/hooks/useApplicationAnalytics.ts`

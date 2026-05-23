@@ -37,10 +37,17 @@ Use feature step shells instead of page-local layout:
 |---------|---------|
 | `Section1StepPage` | Section 1 wizard steps |
 | `Section2RecordPage` | Section 2 add/edit record flows |
+| `Section2SaveProgressPanel` | Optional in-save progress during async Section 2 save (e.g. CV parse) |
 | `Section2QualificationsPage` | Section 2 qualifications hub |
 | `ReviewStepPage` | Review and submit step |
 
 Import form/auth shells from `features/forms` and `features/auth`, not `components/*` re-exports.
+
+## Section 2 async save
+
+- Standard record pages: `useSection2RecordSave` + inline `saveRecord` (errors via `StatusMessage` on the page shell).
+- Parse-enabled pages (CV today): `useSection2DocumentSaveWithParse` + kind policy; blocking upload errors on-page, parse failures as qualifications-hub flash (`section2StatusMessage`).
+- Document fields: `DocumentUploadField` or extracted wrappers (`CvUploadFields`, `TertiaryDocumentFields`) — not page-local `FileUpload` wiring.
 
 ## Mobile
 

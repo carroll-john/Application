@@ -1,12 +1,15 @@
 export * from "./QualificationsSectionUi";
-export { CvSaveProgressPanel } from "./CvSaveProgressPanel";
-export { CvUploadPanel } from "./CvUploadPanel";
+export { createCvDocumentParsePolicy } from "./cvDocumentParsePolicy";
+export { CvUploadFields } from "./CvUploadFields";
+export { saveSection2DocumentRecord } from "./section2DocumentSave";
 export { Section2FormCard } from "./Section2FormCard";
 export { Section2QualificationsPage } from "./Section2QualificationsPage";
 export { Section2RecordPage } from "./Section2RecordPage";
+export { Section2SaveProgressPanel } from "./Section2SaveProgressPanel";
 export { TertiaryDocumentFields } from "./TertiaryDocumentFields";
 export { TertiaryInstitutionFields } from "./TertiaryInstitutionFields";
 export { TertiaryQualificationFields } from "./TertiaryQualificationFields";
 export { TertiaryStudyPeriodFields } from "./TertiaryStudyPeriodFields";
 export * from "./types";
+export { useSection2DocumentSaveWithParse } from "./useSection2DocumentSaveWithParse";
 export { useSection2QualificationsFlow } from "./useSection2QualificationsFlow";
