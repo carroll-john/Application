@@ -62,18 +62,22 @@ export function useApplicationPersistence({
   );
 
   const ensureRemoteRecordId = useCallback(async () => {
-    if (isRemoteRecordId(data.applicationMeta.recordId)) {
-      return data.applicationMeta.recordId;
-    }
-
     const persisted = await persistApplication(data, { forceCreate: true });
+    const recordId = persisted.applicationMeta.recordId;
 
-    if (!persisted.applicationMeta.recordId) {
+    if (!recordId) {
       throw new Error("Unable to create an application record.");
     }
 
-    return persisted.applicationMeta.recordId;
-  }, [data, persistApplication]);
+    if (
+      storageAdapter.mode === "remote" &&
+      !isRemoteRecordId(recordId)
+    ) {
+      throw new Error("Unable to create an application record.");
+    }
+
+    return recordId;
+  }, [data, persistApplication, storageAdapter.mode]);
 
   return {
     ensureRemoteRecordId,

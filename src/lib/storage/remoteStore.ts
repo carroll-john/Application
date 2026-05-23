@@ -423,24 +423,48 @@ export async function saveRemoteApplication(
     user_id: session.user.id,
   };
 
-  const applicationQuery = remoteApplicationId
-    ? client
-        .from("applications")
-        .update(applicationPayload)
-        .eq("id", remoteApplicationId)
-        .eq("user_id", session.user.id)
-        .select("id, applicant_profile_id, application_number, submitted_at, updated_at")
-        .single()
-    : client
-        .from("applications")
-        .insert(applicationPayload)
-        .select("id, applicant_profile_id, application_number, submitted_at, updated_at")
-        .single();
+  let applicationRow:
+    | Pick<
+        Tables<"applications">,
+        | "applicant_profile_id"
+        | "application_number"
+        | "id"
+        | "submitted_at"
+        | "updated_at"
+      >
+    | null = null;
 
-  const { data: applicationRow, error: applicationError } = await applicationQuery;
+  if (remoteApplicationId) {
+    const { data: updatedRow, error: updateError } = await client
+      .from("applications")
+      .update(applicationPayload)
+      .eq("id", remoteApplicationId)
+      .eq("user_id", session.user.id)
+      .select("id, applicant_profile_id, application_number, submitted_at, updated_at")
+      .maybeSingle();
 
-  if (applicationError) {
-    throw applicationError;
+    if (updateError) {
+      throw updateError;
+    }
+
+    applicationRow = updatedRow;
+  }
+
+  if (!applicationRow) {
+    const { data: insertedRow, error: insertError } = await client
+      .from("applications")
+      .insert({
+        ...applicationPayload,
+        id: undefined,
+      })
+      .select("id, applicant_profile_id, application_number, submitted_at, updated_at")
+      .single();
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    applicationRow = insertedRow;
   }
 
   if (!applicationRow) {

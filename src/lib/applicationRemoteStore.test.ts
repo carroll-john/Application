@@ -356,6 +356,75 @@ describe("saveRemoteApplication", () => {
       applicant_profile_id: null,
     });
   });
+
+  it("inserts a fresh remote row when the client record id no longer exists", async () => {
+    mockClient.tableResults.set("applications", [
+      { data: null, error: null },
+      {
+        data: {
+          id: "660e8400-e29b-41d4-a716-446655440001",
+          applicant_profile_id: "profile-1",
+          application_number: null,
+          submitted_at: null,
+          updated_at: "2026-04-10T00:00:00Z",
+        },
+        error: null,
+      },
+    ]);
+    mockClient.tableResults.set("tertiary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("employment_experiences", [{ data: null, error: null }]);
+    mockClient.tableResults.set("professional_accreditations", [{ data: null, error: null }]);
+    mockClient.tableResults.set("secondary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("language_tests", [{ data: null, error: null }]);
+
+    const result = await saveRemoteApplication(
+      session,
+      {
+        applicationMeta: {
+          recordId: "550e8400-e29b-41d4-a716-446655440000",
+          applicantProfileId: "profile-1",
+          selectedCourse: {
+            code: "MATCHED-202",
+            title: "Matched Course",
+            provider: "Matched University",
+            intake: "Matched Intake",
+          },
+        },
+        personalDetails: {},
+        contactDetails: {},
+        cvDocument: undefined,
+        cvFileName: undefined,
+        cvUploaded: false,
+        tertiaryQualifications: [],
+        employmentExperiences: [],
+        professionalAccreditations: [],
+        secondaryQualifications: [],
+        languageTests: [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      { forceCreate: true },
+    );
+
+    expect(result?.applicationId).toBe("660e8400-e29b-41d4-a716-446655440001");
+
+    const updateQuery = mockClient.fromCalls[0]?.query;
+    expect(updateQuery?.calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ method: "update", args: [expect.any(Object)] }),
+        expect.objectContaining({ method: "maybeSingle", args: [] }),
+      ]),
+    );
+
+    const insertQuery = mockClient.fromCalls[1]?.query;
+    expect(insertQuery?.calls).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          method: "insert",
+          args: [expect.objectContaining({ id: undefined })],
+        }),
+      ]),
+    );
+  });
 });
 
 describe("submitRemoteApplication", () => {
