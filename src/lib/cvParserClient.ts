@@ -2,25 +2,36 @@ import { normalizeParsedEmploymentExperiences } from "./cvParser";
 import { supabase } from "./supabase";
 
 export class CvParserRequestError extends Error {
+  code?: string;
   status: number;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.name = "CvParserRequestError";
     this.status = status;
+    this.code = code;
   }
 }
 
-function parseErrorMessage(payload: unknown) {
-  if (payload && typeof payload === "object" && "error" in payload) {
-    const message = payload.error;
-
-    if (typeof message === "string" && message.trim()) {
-      return message;
-    }
+function parseErrorPayload(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return { code: undefined, message: null };
   }
 
-  return null;
+  const message =
+    "error" in payload &&
+    typeof payload.error === "string" &&
+    payload.error.trim()
+      ? payload.error
+      : null;
+  const code =
+    "code" in payload &&
+    typeof payload.code === "string" &&
+    payload.code.trim()
+      ? payload.code
+      : undefined;
+
+  return { code, message };
 }
 
 const LOCAL_PARSER_FALLBACK_URL =
@@ -83,9 +94,12 @@ export async function parseEmploymentExperiencesFromCv(file: File) {
   }
 
   if (!response.ok) {
+    const { code, message } = parseErrorPayload(payload);
+
     throw new CvParserRequestError(
-      parseErrorMessage(payload) ?? "We couldn't parse this CV right now.",
+      message ?? "We couldn't parse this CV right now.",
       response.status,
+      code,
     );
   }
 

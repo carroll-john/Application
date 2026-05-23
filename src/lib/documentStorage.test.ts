@@ -399,6 +399,9 @@ describe("replaceStoredDocument (local fallback)", () => {
     );
 
     const bucket = mockClient.storageBuckets.get("application-documents");
+    expect(bucket?.uploadCalls[0]?.path).toMatch(
+      /^user-9\/app-1\/cv\/[0-9a-f-]{36}-resume\.docx$/i,
+    );
     expect(bucket?.uploadCalls[0]?.options.contentType).toBe(
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     );

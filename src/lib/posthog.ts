@@ -4,6 +4,13 @@ export {
   getRouteAnalyticsDefinition,
 } from "./analytics/applicationSteps";
 export {
+  getCvParserErrorCode,
+  trackCvParserDraftEmpty,
+  trackCvParserDraftFailed,
+  trackCvParserDraftSucceeded,
+  trackCvParserSaveContinueClicked,
+} from "./analytics/cvParserAnalytics";
+export {
   canCapturePostHog,
   capturePostHogEvent,
   initPostHog,
@@ -11,10 +18,6 @@ export {
   onPostHogFeatureFlags,
   syncPostHogUser,
 } from "./analytics/posthogClient";
-export {
-  getAiExperimentState,
-  getCvParserExperimentState,
-} from "./analytics/posthogExperiments";
 export {
   captureApplicationStepEvent,
   getApplicationAnalyticsProperties,
@@ -27,8 +30,3 @@ export {
   sanitizeAnalyticsSearch,
   sanitizeAnalyticsUrl,
 } from "./analytics/sanitizeAnalyticsUrl";
-export {
-  CV_PARSER_FEATURE_FLAG_KEY,
-  type AiExperimentState,
-  type CvParserExperimentState,
-} from "./analytics/posthogTypes";

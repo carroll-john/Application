@@ -3,19 +3,23 @@ import { useNavigate } from "react-router-dom";
 import { StatusMessage } from "../components/StatusMessage";
 import { useApplication } from "../context/ApplicationContext";
 import {
-  CvParserInfoPanel,
   CvSaveProgressPanel,
   CvUploadPanel,
   Section2FormCard,
   Section2RecordPage,
 } from "../features/section2";
-import { useAiExperiment } from "../hooks/useAiExperiment";
 import { useSection2Navigation } from "../hooks/useSection2Navigation";
+import {
+  getCvParserErrorCode,
+  trackCvParserDraftEmpty,
+  trackCvParserDraftFailed,
+  trackCvParserDraftSucceeded,
+  trackCvParserSaveContinueClicked,
+} from "../lib/analytics/cvParserAnalytics";
 import {
   getCvParserErrorMessage,
   parseEmploymentExperiencesFromCv,
 } from "../lib/cvParserClient";
-import { CV_PARSER_FEATURE_FLAG_KEY } from "../lib/posthog";
 import {
   deleteStoredDocument,
   getDocumentUploadErrorMessage,
@@ -47,19 +51,13 @@ export default function Section2AddCV() {
     message: string;
     type: "success" | "warning" | "error" | "status";
   } | null>(null);
-  const cvParserExperiment = useAiExperiment({
-    flagKey: CV_PARSER_FEATURE_FLAG_KEY,
-    eventPrefix: "cv_parser",
-    cohortPropertyName: "parser_enabled_for_cohort",
-  });
   const hasDocument = Boolean(selectedFile) || Boolean(currentDocument);
   const canSave = hasDocument || currentDocument !== originalDocument;
 
   async function handleSaveAndContinue() {
     const hasNewCvForAutoDraft =
       Boolean(selectedFile) && data.employmentExperiences.length === 0;
-    const isDraftingEmploymentFromCv =
-      hasNewCvForAutoDraft && cvParserExperiment.state.enabled;
+    const isDraftingEmploymentFromCv = hasNewCvForAutoDraft;
     const parseFile = selectedFile;
     let parseStartedAt: number | null = null;
     let parseEmploymentPromise:
@@ -74,14 +72,10 @@ export default function Section2AddCV() {
         >
       | null = null;
 
-    cvParserExperiment.recordEvent("save_continue_clicked", {
-      existing_employment_count: data.employmentExperiences.length,
-      has_selected_file: Boolean(selectedFile),
+    trackCvParserSaveContinueClicked({
+      existingEmploymentCount: data.employmentExperiences.length,
+      hasSelectedFile: Boolean(selectedFile),
     });
-
-    if (hasNewCvForAutoDraft) {
-      cvParserExperiment.recordExposure();
-    }
 
     setIsSaving(true);
     setStatusMessage(null);
@@ -143,8 +137,9 @@ export default function Section2AddCV() {
           parseStartedAt === null ? undefined : Date.now() - parseStartedAt;
 
         if (!parseResult.ok) {
-          cvParserExperiment.recordEvent("autofill_failed", {
-            parse_duration_ms: parseDurationMs,
+          trackCvParserDraftFailed({
+            errorCode: getCvParserErrorCode(parseResult.error),
+            parseDurationMs,
           });
           flashMessage = {
             message: getCvParserErrorMessage(parseResult.error),
@@ -163,32 +158,22 @@ export default function Section2AddCV() {
             parseResult.parsedEmployment.experiences.length === 1
               ? "role"
               : "roles";
-          cvParserExperiment.recordEvent("autofill_succeeded", {
-            drafted_roles_count: parseResult.parsedEmployment.experiences.length,
-            parse_duration_ms: parseDurationMs,
+          trackCvParserDraftSucceeded({
+            draftedRolesCount: parseResult.parsedEmployment.experiences.length,
+            parseDurationMs,
           });
           flashMessage = {
             message: `We drafted ${parseResult.parsedEmployment.experiences.length} employment ${rolesLabel} from your CV. Review the details and adjust anything that looks off.`,
             type: "success",
           };
         } else {
-          cvParserExperiment.recordEvent("autofill_empty", {
-            drafted_roles_count: 0,
-            parse_duration_ms: parseDurationMs,
-          });
+          trackCvParserDraftEmpty({ parseDurationMs });
           flashMessage = {
             message:
               "We saved your CV, but couldn't find clear employment history to auto-fill.",
             type: "warning",
           };
         }
-      } else if (hasNewCvForAutoDraft && !cvParserExperiment.state.enabled) {
-        cvParserExperiment.recordEvent("autofill_skipped_control");
-        flashMessage = {
-          message:
-            "We saved your CV. Employment auto-draft is off for your current test group, so you can add roles manually.",
-          type: "status",
-        };
       } else if (selectedFile && data.employmentExperiences.length > 0) {
         flashMessage = {
           message:
@@ -268,9 +253,6 @@ export default function Section2AddCV() {
                 viewLocalDocument(selectedFile);
               }
             }}
-          />
-          <CvParserInfoPanel
-            hasExistingEmployment={data.employmentExperiences.length > 0}
           />
         </div>
       </Section2FormCard>

@@ -77,6 +77,26 @@ describe("getDocumentUploadErrorMessage", () => {
     expect(getDocumentUploadErrorMessage(new Error("boom"))).toBeNull();
   });
 
+  it("maps plain Error messages for known application save failures", () => {
+    expect(
+      getDocumentUploadErrorMessage(
+        new Error("Unable to create an application record."),
+      ),
+    ).toContain("application record");
+    expect(
+      getDocumentUploadErrorMessage(new Error("No authenticated session is available.")),
+    ).toBe("Sign in again before uploading.");
+  });
+
+  it("maps nested storage error payloads", () => {
+    expect(
+      getDocumentUploadErrorMessage({
+        error: { message: "UPLOAD_APPLICATION_NOT_FOUND" },
+        statusCode: "500",
+      }),
+    ).toContain("application record");
+  });
+
   it("returns a friendly message for missing storage objects", () => {
     expect(
       getDocumentUploadErrorMessage({

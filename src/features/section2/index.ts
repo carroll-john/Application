@@ -1,5 +1,4 @@
 export * from "./QualificationsSectionUi";
-export { CvParserInfoPanel } from "./CvParserInfoPanel";
 export { CvSaveProgressPanel } from "./CvSaveProgressPanel";
 export { CvUploadPanel } from "./CvUploadPanel";
 export { Section2FormCard } from "./Section2FormCard";
