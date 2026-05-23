@@ -5,13 +5,13 @@ import {
   authenticateRequest,
   getClientIp,
   isDeployedEnvironment,
-} from "./_cvParser/auth.js";
+} from "./_documentParser/auth.js";
 import {
   expandCollapsedRoles,
   findExperienceArray,
   normalizeExperienceEntry,
-} from "./_cvParser/employmentExtraction.js";
-import { errorResponse, jsonResponse } from "./_cvParser/errors.js";
+} from "./_documentParser/kinds/cv/extraction.js";
+import { errorResponse, jsonResponse } from "./_documentParser/errors.js";
 import {
   decodeTextFile,
   inferMimeType,
@@ -19,7 +19,7 @@ import {
   isSupportedFile,
   MAX_FILE_SIZE_BYTES,
   toParsedUploadFile,
-} from "./_cvParser/fileUpload.js";
+} from "./_documentParser/fileUpload.js";
 import {
   buildSentryContext,
   captureApiException,
@@ -29,11 +29,11 @@ import {
   SENTRY_AGENT_NAME,
   SENTRY_AI_RECORD_INPUTS,
   SENTRY_AI_RECORD_OUTPUTS,
-} from "./_cvParser/sentry.js";
+} from "./_documentParser/sentry.js";
 import {
   extractOpenAiErrorRecord,
   normalizeUpstreamErrorCode,
-} from "./_cvParser/upstreamErrors.js";
+} from "./_documentParser/upstreamErrors.js";
 import { createRateLimiter } from "./_shared/rateLimiter.js";
 
 const DEFAULT_MODEL = "gpt-4.1-mini";
