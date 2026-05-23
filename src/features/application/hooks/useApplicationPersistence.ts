@@ -4,7 +4,10 @@ import {
   upsertLocalApplication,
 } from "../../../lib/applicationRecords";
 import type { ApplicationData } from "../../../lib/applicationData";
-import { mergeStoredApplicationData } from "../../../lib/applicationData";
+import {
+  isRemoteRecordId,
+  mergeStoredApplicationData,
+} from "../../../lib/applicationData";
 import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageAdapter";
 import type { PersistApplicationOptions } from "./applicationOrchestrationTypes";
 
@@ -59,7 +62,7 @@ export function useApplicationPersistence({
   );
 
   const ensureRemoteRecordId = useCallback(async () => {
-    if (data.applicationMeta.recordId) {
+    if (isRemoteRecordId(data.applicationMeta.recordId)) {
       return data.applicationMeta.recordId;
     }
 
