@@ -8,11 +8,11 @@ import { useApplication } from "../context/ApplicationContext";
 import { Section2FormCard, Section2RecordPage } from "../features/section2";
 import { useEditableRecord } from "../hooks/useEditableRecord";
 import { useSection2RecordSave } from "../hooks/useSection2RecordSave";
-import { saveDocumentAttachment } from "../lib/documentAttachment";
+import { saveSection2DocumentRecord } from "../features/section2/section2DocumentSave";
 import { years } from "../lib/formOptions";
 
 export default function Section2AddLanguageTest() {
-  const { data, ensureRemoteRecordId, addLanguageTest, updateLanguageTest } =
+  const { data, ensureApplicationRow, addLanguageTest, updateLanguageTest } =
     useApplication();
   const { existing, isEditing, initialRecord } = useEditableRecord(
     data.languageTests,
@@ -31,10 +31,9 @@ export default function Section2AddLanguageTest() {
   const originalDocument = existing?.document;
 
   const saveRecord = async () => {
-    const applicationId = await ensureRemoteRecordId();
-    const document = await saveDocumentAttachment({
-      applicationId,
+    const { document, documentName } = await saveSection2DocumentRecord({
       currentDocument: formData.document,
+      ensureApplicationRow,
       kind: "language_test_document",
       originalDocument,
       selectedFile,
@@ -43,7 +42,7 @@ export default function Section2AddLanguageTest() {
     const nextRecord = {
       ...formData,
       document,
-      documentName: document?.name,
+      documentName,
     };
 
     if (existing) {
