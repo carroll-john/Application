@@ -494,6 +494,210 @@ describe("saveRemoteApplication", () => {
       cv_file_name: null,
     });
   });
+
+  it("preserves valid cv document references when metadata exists", async () => {
+    mockClient.tableResults.set("application_documents", [
+      {
+        data: { id: "770e8400-e29b-41d4-a716-446655440000" },
+        error: null,
+      },
+    ]);
+    mockClient.tableResults.set("applications", [
+      {
+        data: {
+          id: "550e8400-e29b-41d4-a716-446655440000",
+          applicant_profile_id: "profile-1",
+          application_number: null,
+          submitted_at: null,
+          updated_at: "2026-04-10T00:00:00Z",
+        },
+        error: null,
+      },
+    ]);
+    mockClient.tableResults.set("tertiary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("employment_experiences", [{ data: null, error: null }]);
+    mockClient.tableResults.set("professional_accreditations", [{ data: null, error: null }]);
+    mockClient.tableResults.set("secondary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("language_tests", [{ data: null, error: null }]);
+
+    await saveRemoteApplication(
+      session,
+      {
+        applicationMeta: {
+          recordId: "550e8400-e29b-41d4-a716-446655440000",
+          applicantProfileId: "profile-1",
+          selectedCourse: {
+            code: "MATCHED-202",
+            title: "Matched Course",
+            provider: "Matched University",
+            intake: "Matched Intake",
+          },
+        },
+        personalDetails: {},
+        contactDetails: {},
+        cvDocument: {
+          id: "770e8400-e29b-41d4-a716-446655440000",
+          name: "current.pdf",
+          size: 1024,
+          type: "application/pdf",
+          lastModified: Date.now(),
+          uploadedAt: new Date().toISOString(),
+          source: "remote",
+        },
+        cvFileName: "current.pdf",
+        cvUploaded: true,
+        tertiaryQualifications: [],
+        employmentExperiences: [],
+        professionalAccreditations: [],
+        secondaryQualifications: [],
+        languageTests: [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      { forceCreate: true },
+    );
+
+    const updateCall = mockClient.fromCalls[1]?.query.calls.find(
+      (call) => call.method === "update",
+    );
+    expect(updateCall?.args[0]).toMatchObject({
+      cv_document_id: "770e8400-e29b-41d4-a716-446655440000",
+      cv_file_name: "current.pdf",
+    });
+    expect(
+      mockClient.fromCalls.some((call) => call.query.calls.some(({ method }) => method === "insert")),
+    ).toBe(false);
+  });
+
+  it("drops stale cv document references when updating an existing application row", async () => {
+    mockClient.tableResults.set("application_documents", [
+      { data: null, error: null },
+    ]);
+    mockClient.tableResults.set("applications", [
+      {
+        data: {
+          id: "550e8400-e29b-41d4-a716-446655440000",
+          applicant_profile_id: "profile-1",
+          application_number: null,
+          submitted_at: null,
+          updated_at: "2026-04-10T00:00:00Z",
+        },
+        error: null,
+      },
+    ]);
+    mockClient.tableResults.set("tertiary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("employment_experiences", [{ data: null, error: null }]);
+    mockClient.tableResults.set("professional_accreditations", [{ data: null, error: null }]);
+    mockClient.tableResults.set("secondary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("language_tests", [{ data: null, error: null }]);
+
+    await saveRemoteApplication(
+      session,
+      {
+        applicationMeta: {
+          recordId: "550e8400-e29b-41d4-a716-446655440000",
+          applicantProfileId: "profile-1",
+          selectedCourse: {
+            code: "MATCHED-202",
+            title: "Matched Course",
+            provider: "Matched University",
+            intake: "Matched Intake",
+          },
+        },
+        personalDetails: {},
+        contactDetails: {},
+        cvDocument: {
+          id: "770e8400-e29b-41d4-a716-446655440000",
+          name: "stale.pdf",
+          size: 1024,
+          type: "application/pdf",
+          lastModified: Date.now(),
+          uploadedAt: new Date().toISOString(),
+          source: "remote",
+        },
+        cvFileName: "stale.pdf",
+        cvUploaded: true,
+        tertiaryQualifications: [],
+        employmentExperiences: [],
+        professionalAccreditations: [],
+        secondaryQualifications: [],
+        languageTests: [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      { forceCreate: true },
+    );
+
+    const updateCall = mockClient.fromCalls[1]?.query.calls.find(
+      (call) => call.method === "update",
+    );
+    expect(updateCall?.args[0]).toMatchObject({
+      cv_document_id: null,
+      cv_file_name: null,
+    });
+    expect(
+      mockClient.fromCalls.some((call) => call.query.calls.some(({ method }) => method === "insert")),
+    ).toBe(false);
+  });
+
+  it("skips cv document lookup for local-only cv metadata", async () => {
+    mockClient.tableResults.set("applications", [
+      {
+        data: {
+          id: "550e8400-e29b-41d4-a716-446655440000",
+          applicant_profile_id: "profile-1",
+          application_number: null,
+          submitted_at: null,
+          updated_at: "2026-04-10T00:00:00Z",
+        },
+        error: null,
+      },
+    ]);
+    mockClient.tableResults.set("tertiary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("employment_experiences", [{ data: null, error: null }]);
+    mockClient.tableResults.set("professional_accreditations", [{ data: null, error: null }]);
+    mockClient.tableResults.set("secondary_qualifications", [{ data: null, error: null }]);
+    mockClient.tableResults.set("language_tests", [{ data: null, error: null }]);
+
+    await saveRemoteApplication(
+      session,
+      {
+        applicationMeta: {
+          recordId: "550e8400-e29b-41d4-a716-446655440000",
+          applicantProfileId: "profile-1",
+          selectedCourse: {
+            code: "MATCHED-202",
+            title: "Matched Course",
+            provider: "Matched University",
+            intake: "Matched Intake",
+          },
+        },
+        personalDetails: {},
+        contactDetails: {},
+        cvDocument: {
+          id: "local-doc-1",
+          name: "draft.pdf",
+          size: 1024,
+          type: "application/pdf",
+          lastModified: Date.now(),
+          uploadedAt: new Date().toISOString(),
+          source: "local",
+        },
+        cvFileName: "draft.pdf",
+        cvUploaded: true,
+        tertiaryQualifications: [],
+        employmentExperiences: [],
+        professionalAccreditations: [],
+        secondaryQualifications: [],
+        languageTests: [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
+      { forceCreate: true },
+    );
+
+    expect(mockClient.fromCalls[0]?.table).toBe("applications");
+    expect(mockClient.fromCalls.some((call) => call.table === "application_documents")).toBe(
+      false,
+    );
+  });
 });
 
 describe("submitRemoteApplication", () => {
