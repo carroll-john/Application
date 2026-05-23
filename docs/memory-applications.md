@@ -36,8 +36,9 @@
 | File | Role |
 |------|------|
 | `src/context/ApplicationContext.tsx` | Provider facade |
-| `src/context/application/useApplicationData.ts` | CRUD mutators |
-| `src/context/application/useApplicationStorageOrchestration.ts` | Hydration, begin app, submit |
+| `src/features/application/hooks/useApplicationData.ts` | CRUD mutators |
+| `src/features/application/hooks/useApplicationStorageOrchestration.ts` | Hydration, begin app, submit |
+| `src/features/application/hooks/useApplicationPersistence.ts` | `persistApplication`, `ensureRemoteRecordId`, `ensureApplicationRow` |
 | `src/lib/applicationStorageAdapter.ts` | Storage contract |
 | `src/lib/applicationRecords.ts` | Local record helpers |
 | `src/lib/applicationRemoteStore.ts` | Supabase persistence |

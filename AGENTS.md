@@ -9,6 +9,7 @@ Load the domain memory file for your task (do not rely on stale bullets here):
 | Auth, sign-in, password, callback | [docs/memory-auth.md](docs/memory-auth.md) |
 | Applications, course selection, validation, submit | [docs/memory-applications.md](docs/memory-applications.md) |
 | Uploads, document storage, delivery proxy | [docs/memory-documents.md](docs/memory-documents.md) |
+| Document parsing (CV + future kinds) | [docs/memory-document-parsing.md](docs/memory-document-parsing.md) |
 | UI primitives, forms, layout, CTAs | [docs/memory-ui.md](docs/memory-ui.md) |
 | Tests, worktrees, CI, local dev ops | [docs/memory-agent-workflow.md](docs/memory-agent-workflow.md) |
 
