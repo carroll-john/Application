@@ -16,7 +16,38 @@ import {
   useSection2QualificationsFlow,
 } from "../features/section2";
 import { useReviewReturn } from "../hooks/useReviewReturn";
+import type {
+  EligibilityOutcome,
+  TranscriptEligibilityAssessment,
+} from "../lib/eligibility/types";
+import {
+  eligibilityOutcomeCopy,
+  eligibilityRequirementStatusCopy,
+} from "../lib/eligibility/uiCopy";
 import { getSection2EditPath, getSection2Step } from "../lib/section2Steps";
+
+function getEligibilityOutcomeTone(outcome: EligibilityOutcome) {
+  if (outcome === "eligible") {
+    return "text-[var(--success-text)]";
+  }
+
+  if (outcome === "ineligible") {
+    return "text-[var(--warning-text)]";
+  }
+
+  return "text-[var(--info-text)]";
+}
+
+function getLatestTranscriptAssessment(
+  assessments: Array<TranscriptEligibilityAssessment | undefined>,
+) {
+  const available = assessments.filter(Boolean) as TranscriptEligibilityAssessment[];
+  if (available.length === 0) {
+    return undefined;
+  }
+
+  return [...available].sort((a, b) => b.checkedAt.localeCompare(a.checkedAt))[0];
+}
 
 export default function Section2Qualifications() {
   const navigate = useNavigate();
@@ -40,6 +71,9 @@ export default function Section2Qualifications() {
     setStatusMessage,
     statusMessage,
   } = useSection2QualificationsFlow({ data });
+  const latestTranscriptAssessment = getLatestTranscriptAssessment(
+    data.tertiaryQualifications.map((qualification) => qualification.transcriptEligibility),
+  );
 
   function section2AddPath(key: Parameters<typeof getSection2Step>[0]) {
     const step = getSection2Step(key);
@@ -88,6 +122,56 @@ export default function Section2Qualifications() {
         </div>
       ) : null}
 
+      {latestTranscriptAssessment ? (
+        <div className="mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-sm font-semibold text-gray-900 sm:text-base">
+              Transcript eligibility check
+            </h2>
+            <p
+              className={`text-xs font-semibold sm:text-sm ${getEligibilityOutcomeTone(
+                latestTranscriptAssessment.outcome,
+              )}`}
+            >
+              {eligibilityOutcomeCopy[latestTranscriptAssessment.outcome]}
+            </p>
+          </div>
+          <p className="mt-1 text-xs text-gray-600 sm:text-sm">
+            Confidence: {Math.round(latestTranscriptAssessment.confidence * 100)}%
+          </p>
+          {latestTranscriptAssessment.requirementsChecked.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              {latestTranscriptAssessment.requirementsChecked.map((requirement) => (
+                <div key={requirement.id} className="rounded-md border border-gray-200 p-3">
+                  <p className="text-xs font-semibold text-gray-900 sm:text-sm">
+                    {requirement.requirement}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-700 sm:text-sm">
+                    {eligibilityRequirementStatusCopy[requirement.status]} -{" "}
+                    {requirement.explanation}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {latestTranscriptAssessment.missingInformation.length > 0 ? (
+            <div className="mt-3 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3">
+              <p className="text-xs font-semibold text-[var(--warning-text)] sm:text-sm">
+                Missing or unclear information
+              </p>
+              <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-[var(--warning-text)] sm:text-sm">
+                {latestTranscriptAssessment.missingInformation.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <p className="mt-3 text-xs text-gray-700 sm:text-sm">
+            Recommended next step: {latestTranscriptAssessment.recommendedNextStep}
+          </p>
+        </div>
+      ) : null}
+
       <div className="space-y-6">
         <QualificationsSectionCard
           actionRoute={section2AddPath("tertiary")}
@@ -101,7 +185,11 @@ export default function Section2Qualifications() {
           renderItem={(qualification) => (
             <QualificationsListItem
               key={qualification.id}
-              subtitle={qualification.institution}
+              subtitle={
+                qualification.transcriptEligibility
+                  ? `${qualification.institution} - ${eligibilityOutcomeCopy[qualification.transcriptEligibility.outcome]}`
+                  : qualification.institution
+              }
               title={qualification.courseName || "Tertiary Qualification"}
               attachments={[
                 qualification.transcriptDocumentName,

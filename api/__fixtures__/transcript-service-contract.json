@@ -1,0 +1,218 @@
+[
+  {
+    "fixtureId": "AU-TX-001",
+    "expectedOutcome": "eligible",
+    "expectedPrimaryStatus": "pass",
+    "servicePayload": {
+      "outcome": "eligible",
+      "confidence": 0.92,
+      "manualReviewRequired": false,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "pass",
+          "explanation": "Completed bachelor with conferred award and strong WAM/GPA evidence."
+        }
+      ]
+    }
+  },
+  {
+    "fixtureId": "AU-TX-002",
+    "expectedOutcome": "ineligible",
+    "expectedPrimaryStatus": "fail",
+    "servicePayload": {
+      "outcome": "ineligible",
+      "confidence": 0.9,
+      "manualReviewRequired": false,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "fail",
+          "explanation": "Discontinued bachelor with low GPA and no completion."
+        }
+      ]
+    }
+  },
+  {
+    "fixtureId": "AU-TX-003",
+    "expectedOutcome": "conditionally_eligible",
+    "expectedPrimaryStatus": "unknown",
+    "servicePayload": {
+      "outcome": "conditionally_eligible",
+      "confidence": 0.64,
+      "manualReviewRequired": true,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "unknown",
+          "explanation": "In-progress masters with partial results and no conferral yet."
+        }
+      ]
+    }
+  },
+  {
+    "fixtureId": "AU-TX-004",
+    "expectedOutcome": "eligible",
+    "expectedPrimaryStatus": "pass",
+    "servicePayload": {
+      "outcome": "eligible",
+      "confidence": 0.9,
+      "manualReviewRequired": false,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "pass",
+          "explanation": "Completed graduate certificate with conferred award."
+        }
+      ]
+    }
+  },
+  {
+    "fixtureId": "AU-TX-005",
+    "expectedOutcome": "eligible",
+    "expectedPrimaryStatus": "pass",
+    "servicePayload": {
+      "outcome": "eligible",
+      "confidence": 0.91,
+      "manualReviewRequired": false,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "pass",
+          "explanation": "Completed honours bachelor with explicit classification and award."
+        }
+      ]
+    }
+  },
+  {
+    "fixtureId": "AU-TX-006",
+    "expectedOutcome": "ineligible",
+    "expectedPrimaryStatus": "fail",
+    "servicePayload": {
+      "outcome": "ineligible",
+      "confidence": 0.9,
+      "manualReviewRequired": false,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "fail",
+          "explanation": "Excluded program with repeated failed clinical hurdles."
+        }
+      ]
+    }
+  },
+  {
+    "fixtureId": "AU-TX-007",
+    "expectedOutcome": "eligible",
+    "expectedPrimaryStatus": "pass",
+    "servicePayload": {
+      "outcome": "eligible",
+      "confidence": 0.9,
+      "manualReviewRequired": false,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "pass",
+          "explanation": "Completed bachelor including advanced standing and conferral."
+        }
+      ]
+    }
+  },
+  {
+    "fixtureId": "AU-TX-008",
+    "expectedOutcome": "insufficient_data",
+    "expectedPrimaryStatus": "unknown",
+    "servicePayload": {
+      "outcome": "insufficient_data",
+      "confidence": 0.63,
+      "manualReviewRequired": true,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "unknown",
+          "explanation": "Research degree withdrawn with no GPA/WAM basis for standard checks."
+        }
+      ]
+    }
+  },
+  {
+    "fixtureId": "AU-TX-009",
+    "expectedOutcome": "conditionally_eligible",
+    "expectedPrimaryStatus": "pass",
+    "servicePayload": {
+      "outcome": "conditionally_eligible",
+      "confidence": 0.66,
+      "manualReviewRequired": true,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "pass",
+          "explanation": "Conferred PhD research-only transcript with non-coursework outcomes."
+        }
+      ]
+    }
+  },
+  {
+    "fixtureId": "AU-TX-010",
+    "expectedOutcome": "conditionally_eligible",
+    "expectedPrimaryStatus": "unknown",
+    "servicePayload": {
+      "outcome": "conditionally_eligible",
+      "confidence": 0.64,
+      "manualReviewRequired": true,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "unknown",
+          "explanation": "Coursework complete but award conferral pending."
+        }
+      ]
+    }
+  },
+  {
+    "fixtureId": "AU-TX-011",
+    "expectedOutcome": "conditionally_eligible",
+    "expectedPrimaryStatus": "unknown",
+    "servicePayload": {
+      "outcome": "conditionally_eligible",
+      "confidence": 0.64,
+      "manualReviewRequired": true,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "unknown",
+          "explanation": "Primary masters incomplete but exit award conferred."
+        }
+      ]
+    }
+  },
+  {
+    "fixtureId": "AU-TX-012",
+    "expectedOutcome": "insufficient_data",
+    "expectedPrimaryStatus": "unknown",
+    "servicePayload": {
+      "outcome": "insufficient_data",
+      "confidence": 0.62,
+      "manualReviewRequired": true,
+      "requirementsChecked": [
+        {
+          "id": "primary-requirement",
+          "requirement": "Primary academic eligibility requirement",
+          "status": "unknown",
+          "explanation": "Pass/fail-heavy program with no calculated GPA/WAM."
+        }
+      ]
+    }
+  }
+]

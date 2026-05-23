@@ -27,8 +27,8 @@ Run two active tracks in parallel:
 - Publish date-stamped stakeholder notes in `docs/stakeholder-updates/` as milestones land.
 
 ### Next 3 Tasks
-1. Define canonical profile contract and output schema (`eligible`, `conditionally_eligible`, `ineligible`, `insufficient_data`).
-2. Implement ingestion + extraction skeleton with confidence/missing-evidence fields.
+1. Connect `api/evaluate-transcript-eligibility` proxy to the external eligibility service in each environment (`ELIGIBILITY_SERVICE_URL` + token management).
+2. Validate service responses against synthetic Australian transcript fixtures and tune status mapping for ambiguous GPA/English evidence cases.
 3. Stand up rules engine v1 with per-program reason codes and explanation payloads.
 
 ### Known Risks

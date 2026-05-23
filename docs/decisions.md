@@ -172,3 +172,15 @@
 - Accounts created under the OTP flow may not have passwords; those users should
   use Forgot password on the Sign in tab to set one.
 - Password reset preserves redirect intent via `/sign-in?recovery=1&redirect=…`.
+
+## 2026-05-23
+
+### Transcript eligibility integration uses a separate service boundary
+- Keep transcript eligibility evaluation service-owned behind an app proxy route instead of embedding rules directly in the applicant frontend.
+- Add `api/evaluate-transcript-eligibility` as the contract boundary so the browser never calls the eligibility service endpoint directly.
+- Preserve existing upload validation and file-policy checks before forwarding transcript payloads.
+
+### Eligibility result contract adopts four advisory outcomes
+- Use `eligible`, `conditionally_eligible`, `ineligible`, and `insufficient_data` for transcript eligibility outcomes.
+- Persist transcript eligibility assessments alongside tertiary qualification records to support explainable review surfaces.
+- On service unavailability or uncertain extraction, default to `insufficient_data` with explicit manual-review guidance instead of guessing.
