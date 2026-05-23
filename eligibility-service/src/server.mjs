@@ -226,7 +226,6 @@ async function evaluateTranscript({
         schema: {
           type: "object",
           additionalProperties: false,
-          required: REQUIRED_RESPONSE_FIELDS,
           properties: {
             checkedAt: { type: "string" },
             confidence: { type: "number" },
@@ -263,6 +262,18 @@ async function evaluateTranscript({
               },
             },
           },
+          required: [
+            "checkedAt",
+            "confidence",
+            "manualReviewRequired",
+            "missingInformation",
+            "outcome",
+            "programCode",
+            "programTitle",
+            "recommendedNextStep",
+            "rulesVersion",
+            "requirementsChecked",
+          ],
         },
       },
     },
