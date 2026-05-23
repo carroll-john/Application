@@ -13,45 +13,6 @@ const REQUIRED_RESPONSE_FIELDS = [
   "requirementsChecked",
 ];
 
-const EXTRACTED_FIELD_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: ["confidence", "missingOrAmbiguous", "normalizedValue", "originalValue"],
-  properties: {
-    confidence: { type: "number" },
-    missingOrAmbiguous: { type: "boolean" },
-    normalizedValue: { type: "string" },
-    originalValue: { type: "string" },
-  },
-};
-
-const EXTRACTED_GROUP_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    completionDate: EXTRACTED_FIELD_SCHEMA,
-    completionStatus: EXTRACTED_FIELD_SCHEMA,
-    countryOfInstitution: EXTRACTED_FIELD_SCHEMA,
-    creditPointsCompleted: EXTRACTED_FIELD_SCHEMA,
-    englishCountryEvidence: EXTRACTED_FIELD_SCHEMA,
-    englishInstructionEvidence: EXTRACTED_FIELD_SCHEMA,
-    englishRequirementSatisfaction: EXTRACTED_FIELD_SCHEMA,
-    failedSubjects: EXTRACTED_FIELD_SCHEMA,
-    fullName: EXTRACTED_FIELD_SCHEMA,
-    gpa: EXTRACTED_FIELD_SCHEMA,
-    gpaScale: EXTRACTED_FIELD_SCHEMA,
-    gradeAverageOrWam: EXTRACTED_FIELD_SCHEMA,
-    gradingNotes: EXTRACTED_FIELD_SCHEMA,
-    highestEducationLevel: EXTRACTED_FIELD_SCHEMA,
-    institutionName: EXTRACTED_FIELD_SCHEMA,
-    languageOfInstruction: EXTRACTED_FIELD_SCHEMA,
-    programName: EXTRACTED_FIELD_SCHEMA,
-    startDate: EXTRACTED_FIELD_SCHEMA,
-    studentId: EXTRACTED_FIELD_SCHEMA,
-    uncertainty: EXTRACTED_FIELD_SCHEMA,
-  },
-};
-
 const app = express();
 const upload = multer({
   limits: { fileSize: MAX_FILE_BYTES },
@@ -301,10 +262,6 @@ async function evaluateTranscript({
                 },
               },
             },
-            applicantDetails: EXTRACTED_GROUP_SCHEMA,
-            studyDetails: EXTRACTED_GROUP_SCHEMA,
-            academicPerformance: EXTRACTED_GROUP_SCHEMA,
-            englishLanguageEvidence: EXTRACTED_GROUP_SCHEMA,
           },
         },
       },
