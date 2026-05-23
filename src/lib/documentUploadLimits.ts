@@ -297,6 +297,14 @@ function getKnownDocumentUploadErrorMessage(error: unknown): string | null {
   }
 
   if (
+    normalizedMessage.includes("applications_cv_document_id_fkey") ||
+    (normalizedMessage.includes("cv_document_id") &&
+      normalizedMessage.includes("foreign key"))
+  ) {
+    return "We couldn't save your CV because the previous file reference is out of date. Refresh the page and try again.";
+  }
+
+  if (
     normalizedMessage.includes("foreign key constraint") ||
     code === "23503"
   ) {

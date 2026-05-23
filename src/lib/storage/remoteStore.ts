@@ -376,6 +376,27 @@ function getRemoteDocumentId(document?: UploadedDocument) {
   return document?.source === "remote" ? document.id : null;
 }
 
+async function resolveExistingRemoteDocumentId(
+  client: ReturnType<typeof requireSupabaseClient>,
+  documentId: string | null,
+): Promise<string | null> {
+  if (!documentId) {
+    return null;
+  }
+
+  const { data, error } = await client
+    .from("application_documents")
+    .select("id")
+    .eq("id", documentId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data?.id ?? null;
+}
+
 function getRemoteUuid(id: string | undefined) {
   return id &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -407,14 +428,18 @@ export async function saveRemoteApplication(
     getRemoteUuid(options?.applicantProfileId ?? undefined) ??
     getRemoteUuid(data.applicationMeta.applicantProfileId) ??
     null;
+  const remoteCvDocumentId = await resolveExistingRemoteDocumentId(
+    client,
+    getRemoteDocumentId(data.cvDocument),
+  );
   const applicationPayload: TablesInsert<"applications"> = {
     applicant_profile_id: remoteApplicantProfileId,
     application_number: data.applicationMeta.applicationNumber ?? null,
     contact_details: toJsonValue(data.contactDetails),
     course_code: selectedCourse?.code ?? defaultCourse.code,
     course_title: selectedCourse?.title ?? defaultCourse.title,
-    cv_document_id: getRemoteDocumentId(data.cvDocument),
-    cv_file_name: data.cvFileName ?? null,
+    cv_document_id: remoteCvDocumentId,
+    cv_file_name: remoteCvDocumentId ? data.cvFileName ?? null : null,
     id: remoteApplicationId ?? undefined,
     intake_label: selectedCourse?.intake ?? defaultCourse.intakeLabel,
     personal_details: toJsonValue(data.personalDetails),

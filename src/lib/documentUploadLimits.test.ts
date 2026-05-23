@@ -154,4 +154,14 @@ describe("getDocumentUploadErrorMessage", () => {
       }),
     ).toContain("link this upload to your application");
   });
+
+  it("returns a friendly message for stale cv document references", () => {
+    expect(
+      getDocumentUploadErrorMessage({
+        code: "23503",
+        message:
+          'insert or update on table "applications" violates foreign key constraint "applications_cv_document_id_fkey"',
+      }),
+    ).toContain("previous file reference is out of date");
+  });
 });
