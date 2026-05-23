@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: eligibility-service
+    env: node
+    rootDir: eligibility-service
+    plan: starter
+    autoDeploy: true
+    buildCommand: npm ci
+    startCommand: npm run start
+    healthCheckPath: /healthz
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4.1-mini
+      - key: SERVICE_API_TOKEN
+        sync: false
+      - key: SERVICE_VERSION
+        value: v1

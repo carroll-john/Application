@@ -1,4 +1,8 @@
+import { callLlm, type LlmContent } from "./_ai/callLlm.js";
+import { transcriptEligibilityPromptV1 } from "./_ai/prompts/transcriptEligibility.v1.js";
+import { transcriptEligibilitySchemaV1 } from "./_ai/schemas/transcriptEligibility.v1.js";
 import {
+  decodeTextFile,
   inferMimeType,
   isFileBufferConsistentWithMimeType,
   isSupportedFile,
@@ -14,6 +18,10 @@ type TranscriptEligibilityRequestContext = {
   languageTestsCount?: number;
   level?: string;
 };
+
+const DEFAULT_MODEL = "gpt-4.1-mini";
+const INITIAL_MAX_OUTPUT_TOKENS = 1_500;
+const RETRY_MAX_OUTPUT_TOKENS = 3_500;
 
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -60,13 +68,27 @@ function parseContext(rawValue: FormDataEntryValue | null): TranscriptEligibilit
   }
 }
 
-function buildFallbackResponse(context: TranscriptEligibilityRequestContext) {
+function buildFallbackResponse(
+  context: TranscriptEligibilityRequestContext,
+  reason?:
+    | string
+    | {
+        detail: string;
+        title: string;
+      },
+) {
+  const fallbackReason =
+    typeof reason === "string"
+      ? reason
+      : reason?.detail ??
+        "External eligibility service is not configured in this environment.";
+
   return {
     checkedAt: new Date().toISOString(),
     confidence: 0.45,
     manualReviewRequired: true,
     missingInformation: [
-      "External eligibility service is not configured in this environment.",
+      fallbackReason,
       "A full transcript extraction and eligibility evaluation could not be completed automatically.",
     ],
     outcome: "insufficient_data",
@@ -117,13 +139,121 @@ function buildFallbackResponse(context: TranscriptEligibilityRequestContext) {
   };
 }
 
+function withContextDefaults(
+  assessment: Record<string, unknown>,
+  context: TranscriptEligibilityRequestContext,
+) {
+  const patched = { ...assessment };
+
+  if (typeof patched.checkedAt !== "string" || !patched.checkedAt.trim()) {
+    patched.checkedAt = new Date().toISOString();
+  }
+
+  if (!patched.programCode && context.courseCode) {
+    patched.programCode = context.courseCode;
+  }
+
+  if (!patched.programTitle && context.courseTitle) {
+    patched.programTitle = context.courseTitle;
+  }
+
+  if (!patched.serviceVersion) {
+    patched.serviceVersion = "local-openai-fallback";
+  }
+
+  return patched;
+}
+
+async function evaluateWithLocalModel(
+  file: File,
+  fileBuffer: ArrayBuffer,
+  mimeType: string,
+  context: TranscriptEligibilityRequestContext,
+) {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+
+  if (!apiKey) {
+    return null;
+  }
+
+  const attachments: LlmContent[] = [
+    {
+      kind: "text",
+      text: `Program context:\n${JSON.stringify(context)}`,
+    },
+  ];
+
+  if (mimeType === "text/plain") {
+    const transcriptText = decodeTextFile(fileBuffer);
+
+    if (transcriptText) {
+      attachments.push({
+        kind: "text",
+        text: `Transcript content:\n${transcriptText}`,
+      });
+    }
+  } else {
+    attachments.push({
+      kind: "file",
+      filename: file.name,
+      mimeType,
+      data: fileBuffer,
+    });
+  }
+
+  const model =
+    process.env.OPENAI_TRANSCRIPT_ELIGIBILITY_MODEL?.trim() ||
+    process.env.OPENAI_CV_PARSER_MODEL?.trim() ||
+    DEFAULT_MODEL;
+
+  const llmResult = await callLlm({
+    provider: "openai",
+    apiKey,
+    model,
+    prompt: transcriptEligibilityPromptV1,
+    schema: transcriptEligibilitySchemaV1,
+    attachments,
+    initialMaxOutputTokens: INITIAL_MAX_OUTPUT_TOKENS,
+    retryMaxOutputTokens: RETRY_MAX_OUTPUT_TOKENS,
+    enableCodeInterpreter: mimeType !== "text/plain",
+    trace: {
+      enabled: false,
+      agentName: "transcript-eligibility-evaluator",
+      recordInputs: false,
+      recordOutputs: false,
+    },
+  });
+
+  if (llmResult.status !== "ok" || !llmResult.parsed || typeof llmResult.parsed !== "object") {
+    return null;
+  }
+
+  return withContextDefaults(
+    llmResult.parsed as Record<string, unknown>,
+    context,
+  );
+}
+
 async function forwardToEligibilityService(
   file: File,
+  fileBuffer: ArrayBuffer,
+  mimeType: string,
   context: TranscriptEligibilityRequestContext,
 ) {
   const serviceUrl = process.env.ELIGIBILITY_SERVICE_URL?.trim();
 
   if (!serviceUrl) {
+    const localAssessment = await evaluateWithLocalModel(
+      file,
+      fileBuffer,
+      mimeType,
+      context,
+    );
+
+    if (localAssessment) {
+      return jsonResponse(localAssessment, 200);
+    }
+
     return jsonResponse(buildFallbackResponse(context), 200);
   }
 
@@ -196,7 +326,7 @@ async function handleWebRequest(request: Request) {
 
   const context = parseContext(formData.get("context"));
 
-  return forwardToEligibilityService(file, context);
+  return forwardToEligibilityService(file, fileBuffer, mimeType, context);
 }
 
 export default {

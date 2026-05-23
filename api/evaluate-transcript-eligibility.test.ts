@@ -35,6 +35,8 @@ afterEach(() => {
   globalThis.fetch = originalFetch;
   delete process.env.ELIGIBILITY_SERVICE_URL;
   delete process.env.ELIGIBILITY_SERVICE_TOKEN;
+  delete process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_TRANSCRIPT_ELIGIBILITY_MODEL;
 });
 
 describe("evaluate-transcript-eligibility api route", () => {
@@ -140,6 +142,52 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(response.status).toBe(502);
     expect(payload.code).toBe("ELIGIBILITY_SERVICE_UPSTREAM_ERROR");
     expect(payload.error).toBe("Eligibility engine failed.");
+  });
+
+  it("uses local OpenAI evaluation when service URL is unset", async () => {
+    process.env.OPENAI_API_KEY = "test-key";
+    process.env.OPENAI_TRANSCRIPT_ELIGIBILITY_MODEL = "gpt-4.1-mini";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          output_parsed: {
+            confidence: 0.88,
+            manualReviewRequired: false,
+            missingInformation: [],
+            outcome: "eligible",
+            recommendedNextStep: "Proceed to formal admissions assessment.",
+            requirementsChecked: [
+              {
+                explanation: "Completion and academic evidence are sufficient.",
+                id: "primary-requirement",
+                requirement: "Primary academic eligibility requirement",
+                status: "pass",
+              },
+            ],
+          },
+          status: "completed",
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "transcript.txt", { type: "text/plain" }));
+    formData.append("context", JSON.stringify({ courseCode: "MBA101" }));
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.outcome).toBe("eligible");
+    expect(payload.programCode).toBe("MBA101");
+    expect(payload.serviceVersion).toBe("local-openai-fallback");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("replays all transcript contract fixtures through the proxy route", async () => {
