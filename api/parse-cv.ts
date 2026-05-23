@@ -1,17 +1,17 @@
-import { callLlm, type LlmContent } from "./_ai/callLlm";
-import { cvEmploymentPromptV1 } from "./_ai/prompts/cvEmployment.v1";
-import { cvEmploymentSchemaV1 } from "./_ai/schemas/cvEmployment.v1";
+import { callLlm, type LlmContent } from "./_ai/callLlm.js";
+import { cvEmploymentPromptV1 } from "./_ai/prompts/cvEmployment.v1.js";
+import { cvEmploymentSchemaV1 } from "./_ai/schemas/cvEmployment.v1.js";
 import {
   authenticateRequest,
   getClientIp,
   isDeployedEnvironment,
-} from "./_cvParser/auth";
+} from "./_cvParser/auth.js";
 import {
   expandCollapsedRoles,
   findExperienceArray,
   normalizeExperienceEntry,
-} from "./_cvParser/employmentExtraction";
-import { errorResponse, jsonResponse } from "./_cvParser/errors";
+} from "./_cvParser/employmentExtraction.js";
+import { errorResponse, jsonResponse } from "./_cvParser/errors.js";
 import {
   decodeTextFile,
   inferMimeType,
@@ -19,7 +19,7 @@ import {
   isSupportedFile,
   MAX_FILE_SIZE_BYTES,
   toParsedUploadFile,
-} from "./_cvParser/fileUpload";
+} from "./_cvParser/fileUpload.js";
 import {
   buildSentryContext,
   captureApiException,
@@ -29,12 +29,12 @@ import {
   SENTRY_AGENT_NAME,
   SENTRY_AI_RECORD_INPUTS,
   SENTRY_AI_RECORD_OUTPUTS,
-} from "./_cvParser/sentry";
+} from "./_cvParser/sentry.js";
 import {
   extractOpenAiErrorRecord,
   normalizeUpstreamErrorCode,
-} from "./_cvParser/upstreamErrors";
-import { createRateLimiter } from "./_shared/rateLimiter";
+} from "./_cvParser/upstreamErrors.js";
+import { createRateLimiter } from "./_shared/rateLimiter.js";
 
 const DEFAULT_MODEL = "gpt-4.1-mini";
 const INITIAL_MAX_OUTPUT_TOKENS = 700;

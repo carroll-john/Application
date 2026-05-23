@@ -1,4 +1,4 @@
-import type { CvParserErrorCode } from "./errors";
+import type { CvParserErrorCode } from "./errors.js";
 
 function extractOpenAiErrorRecord(payload: unknown) {
   if (!payload || typeof payload !== "object") {

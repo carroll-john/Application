@@ -1,4 +1,4 @@
-import { createRateLimiter } from "./_shared/rateLimiter";
+import { createRateLimiter } from "./_shared/rateLimiter.js";
 
 const NO_STORE_HEADERS = {
   "cache-control": "no-store, max-age=0",
