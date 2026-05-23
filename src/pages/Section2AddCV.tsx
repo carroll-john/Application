@@ -52,8 +52,8 @@ export default function Section2AddCV() {
     eventPrefix: "cv_parser",
     cohortPropertyName: "parser_enabled_for_cohort",
   });
-  const hasDocument =
-    Boolean(selectedFile) || Boolean(currentDocument) || Boolean(currentFileName);
+  const hasDocument = Boolean(selectedFile) || Boolean(currentDocument);
+  const canSave = hasDocument || currentDocument !== originalDocument;
 
   async function handleSaveAndContinue() {
     const hasNewCvForAutoDraft =
@@ -221,7 +221,7 @@ export default function Section2AddCV() {
   return (
     <Section2RecordPage
       addTitle="Upload your CV"
-      continueDisabled={isSaving}
+      continueDisabled={isSaving || !canSave}
       continueLabel={isSaving ? "Saving..." : "Save & Continue"}
       description="Add your current CV or resume."
       editTitle="Upload your CV"

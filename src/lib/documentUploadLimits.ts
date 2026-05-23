@@ -167,7 +167,63 @@ export function toDocumentUploadLimitError(
   return null;
 }
 
+function getKnownDocumentUploadErrorMessage(error: unknown): string | null {
+  const record = asErrorRecord(error);
+
+  if (!record) {
+    return null;
+  }
+
+  const message = typeof record.message === "string" ? record.message : null;
+  const normalizedMessage = message?.toLowerCase() ?? "";
+  const code =
+    typeof record.code === "string" || typeof record.code === "number"
+      ? String(record.code)
+      : null;
+  const statusCode =
+    typeof record.statusCode === "number"
+      ? record.statusCode
+      : typeof record.status === "number"
+        ? record.status
+        : null;
+
+  if (message === "DOCUMENT_STORAGE_OBJECT_MISSING") {
+    return "Upload didn't finish storing your file. Please try again.";
+  }
+
+  if (message === "UPLOAD_STORAGE_OWNER_MISMATCH") {
+    return "Session mismatch — sign out and back in, then retry.";
+  }
+
+  if (
+    normalizedMessage.includes("mime") ||
+    normalizedMessage.includes("content type") ||
+    normalizedMessage.includes("invalid file type") ||
+    (normalizedMessage.includes("not allowed") &&
+      normalizedMessage.includes("type"))
+  ) {
+    return "This file type isn't supported. Use PDF, DOC, DOCX, or TXT.";
+  }
+
+  if (
+    statusCode === 401 ||
+    code === "401" ||
+    normalizedMessage.includes("jwt") ||
+    normalizedMessage.includes("not authenticated")
+  ) {
+    return "Sign in again before uploading.";
+  }
+
+  return null;
+}
+
 export function getDocumentUploadErrorMessage(error: unknown): string | null {
+  const knownMessage = getKnownDocumentUploadErrorMessage(error);
+
+  if (knownMessage) {
+    return knownMessage;
+  }
+
   const limitError = toDocumentUploadLimitError(error);
 
   if (!limitError) {

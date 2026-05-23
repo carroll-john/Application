@@ -1,3 +1,4 @@
+import { inferDocumentMimeType } from "../documentMime";
 import { supabase } from "../supabase";
 import type { Enums, Tables, TablesInsert } from "../supabase.types";
 import {
@@ -413,13 +414,14 @@ async function saveRemoteDocumentFile(
   const documentId = crypto.randomUUID();
   const safeName = sanitizeFileName(file.name);
   const storagePath = `${session.user.id}/${applicationId}/${kind}/${documentId}-${safeName}`;
+  const mimeType = inferDocumentMimeType(file);
 
   const { error: uploadError } = await supabase.storage
     .from(STORAGE_BUCKET)
     .upload(storagePath, file, {
       cacheControl: "3600",
       upsert: false,
-      contentType: file.type || "application/octet-stream",
+      contentType: mimeType,
     });
 
   if (uploadError) {
@@ -439,7 +441,7 @@ async function saveRemoteDocumentFile(
     storage_bucket: STORAGE_BUCKET,
     storage_path: storagePath,
     file_name: file.name,
-    mime_type: file.type || "application/octet-stream",
+    mime_type: mimeType,
     size_bytes: file.size,
   };
 

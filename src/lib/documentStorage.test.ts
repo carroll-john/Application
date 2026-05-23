@@ -77,7 +77,17 @@ function createQuery(result: QueryResult): MockQuery {
 
 interface StorageBucket {
   removeCalls: Array<{ paths: string[] }>;
+  uploadCalls: Array<{
+    path: string;
+    file: File;
+    options: { contentType?: string };
+  }>;
   remove: (paths: string[]) => Promise<{ data: unknown; error: Error | null }>;
+  upload: (
+    path: string,
+    file: File,
+    options: { cacheControl?: string; upsert?: boolean; contentType?: string },
+  ) => Promise<{ data: unknown; error: Error | null }>;
 }
 
 interface MockClient {
@@ -85,6 +95,7 @@ interface MockClient {
   storageFromCalls: Array<{ bucket: string }>;
   tableResults: Map<string, QueryResult[]>;
   storageRemoveResult: { data: unknown; error: Error | null };
+  storageUploadResult: { data: unknown; error: Error | null };
   storageBuckets: Map<string, StorageBucket>;
   sessionResult: { data: { session: unknown }; error: Error | null };
   from: (table: string) => MockQuery;
@@ -98,6 +109,7 @@ function createMockClient(): MockClient {
     storageFromCalls: [],
     tableResults: new Map(),
     storageRemoveResult: { data: null, error: null },
+    storageUploadResult: { data: { path: "uploaded" }, error: null },
     storageBuckets: new Map(),
     sessionResult: { data: { session: null }, error: null },
     auth: {
@@ -117,9 +129,14 @@ function createMockClient(): MockClient {
         if (!cached) {
           cached = {
             removeCalls: [],
+            uploadCalls: [],
             remove(paths: string[]) {
               this.removeCalls.push({ paths });
               return Promise.resolve(client.storageRemoveResult);
+            },
+            upload(path, file, options) {
+              this.uploadCalls.push({ path, file, options });
+              return Promise.resolve(client.storageUploadResult);
             },
           };
           client.storageBuckets.set(bucket, cached);
@@ -152,6 +169,8 @@ beforeEach(() => {
   mockClient.tableResults.clear();
   mockClient.storageBuckets.clear();
   mockClient.storageRemoveResult = { data: null, error: null };
+  mockClient.storageUploadResult = { data: { path: "uploaded" }, error: null };
+  mockClient.sessionResult = { data: { session: null }, error: null };
 });
 
 afterEach(() => {
@@ -335,6 +354,54 @@ describe("replaceStoredDocument (local fallback)", () => {
     });
 
     expect(stored?.source).toBe("local");
+  });
+
+  it("infers MIME type for remote uploads when the browser type is empty", async () => {
+    mockClient.sessionResult = {
+      data: {
+        session: {
+          user: { id: "user-9" },
+          access_token: "token",
+        },
+      },
+      error: null,
+    };
+
+    mockClient.tableResults.set("application_documents", [
+      { data: [], error: null },
+      { data: null, error: null },
+      {
+        data: {
+          id: "doc-remote-1",
+          file_name: "resume.docx",
+          size_bytes: 4,
+          mime_type:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          created_at: "2026-05-23T00:00:00Z",
+          storage_bucket: "application-documents",
+          storage_path: "user-9/app-1/cv/doc-remote-1-resume.docx",
+        },
+        error: null,
+      },
+    ]);
+    mockClient.tableResults.set("applications", [{ data: [{ id: "app-1" }], error: null }]);
+
+    const next = new File(["docx"], "resume.docx", { type: "" });
+
+    const stored = await replaceStoredDocument(next, undefined, {
+      applicationId: "app-1",
+      kind: "cv",
+    });
+
+    expect(stored?.source).toBe("remote");
+    expect(stored?.type).toBe(
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    );
+
+    const bucket = mockClient.storageBuckets.get("application-documents");
+    expect(bucket?.uploadCalls[0]?.options.contentType).toBe(
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    );
   });
 });
 
