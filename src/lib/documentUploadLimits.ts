@@ -85,6 +85,39 @@ function asErrorRecord(error: unknown): Record<string, unknown> | null {
   return error as Record<string, unknown>;
 }
 
+function collectUploadErrorCandidates(error: unknown): unknown[] {
+  const candidates: unknown[] = [error];
+  const record = asErrorRecord(error);
+
+  if (record?.error && typeof record.error === "object") {
+    candidates.push(record.error);
+  }
+
+  if (error instanceof Error) {
+    candidates.push({ message: error.message });
+  }
+
+  return candidates;
+}
+
+function getUploadErrorMessage(error: unknown): string | null {
+  for (const candidate of collectUploadErrorCandidates(error)) {
+    const record = asErrorRecord(candidate);
+
+    if (!record) {
+      continue;
+    }
+
+    const message = typeof record.message === "string" ? record.message : null;
+
+    if (message) {
+      return message;
+    }
+  }
+
+  return null;
+}
+
 function formatLimitInMegabytes(limitBytes: number): string {
   if (limitBytes < BYTES_PER_MEGABYTE) {
     const kb = Math.max(1, Math.round(limitBytes / 1024));
@@ -113,6 +146,20 @@ export function toDocumentUploadLimitError(
     return error;
   }
 
+  for (const candidate of collectUploadErrorCandidates(error)) {
+    const parsed = parseDocumentUploadLimitErrorRecord(candidate);
+
+    if (parsed) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function parseDocumentUploadLimitErrorRecord(
+  error: unknown,
+): DocumentUploadLimitError | null {
   const record = asErrorRecord(error);
 
   if (!record) {
@@ -168,23 +215,19 @@ export function toDocumentUploadLimitError(
 }
 
 function getKnownDocumentUploadErrorMessage(error: unknown): string | null {
-  const record = asErrorRecord(error);
-
-  if (!record) {
-    return null;
-  }
-
-  const message = typeof record.message === "string" ? record.message : null;
+  const message = getUploadErrorMessage(error);
   const normalizedMessage = message?.toLowerCase() ?? "";
+  const record = asErrorRecord(error);
   const code =
-    typeof record.code === "string" || typeof record.code === "number"
+    typeof record?.code === "string" || typeof record?.code === "number"
       ? String(record.code)
       : null;
+  const rawStatusCode = record?.statusCode ?? record?.status;
   const statusCode =
-    typeof record.statusCode === "number"
-      ? record.statusCode
-      : typeof record.status === "number"
-        ? record.status
+    typeof rawStatusCode === "number"
+      ? rawStatusCode
+      : typeof rawStatusCode === "string" && /^\d+$/.test(rawStatusCode)
+        ? Number.parseInt(rawStatusCode, 10)
         : null;
 
   if (message === "DOCUMENT_STORAGE_OBJECT_MISSING") {
@@ -231,9 +274,33 @@ function getKnownDocumentUploadErrorMessage(error: unknown): string | null {
     statusCode === 401 ||
     code === "401" ||
     normalizedMessage.includes("jwt") ||
-    normalizedMessage.includes("not authenticated")
+    normalizedMessage.includes("not authenticated") ||
+    normalizedMessage.includes("no authenticated session")
   ) {
     return "Sign in again before uploading.";
+  }
+
+  if (message === "Unable to create an application record.") {
+    return "We couldn't create your application record. Refresh the page and try again.";
+  }
+
+  if (message === "Failed to save the application.") {
+    return "We couldn't update your application after uploading. Refresh the page and try again.";
+  }
+
+  if (message === "Failed to store the uploaded document metadata.") {
+    return "Upload didn't finish saving your file details. Please try again.";
+  }
+
+  if (message === "Supabase is not configured.") {
+    return "Document storage isn't configured for this environment.";
+  }
+
+  if (
+    normalizedMessage.includes("foreign key constraint") ||
+    code === "23503"
+  ) {
+    return "We couldn't link this upload to your application. Refresh the page and try again.";
   }
 
   return null;

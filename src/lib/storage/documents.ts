@@ -1,4 +1,7 @@
 import { inferDocumentMimeType } from "../documentMime";
+import {
+  buildApplicationDocumentStoragePath,
+} from "../documentStoragePath";
 import { supabase } from "../supabase";
 import type { Enums, Tables, TablesInsert } from "../supabase.types";
 import {
@@ -94,10 +97,6 @@ async function withStore<T>(
     transaction.oncomplete = () => database.close();
     transaction.onerror = () => reject(transaction.error);
   });
-}
-
-function sanitizeFileName(fileName: string) {
-  return fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
 function isRemoteDocument(document: UploadedDocument | undefined) {
@@ -412,8 +411,13 @@ async function saveRemoteDocumentFile(
   await enforceRemoteUploadLimits(applicationId, session.user.id, file.size);
 
   const documentId = crypto.randomUUID();
-  const safeName = sanitizeFileName(file.name);
-  const storagePath = `${session.user.id}/${applicationId}/${kind}/${documentId}-${safeName}`;
+  const storagePath = buildApplicationDocumentStoragePath({
+    userId: session.user.id,
+    applicationId,
+    kind,
+    documentId,
+    fileName: file.name,
+  });
   const mimeType = inferDocumentMimeType(file);
 
   const { error: uploadError } = await supabase.storage

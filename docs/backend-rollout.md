@@ -197,6 +197,8 @@ Notes:
 - Production CV upload checklist (after deploy):
   - confirm `20260522120000_storage_quota_and_document_integrity.sql` is applied in the Supabase SQL editor
   - confirm `20260523103000_application_document_storage_trigger_definer.sql` is applied in the Supabase SQL editor
+  - confirm `20260523120000_storage_upload_limit_checks_security_definer.sql` is applied in the Supabase SQL editor
+  - confirm `20260523123000_storage_upload_trigger_auth_context.sql` is applied in the Supabase SQL editor
   - upload a `.docx` from Safari/macOS (empty `file.type`) on `/section2/add-cv` — should succeed with inferred MIME
   - with empty employment history and the parser flag enabled, Save should draft roles or show a parser warning (CV still saved)
 - Remaining limitation:
