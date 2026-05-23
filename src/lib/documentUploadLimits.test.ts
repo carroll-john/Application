@@ -145,4 +145,13 @@ describe("getDocumentUploadErrorMessage", () => {
       }),
     ).toContain("upload path");
   });
+
+  it("returns a friendly message when document metadata cannot link to the application", () => {
+    expect(
+      getDocumentUploadErrorMessage({
+        code: "23503",
+        message: 'insert or update on table "application_documents" violates foreign key constraint',
+      }),
+    ).toContain("link this upload to your application");
+  });
 });
