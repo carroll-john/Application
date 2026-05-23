@@ -135,3 +135,19 @@ describe("normalizeConditionalContactDetails", () => {
     expect(normalized.disabilityDetails).toBe("");
   });
 });
+
+describe("isRemoteRecordId", () => {
+  it("accepts remote UUID record ids", async () => {
+    const { isRemoteRecordId } = await import("./applicationData");
+
+    expect(isRemoteRecordId("550e8400-e29b-41d4-a716-446655440000")).toBe(true);
+  });
+
+  it("rejects local draft ids", async () => {
+    const { isRemoteRecordId } = await import("./applicationData");
+
+    expect(
+      isRemoteRecordId("local-550e8400-e29b-41d4-a716-446655440000"),
+    ).toBe(false);
+  });
+});

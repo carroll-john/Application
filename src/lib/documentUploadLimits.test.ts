@@ -109,4 +109,20 @@ describe("getDocumentUploadErrorMessage", () => {
       }),
     ).toBe("Sign in again before uploading.");
   });
+
+  it("returns a friendly message when the application record is missing", () => {
+    expect(
+      getDocumentUploadErrorMessage({
+        message: "UPLOAD_APPLICATION_NOT_FOUND",
+      }),
+    ).toContain("application record");
+  });
+
+  it("returns a friendly message for invalid storage paths", () => {
+    expect(
+      getDocumentUploadErrorMessage({
+        message: "UPLOAD_INVALID_STORAGE_PATH",
+      }),
+    ).toContain("upload path");
+  });
 });
