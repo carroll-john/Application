@@ -46,6 +46,7 @@ import {
 export interface SaveApplicationOptions {
   applicantProfileId?: string | null;
   forceCreate?: boolean;
+  shellOnly?: boolean;
 }
 
 export interface ApplicationStorageAdapter {
