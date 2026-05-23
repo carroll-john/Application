@@ -1,5 +1,3 @@
-import { normalizeRequiredWhitespace } from "../../src/lib/cvEmployment/text";
-
 const LIST_DELIMITER_PATTERN = /\r?\n+|;|\||•|\u2022|\s\/\s/g;
 const LIST_WITH_COMMA_DELIMITER_PATTERN =
   /\r?\n+|;|\||•|\u2022|\s\/\s|,\s+(?=(?:[A-Za-z]{3,}|(?:19|20)\d{2}|Present|Current|Now))/g;
@@ -51,6 +49,10 @@ export function normalizeExperienceEntry(entry: unknown): NormalizedExperienceEn
     startYear: toStringValue(source.startYear ?? source.start_year ?? source.fromYear),
     type: toStringValue(source.type ?? source.employmentType ?? source.employment_type),
   };
+}
+
+function normalizeRequiredWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
 }
 
 function normalizeWhitespace(value: string) {
