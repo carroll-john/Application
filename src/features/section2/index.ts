@@ -1,6 +1,7 @@
 export * from "./QualificationsSectionUi";
 export { CvSaveProgressPanel } from "./CvSaveProgressPanel";
-export { CvUploadPanel } from "./CvUploadPanel";
+export { CvUploadFields } from "./CvUploadFields";
+export { saveSection2DocumentRecord } from "./section2DocumentSave";
 export { Section2FormCard } from "./Section2FormCard";
 export { Section2QualificationsPage } from "./Section2QualificationsPage";
 export { Section2RecordPage } from "./Section2RecordPage";

@@ -10,13 +10,13 @@ import {
 import { useEditableRecord } from "../hooks/useEditableRecord";
 import { useSection2RecordSave } from "../hooks/useSection2RecordSave";
 import type { TertiaryQualification } from "../lib/applicationData";
-import { saveDocumentAttachment } from "../lib/documentAttachment";
+import { saveSection2DocumentRecord } from "../features/section2/section2DocumentSave";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
 
 export default function Section2AddTertiary() {
   const {
     data,
-    ensureRemoteRecordId,
+    ensureApplicationRow,
     addTertiaryQualification,
     updateTertiaryQualification,
   } = useApplication();
@@ -85,30 +85,34 @@ export default function Section2AddTertiary() {
       !formData.certificateDocument &&
       Boolean(originalCertificateDocument);
 
-    const applicationId = await ensureRemoteRecordId();
-    const transcriptDocument = await saveDocumentAttachment({
-      applicationId,
-      currentDocument: transcriptRemoved ? undefined : formData.transcriptDocument,
-      kind: "tertiary_transcript",
-      originalDocument: originalTranscriptDocument,
-      selectedFile: selectedTranscriptFile,
-    });
-    const certificateDocument = await saveDocumentAttachment({
-      applicationId,
-      currentDocument: certificateRemoved ? undefined : formData.certificateDocument,
-      kind: "tertiary_certificate",
-      originalDocument: originalCertificateDocument,
-      selectedFile: selectedCertificateFile,
-    });
+    const applicationId = await ensureApplicationRow();
+    const { document: transcriptDocument, documentName: transcriptDocumentName } =
+      await saveSection2DocumentRecord({
+        applicationId,
+        currentDocument: transcriptRemoved ? undefined : formData.transcriptDocument,
+        ensureApplicationRow: async () => applicationId,
+        kind: "tertiary_transcript",
+        originalDocument: originalTranscriptDocument,
+        selectedFile: selectedTranscriptFile,
+      });
+    const { document: certificateDocument, documentName: certificateDocumentName } =
+      await saveSection2DocumentRecord({
+        applicationId,
+        currentDocument: certificateRemoved ? undefined : formData.certificateDocument,
+        ensureApplicationRow: async () => applicationId,
+        kind: "tertiary_certificate",
+        originalDocument: originalCertificateDocument,
+        selectedFile: selectedCertificateFile,
+      });
 
     const nextRecord = {
       ...formData,
       transcriptDocument,
       transcriptDocumentName:
-        transcriptDocument?.name ?? formData.transcriptDocumentName,
+        transcriptDocumentName ?? formData.transcriptDocumentName,
       certificateDocument: formData.completed ? certificateDocument : undefined,
       certificateDocumentName: formData.completed
-        ? certificateDocument?.name ?? formData.certificateDocumentName
+        ? certificateDocumentName ?? formData.certificateDocumentName
         : undefined,
     };
 
