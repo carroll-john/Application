@@ -8,6 +8,12 @@ Build a backend-backed eligibility-check flow where users can upload:
 
 The system should extract and parse document data, evaluate program rules, and return postgraduate programs the user is eligible to enroll in with transparent rationale.
 
+## Status Update (2026-05-23)
+- Landed app-to-service eligibility proxy contract at `api/evaluate-transcript-eligibility`.
+- Added four-status advisory outcome model to the app domain: `eligible`, `conditionally_eligible`, `ineligible`, `insufficient_data`.
+- Wired Section 2 tertiary transcript save flow to request an eligibility assessment and persist explainable results with confidence and per-requirement status.
+- Added fallback behavior to return `insufficient_data` when the external eligibility service is unavailable or not configured.
+
 ## Product Boundary (Current)
 - This is an eligibility recommendation flow, not a full admissions processing system.
 - Output is advisory and should explain confidence and missing evidence.
@@ -90,6 +96,11 @@ Use `npm run notion:publish-note -- --file <note-path>` with `NOTION_TOKEN` and 
 - Implement transcript/certificate/CV extraction pipeline.
 - Add normalization layer with confidence scoring.
 - Build rules engine and explanation payloads per program.
+
+### Phase 2.1: Service Contract Hardening (Current)
+- Add contract tests for proxy forwarding, upstream error mapping, and fallback responses.
+- Validate synthetic transcript fixture coverage against expected four-status outcomes.
+- Align service response schema with app-rendered requirement checks and missing-evidence guidance.
 
 ### Phase 3: Trust + Scale
 - Add user correction/override loop for extracted fields.

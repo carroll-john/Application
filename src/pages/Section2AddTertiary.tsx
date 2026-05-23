@@ -10,6 +10,11 @@ import {
 import { useEditableRecord } from "../hooks/useEditableRecord";
 import { useSection2RecordSave } from "../hooks/useSection2RecordSave";
 import type { TertiaryQualification } from "../lib/applicationData";
+import {
+  evaluateTranscriptEligibility,
+  TranscriptEligibilityRequestError,
+} from "../lib/eligibility/client";
+import { createInsufficientDataAssessment } from "../lib/eligibility/fallback";
 import { saveSection2DocumentRecord } from "../features/section2/section2DocumentSave";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
 
@@ -76,6 +81,7 @@ export default function Section2AddTertiary() {
     : null;
 
   const saveRecord = async () => {
+    const selectedCourse = data.applicationMeta.selectedCourse;
     const transcriptRemoved =
       !selectedTranscriptFile &&
       !formData.transcriptDocument &&
@@ -110,11 +116,42 @@ export default function Section2AddTertiary() {
       transcriptDocument,
       transcriptDocumentName:
         transcriptDocumentName ?? formData.transcriptDocumentName,
+      transcriptEligibility: formData.transcriptEligibility,
       certificateDocument: formData.completed ? certificateDocument : undefined,
       certificateDocumentName: formData.completed
         ? certificateDocumentName ?? formData.certificateDocumentName
         : undefined,
     };
+
+    if (transcriptRemoved) {
+      nextRecord.transcriptEligibility = undefined;
+    } else if (selectedTranscriptFile) {
+      const eligibilityContext = {
+        completed: formData.completed,
+        courseCode: selectedCourse?.code,
+        courseTitle: selectedCourse?.title,
+        institution: formData.institution,
+        languageTestsCount: data.languageTests.length,
+        level: formData.level,
+      };
+
+      try {
+        nextRecord.transcriptEligibility = await evaluateTranscriptEligibility(
+          selectedTranscriptFile,
+          eligibilityContext,
+        );
+      } catch (error) {
+        const fallbackReason =
+          error instanceof TranscriptEligibilityRequestError
+            ? error.message
+            : "Automatic transcript eligibility evaluation could not be completed.";
+
+        nextRecord.transcriptEligibility = createInsufficientDataAssessment({
+          context: eligibilityContext,
+          reason: fallbackReason,
+        });
+      }
+    }
 
     if (existing) {
       updateTertiaryQualification(existing.id, nextRecord);

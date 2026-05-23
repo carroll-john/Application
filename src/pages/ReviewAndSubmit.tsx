@@ -11,6 +11,7 @@ import {
   useSubmitApplication,
 } from "../features/review";
 import { useApplication } from "../context/ApplicationContext";
+import { eligibilityOutcomeCopy } from "../lib/eligibility/uiCopy";
 
 export default function ReviewAndSubmit() {
   const navigate = useNavigate();
@@ -25,6 +26,15 @@ export default function ReviewAndSubmit() {
   } = useSubmitApplication();
   const { navigateToReviewEdit } = useReviewNavigation(validationErrors);
   const prefilledFrom = data.applicationMeta.prefilledFrom;
+  const transcriptEligibilitySnapshots = data.tertiaryQualifications
+    .map((qualification) => qualification.transcriptEligibility)
+    .filter((assessment): assessment is NonNullable<typeof assessment> => Boolean(assessment));
+  const latestEligibility =
+    transcriptEligibilitySnapshots.length > 0
+      ? [...transcriptEligibilitySnapshots].sort((a, b) =>
+          b.checkedAt.localeCompare(a.checkedAt),
+        )[0]
+      : undefined;
 
   return (
     <>
@@ -54,6 +64,17 @@ export default function ReviewAndSubmit() {
             </div>
           ) : null}
         </div>
+
+        {latestEligibility ? (
+          <div className="mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4">
+            <p className="text-sm font-semibold text-gray-900">
+              Transcript eligibility: {eligibilityOutcomeCopy[latestEligibility.outcome]}
+            </p>
+            <p className="mt-1 text-xs text-gray-700">
+              Recommended next step: {latestEligibility.recommendedNextStep}
+            </p>
+          </div>
+        ) : null}
 
         {validationErrors.length > 0 ? (
           <ReviewValidationPanel

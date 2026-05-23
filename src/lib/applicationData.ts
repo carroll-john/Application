@@ -1,5 +1,6 @@
 import { createEmptyStructuredAddress, type StructuredAddress } from "./address";
 import type { UploadedDocument } from "./documentStorage";
+import type { TranscriptEligibilityAssessment } from "./eligibility/types";
 
 export const APPLICATION_STORAGE_KEY = "application-prototype:data";
 
@@ -18,6 +19,7 @@ export interface TertiaryQualification {
   transcriptDocumentName?: string;
   certificateDocument?: UploadedDocument;
   certificateDocumentName?: string;
+  transcriptEligibility?: TranscriptEligibilityAssessment;
 }
 
 export interface EmploymentExperience {
