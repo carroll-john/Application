@@ -10,6 +10,7 @@ export { TertiaryDocumentFields } from "./TertiaryDocumentFields";
 export { TertiaryInstitutionFields } from "./TertiaryInstitutionFields";
 export { TertiaryQualificationFields } from "./TertiaryQualificationFields";
 export { TertiaryStudyPeriodFields } from "./TertiaryStudyPeriodFields";
+export { TertiaryTranscriptUploadCard } from "./TertiaryTranscriptUploadCard";
 export * from "./types";
 export { useSection2DocumentSaveWithParse } from "./useSection2DocumentSaveWithParse";
 export { useSection2QualificationsFlow } from "./useSection2QualificationsFlow";

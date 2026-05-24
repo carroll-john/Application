@@ -5,6 +5,9 @@ Run two active tracks in parallel:
 - Track A: Build the strategy-learning university integration platform MVP as a separate service.
 - Track B: Continue improving the application-flow UX in the existing applicant app.
 
+## Status Update (2026-05-24)
+- Shipped parse-first tertiary transcript auto-fill in Section 2 (Track B), reusing the eligibility extraction API for form drafting and course eligibility in one save flow.
+
 ## Status Update (2026-03-06)
 - Tuesday demo scope is complete.
 - Delivery is now dual-track: integration platform buildout plus ongoing UX improvements.
@@ -101,9 +104,9 @@ Run two active tracks in parallel:
 3. Implement orchestration skeleton and adapter lifecycle contract (`DIS-61`), then move to file export baseline (`DIS-60`).
 
 ## Next 3 Tasks: UX Track
-1. Start with high-impact friction fixes: `DIS-10`, `DIS-11`, `DIS-9`.
-2. Follow with navigation/clarity improvements: `DIS-12`, `DIS-13`, `DIS-14`.
-3. Complete data-entry quality updates: `DIS-16`, then discovery on `DIS-15`.
+1. Validate parse-first tertiary transcript flow against hosted environments and tune mapper for common AU transcript layouts.
+2. Continue high-impact friction fixes: `DIS-10`, `DIS-11`, `DIS-9`.
+3. Follow with navigation/clarity improvements: `DIS-12`, `DIS-13`, `DIS-14`.
 
 ## Known Risks: Integration Track
 - Contract drift between repos if compatibility checks are not enforced in CI.

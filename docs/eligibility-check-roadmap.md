@@ -8,6 +8,10 @@ Build a backend-backed eligibility-check flow where users can upload:
 
 The system should extract and parse document data, evaluate program rules, and return postgraduate programs the user is eligible to enroll in with transparent rationale.
 
+## Status Update (2026-05-24)
+- Added parse-first tertiary transcript UX: upload transcript → auto-fill qualification fields from the same eligibility extraction response → show combined hub review (drafted fields + advisory eligibility panel).
+- Reuses `api/evaluate-transcript-eligibility` for single-call extract + assess (no separate parse route).
+
 ## Status Update (2026-05-23)
 - Landed app-to-service eligibility proxy contract at `api/evaluate-transcript-eligibility`.
 - Added four-status advisory outcome model to the app domain: `eligible`, `conditionally_eligible`, `ineligible`, `insufficient_data`.
