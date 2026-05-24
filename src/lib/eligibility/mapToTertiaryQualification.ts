@@ -243,6 +243,13 @@ export function mergeQualificationDraft(
   }
   if (isFieldEmpty(existing.country) && draft.country) {
     merged.country = draft.country;
+  } else if (
+    draft.country &&
+    existing.country === "Australia" &&
+    draft.country !== "Australia" &&
+    isQualificationCoreEmpty(existing)
+  ) {
+    merged.country = draft.country;
   }
   if (isFieldEmpty(existing.level) && draft.level) {
     merged.level = draft.level;

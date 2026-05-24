@@ -137,6 +137,12 @@ export function normalizeTranscriptEligibilityAssessment(
 ): TranscriptEligibilityAssessment {
   const candidate =
     payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+  const evidenceSource =
+    candidate.extractedData &&
+    typeof candidate.extractedData === "object" &&
+    !Array.isArray(candidate.extractedData)
+      ? (candidate.extractedData as Record<string, unknown>)
+      : candidate;
 
   const missingInformation = Array.isArray(candidate.missingInformation)
     ? candidate.missingInformation.filter(
@@ -157,10 +163,10 @@ export function normalizeTranscriptEligibilityAssessment(
         : new Date().toISOString(),
     confidence: normalizeConfidence(candidate.confidence, 0.45),
     extractedData: {
-      academicPerformance: normalizeExtractedGroup(candidate.academicPerformance),
-      applicantDetails: normalizeExtractedGroup(candidate.applicantDetails),
-      englishLanguageEvidence: normalizeExtractedGroup(candidate.englishLanguageEvidence),
-      studyDetails: normalizeExtractedGroup(candidate.studyDetails),
+      academicPerformance: normalizeExtractedGroup(evidenceSource.academicPerformance),
+      applicantDetails: normalizeExtractedGroup(evidenceSource.applicantDetails),
+      englishLanguageEvidence: normalizeExtractedGroup(evidenceSource.englishLanguageEvidence),
+      studyDetails: normalizeExtractedGroup(evidenceSource.studyDetails),
     },
     manualReviewRequired:
       typeof candidate.manualReviewRequired === "boolean"

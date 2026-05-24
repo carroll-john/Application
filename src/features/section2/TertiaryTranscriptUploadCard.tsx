@@ -30,7 +30,7 @@ export function TertiaryTranscriptUploadCard({
         <DocumentUploadField
           attachedDescription="Your transcript is the academic record that shows the subjects you studied and the results you achieved."
           attachedStatus="Transcript attached"
-          description="PDF, DOC, DOCX or TXT, up to 5 MB. You can upload now and we'll fill in the details below, or enter them manually."
+          description="PDF, DOC, DOCX or TXT, up to 5 MB. We'll read your transcript and fill in the details below automatically."
           document={formData.transcriptDocument}
           documentName={formData.transcriptDocumentName}
           label="Upload transcript"
@@ -44,8 +44,8 @@ export function TertiaryTranscriptUploadCard({
           showStatusIcon
         />
         <p className="text-xs text-slate-500">
-          When you save, we&apos;ll read your transcript to draft qualification fields and check
-          eligibility for your selected course. You can review and edit everything before submit.
+          After you choose a file, we&apos;ll draft your qualification details here. Review
+          them, then click Save & Continue.
         </p>
       </div>
     </Section2FormCard>
