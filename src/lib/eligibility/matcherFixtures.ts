@@ -1,9 +1,27 @@
+import { getGeneratedRequirementsForCourse } from "../courseCatalog/requirementsLoader";
 import type { RequirementInstance } from "./requirements";
 import type {
   EligibilityRequirementStatus,
   TranscriptEligibilityRequestContext,
   TranscriptExtractedData,
 } from "./types";
+
+/**
+ * Pulls canonical requirements for a course directly from the shipped generated catalog (via the
+ * runtime loader, so JSON null normalization and the matcher-safety filter run too). Using the real
+ * shipped data in fixtures means a regression in either the parser output OR the matcher will cause
+ * the eval to fail.
+ */
+function realCourseRequirements(courseCode: string): RequirementInstance[] {
+  const requirements = getGeneratedRequirementsForCourse(courseCode);
+  if (!requirements || requirements.length === 0) {
+    throw new Error(
+      `matcherFixtures: no canonical (matcher-safe) requirements found for course code "${courseCode}". ` +
+        `Either run \`npm run eligibility:parse-requirements -- --code=${courseCode}\` or pick a safer course.`,
+    );
+  }
+  return requirements;
+}
 
 /**
  * Matcher-level fixture. Unlike `transcriptFixtures.ts` (which exercises the proxy + service
@@ -233,5 +251,94 @@ export const matcherFixtures: MatcherFixture[] = [
       english: "pass",
     },
     expectedOutcome: "eligible",
+  },
+
+  // -------- Real-catalog fixtures --------
+  // These pull canonical requirements directly from the shipped requirements.generated.json so the
+  // eval gates against the actual production data shape.
+
+  {
+    id: "REAL-001",
+    scenario:
+      "La Trobe MIT, completed Bachelor of IT from University of Melbourne (78.6 WAM) — matches the user's original duplicate-checks report. Expect 3 clean passes.",
+    context: { completed: true, country: "Australia" },
+    evidence: {
+      applicantDetails: {
+        institutionName: { confidence: 0.95, normalizedValue: "The University of Melbourne" },
+        countryOfInstitution: { confidence: 0.95, normalizedValue: "Australia" },
+      },
+      studyDetails: {
+        completionStatus: { confidence: 0.95, normalizedValue: "completed" },
+        highestEducationLevel: {
+          confidence: 0.9,
+          normalizedValue: "Bachelor of Information Technology",
+        },
+        programName: { confidence: 0.9, normalizedValue: "Bachelor of Information Technology" },
+      },
+      academicPerformance: {
+        gradeAverageOrWam: { confidence: 0.9, normalizedValue: "78.6" },
+        gpa: { confidence: 0.85, normalizedValue: "6.1" },
+        gpaScale: { confidence: 0.85, normalizedValue: "7" },
+      },
+    },
+    requirements: realCourseRequirements("la-trobe-university-master-of-information-technology"),
+    expectedStatusById: {
+      "completed-bachelor": "pass",
+      "completed-australian-bachelor": "pass",
+      "english-completion-in-country": "pass",
+    },
+    expectedOutcome: "eligible",
+  },
+  {
+    id: "REAL-002",
+    scenario:
+      "SCU MBA Online, completed AU bachelor (Commerce) with no IELTS — completion-in-country pathway should satisfy English.",
+    context: { completed: true, country: "Australia" },
+    evidence: {
+      applicantDetails: {
+        institutionName: { confidence: 0.9, normalizedValue: "Macquarie University" },
+        countryOfInstitution: { confidence: 0.95, normalizedValue: "Australia" },
+      },
+      studyDetails: {
+        completionStatus: { confidence: 0.95, normalizedValue: "completed" },
+        highestEducationLevel: { confidence: 0.9, normalizedValue: "Bachelor of Commerce" },
+      },
+      academicPerformance: {
+        gradeAverageOrWam: { confidence: 0.9, normalizedValue: "72" },
+      },
+    },
+    requirements: realCourseRequirements("mba-online"),
+    expectedStatusById: {
+      "completed-bachelor": "pass",
+      "qualification-level-bachelor": "pass",
+      "english-ielts": "pass",
+    },
+    expectedOutcome: "eligible",
+  },
+  {
+    id: "REAL-003",
+    scenario:
+      "SCU MBA Online, completed bachelor at Universitas Gadjah Mada (Indonesia) with no IELTS evidence — English pathway should be unknown.",
+    context: { completed: true, country: "Indonesia" },
+    evidence: {
+      applicantDetails: {
+        institutionName: { confidence: 0.9, normalizedValue: "Universitas Gadjah Mada" },
+        countryOfInstitution: { confidence: 0.95, normalizedValue: "Indonesia" },
+      },
+      studyDetails: {
+        completionStatus: { confidence: 0.95, normalizedValue: "completed" },
+        highestEducationLevel: { confidence: 0.9, normalizedValue: "Bachelor of Engineering" },
+      },
+      academicPerformance: {
+        gradeAverageOrWam: { confidence: 0.9, normalizedValue: "70" },
+      },
+    },
+    requirements: realCourseRequirements("mba-online"),
+    expectedStatusById: {
+      "completed-bachelor": "pass",
+      "qualification-level-bachelor": "pass",
+      "english-ielts": "unknown",
+    },
+    expectedOutcome: "insufficient_data",
   },
 ];

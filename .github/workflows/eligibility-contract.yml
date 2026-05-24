@@ -12,9 +12,11 @@ on:
       - "src/lib/courseCatalog/normalize.ts"
       - "src/lib/courseCatalog/requirements.generated.json"
       - "src/lib/courseCatalog/requirementsLoader.ts"
+      - "src/lib/courseCatalog/requirementsLoader.test.ts"
       - "src/lib/eligibility/**"
       - "scripts/eligibility-eval.ts"
       - "scripts/parse-course-requirements.ts"
+      - "scripts/dump-eligibility-overrides.ts"
       - "package.json"
       - "package-lock.json"
   push:
@@ -31,9 +33,11 @@ on:
       - "src/lib/courseCatalog/normalize.ts"
       - "src/lib/courseCatalog/requirements.generated.json"
       - "src/lib/courseCatalog/requirementsLoader.ts"
+      - "src/lib/courseCatalog/requirementsLoader.test.ts"
       - "src/lib/eligibility/**"
       - "scripts/eligibility-eval.ts"
       - "scripts/parse-course-requirements.ts"
+      - "scripts/dump-eligibility-overrides.ts"
       - "package.json"
       - "package-lock.json"
 

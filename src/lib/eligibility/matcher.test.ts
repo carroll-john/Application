@@ -184,6 +184,78 @@ describe("evaluateRequirements", () => {
     expect(check.status).toBe("fail");
   });
 
+  it("drops single-member alternative groups so they do not gate eligibility", () => {
+    // The parser is instructed to skip ad-hoc entry pathways that cannot be expressed as a genuine
+    // multi-member OR. Defense-in-depth in the matcher: if a single-member alternative group leaks
+    // through, drop it rather than render it as a 1-OR that can fail and tank the overall outcome.
+    const instances: RequirementInstance[] = [
+      {
+        id: "completed-bachelor",
+        kind: "qualification_completed",
+        params: {},
+        sourceText: "Successful completion of a bachelor degree.",
+        weight: "mandatory",
+      },
+      {
+        id: "professional-entry-8y",
+        kind: "work_experience",
+        params: { minYears: 8 },
+        sourceText: "Applicants without a degree may be considered with 8 years experience.",
+        weight: "alternative",
+        alternativeGroupId: "professional-entry",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      studyDetails: {
+        completionStatus: { confidence: 0.9, normalizedValue: "completed" },
+      },
+    };
+
+    const checks = evaluateRequirements(instances, evidence, emptyContext());
+
+    expect(checks).toHaveLength(1);
+    expect(checks[0].id).toBe("completed-bachelor");
+    expect(checks[0].status).toBe("pass");
+  });
+
+  it("does NOT fold mandatory requirements that happen to share an alternativeGroupId", () => {
+    // Defense-in-depth: a parser bug or hand-edited fixture could attach an alternativeGroupId to
+    // mandatory items. Those must still render as standalone checks rather than collapsing into a
+    // single OR-pass when any one of them is satisfied.
+    const instances: RequirementInstance[] = [
+      {
+        id: "completed-bachelor",
+        kind: "qualification_completed",
+        params: {},
+        sourceText: "Successful completion of an Australian bachelor degree.",
+        weight: "mandatory",
+        alternativeGroupId: "academic-entry",
+      },
+      {
+        id: "wam-60",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 60 },
+        sourceText: "WAM 60% or above.",
+        weight: "mandatory",
+        alternativeGroupId: "academic-entry",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      studyDetails: {
+        completionStatus: { confidence: 0.9, normalizedValue: "completed" },
+      },
+      academicPerformance: {
+        gradeAverageOrWam: { confidence: 0.9, normalizedValue: "45" },
+      },
+    };
+
+    const checks = evaluateRequirements(instances, evidence, emptyContext());
+
+    expect(checks).toHaveLength(2);
+    const statuses = checks.map((check) => check.status).sort();
+    expect(statuses).toEqual(["fail", "pass"]);
+  });
+
   it("academic_threshold maps GPA to WAM when WAM is missing", () => {
     const instances: RequirementInstance[] = [
       {
