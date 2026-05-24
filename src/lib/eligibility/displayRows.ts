@@ -25,6 +25,46 @@ export interface EligibilityDisplayRow {
 
 const NOT_EVALUATED_EXPLANATION = "Not evaluated automatically — admissions will verify this requirement manually.";
 
+function combineRequirementStatuses(
+  ...statuses: Array<EligibilityRequirementStatus | undefined>
+): EligibilityRequirementStatus {
+  const values = statuses.filter(Boolean) as EligibilityRequirementStatus[];
+  if (values.includes("fail")) {
+    return "fail";
+  }
+  if (values.includes("unknown")) {
+    return "unknown";
+  }
+  if (values.length > 0 && values.every((status) => status === "pass")) {
+    return "pass";
+  }
+  return "unknown";
+}
+
+function combineExplanations(...parts: Array<string | undefined>) {
+  return parts
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function findQualificationLevelPartner(
+  requirements: readonly RequirementInstance[],
+  completion: RequirementInstance,
+) {
+  if (completion.kind !== "qualification_completed" || completion.alternativeGroupId) {
+    return undefined;
+  }
+
+  return requirements.find(
+    (candidate) =>
+      candidate.kind === "qualification_level" &&
+      !candidate.alternativeGroupId &&
+      candidate.weight === completion.weight &&
+      candidate.sourceText === completion.sourceText,
+  );
+}
+
 /**
  * Builds the list of rows to render in the eligibility result UI.
  *
@@ -66,6 +106,7 @@ export function buildEligibilityDisplayRows(
 
   const rows: EligibilityDisplayRow[] = [];
   const emittedAlternativeGroups = new Set<string>();
+  const skippedRequirementIds = new Set<string>();
 
   // Pre-count alternative-group members so we can drop degenerate 1-member groups (mirrors the
   // matcher's defense-in-depth behaviour).
@@ -80,6 +121,10 @@ export function buildEligibilityDisplayRows(
   }
 
   for (const instance of requirements) {
+    if (skippedRequirementIds.has(instance.id)) {
+      continue;
+    }
+
     // Only fold true OR-groups (weight === "alternative"). A mandatory item that happens to carry an
     // alternativeGroupId renders as its own row so users see each hard requirement individually.
     if (instance.alternativeGroupId && instance.weight === "alternative") {
@@ -101,6 +146,25 @@ export function buildEligibilityDisplayRows(
         explanation: groupCheck?.explanation ?? NOT_EVALUATED_EXPLANATION,
       });
       continue;
+    }
+
+    if (instance.kind === "qualification_completed") {
+      const levelPartner = findQualificationLevelPartner(requirements, instance);
+      if (levelPartner) {
+        skippedRequirementIds.add(levelPartner.id);
+        const completionCheck = checksById.get(instance.id);
+        const levelCheck = checksById.get(levelPartner.id);
+        rows.push({
+          id: instance.id,
+          sourceText: instance.sourceText,
+          kindLabel: kindLabelFor("qualification_completed"),
+          status: combineRequirementStatuses(completionCheck?.status, levelCheck?.status),
+          explanation:
+            combineExplanations(completionCheck?.explanation, levelCheck?.explanation) ||
+            NOT_EVALUATED_EXPLANATION,
+        });
+        continue;
+      }
     }
 
     const check = checksById.get(instance.id);

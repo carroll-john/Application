@@ -19,7 +19,7 @@ const MODE = process.argv.includes("--unsafe") ? "unsafe" : "safe";
 const SAFE_COURSE = {
   slug: "la-trobe-university-master-of-information-technology",
   title: "Master of Information Technology",
-  expectedRows: 3,
+  expectedRows: 2,
 };
 
 const UNSAFE_COURSE = {
@@ -175,15 +175,17 @@ try {
   }
 
   if (MODE === "safe") {
-    const wrongBtn = page.getByRole("button", { name: "This check seems wrong" }).first();
-    if (await wrongBtn.isVisible()) {
-      await wrongBtn.click();
-      const feedbackForm = page.locator("fieldset").filter({ hasText: "Correct status" }).first();
-      await feedbackForm.getByRole("radio", { name: "fail" }).click();
-      await page.getByLabel("Optional reason").fill("Post-merge smoke override");
-      await page.getByRole("button", { name: "Submit" }).click();
+    const feedbackBtn = page
+      .getByRole("button", { name: "Doesn't match your transcript?" })
+      .first();
+    if (await feedbackBtn.isVisible()) {
+      await feedbackBtn.click();
+      const feedbackForm = page.locator("fieldset").filter({ hasText: "What should this be?" }).first();
+      await feedbackForm.getByRole("radio", { name: "Not met" }).click();
+      await page.getByLabel("Add details (optional)").fill("Post-merge smoke override");
+      await page.getByRole("button", { name: "Send feedback" }).click();
       await page
-        .getByText(/Thanks — your feedback has been recorded/)
+        .getByText(/Thanks — we've noted your feedback for admissions review/)
         .waitFor({ timeout: 15000 });
       console.log("OK override feedback submitted");
     }

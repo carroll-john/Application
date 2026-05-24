@@ -80,6 +80,65 @@ describe("buildEligibilityDisplayRows", () => {
     expect(row.explanation).toContain("Not evaluated automatically");
   });
 
+  it("folds completion and level requirements with the same source text into one row", () => {
+    const requirements: RequirementInstance[] = [
+      {
+        id: "completed-bachelor",
+        kind: "qualification_completed",
+        params: {},
+        sourceText: "Successful completion of an Australian bachelor degree (or equivalent).",
+        weight: "mandatory",
+      },
+      {
+        id: "completed-australian-bachelor",
+        kind: "qualification_level",
+        params: { level: "bachelor" },
+        sourceText: "Successful completion of an Australian bachelor degree (or equivalent).",
+        weight: "mandatory",
+      },
+      {
+        id: "english-completion-in-country",
+        kind: "english_proficiency",
+        params: {
+          acceptedPathways: [{ type: "completion_in_country", countries: ["AU"] }],
+        },
+        sourceText: "English language proficiency satisfied by completion in Australia.",
+        weight: "mandatory",
+      },
+    ];
+
+    const rows = buildEligibilityDisplayRows(requirements, [
+      {
+        id: "completed-bachelor",
+        requirement: "Successful completion of an Australian bachelor degree (or equivalent).",
+        status: "pass",
+        explanation: "Qualification appears completed based on supplied evidence.",
+      },
+      {
+        id: "completed-australian-bachelor",
+        requirement: "Successful completion of an Australian bachelor degree (or equivalent).",
+        status: "pass",
+        explanation: 'Extracted level "Bachelor degree" meets the required bachelor level.',
+      },
+      {
+        id: "english-completion-in-country",
+        requirement: "English language proficiency satisfied by completion in Australia.",
+        status: "pass",
+        explanation: "English language proficiency satisfied by completion at an institution in Australia.",
+      },
+    ]);
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      id: "completed-bachelor",
+      kindLabel: "Completed qualification",
+      status: "pass",
+      explanation:
+        'Qualification appears completed based on supplied evidence. Extracted level "Bachelor degree" meets the required bachelor level.',
+    });
+    expect(rows[1].id).toBe("english-completion-in-country");
+  });
+
   it("folds alternative-group requirements into a single row", () => {
     const requirements: RequirementInstance[] = [
       {

@@ -635,7 +635,7 @@
             }
           ]
         },
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent) and transcripts from all prior universities.",
+        "sourceText": "English language proficiency satisfied by completion of a qualification at an institution in Australia or another recognised English-medium country.",
         "weight": "mandatory",
         "alternativeGroupId": null
       }
