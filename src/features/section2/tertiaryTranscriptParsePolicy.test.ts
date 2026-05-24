@@ -5,6 +5,7 @@ import {
   needsHubTranscriptEligibilityProcessing,
   shouldAutoFillQualificationFromTranscript,
   shouldEvaluateTranscriptEligibility,
+  shouldReplaceQualificationFromTranscript,
 } from "./tertiaryTranscriptParsePolicy";
 
 function emptyFormData() {
@@ -23,7 +24,7 @@ function emptyFormData() {
 }
 
 describe("tertiaryTranscriptParsePolicy", () => {
-  it("auto-fills only when transcript is new and core fields are empty", () => {
+  it("applies draft whenever a transcript file is selected", () => {
     const context = {
       applicationData: initialApplicationData,
       formData: emptyFormData(),
@@ -36,7 +37,7 @@ describe("tertiaryTranscriptParsePolicy", () => {
     expect(shouldEvaluateTranscriptEligibility(context)).toBe(true);
   });
 
-  it("skips auto-fill when core fields already exist", () => {
+  it("marks replacement when core fields already exist", () => {
     const context = {
       applicationData: initialApplicationData,
       formData: {
@@ -48,8 +49,8 @@ describe("tertiaryTranscriptParsePolicy", () => {
       }),
     };
 
-    expect(shouldAutoFillQualificationFromTranscript(context)).toBe(false);
-    expect(shouldEvaluateTranscriptEligibility(context)).toBe(true);
+    expect(shouldAutoFillQualificationFromTranscript(context)).toBe(true);
+    expect(shouldReplaceQualificationFromTranscript(context)).toBe(true);
   });
 
   it("defers eligibility to the qualifications hub when a new transcript is selected", () => {

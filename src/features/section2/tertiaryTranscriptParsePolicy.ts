@@ -8,9 +8,12 @@ import {
 import { createInsufficientDataAssessment } from "../../lib/eligibility/fallback";
 import {
   countDraftedFields,
+  countQualificationDraftUpdates,
   isQualificationCoreEmpty,
   mapExtractedDataToQualification,
   mergeQualificationDraft,
+  mergeQualificationFromTranscriptParse,
+  qualificationFieldDraftDiffers,
   type TertiaryQualificationFieldDraft,
 } from "../../lib/eligibility/mapToTertiaryQualification";
 import type {
@@ -29,12 +32,15 @@ export interface TertiaryTranscriptParseResult {
   assessment: TranscriptEligibilityAssessment;
   fieldDraft: TertiaryQualificationFieldDraft;
   mergedRecord: TertiaryQualification;
+  replacedExistingFields: boolean;
   shouldAutoFill: boolean;
 }
 
 export const tertiaryTranscriptParseCopy = {
   draftSuccess:
     "We drafted a qualification from your transcript. Review the details below, then save when ready.",
+  draftUpdated:
+    "We updated this qualification from your new transcript. Review the details below, then save when ready.",
   draftPartial:
     "We drafted a qualification from your transcript, but some details still need your input.",
   draftEmpty:
@@ -49,7 +55,7 @@ export const tertiaryTranscriptParseCopy = {
   savingQualificationTitle: "Saving your qualification...",
   savingQualificationDetail: "Please keep this tab open while we save your documents.",
   preservedExistingFields:
-    "Transcript attached. Existing qualification details were left unchanged — save to run an eligibility check.",
+    "Transcript attached. Save to run an eligibility check on the qualifications page.",
 } as const;
 
 export function buildTranscriptEligibilityContext(
@@ -85,9 +91,15 @@ export function buildTranscriptEligibilityContext(
 export function shouldAutoFillQualificationFromTranscript(
   context: TertiaryTranscriptParseContext,
 ) {
+  return Boolean(context.selectedTranscriptFile);
+}
+
+export function shouldReplaceQualificationFromTranscript(
+  context: TertiaryTranscriptParseContext,
+) {
   return (
     Boolean(context.selectedTranscriptFile) &&
-    isQualificationCoreEmpty(context.formData)
+    !isQualificationCoreEmpty(context.formData)
   );
 }
 
@@ -130,7 +142,7 @@ export async function parseTranscriptForQualification(
   file: File,
   context: TertiaryTranscriptParseContext,
 ): Promise<TertiaryTranscriptParseResult> {
-  const shouldAutoFill = shouldAutoFillQualificationFromTranscript(context);
+  const shouldApplyDraft = shouldAutoFillQualificationFromTranscript(context);
   const eligibilityContext = buildTranscriptEligibilityContext(
     context.applicationData,
     context.formData,
@@ -153,15 +165,19 @@ export async function parseTranscriptForQualification(
   }
 
   const fieldDraft = mapExtractedDataToQualification(assessment.extractedData);
-  const mergedRecord = shouldAutoFill
-    ? mergeQualificationDraft(context.formData, fieldDraft)
+  const mergedRecord = shouldApplyDraft
+    ? mergeQualificationFromTranscriptParse(context.formData, fieldDraft)
     : context.formData;
 
   return {
     assessment,
     fieldDraft,
     mergedRecord,
-    shouldAutoFill,
+    shouldAutoFill: shouldApplyDraft,
+    replacedExistingFields:
+      shouldApplyDraft &&
+      shouldReplaceQualificationFromTranscript(context) &&
+      qualificationFieldDraftDiffers(context.formData, fieldDraft),
   };
 }
 
@@ -244,9 +260,16 @@ export function countAppliedDraftFields(
   return count;
 }
 
-export function getDraftedFieldCountFromParseResult(result: TertiaryTranscriptParseResult) {
+export function getDraftedFieldCountFromParseResult(
+  result: TertiaryTranscriptParseResult,
+  previousRecord?: TertiaryQualification,
+) {
   if (!result.shouldAutoFill) {
     return 0;
+  }
+
+  if (previousRecord) {
+    return countQualificationDraftUpdates(previousRecord, result.mergedRecord);
   }
 
   return countDraftedFields(result.fieldDraft);
