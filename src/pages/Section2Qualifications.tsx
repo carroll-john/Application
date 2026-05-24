@@ -22,6 +22,7 @@ import type {
 } from "../lib/eligibility/types";
 import {
   eligibilityOutcomeCopy,
+  eligibilityAdvisoryCopy,
   eligibilityRequirementStatusCopy,
 } from "../lib/eligibility/uiCopy";
 import { getSection2EditPath, getSection2Step } from "../lib/section2Steps";
@@ -47,6 +48,45 @@ function getLatestTranscriptAssessment(
   }
 
   return [...available].sort((a, b) => b.checkedAt.localeCompare(a.checkedAt))[0];
+}
+
+function readEvidenceValue(
+  assessment: TranscriptEligibilityAssessment,
+  group: keyof TranscriptEligibilityAssessment["extractedData"],
+  field: string,
+) {
+  const source = assessment.extractedData[group] as Record<string, unknown> | undefined;
+  if (!source) {
+    return undefined;
+  }
+
+  const item = source[field] as
+    | { normalizedValue?: string; originalValue?: string }
+    | undefined;
+  if (!item || typeof item !== "object") {
+    return undefined;
+  }
+
+  return item.normalizedValue ?? item.originalValue;
+}
+
+function buildAssessmentEvidenceSummary(assessment: TranscriptEligibilityAssessment) {
+  const wam = readEvidenceValue(assessment, "academicPerformance", "gradeAverageOrWam");
+  const gpa = readEvidenceValue(assessment, "academicPerformance", "gpa");
+  const gpaScale = readEvidenceValue(assessment, "academicPerformance", "gpaScale");
+  const completion = readEvidenceValue(assessment, "studyDetails", "completionStatus");
+
+  const parts: string[] = [];
+  if (completion) {
+    parts.push(`Completion: ${completion}`);
+  }
+  if (wam) {
+    parts.push(`WAM: ${wam}`);
+  }
+  if (gpa) {
+    parts.push(`GPA: ${gpa}${gpaScale ? `/${gpaScale}` : ""}`);
+  }
+  return parts.join(" · ");
 }
 
 export default function Section2Qualifications() {
@@ -139,6 +179,12 @@ export default function Section2Qualifications() {
           <p className="mt-1 text-xs text-gray-600 sm:text-sm">
             Confidence: {Math.round(latestTranscriptAssessment.confidence * 100)}%
           </p>
+          {buildAssessmentEvidenceSummary(latestTranscriptAssessment) ? (
+            <p className="mt-1 text-xs text-gray-700 sm:text-sm">
+              Evidence: {buildAssessmentEvidenceSummary(latestTranscriptAssessment)}
+            </p>
+          ) : null}
+          <p className="mt-2 text-xs text-gray-600 sm:text-sm">{eligibilityAdvisoryCopy}</p>
           {latestTranscriptAssessment.requirementsChecked.length > 0 ? (
             <div className="mt-3 space-y-2">
               {latestTranscriptAssessment.requirementsChecked.map((requirement) => (
@@ -169,6 +215,11 @@ export default function Section2Qualifications() {
           <p className="mt-3 text-xs text-gray-700 sm:text-sm">
             Recommended next step: {latestTranscriptAssessment.recommendedNextStep}
           </p>
+          {latestTranscriptAssessment.manualReviewRequired ? (
+            <p className="mt-2 text-xs font-medium text-[var(--warning-text)] sm:text-sm">
+              Manual admissions review is required for one or more checks.
+            </p>
+          ) : null}
         </div>
       ) : null}
 
@@ -187,7 +238,11 @@ export default function Section2Qualifications() {
               key={qualification.id}
               subtitle={
                 qualification.transcriptEligibility
-                  ? `${qualification.institution} - ${eligibilityOutcomeCopy[qualification.transcriptEligibility.outcome]}`
+                  ? `${qualification.institution} - ${eligibilityOutcomeCopy[qualification.transcriptEligibility.outcome]}${buildAssessmentEvidenceSummary(
+                      qualification.transcriptEligibility,
+                    )
+                      ? ` · ${buildAssessmentEvidenceSummary(qualification.transcriptEligibility)}`
+                      : ""}`
                   : qualification.institution
               }
               title={qualification.courseName || "Tertiary Qualification"}

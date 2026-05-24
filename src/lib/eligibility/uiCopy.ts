@@ -16,3 +16,6 @@ export const eligibilityRequirementStatusCopy: Record<
   unknown: "Unknown",
 };
 
+export const eligibilityAdvisoryCopy =
+  "Automated eligibility checks are advisory only. Final admissions decisions are made by the admissions team after official transcript verification.";
+

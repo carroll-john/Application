@@ -5,13 +5,111 @@ const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
 const REQUIRED_RESPONSE_FIELDS = [
+  "academicPerformance",
+  "applicantDetails",
+  "checkedAt",
   "confidence",
+  "englishLanguageEvidence",
   "manualReviewRequired",
   "missingInformation",
   "outcome",
+  "programCode",
+  "programTitle",
   "recommendedNextStep",
   "requirementsChecked",
+  "rulesVersion",
+  "serviceVersion",
+  "studyDetails",
 ];
+
+const EXTRACTED_FIELD_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["confidence", "missingOrAmbiguous", "normalizedValue", "originalValue"],
+  properties: {
+    confidence: { type: "number" },
+    missingOrAmbiguous: { type: "boolean" },
+    normalizedValue: { type: ["string", "null"] },
+    originalValue: { type: ["string", "null"] },
+  },
+};
+
+function nullableExtractedField() {
+  return { anyOf: [EXTRACTED_FIELD_SCHEMA, { type: "null" }] };
+}
+
+const APPLICANT_DETAILS_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["countryOfInstitution", "fullName", "institutionName", "studentId"],
+  properties: {
+    countryOfInstitution: nullableExtractedField(),
+    fullName: nullableExtractedField(),
+    institutionName: nullableExtractedField(),
+    studentId: nullableExtractedField(),
+  },
+};
+
+const STUDY_DETAILS_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "completionDate",
+    "completionStatus",
+    "expectedCompletionDate",
+    "highestEducationLevel",
+    "languageOfInstruction",
+    "programName",
+    "startDate",
+  ],
+  properties: {
+    completionDate: nullableExtractedField(),
+    completionStatus: nullableExtractedField(),
+    expectedCompletionDate: nullableExtractedField(),
+    highestEducationLevel: nullableExtractedField(),
+    languageOfInstruction: nullableExtractedField(),
+    programName: nullableExtractedField(),
+    startDate: nullableExtractedField(),
+  },
+};
+
+const ACADEMIC_PERFORMANCE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "creditPointsCompleted",
+    "failedSubjects",
+    "gpa",
+    "gpaScale",
+    "gradeAverageOrWam",
+    "gradingNotes",
+  ],
+  properties: {
+    creditPointsCompleted: nullableExtractedField(),
+    failedSubjects: nullableExtractedField(),
+    gpa: nullableExtractedField(),
+    gpaScale: nullableExtractedField(),
+    gradeAverageOrWam: nullableExtractedField(),
+    gradingNotes: nullableExtractedField(),
+  },
+};
+
+const ENGLISH_EVIDENCE_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "englishCountryEvidence",
+    "englishInstructionEvidence",
+    "englishRequirementSatisfaction",
+    "uncertainty",
+  ],
+  properties: {
+    englishCountryEvidence: nullableExtractedField(),
+    englishInstructionEvidence: nullableExtractedField(),
+    englishRequirementSatisfaction: nullableExtractedField(),
+    uncertainty: nullableExtractedField(),
+  },
+};
 
 const app = express();
 const upload = multer({
@@ -36,7 +134,41 @@ function parseContext(rawContext) {
     return {};
   }
   const parsed = parseJsonSafely(rawContext, {});
-  return parsed && typeof parsed === "object" ? parsed : {};
+  if (!parsed || typeof parsed !== "object") {
+    return {};
+  }
+
+  const candidate = parsed;
+  const maybeNumber = (value) =>
+    typeof value === "number" && Number.isFinite(value) ? value : undefined;
+
+  return {
+    completed:
+      typeof candidate.completed === "boolean" ? candidate.completed : undefined,
+    country: typeof candidate.country === "string" ? candidate.country.trim() : undefined,
+    courseCode:
+      typeof candidate.courseCode === "string" ? candidate.courseCode.trim() : undefined,
+    courseTitle:
+      typeof candidate.courseTitle === "string" ? candidate.courseTitle.trim() : undefined,
+    entryRequirementsText:
+      typeof candidate.entryRequirementsText === "string"
+        ? candidate.entryRequirementsText.trim()
+        : undefined,
+    institution:
+      typeof candidate.institution === "string" ? candidate.institution.trim() : undefined,
+    languageTestsCount:
+      typeof candidate.languageTestsCount === "number"
+        ? candidate.languageTestsCount
+        : undefined,
+    level: typeof candidate.level === "string" ? candidate.level.trim() : undefined,
+    minGpaScale: maybeNumber(candidate.minGpaScale),
+    minGpaValue: maybeNumber(candidate.minGpaValue),
+    minWam: maybeNumber(candidate.minWam),
+    qualificationLevelRequirement:
+      typeof candidate.qualificationLevelRequirement === "string"
+        ? candidate.qualificationLevelRequirement.trim()
+        : undefined,
+  };
 }
 
 function extractStructuredOutput(payload) {
@@ -141,10 +273,22 @@ function applyAssessmentDefaults(assessment, context) {
         ? assessment.rulesVersion.trim()
         : "v1",
     serviceVersion: process.env.SERVICE_VERSION?.trim() || "v1",
-    applicantDetails: assessment.applicantDetails,
-    academicPerformance: assessment.academicPerformance,
-    englishLanguageEvidence: assessment.englishLanguageEvidence,
-    studyDetails: assessment.studyDetails,
+    applicantDetails:
+      assessment.applicantDetails && typeof assessment.applicantDetails === "object"
+        ? assessment.applicantDetails
+        : {},
+    academicPerformance:
+      assessment.academicPerformance && typeof assessment.academicPerformance === "object"
+        ? assessment.academicPerformance
+        : {},
+    englishLanguageEvidence:
+      assessment.englishLanguageEvidence && typeof assessment.englishLanguageEvidence === "object"
+        ? assessment.englishLanguageEvidence
+        : {},
+    studyDetails:
+      assessment.studyDetails && typeof assessment.studyDetails === "object"
+        ? assessment.studyDetails
+        : {},
   };
 }
 
@@ -216,7 +360,7 @@ async function evaluateTranscript({
     model,
     max_output_tokens: 2500,
     instructions:
-      "You are an admissions eligibility evaluator. Use only evidence present in the transcript. If data is missing or uncertain, return insufficient_data and unknown requirement statuses.",
+      "You are an admissions eligibility evaluator. Use only evidence present in the transcript and provided program context. If data is missing or uncertain, return insufficient_data and unknown requirement statuses. Always populate the extracted evidence groups and set fields to null when unknown.",
     input: [{ role: "user", content }],
     text: {
       format: {
@@ -240,10 +384,11 @@ async function evaluateTranscript({
                 "insufficient_data",
               ],
             },
-            programCode: { type: "string" },
-            programTitle: { type: "string" },
+            programCode: { type: ["string", "null"] },
+            programTitle: { type: ["string", "null"] },
             recommendedNextStep: { type: "string" },
-            rulesVersion: { type: "string" },
+            rulesVersion: { type: ["string", "null"] },
+            serviceVersion: { type: ["string", "null"] },
             requirementsChecked: {
               type: "array",
               items: {
@@ -261,6 +406,10 @@ async function evaluateTranscript({
                 },
               },
             },
+            applicantDetails: APPLICANT_DETAILS_SCHEMA,
+            studyDetails: STUDY_DETAILS_SCHEMA,
+            academicPerformance: ACADEMIC_PERFORMANCE_SCHEMA,
+            englishLanguageEvidence: ENGLISH_EVIDENCE_SCHEMA,
           },
           required: [
             "checkedAt",
@@ -272,7 +421,12 @@ async function evaluateTranscript({
             "programTitle",
             "recommendedNextStep",
             "rulesVersion",
+            "serviceVersion",
             "requirementsChecked",
+            "applicantDetails",
+            "studyDetails",
+            "academicPerformance",
+            "englishLanguageEvidence",
           ],
         },
       },

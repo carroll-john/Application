@@ -7,16 +7,25 @@ import {
   isFileBufferConsistentWithMimeType,
   isSupportedFile,
   MAX_FILE_SIZE_BYTES,
+  type ParsedUploadFile,
   toParsedUploadFile,
 } from "./_documentParser/fileUpload.js";
+import { applyDeterministicEligibilityRules } from "../src/lib/eligibility/deterministicRules.js";
+import { captureTranscriptAiGeneration } from "./_shared/posthogAiObservability.js";
 
 type TranscriptEligibilityRequestContext = {
   completed?: boolean;
+  country?: string;
   courseCode?: string;
   courseTitle?: string;
+  entryRequirementsText?: string;
   institution?: string;
   languageTestsCount?: number;
   level?: string;
+  minGpaScale?: number;
+  minGpaValue?: number;
+  minWam?: number;
+  qualificationLevelRequirement?: string;
 };
 
 const DEFAULT_MODEL = "gpt-4.1-mini";
@@ -51,17 +60,32 @@ function parseContext(rawValue: FormDataEntryValue | null): TranscriptEligibilit
 
     const candidate = parsed as Record<string, unknown>;
 
+    const maybeNumber = (value: unknown) =>
+      typeof value === "number" && Number.isFinite(value) ? value : undefined;
+
     return {
       completed: typeof candidate.completed === "boolean" ? candidate.completed : undefined,
+      country: typeof candidate.country === "string" ? candidate.country.trim() : undefined,
       courseCode:
         typeof candidate.courseCode === "string" ? candidate.courseCode.trim() : undefined,
       courseTitle:
         typeof candidate.courseTitle === "string" ? candidate.courseTitle.trim() : undefined,
+      entryRequirementsText:
+        typeof candidate.entryRequirementsText === "string"
+          ? candidate.entryRequirementsText.trim()
+          : undefined,
       institution:
         typeof candidate.institution === "string" ? candidate.institution.trim() : undefined,
       languageTestsCount:
         typeof candidate.languageTestsCount === "number" ? candidate.languageTestsCount : undefined,
       level: typeof candidate.level === "string" ? candidate.level.trim() : undefined,
+      minGpaScale: maybeNumber(candidate.minGpaScale),
+      minGpaValue: maybeNumber(candidate.minGpaValue),
+      minWam: maybeNumber(candidate.minWam),
+      qualificationLevelRequirement:
+        typeof candidate.qualificationLevelRequirement === "string"
+          ? candidate.qualificationLevelRequirement.trim()
+          : undefined,
     };
   } catch {
     return {};
@@ -161,11 +185,11 @@ function withContextDefaults(
     patched.serviceVersion = "local-openai-fallback";
   }
 
-  return patched;
+  return applyDeterministicEligibilityRules(patched, context);
 }
 
 async function evaluateWithLocalModel(
-  file: File,
+  file: ParsedUploadFile,
   fileBuffer: ArrayBuffer,
   mimeType: string,
   context: TranscriptEligibilityRequestContext,
@@ -228,19 +252,29 @@ async function evaluateWithLocalModel(
     return null;
   }
 
-  return withContextDefaults(
+  const assessment = withContextDefaults(
     llmResult.parsed as Record<string, unknown>,
     context,
   );
+
+  return {
+    assessment,
+    model,
+    tokenUsage: {
+      inputTokens: llmResult.tokens.inputTokens,
+      outputTokens: llmResult.tokens.outputTokens,
+    },
+  };
 }
 
 async function forwardToEligibilityService(
-  file: File,
+  file: ParsedUploadFile,
   fileBuffer: ArrayBuffer,
   mimeType: string,
   context: TranscriptEligibilityRequestContext,
 ) {
   const serviceUrl = process.env.ELIGIBILITY_SERVICE_URL?.trim();
+  const startedAt = Date.now();
 
   if (!serviceUrl) {
     const localAssessment = await evaluateWithLocalModel(
@@ -251,10 +285,32 @@ async function forwardToEligibilityService(
     );
 
     if (localAssessment) {
-      return jsonResponse(localAssessment, 200);
+      void captureTranscriptAiGeneration({
+        context: context as Record<string, unknown>,
+        evaluationSource: "local_openai",
+        fileName: file.name || "transcript",
+        latencyMs: Date.now() - startedAt,
+        model: localAssessment.model,
+        output: localAssessment.assessment,
+        provider: "openai",
+        tokenUsage: localAssessment.tokenUsage,
+      });
+
+      return jsonResponse(localAssessment.assessment, 200);
     }
 
-    return jsonResponse(buildFallbackResponse(context), 200);
+    const fallbackAssessment = buildFallbackResponse(context);
+    void captureTranscriptAiGeneration({
+      context: context as Record<string, unknown>,
+      evaluationSource: "fallback_response",
+      fileName: file.name || "transcript",
+      latencyMs: Date.now() - startedAt,
+      model: "fallback",
+      output: fallbackAssessment as Record<string, unknown>,
+      provider: "none",
+    });
+
+    return jsonResponse(fallbackAssessment, 200);
   }
 
   const forwardPayload = new FormData();
@@ -295,7 +351,22 @@ async function forwardToEligibilityService(
     return errorResponse(message, "ELIGIBILITY_SERVICE_UPSTREAM_ERROR", upstream.status);
   }
 
-  return jsonResponse(payload ?? buildFallbackResponse(context), 200);
+  const assessment =
+    payload && typeof payload === "object"
+      ? applyDeterministicEligibilityRules(payload as Record<string, unknown>, context)
+      : buildFallbackResponse(context);
+
+  void captureTranscriptAiGeneration({
+    context: context as Record<string, unknown>,
+    evaluationSource: "external_service",
+    fileName: file.name || "transcript",
+    latencyMs: Date.now() - startedAt,
+    model: "transcript-eligibility-service",
+    output: assessment as Record<string, unknown>,
+    provider: "render_service",
+  });
+
+  return jsonResponse(assessment, 200);
 }
 
 async function handleWebRequest(request: Request) {

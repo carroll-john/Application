@@ -8,35 +8,81 @@ const extractedFieldSchema = {
   properties: {
     confidence: { type: "number" },
     missingOrAmbiguous: { type: "boolean" },
-    normalizedValue: { type: "string" },
-    originalValue: { type: "string" },
+    normalizedValue: { type: ["string", "null"] },
+    originalValue: { type: ["string", "null"] },
   },
 } as const;
 
-const extractedGroupSchema = {
+const applicantDetailsSchema = {
   type: "object",
   additionalProperties: false,
+  required: ["countryOfInstitution", "fullName", "institutionName", "studentId"],
   properties: {
-    completionDate: extractedFieldSchema,
-    completionStatus: extractedFieldSchema,
-    countryOfInstitution: extractedFieldSchema,
-    creditPointsCompleted: extractedFieldSchema,
-    englishCountryEvidence: extractedFieldSchema,
-    englishInstructionEvidence: extractedFieldSchema,
-    englishRequirementSatisfaction: extractedFieldSchema,
-    failedSubjects: extractedFieldSchema,
-    fullName: extractedFieldSchema,
-    gpa: extractedFieldSchema,
-    gpaScale: extractedFieldSchema,
-    gradeAverageOrWam: extractedFieldSchema,
-    gradingNotes: extractedFieldSchema,
-    highestEducationLevel: extractedFieldSchema,
-    institutionName: extractedFieldSchema,
-    languageOfInstruction: extractedFieldSchema,
-    programName: extractedFieldSchema,
-    startDate: extractedFieldSchema,
-    studentId: extractedFieldSchema,
-    uncertainty: extractedFieldSchema,
+    countryOfInstitution: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    fullName: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    institutionName: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    studentId: { anyOf: [extractedFieldSchema, { type: "null" }] },
+  },
+} as const;
+
+const studyDetailsSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "completionDate",
+    "completionStatus",
+    "expectedCompletionDate",
+    "highestEducationLevel",
+    "languageOfInstruction",
+    "programName",
+    "startDate",
+  ],
+  properties: {
+    completionDate: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    completionStatus: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    expectedCompletionDate: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    highestEducationLevel: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    languageOfInstruction: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    programName: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    startDate: { anyOf: [extractedFieldSchema, { type: "null" }] },
+  },
+} as const;
+
+const academicPerformanceSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "creditPointsCompleted",
+    "failedSubjects",
+    "gpa",
+    "gpaScale",
+    "gradeAverageOrWam",
+    "gradingNotes",
+  ],
+  properties: {
+    creditPointsCompleted: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    failedSubjects: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    gpa: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    gpaScale: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    gradeAverageOrWam: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    gradingNotes: { anyOf: [extractedFieldSchema, { type: "null" }] },
+  },
+} as const;
+
+const englishLanguageEvidenceSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: [
+    "englishCountryEvidence",
+    "englishInstructionEvidence",
+    "englishRequirementSatisfaction",
+    "uncertainty",
+  ],
+  properties: {
+    englishCountryEvidence: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    englishInstructionEvidence: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    englishRequirementSatisfaction: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    uncertainty: { anyOf: [extractedFieldSchema, { type: "null" }] },
   },
 } as const;
 
@@ -47,19 +93,28 @@ export const transcriptEligibilitySchemaV1 = {
     type: "object",
     additionalProperties: false,
     required: [
+      "academicPerformance",
+      "applicantDetails",
+      "checkedAt",
       "confidence",
+      "englishLanguageEvidence",
       "manualReviewRequired",
       "missingInformation",
       "outcome",
+      "programCode",
+      "programTitle",
       "recommendedNextStep",
       "requirementsChecked",
+      "rulesVersion",
+      "serviceVersion",
+      "studyDetails",
     ],
     properties: {
-      applicantDetails: extractedGroupSchema,
-      academicPerformance: extractedGroupSchema,
+      applicantDetails: applicantDetailsSchema,
+      academicPerformance: academicPerformanceSchema,
       checkedAt: { type: "string" },
       confidence: { type: "number" },
-      englishLanguageEvidence: extractedGroupSchema,
+      englishLanguageEvidence: englishLanguageEvidenceSchema,
       manualReviewRequired: { type: "boolean" },
       missingInformation: {
         type: "array",
@@ -74,8 +129,8 @@ export const transcriptEligibilitySchemaV1 = {
           "insufficient_data",
         ],
       },
-      programCode: { type: "string" },
-      programTitle: { type: "string" },
+      programCode: { type: ["string", "null"] },
+      programTitle: { type: ["string", "null"] },
       recommendedNextStep: { type: "string" },
       requirementsChecked: {
         type: "array",
@@ -94,9 +149,9 @@ export const transcriptEligibilitySchemaV1 = {
           },
         },
       },
-      rulesVersion: { type: "string" },
-      serviceVersion: { type: "string" },
-      studyDetails: extractedGroupSchema,
+      rulesVersion: { type: ["string", "null"] },
+      serviceVersion: { type: ["string", "null"] },
+      studyDetails: studyDetailsSchema,
     },
   },
 } as const;

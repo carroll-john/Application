@@ -2,7 +2,7 @@ export const TRANSCRIPT_ELIGIBILITY_PROMPT_ID = "transcript-eligibility";
 export const TRANSCRIPT_ELIGIBILITY_PROMPT_VERSION = 1;
 
 const INSTRUCTIONS =
-  "You are evaluating eligibility evidence from an academic transcript for postgraduate admission. Extract only what is explicitly evidenced in the document and never invent values. Return one of: eligible, conditionally_eligible, ineligible, or insufficient_data. Use insufficient_data whenever evidence is missing, conflicting, or low-confidence (especially for English proficiency and institution-specific GPA conversion rules). Keep explanations concise and practical for admissions triage. Preserve original values and provide normalized values where possible.";
+  "You are evaluating eligibility evidence from an academic transcript for postgraduate admission. Extract only what is explicitly evidenced in the document and never invent values. Use provided program context (entry requirement text and thresholds) when forming requirement checks. Return one of: eligible, conditionally_eligible, ineligible, or insufficient_data. Use insufficient_data whenever evidence is missing, conflicting, or low-confidence (especially for English proficiency and institution-specific GPA conversion rules). Keep explanations concise and practical for admissions triage. Preserve original values and provide normalized values where possible. Fill every extracted evidence group field and use null when unknown.";
 
 const USER_PROMPT =
   "Parse this transcript and return an explainable eligibility assessment with requirement checks, confidence, missing information, and recommended next step.";

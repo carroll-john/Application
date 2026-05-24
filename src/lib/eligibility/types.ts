@@ -76,11 +76,17 @@ export interface TranscriptEligibilityAssessment {
 }
 
 export interface TranscriptEligibilityRequestContext {
+  completed?: boolean;
+  country?: string;
   courseCode?: string;
   courseTitle?: string;
+  entryRequirementsText?: string;
   institution?: string;
-  level?: string;
-  completed?: boolean;
   languageTestsCount?: number;
+  level?: string;
+  minGpaScale?: number;
+  minGpaValue?: number;
+  minWam?: number;
+  qualificationLevelRequirement?: string;
 }
 

@@ -5,7 +5,11 @@ on:
     paths:
       - "api/evaluate-transcript-eligibility.ts"
       - "api/evaluate-transcript-eligibility.test.ts"
+      - "api/_ai/prompts/transcriptEligibility.v1.ts"
+      - "api/_ai/schemas/transcriptEligibility.v1.ts"
       - "api/__fixtures__/transcript-service-contract.json"
+      - "eligibility-service/src/server.mjs"
+      - "src/lib/courseCatalog/normalize.ts"
       - "src/lib/eligibility/**"
       - "package.json"
       - "package-lock.json"
@@ -16,7 +20,11 @@ on:
     paths:
       - "api/evaluate-transcript-eligibility.ts"
       - "api/evaluate-transcript-eligibility.test.ts"
+      - "api/_ai/prompts/transcriptEligibility.v1.ts"
+      - "api/_ai/schemas/transcriptEligibility.v1.ts"
       - "api/__fixtures__/transcript-service-contract.json"
+      - "eligibility-service/src/server.mjs"
+      - "src/lib/courseCatalog/normalize.ts"
       - "src/lib/eligibility/**"
       - "package.json"
       - "package-lock.json"

@@ -17,6 +17,8 @@ import {
 import { createInsufficientDataAssessment } from "../lib/eligibility/fallback";
 import { saveSection2DocumentRecord } from "../features/section2/section2DocumentSave";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
+import { getCourseByCode } from "../lib/courseCatalog";
+import { parseEntryRequirementThresholds } from "../lib/courseCatalog/normalize";
 
 export default function Section2AddTertiary() {
   const {
@@ -126,13 +128,23 @@ export default function Section2AddTertiary() {
     if (transcriptRemoved) {
       nextRecord.transcriptEligibility = undefined;
     } else if (selectedTranscriptFile) {
+      const selectedCourseCatalogEntry = getCourseByCode(selectedCourse?.code);
+      const parsedThresholds = parseEntryRequirementThresholds(
+        selectedCourseCatalogEntry?.entryRequirements,
+      );
       const eligibilityContext = {
         completed: formData.completed,
+        country: formData.country,
         courseCode: selectedCourse?.code,
         courseTitle: selectedCourse?.title,
+        entryRequirementsText: selectedCourseCatalogEntry?.entryRequirements,
         institution: formData.institution,
         languageTestsCount: data.languageTests.length,
         level: formData.level,
+        minGpaScale: parsedThresholds.minGpaScale,
+        minGpaValue: parsedThresholds.minGpaValue,
+        minWam: parsedThresholds.minWam,
+        qualificationLevelRequirement: parsedThresholds.qualificationLevelRequirement,
       };
 
       try {

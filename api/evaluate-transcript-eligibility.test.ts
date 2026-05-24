@@ -29,6 +29,9 @@ function loadTranscriptServiceContractFixtures(): TranscriptServiceContractFixtu
 beforeEach(() => {
   fetchMock.mockReset();
   globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+  delete process.env.POSTHOG_PROJECT_API_KEY;
+  delete process.env.POSTHOG_HOST;
+  delete process.env.VITE_POSTHOG_HOST;
 });
 
 afterEach(() => {
@@ -37,6 +40,9 @@ afterEach(() => {
   delete process.env.ELIGIBILITY_SERVICE_TOKEN;
   delete process.env.OPENAI_API_KEY;
   delete process.env.OPENAI_TRANSCRIPT_ELIGIBILITY_MODEL;
+  delete process.env.POSTHOG_PROJECT_API_KEY;
+  delete process.env.POSTHOG_HOST;
+  delete process.env.VITE_POSTHOG_HOST;
 });
 
 describe("evaluate-transcript-eligibility api route", () => {
@@ -95,7 +101,7 @@ describe("evaluate-transcript-eligibility api route", () => {
 
     const formData = new FormData();
     formData.append("file", new File(["fixture"], "transcript.txt", { type: "text/plain" }));
-    formData.append("context", JSON.stringify({ courseCode: "MBA101" }));
+    formData.append("context", JSON.stringify({ completed: true, courseCode: "MBA101" }));
 
     const response = await eligibilityRoute.fetch(
       new Request("https://example.test/api/evaluate-transcript-eligibility", {
@@ -173,7 +179,7 @@ describe("evaluate-transcript-eligibility api route", () => {
 
     const formData = new FormData();
     formData.append("file", new File(["fixture"], "transcript.txt", { type: "text/plain" }));
-    formData.append("context", JSON.stringify({ courseCode: "MBA101" }));
+    formData.append("context", JSON.stringify({ completed: true, courseCode: "MBA101" }));
 
     const response = await eligibilityRoute.fetch(
       new Request("https://example.test/api/evaluate-transcript-eligibility", {
@@ -204,7 +210,7 @@ describe("evaluate-transcript-eligibility api route", () => {
 
       const formData = new FormData();
       formData.append("file", new File(["fixture"], `${fixture.fixtureId}.txt`, { type: "text/plain" }));
-      formData.append("context", JSON.stringify({ courseCode: "TEST-PROGRAM" }));
+      formData.append("context", JSON.stringify({ completed: true, courseCode: "TEST-PROGRAM" }));
 
       const response = await eligibilityRoute.fetch(
         new Request("https://example.test/api/evaluate-transcript-eligibility", {
@@ -224,6 +230,167 @@ describe("evaluate-transcript-eligibility api route", () => {
 
     expect(fixtures).toHaveLength(12);
     expect(fetchMock).toHaveBeenCalledTimes(fixtures.length);
+  });
+
+  it("marks ineligible when deterministic WAM threshold fails", async () => {
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confidence: 0.93,
+          manualReviewRequired: false,
+          missingInformation: [],
+          outcome: "eligible",
+          recommendedNextStep: "Proceed",
+          requirementsChecked: [],
+          academicPerformance: {
+            gradeAverageOrWam: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "60",
+              originalValue: "WAM 60",
+            },
+          },
+          applicantDetails: {},
+          englishLanguageEvidence: {},
+          studyDetails: {},
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "threshold.txt", { type: "text/plain" }));
+    formData.append("context", JSON.stringify({ minWam: 65 }));
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+    const deterministicCheck = (payload.requirementsChecked as Array<Record<string, unknown>>).find(
+      (check) => check.id === "deterministic-wam-gpa-threshold",
+    );
+
+    expect(response.status).toBe(200);
+    expect(payload.outcome).toBe("ineligible");
+    expect(deterministicCheck?.status).toBe("fail");
+  });
+
+  it("returns insufficient_data when no mappable WAM/GPA evidence exists", async () => {
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confidence: 0.82,
+          manualReviewRequired: false,
+          missingInformation: [],
+          outcome: "eligible",
+          recommendedNextStep: "Proceed",
+          requirementsChecked: [],
+          academicPerformance: {},
+          applicantDetails: {},
+          englishLanguageEvidence: {},
+          studyDetails: {},
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "unknown-threshold.txt", { type: "text/plain" }));
+    formData.append("context", JSON.stringify({ minWam: 65 }));
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+    const deterministicCheck = (payload.requirementsChecked as Array<Record<string, unknown>>).find(
+      (check) => check.id === "deterministic-wam-gpa-threshold",
+    );
+
+    expect(response.status).toBe(200);
+    expect(payload.outcome).toBe("insufficient_data");
+    expect(deterministicCheck?.status).toBe("unknown");
+  });
+
+  it("adds Australian English inference evidence without auto-pass", async () => {
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confidence: 0.85,
+          manualReviewRequired: false,
+          missingInformation: [],
+          outcome: "eligible",
+          recommendedNextStep: "Proceed",
+          requirementsChecked: [],
+          academicPerformance: {
+            gradeAverageOrWam: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "78",
+              originalValue: "WAM 78",
+            },
+          },
+          applicantDetails: {
+            institutionName: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "The University of Melbourne",
+              originalValue: "The University of Melbourne",
+            },
+            countryOfInstitution: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "Australia",
+              originalValue: "Australia",
+            },
+          },
+          englishLanguageEvidence: {},
+          studyDetails: {
+            completionStatus: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "completed",
+              originalValue: "completed",
+            },
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "au-english.txt", { type: "text/plain" }));
+    formData.append("context", JSON.stringify({ minWam: 65 }));
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+    const englishCheck = (payload.requirementsChecked as Array<Record<string, unknown>>).find(
+      (check) => check.id === "deterministic-au-english-inference",
+    );
+    const englishEvidence = payload.englishLanguageEvidence as Record<string, unknown>;
+    const englishInstructionEvidence = englishEvidence
+      .englishInstructionEvidence as Record<string, unknown>;
+
+    expect(response.status).toBe(200);
+    expect(payload.outcome).toBe("conditionally_eligible");
+    expect(payload.manualReviewRequired).toBe(true);
+    expect(englishCheck?.status).toBe("unknown");
+    expect(englishInstructionEvidence.normalizedValue).toBe(
+      "likely_english_instruction_au_institution",
+    );
   });
 });
 
