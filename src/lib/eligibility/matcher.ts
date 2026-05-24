@@ -1,4 +1,4 @@
-import { isCountryInAcceptedList } from "./englishMediumCountries";
+import { isCountryInAcceptedList } from "./englishMediumCountries.js";
 import {
   buildRequirementCheck,
   type AcademicThresholdParams,
@@ -7,14 +7,14 @@ import {
   type QualificationLevel,
   type RequirementInstance,
   type WorkExperienceParams,
-} from "./requirements";
+} from "./requirements.js";
 import type {
   EligibilityExtractedField,
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
   TranscriptEligibilityRequestContext,
   TranscriptExtractedData,
-} from "./types";
+} from "./types.js";
 
 interface EvaluationContext {
   context: TranscriptEligibilityRequestContext;
