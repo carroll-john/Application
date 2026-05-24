@@ -12,6 +12,7 @@ import {
   isSubmissionReady,
   isTertiaryQualificationSubmissionReady,
 } from "./applicationValidationSchema";
+import { getTertiaryQualificationSubmissionMissingFields } from "./validation/rules/section2";
 
 function makeBaseApplication(
   overrides: Partial<ApplicationData> = {},
@@ -139,15 +140,15 @@ describe("applicationValidationSchema", () => {
     expect(getNextIncompleteStep(data)).toBe("Basic information");
   });
 
-  it("reuses tertiary submission checks for qualification status", () => {
+  it("does not require a certificate of completion for submission readiness", () => {
     expect(
-      isTertiaryQualificationSubmissionReady(
+      getTertiaryQualificationSubmissionMissingFields(
         makeTertiaryQualification({
-          certificateDocumentName: undefined,
           certificateDocument: undefined,
+          certificateDocumentName: undefined,
         }),
       ),
-    ).toBe(false);
+    ).not.toContain("Certificate of Completion");
   });
 
   it("flags out-of-order qualification and employment date ranges", () => {

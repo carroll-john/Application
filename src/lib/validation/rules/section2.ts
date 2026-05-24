@@ -64,12 +64,6 @@ const tertiaryFieldRules: TertiaryFieldRule[] = [
       Boolean(qualification.courseName.trim()) &&
       !hasStoredDocument(qualification.transcriptDocument),
   },
-  {
-    field: "Certificate of Completion",
-    isMissing: (qualification) =>
-      qualification.completed &&
-      !hasStoredDocument(qualification.certificateDocument),
-  },
 ];
 
 export function getTertiaryQualificationSubmissionMissingFields(

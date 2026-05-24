@@ -93,10 +93,6 @@ export default function Section2AddTertiary() {
     Boolean(selectedTranscriptFile) ||
     Boolean(formData.transcriptDocument) ||
     Boolean(formData.transcriptDocumentName);
-  const hasCertificate =
-    Boolean(selectedCertificateFile) ||
-    Boolean(formData.certificateDocument) ||
-    Boolean(formData.certificateDocumentName);
 
   const missingRequiredFields = useMemo(() => {
     return [
@@ -226,7 +222,6 @@ export default function Section2AddTertiary() {
         />
         <TertiaryDocumentFields
           formData={formData}
-          hasCertificate={hasCertificate}
           selectedCertificateFile={selectedCertificateFile}
           onClearCertificateDocument={() =>
             setFormData((previous) => ({
