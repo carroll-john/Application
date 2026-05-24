@@ -119,8 +119,16 @@ try {
   await page.waitForURL("**/section2/qualifications**", { timeout: 120000 });
   console.log("OK saved tertiary via parse-first ->", page.url());
 
-  await page.getByText(/drafted a qualification from your transcript/i).waitFor({ timeout: 15000 }).catch(() => {
-    console.log("Note: parse-first success flash not shown (partial parse or preserved fields)");
+  await page.getByText(/checking course eligibility from your transcript/i).waitFor({
+    timeout: 15000,
+  }).catch(() => {
+    console.log("Note: hub eligibility progress not shown (cached assessment or no transcript)");
+  });
+
+  await page.getByText(/saved a qualification drafted from your transcript/i).waitFor({
+    timeout: 120000,
+  }).catch(() => {
+    console.log("Note: hub eligibility success flash not shown");
   });
 
   const tertiaryItem = page

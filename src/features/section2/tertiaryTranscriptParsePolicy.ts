@@ -43,7 +43,11 @@ export const tertiaryTranscriptParseCopy = {
     "We saved your transcript and ran an eligibility check, but couldn't draft a qualification from it. Complete the details manually.",
   draftHubSuccess:
     "We saved a qualification drafted from your transcript. Review the details below and check your eligibility results.",
+  eligibilityTitle: "Checking course eligibility from your transcript...",
+  eligibilityDetail: "This can take a little longer for larger files.",
   parsingTitle: "Reading your transcript and drafting your qualification...",
+  savingQualificationTitle: "Saving your qualification...",
+  savingQualificationDetail: "Please keep this tab open while we save your documents.",
   preservedExistingFields:
     "Transcript attached. Existing qualification details were left unchanged — save to run an eligibility check.",
 } as const;
@@ -91,6 +95,35 @@ export function shouldEvaluateTranscriptEligibility(
   context: TertiaryTranscriptParseContext,
 ) {
   return Boolean(context.selectedTranscriptFile);
+}
+
+export function needsHubTranscriptEligibilityProcessing(options: {
+  selectedTranscriptFile: File | null;
+  transcriptDocument?: UploadedDocument;
+  transcriptEligibility?: TranscriptEligibilityAssessment;
+  transcriptRemoved: boolean;
+}) {
+  if (options.transcriptRemoved) {
+    return false;
+  }
+
+  if (options.selectedTranscriptFile) {
+    return true;
+  }
+
+  return Boolean(options.transcriptDocument && !options.transcriptEligibility);
+}
+
+export function shouldUseCachedTranscriptAssessment(options: {
+  cachedAssessment?: TranscriptEligibilityAssessment;
+  hasParsedTranscriptFile?: (file: File) => boolean;
+  transcriptFile?: File;
+}) {
+  return Boolean(
+    options.cachedAssessment &&
+      options.transcriptFile &&
+      options.hasParsedTranscriptFile?.(options.transcriptFile),
+  );
 }
 
 export async function parseTranscriptForQualification(
@@ -178,9 +211,17 @@ export function buildTertiaryTranscriptFlashMessage(options: {
   }
 
   if (assessment) {
+    if (assessment.outcome === "insufficient_data") {
+      return {
+        message: tertiaryTranscriptParseCopy.draftHubEmpty,
+        type: "warning" as const,
+      };
+    }
+
+    const eligibilityNote = ` Eligibility check: ${assessment.outcome.replace(/_/g, " ")}.`;
     return {
-      message: tertiaryTranscriptParseCopy.draftHubEmpty,
-      type: "warning" as const,
+      message: `${tertiaryTranscriptParseCopy.draftHubSuccess}${eligibilityNote}`,
+      type: "success" as const,
     };
   }
 

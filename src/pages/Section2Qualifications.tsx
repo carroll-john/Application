@@ -13,8 +13,10 @@ import {
   QualificationsListItem,
   QualificationsSectionCard,
   Section2QualificationsPage,
+  Section2SaveProgressPanel,
   useSection2QualificationsFlow,
 } from "../features/section2";
+import { usePendingTranscriptEligibility } from "../features/section2/usePendingTranscriptEligibility";
 import { EligibilityRowFeedback } from "../features/section2/EligibilityRowFeedback";
 import { useReviewReturn } from "../hooks/useReviewReturn";
 import { getCourseByCode } from "../lib/courseCatalog";
@@ -102,6 +104,7 @@ export default function Section2Qualifications() {
     removeProfessionalAccreditation,
     removeSecondaryQualification,
     removeTertiaryQualification,
+    updateTertiaryQualification,
   } = useApplication();
   const {
     handleSaveAndContinue,
@@ -114,6 +117,12 @@ export default function Section2Qualifications() {
     setStatusMessage,
     statusMessage,
   } = useSection2QualificationsFlow({ data });
+  const { eligibilityProgress, isProcessingEligibility } =
+    usePendingTranscriptEligibility({
+      applicationData: data,
+      setStatusMessage,
+      updateTertiaryQualification,
+    });
   const latestTranscriptAssessment = getLatestTranscriptAssessment(
     data.tertiaryQualifications.map((qualification) => qualification.transcriptEligibility),
   );
@@ -138,22 +147,24 @@ export default function Section2Qualifications() {
 
   return (
     <Section2QualificationsPage
-      continueDisabled={isSaving}
+      continueDisabled={isSaving || isProcessingEligibility}
       continueLabel={
         isSaving
           ? fromReview
             ? "Opening Review..."
             : "Saving & Continuing..."
-          : fromReview
-            ? "Return to Review"
-            : "Save & Continue"
+          : isProcessingEligibility
+            ? "Checking eligibility..."
+            : fromReview
+              ? "Return to Review"
+              : "Save & Continue"
       }
       onContinue={() => void handleSaveAndContinue()}
       onPrevious={() => navigate(returnPath("/section1/family-support"))}
       onSaveAndExit={fromReview ? undefined : () => void handleSaveAndExit()}
-      previousDisabled={isSaving}
+      previousDisabled={isSaving || isProcessingEligibility}
       previousLabel={previousLabel}
-      secondaryDisabled={isSaving}
+      secondaryDisabled={isSaving || isProcessingEligibility}
       secondaryLabel={fromReview ? undefined : isSaving ? "Saving..." : "Save & Exit"}
     >
       <div className="mb-6 rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3 sm:mb-8">
@@ -174,6 +185,15 @@ export default function Section2Qualifications() {
             message={statusMessage.message}
             onDismiss={() => setStatusMessage(null)}
             type={statusMessage.type}
+          />
+        </div>
+      ) : null}
+
+      {eligibilityProgress ? (
+        <div className="mb-6 sm:mb-8">
+          <Section2SaveProgressPanel
+            detail={eligibilityProgress.detail}
+            title={eligibilityProgress.title}
           />
         </div>
       ) : null}

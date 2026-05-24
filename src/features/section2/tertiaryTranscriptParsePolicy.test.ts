@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { initialApplicationData } from "../../lib/applicationData";
 import {
   buildTertiaryTranscriptFlashMessage,
+  needsHubTranscriptEligibilityProcessing,
   shouldAutoFillQualificationFromTranscript,
   shouldEvaluateTranscriptEligibility,
 } from "./tertiaryTranscriptParsePolicy";
@@ -49,6 +50,82 @@ describe("tertiaryTranscriptParsePolicy", () => {
 
     expect(shouldAutoFillQualificationFromTranscript(context)).toBe(false);
     expect(shouldEvaluateTranscriptEligibility(context)).toBe(true);
+  });
+
+  it("defers eligibility to the qualifications hub when a new transcript is selected", () => {
+    expect(
+      needsHubTranscriptEligibilityProcessing({
+        selectedTranscriptFile: new File(["pdf"], "transcript.pdf", {
+          type: "application/pdf",
+        }),
+        transcriptRemoved: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("defers eligibility when a saved transcript has no assessment yet", () => {
+    expect(
+      needsHubTranscriptEligibilityProcessing({
+        selectedTranscriptFile: null,
+        transcriptDocument: {
+          id: "doc-1",
+          name: "transcript.pdf",
+          size: 100,
+          type: "application/pdf",
+          lastModified: 1,
+          uploadedAt: new Date().toISOString(),
+        },
+        transcriptRemoved: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("skips hub eligibility when transcript is unchanged and already assessed", () => {
+    expect(
+      needsHubTranscriptEligibilityProcessing({
+        selectedTranscriptFile: null,
+        transcriptDocument: {
+          id: "doc-1",
+          name: "transcript.pdf",
+          size: 100,
+          type: "application/pdf",
+          lastModified: 1,
+          uploadedAt: new Date().toISOString(),
+        },
+        transcriptEligibility: {
+          checkedAt: new Date().toISOString(),
+          confidence: 0.9,
+          extractedData: {},
+          manualReviewRequired: false,
+          missingInformation: [],
+          outcome: "eligible",
+          recommendedNextStep: "Proceed",
+          requirementsChecked: [],
+        },
+        transcriptRemoved: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("builds success flash when eligibility completes without new drafted fields", () => {
+    const message = buildTertiaryTranscriptFlashMessage({
+      assessment: {
+        checkedAt: new Date().toISOString(),
+        confidence: 0.9,
+        extractedData: {},
+        manualReviewRequired: false,
+        missingInformation: [],
+        outcome: "eligible",
+        recommendedNextStep: "Proceed",
+        requirementsChecked: [],
+      },
+      draftedFieldCount: 0,
+      preservedExistingFields: false,
+      validationFailed: false,
+    });
+
+    expect(message?.type).toBe("success");
+    expect(message?.message).toContain("saved a qualification drafted from your transcript");
   });
 
   it("builds combined success flash when fields were drafted", () => {
