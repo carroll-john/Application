@@ -11,6 +11,7 @@ import {
   getDraftedFieldCountFromParseResult,
   parseTranscriptForQualification,
   shouldAutoFillQualificationFromTranscript,
+  tertiaryTranscriptParseCopy,
 } from "./tertiaryTranscriptParsePolicy";
 
 export function getTranscriptFileKey(file: File) {
@@ -64,8 +65,7 @@ export function useTertiaryTranscriptAutoFill({
 
       if (!shouldAutoFillQualificationFromTranscript(parseContext)) {
         setParseStatusMessage({
-          message:
-            "Transcript attached. Existing qualification details were left unchanged — save to run an eligibility check.",
+          message: tertiaryTranscriptParseCopy.preservedExistingFields,
           type: "status",
         });
         return;
@@ -77,7 +77,7 @@ export function useTertiaryTranscriptAutoFill({
       setParseStatusMessage(null);
       setParseProgress({
         detail: "This can take a little longer for larger files.",
-        title: "Reading your transcript and drafting qualification details...",
+        title: tertiaryTranscriptParseCopy.parsingTitle,
       });
 
       const parseStartedAt = Date.now();
@@ -105,16 +105,13 @@ export function useTertiaryTranscriptAutoFill({
             parseDurationMs,
           });
           setParseStatusMessage({
-            message: `We drafted ${draftedFieldCount} qualification detail${
-              draftedFieldCount === 1 ? "" : "s"
-            } from your transcript. Review the fields below, then save when ready.`,
+            message: tertiaryTranscriptParseCopy.draftSuccess,
             type: "success",
           });
         } else {
           trackTertiaryTranscriptParserDraftEmpty({ parseDurationMs });
           setParseStatusMessage({
-            message:
-              "We couldn't find enough detail in this transcript to auto-fill the form. Enter the details manually or try a clearer file.",
+            message: tertiaryTranscriptParseCopy.draftEmpty,
             type: "warning",
           });
         }

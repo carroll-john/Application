@@ -119,7 +119,7 @@ try {
   await page.waitForURL("**/section2/qualifications**", { timeout: 120000 });
   console.log("OK saved tertiary via parse-first ->", page.url());
 
-  await page.getByText(/drafted your qualification/i).waitFor({ timeout: 15000 }).catch(() => {
+  await page.getByText(/drafted a qualification from your transcript/i).waitFor({ timeout: 15000 }).catch(() => {
     console.log("Note: parse-first success flash not shown (partial parse or preserved fields)");
   });
 

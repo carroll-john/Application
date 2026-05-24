@@ -32,6 +32,22 @@ export interface TertiaryTranscriptParseResult {
   shouldAutoFill: boolean;
 }
 
+export const tertiaryTranscriptParseCopy = {
+  draftSuccess:
+    "We drafted a qualification from your transcript. Review the details below, then save when ready.",
+  draftPartial:
+    "We drafted a qualification from your transcript, but some details still need your input.",
+  draftEmpty:
+    "We couldn't draft a qualification from this transcript. Enter the details manually or try a clearer file.",
+  draftHubEmpty:
+    "We saved your transcript and ran an eligibility check, but couldn't draft a qualification from it. Complete the details manually.",
+  draftHubSuccess:
+    "We saved a qualification drafted from your transcript. Review the details below and check your eligibility results.",
+  parsingTitle: "Reading your transcript and drafting your qualification...",
+  preservedExistingFields:
+    "Transcript attached. Existing qualification details were left unchanged — save to run an eligibility check.",
+} as const;
+
 export function buildTranscriptEligibilityContext(
   applicationData: ApplicationData,
   formData: Pick<
@@ -138,8 +154,7 @@ export function buildTertiaryTranscriptFlashMessage(options: {
 
   if (validationFailed) {
     return {
-      message:
-        "We drafted what we could from your transcript. Please complete the remaining qualification fields before continuing.",
+      message: tertiaryTranscriptParseCopy.draftPartial,
       type: "warning" as const,
     };
   }
@@ -149,7 +164,7 @@ export function buildTertiaryTranscriptFlashMessage(options: {
       ? ` Eligibility check: ${assessment.outcome.replace(/_/g, " ")}.`
       : "";
     return {
-      message: `We drafted your qualification details from your transcript.${eligibilityNote} Review the details below and check your eligibility results.`,
+      message: `${tertiaryTranscriptParseCopy.draftHubSuccess}${eligibilityNote}`,
       type: "success" as const,
     };
   }
@@ -164,8 +179,7 @@ export function buildTertiaryTranscriptFlashMessage(options: {
 
   if (assessment) {
     return {
-      message:
-        "We saved your transcript and ran an eligibility check, but couldn't find enough detail to auto-fill your qualification fields.",
+      message: tertiaryTranscriptParseCopy.draftHubEmpty,
       type: "warning" as const,
     };
   }
