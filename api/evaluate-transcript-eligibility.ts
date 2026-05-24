@@ -285,7 +285,7 @@ async function forwardToEligibilityService(
     );
 
     if (localAssessment) {
-      void captureTranscriptAiGeneration({
+      await captureTranscriptAiGeneration({
         context: context as Record<string, unknown>,
         evaluationSource: "local_openai",
         fileName: file.name || "transcript",
@@ -300,7 +300,7 @@ async function forwardToEligibilityService(
     }
 
     const fallbackAssessment = buildFallbackResponse(context);
-    void captureTranscriptAiGeneration({
+    await captureTranscriptAiGeneration({
       context: context as Record<string, unknown>,
       evaluationSource: "fallback_response",
       fileName: file.name || "transcript",
@@ -356,7 +356,7 @@ async function forwardToEligibilityService(
       ? applyDeterministicEligibilityRules(payload as Record<string, unknown>, context)
       : buildFallbackResponse(context);
 
-  void captureTranscriptAiGeneration({
+  await captureTranscriptAiGeneration({
     context: context as Record<string, unknown>,
     evaluationSource: "external_service",
     fileName: file.name || "transcript",

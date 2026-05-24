@@ -202,11 +202,19 @@ export async function captureTranscriptAiGeneration(
   };
 
   try {
-    await fetch(`${host}/i/v0/e/`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1200);
+
+    try {
+      await fetch(`${host}/i/v0/e/`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
   } catch {
     // Observability must never block transcript evaluation responses.
   }
