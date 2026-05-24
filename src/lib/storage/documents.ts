@@ -9,6 +9,7 @@ export {
   deleteStoredDocument,
   downloadStoredDocument,
   duplicateStoredDocument,
+  loadStoredDocumentFile,
   replaceStoredDocument,
   saveDocumentFile,
   viewStoredDocument,

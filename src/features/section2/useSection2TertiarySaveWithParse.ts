@@ -3,53 +3,19 @@ import { useNavigate } from "react-router-dom";
 import type { ApplicationData, TertiaryQualification } from "../../lib/applicationData";
 import { getDocumentUploadErrorMessage } from "../../lib/documentStorage";
 import type { UploadedDocument } from "../../lib/documentStorage";
-import {
-  getTertiaryTranscriptParserErrorCode,
-  trackTertiaryTranscriptParserDraftEmpty,
-  trackTertiaryTranscriptParserDraftFailed,
-  trackTertiaryTranscriptParserDraftSucceeded,
-  trackTertiaryTranscriptParserSaveContinueClicked,
-} from "../../lib/analytics/tertiaryTranscriptParserAnalytics";
+import { trackTertiaryTranscriptParserSaveContinueClicked } from "../../lib/analytics/tertiaryTranscriptParserAnalytics";
 import { isQualificationCoreEmpty } from "../../lib/eligibility/mapToTertiaryQualification";
 import { useSection2Navigation } from "../../hooks/useSection2Navigation";
 import type { Section2RecordStatusMessage } from "../../hooks/useSection2RecordSave";
 import { saveSection2DocumentRecord } from "./section2DocumentSave";
+import type { Section2NavigationState } from "./section2NavigationState";
 import {
   buildTertiaryTranscriptFlashMessage,
-  getDraftedFieldCountFromParseResult,
-  parseTranscriptForQualification,
-  shouldEvaluateTranscriptEligibility,
+  needsHubTranscriptEligibilityProcessing,
+  shouldUseCachedTranscriptAssessment,
   tertiaryTranscriptParseCopy,
   type TertiaryTranscriptParseContext,
 } from "./tertiaryTranscriptParsePolicy";
-
-export type TertiarySaveProgressStage =
-  | "saving"
-  | "parsing"
-  | "applying"
-  | "finalising";
-
-const PROGRESS_COPY: Record<
-  TertiarySaveProgressStage,
-  { detail: string; title: string }
-> = {
-  saving: {
-    detail: "Please keep this tab open while we save your documents.",
-    title: "Saving your transcript...",
-  },
-  parsing: {
-    detail: "This can take a little longer for larger files.",
-    title: tertiaryTranscriptParseCopy.parsingTitle,
-  },
-  applying: {
-    detail: "Almost done.",
-    title: "Applying qualification draft...",
-  },
-  finalising: {
-    detail: "Taking you to the next step.",
-    title: "Finalising...",
-  },
-};
 
 interface UseSection2TertiarySaveWithParseOptions {
   addTertiaryQualification: (qualification: TertiaryQualification) => Promise<void>;
@@ -94,7 +60,6 @@ export function useSection2TertiarySaveWithParse({
   originalTranscriptDocument,
   selectedCertificateFile,
   selectedTranscriptFile,
-  setFormData,
   setShowValidation,
   updateTertiaryQualification,
   validateRecord,
@@ -135,16 +100,10 @@ export function useSection2TertiarySaveWithParse({
 
     setIsSaving(true);
     setStatusMessage(null);
-    setSaveProgress(PROGRESS_COPY.saving);
-
-    const shouldEvaluate = shouldEvaluateTranscriptEligibility(parseContext);
-    let parseStartedAt: number | null = null;
-    let parseError: unknown;
-    let parseResult: Awaited<ReturnType<typeof parseTranscriptForQualification>> | undefined;
-
-    if (shouldEvaluate && selectedTranscriptFile) {
-      parseStartedAt = Date.now();
-    }
+    setSaveProgress({
+      detail: tertiaryTranscriptParseCopy.savingQualificationDetail,
+      title: tertiaryTranscriptParseCopy.savingQualificationTitle,
+    });
 
     try {
       const applicationId = await ensureApplicationRow();
@@ -192,78 +151,20 @@ export function useSection2TertiarySaveWithParse({
           ...workingRecord,
           transcriptEligibility: undefined,
         };
-      } else if (shouldEvaluate && selectedTranscriptFile) {
-        const alreadyParsedOnUpload =
-          Boolean(formData.transcriptEligibility) &&
-          (hasParsedTranscriptFile?.(selectedTranscriptFile) ?? false);
+      }
 
-        if (alreadyParsedOnUpload) {
-          workingRecord = {
-            ...formData,
-            transcriptDocument,
-            transcriptDocumentName:
-              transcriptDocumentName ?? formData.transcriptDocumentName,
-            certificateDocument: formData.completed ? certificateDocument : undefined,
-            certificateDocumentName: formData.completed
-              ? certificateDocumentName ?? formData.certificateDocumentName
-              : undefined,
-          };
-        } else {
-        setSaveProgress({
-          ...PROGRESS_COPY.parsing,
-          title: tertiaryTranscriptParseCopy.parsingTitle,
-        });
+      const deferEligibilityToHub = needsHubTranscriptEligibilityProcessing({
+        selectedTranscriptFile,
+        transcriptDocument: workingRecord.transcriptDocument,
+        transcriptEligibility: workingRecord.transcriptEligibility,
+        transcriptRemoved,
+      });
 
-        try {
-          parseResult = await parseTranscriptForQualification(
-            selectedTranscriptFile,
-            {
-              ...parseContext,
-              formData: workingRecord,
-            },
-          );
-        } catch (error) {
-          parseError = error;
-          const parseDurationMs =
-            parseStartedAt === null ? undefined : Date.now() - parseStartedAt;
-          trackTertiaryTranscriptParserDraftFailed({
-            errorCode: getTertiaryTranscriptParserErrorCode(error),
-            parseDurationMs,
-          });
-        }
-
-        if (parseResult) {
-          setSaveProgress(PROGRESS_COPY.applying);
-          workingRecord = {
-            ...parseResult.mergedRecord,
-            transcriptDocument,
-            transcriptDocumentName:
-              transcriptDocumentName ?? parseResult.mergedRecord.transcriptDocumentName,
-            certificateDocument: parseResult.mergedRecord.completed
-              ? certificateDocument
-              : undefined,
-            certificateDocumentName: parseResult.mergedRecord.completed
-              ? certificateDocumentName ?? formData.certificateDocumentName
-              : undefined,
-            transcriptEligibility: parseResult.assessment,
-          };
-          setFormData(workingRecord);
-
-          const parseDurationMs =
-            parseStartedAt === null ? undefined : Date.now() - parseStartedAt;
-          const draftedFieldCount = getDraftedFieldCountFromParseResult(parseResult);
-
-          if (draftedFieldCount > 0) {
-            trackTertiaryTranscriptParserDraftSucceeded({
-              draftedFieldCount,
-              eligibilityOutcome: parseResult.assessment.outcome,
-              parseDurationMs,
-            });
-          } else if (parseResult.shouldAutoFill) {
-            trackTertiaryTranscriptParserDraftEmpty({ parseDurationMs });
-          }
-        }
-        }
+      if (deferEligibilityToHub) {
+        workingRecord = {
+          ...workingRecord,
+          transcriptEligibility: undefined,
+        };
       }
 
       const validationFailed = !validateRecord(workingRecord);
@@ -286,7 +187,7 @@ export function useSection2TertiarySaveWithParse({
         await addTertiaryQualification(workingRecord);
       }
 
-      if (validationFailed) {
+      if (validationFailed && !parseFirst && !deferEligibilityToHub) {
         setSaveProgress(null);
         setStatusMessage({
           message: tertiaryTranscriptParseCopy.draftPartial,
@@ -295,21 +196,35 @@ export function useSection2TertiarySaveWithParse({
         return;
       }
 
-      setSaveProgress(PROGRESS_COPY.finalising);
-      const flashMessage = buildTertiaryTranscriptFlashMessage({
-        assessment: parseResult?.assessment,
-        draftedFieldCount: parseResult
-          ? getDraftedFieldCountFromParseResult(parseResult)
-          : 0,
-        parseError,
-        preservedExistingFields: Boolean(
-          parseResult && !parseResult.shouldAutoFill && selectedTranscriptFile,
-        ),
-        validationFailed: false,
-      });
+      const navigationState: Section2NavigationState = {};
+
+      if (deferEligibilityToHub) {
+        navigationState.pendingTranscriptEligibility = {
+          qualificationId: workingRecord.id,
+          savedQualification: workingRecord,
+          transcriptFile: selectedTranscriptFile ?? undefined,
+          cachedAssessment: shouldUseCachedTranscriptAssessment({
+            cachedAssessment: formData.transcriptEligibility,
+            hasParsedTranscriptFile,
+            transcriptFile: selectedTranscriptFile ?? undefined,
+          })
+            ? formData.transcriptEligibility
+            : undefined,
+        };
+      } else {
+        const flashMessage = buildTertiaryTranscriptFlashMessage({
+          draftedFieldCount: 0,
+          preservedExistingFields: false,
+          validationFailed: false,
+        });
+
+        if (flashMessage) {
+          navigationState.section2StatusMessage = flashMessage;
+        }
+      }
 
       navigate(qualificationsPath, {
-        state: flashMessage ? { section2StatusMessage: flashMessage } : undefined,
+        state: Object.keys(navigationState).length > 0 ? navigationState : undefined,
       });
     } catch (error) {
       setSaveProgress(null);
@@ -329,14 +244,13 @@ export function useSection2TertiarySaveWithParse({
     ensureApplicationRow,
     existingId,
     formData,
-    navigate,
     hasParsedTranscriptFile,
+    navigate,
     originalCertificateDocument,
     originalTranscriptDocument,
     qualificationsPath,
     selectedCertificateFile,
     selectedTranscriptFile,
-    setFormData,
     setShowValidation,
     updateTertiaryQualification,
     validateRecord,

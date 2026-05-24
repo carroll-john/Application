@@ -11,6 +11,7 @@ import {
   getSection2SubmissionMissingFields,
   meetsSection2SubmissionRequirement,
 } from "../../lib/section2Requirements";
+import { readSection2NavigationState } from "./section2NavigationState";
 import {
   initialSectionState,
   sectionStateOrder,
@@ -59,34 +60,21 @@ export function useSection2QualificationsFlow({ data }: UseSection2Qualification
       : "Add either one tertiary qualification, or both a CV and employment experience.";
 
   useEffect(() => {
-    const nextMessage =
-      location.state &&
-      typeof location.state === "object" &&
-      "section2StatusMessage" in location.state
-        ? location.state.section2StatusMessage
-        : null;
+    const navigationState = readSection2NavigationState(location.state);
 
     if (
-      !nextMessage ||
-      typeof nextMessage !== "object" ||
-      !("message" in nextMessage) ||
-      !("type" in nextMessage) ||
-      typeof nextMessage.message !== "string" ||
-      typeof nextMessage.type !== "string"
+      navigationState?.section2StatusMessage &&
+      !navigationState.pendingTranscriptEligibility
     ) {
-      return;
+      setStatusMessage({
+        message: navigationState.section2StatusMessage.message,
+        type: navigationState.section2StatusMessage.type,
+      });
     }
 
-    setStatusMessage({
-      message: nextMessage.message,
-      type:
-        nextMessage.type === "success" ||
-        nextMessage.type === "warning" ||
-        nextMessage.type === "error" ||
-        nextMessage.type === "status"
-          ? nextMessage.type
-          : "status",
-    });
+    if (!navigationState || navigationState.pendingTranscriptEligibility) {
+      return;
+    }
 
     navigate(`${location.pathname}${location.search}`, {
       replace: true,

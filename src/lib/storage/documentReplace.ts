@@ -126,6 +126,20 @@ export async function duplicateStoredDocument(
   return replaceStoredDocument(sourceFile, undefined, options);
 }
 
+export async function loadStoredDocumentFile(
+  document: UploadedDocument | undefined,
+): Promise<File | null> {
+  if (!document?.id) {
+    return null;
+  }
+
+  if (isRemoteDocument(document)) {
+    return loadRemoteDocumentFile(document);
+  }
+
+  return loadLocalDocumentFile(document.id);
+}
+
 export async function downloadStoredDocument(
   document: UploadedDocument | undefined,
 ): Promise<boolean> {
