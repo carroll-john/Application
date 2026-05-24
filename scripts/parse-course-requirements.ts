@@ -107,8 +107,9 @@ Allowed kinds (exhaustive):
 Rules:
   - Output one RequirementInstance per atomic requirement. Do not combine multiple thresholds into one object.
   - Use the verbatim sentence(s) from the entry requirements as sourceText (trim whitespace, no paraphrasing).
-  - weight: "mandatory" unless the requirement is one of several alternatives (OR-group).
-  - alternativeGroupId: set to a short stable string (e.g. "academic-entry") on each member of an OR-group.
+  - weight: "mandatory" unless the requirement is genuinely interchangeable with another (an OR/either pathway).
+  - alternativeGroupId: ONLY set this on requirements whose weight is "alternative" AND that are interchangeable with at least one other emitted requirement (satisfying ANY one of them satisfies the group). Otherwise set it to null. Do not use the group id as a structural label for related-but-mandatory requirements (e.g. bachelor + WAM + work experience that ALL must be met share NO alternativeGroupId — each is mandatory and standalone).
+  - Never emit a single-member alternative group. If you would tag a requirement as "alternative" but cannot find another listed requirement that is a genuine OR-equivalent, instead either (a) skip the requirement entirely, or (b) emit it as mandatory if it truly is required. "Considered for professional entry without a degree" type clauses that describe a separate ad-hoc entry pathway should be SKIPPED — they are not matchable.
   - id: use a kebab-case, course-stable identifier (e.g. "wam-65", "completed-bachelor", "english-ielts").
   - For Australian-context courses, when the entry text says "or equivalent" or "or completion in English", include an english_proficiency requirement with at least the completion_in_country pathway listing recognised English-medium countries (default: AU, NZ, UK, IE, US, CA, ZA) unless the course explicitly narrows the list.
   - If the entry requirement text does not contain a particular kind, do NOT invent one. Only emit kinds explicitly evidenced.
@@ -134,7 +135,7 @@ function buildSchema() {
       {
         type: "object",
         additionalProperties: false,
-        required: ["type", "test", "minOverall"],
+        required: ["type", "test", "minOverall", "minBand"],
         properties: {
           type: { type: "string", enum: ["english_test"] },
           test: { type: "string", enum: ["IELTS", "TOEFL_iBT", "PTE", "CAE", "OET"] },
@@ -164,7 +165,7 @@ function buildSchema() {
       },
       params: {
         anyOf: [
-          { type: "object", additionalProperties: false, properties: {} },
+          { type: "object", additionalProperties: false, required: [], properties: {} },
           {
             type: "object",
             additionalProperties: false,
@@ -179,7 +180,7 @@ function buildSchema() {
           {
             type: "object",
             additionalProperties: false,
-            required: ["metric", "min"],
+            required: ["metric", "min", "scale"],
             properties: {
               metric: { type: "string", enum: ["wam", "gpa"] },
               min: { type: "number" },
@@ -197,7 +198,7 @@ function buildSchema() {
           {
             type: "object",
             additionalProperties: false,
-            required: ["minYears"],
+            required: ["minYears", "relevantTo"],
             properties: {
               minYears: { type: "number" },
               relevantTo: { type: ["string", "null"] },

@@ -383,7 +383,9 @@ export function evaluateRequirements(
 
   for (const instance of instances) {
     const check = evaluateOne(instance, evalCtx);
-    if (instance.alternativeGroupId) {
+    // Only fold OR-groups. A mandatory requirement that happens to carry an alternativeGroupId is
+    // treated as standalone — sharing an ID is necessary but not sufficient for fold behaviour.
+    if (instance.alternativeGroupId && instance.weight === "alternative") {
       const key = instance.alternativeGroupId;
       if (!groups.has(key)) {
         groups.set(key, []);
@@ -401,13 +403,16 @@ export function evaluateRequirements(
   const out: EligibilityRequirementCheck[] = [];
 
   for (const instance of instances) {
-    if (instance.alternativeGroupId) {
+    if (instance.alternativeGroupId && instance.weight === "alternative") {
       if (emittedGroups.has(instance.alternativeGroupId)) {
         continue;
       }
       emittedGroups.add(instance.alternativeGroupId);
       const group = groups.get(instance.alternativeGroupId);
-      if (group && group.length > 0) {
+      // A single-member alternative group is degenerate: it represents an unmatched "ad-hoc entry
+      // pathway" clause that the parser was meant to skip. Dropping it here prevents such items from
+      // gating eligibility when the applicant satisfies the main mandatory pathway.
+      if (group && group.length >= 2) {
         out.push(foldAlternativeGroup(instance.alternativeGroupId, group));
       }
     } else {

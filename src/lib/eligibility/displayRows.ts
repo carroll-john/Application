@@ -67,12 +67,30 @@ export function buildEligibilityDisplayRows(
   const rows: EligibilityDisplayRow[] = [];
   const emittedAlternativeGroups = new Set<string>();
 
+  // Pre-count alternative-group members so we can drop degenerate 1-member groups (mirrors the
+  // matcher's defense-in-depth behaviour).
+  const alternativeGroupSizes = new Map<string, number>();
   for (const instance of requirements) {
-    if (instance.alternativeGroupId) {
+    if (instance.alternativeGroupId && instance.weight === "alternative") {
+      alternativeGroupSizes.set(
+        instance.alternativeGroupId,
+        (alternativeGroupSizes.get(instance.alternativeGroupId) ?? 0) + 1,
+      );
+    }
+  }
+
+  for (const instance of requirements) {
+    // Only fold true OR-groups (weight === "alternative"). A mandatory item that happens to carry an
+    // alternativeGroupId renders as its own row so users see each hard requirement individually.
+    if (instance.alternativeGroupId && instance.weight === "alternative") {
       if (emittedAlternativeGroups.has(instance.alternativeGroupId)) {
         continue;
       }
       emittedAlternativeGroups.add(instance.alternativeGroupId);
+      // Drop single-member alternative groups (see matcher.ts for rationale).
+      if ((alternativeGroupSizes.get(instance.alternativeGroupId) ?? 0) < 2) {
+        continue;
+      }
       const groupCheck =
         checksById.get(instance.alternativeGroupId) ?? checksById.get(instance.id);
       rows.push({
