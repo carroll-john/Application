@@ -37,6 +37,33 @@ if (!EMAIL || !PASSWORD) {
 const course = MODE === "unsafe" ? UNSAFE_COURSE : SAFE_COURSE;
 const pdfPath = process.env.SMOKE_TRANSCRIPT_PDF?.trim() || DEFAULT_PDF;
 
+async function startFreshApplication(page, courseSlug, courseTitle) {
+  await page.goto(`${BASE}/courses/${courseSlug}?apply=1&eligible=1`, {
+    waitUntil: "networkidle",
+  });
+
+  const startFresh = page.getByRole("button", { name: "Start brand new application" });
+  if (await startFresh.isVisible({ timeout: 12000 }).catch(() => false)) {
+    await startFresh.click();
+    await page.waitForURL("**/overview**", { timeout: 30000 });
+    await expectCourse(page, courseTitle);
+    return;
+  }
+
+  if (page.url().includes("/overview")) {
+    await expectCourse(page, courseTitle);
+    return;
+  }
+
+  await page.goto(`${BASE}/courses/${courseSlug}`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Eligibility Check" }).click();
+  await page.getByRole("button", { name: /Start application|Apply now/i }).click();
+  await startFresh.waitFor({ timeout: 15000 });
+  await startFresh.click();
+  await page.waitForURL("**/overview**", { timeout: 30000 });
+  await expectCourse(page, courseTitle);
+}
+
 async function expectCourse(page, title) {
   await page.getByRole("heading", { name: title }).first().waitFor({ timeout: 15000 });
   console.log("OK active course:", title, "at", page.url());
@@ -53,6 +80,22 @@ async function pickMonthYear(page, trigger, year, monthName) {
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
+let latestRulesVersion = null;
+
+page.on("response", async (response) => {
+  if (!response.url().includes("/api/evaluate-transcript-eligibility")) {
+    return;
+  }
+
+  try {
+    const payload = await response.json();
+    if (typeof payload?.rulesVersion === "string") {
+      latestRulesVersion = payload.rulesVersion;
+    }
+  } catch {
+    // Ignore non-JSON responses.
+  }
+});
 
 try {
   await page.goto(`${BASE}/sign-in?redirect=${encodeURIComponent("/overview")}`);
@@ -62,19 +105,7 @@ try {
   await page.waitForURL("**/overview**", { timeout: 30000 });
   console.log("OK signed in ->", page.url());
 
-  await page.goto(`${BASE}/courses/${course.slug}?apply=1&eligible=1`, {
-    waitUntil: "networkidle",
-  });
-
-  const startFresh = page.getByRole("button", { name: "Start brand new application" });
-  if (await startFresh.isVisible({ timeout: 10000 }).catch(() => false)) {
-    await startFresh.click();
-    await page.waitForURL("**/overview**", { timeout: 30000 });
-  } else {
-    await page.goto(`${BASE}/overview`, { waitUntil: "networkidle" });
-  }
-
-  await expectCourse(page, course.title);
+  await startFreshApplication(page, course.slug, course.title);
 
   await page.goto(`${BASE}/section2/add-tertiary`, { waitUntil: "networkidle" });
   await page.getByRole("heading", { name: "Add Tertiary Qualification" }).waitFor({
@@ -92,11 +123,17 @@ try {
   );
 
   await pickMonthYear(
+    page,
     page.getByRole("button", { name: "Select month and year" }).first(),
     2020,
     "March",
   );
-  await pickMonthYear(page.getByRole("button", { name: "Select month and year" }), 2024, "July");
+  await pickMonthYear(
+    page,
+    page.getByRole("button", { name: "Select month and year" }),
+    2024,
+    "July",
+  );
 
   await page.locator('input[type="file"]').nth(0).setInputFiles(pdfPath);
   console.log("OK transcript file attached:", path.basename(pdfPath));
@@ -114,26 +151,42 @@ try {
   console.log("Eligibility rows:", count);
 
   if (MODE === "unsafe") {
-    const bodyText = await page.locator("body").innerText();
-    if (!bodyText.includes("deterministic")) {
-      console.warn("WARN expected legacy deterministic copy in UI");
+    if (!latestRulesVersion?.includes("deterministic")) {
+      throw new Error(
+        `Expected legacy deterministic rules, got rulesVersion=${latestRulesVersion ?? "(missing)"}`,
+      );
     }
+    console.log("OK legacy rules:", latestRulesVersion);
   } else {
+    if (!latestRulesVersion?.includes("matcher")) {
+      throw new Error(
+        `Expected matcher rules, got rulesVersion=${latestRulesVersion ?? "(missing)"}`,
+      );
+    }
+    console.log("OK matcher rules:", latestRulesVersion);
+  }
+
+  if (count < 1) {
+    throw new Error(`Expected at least one eligibility row, got ${count}`);
+  }
+
+  if (MODE === "safe" && count !== course.expectedRows) {
+    throw new Error(`Expected ${course.expectedRows} eligibility rows, got ${count}`);
+  }
+
+  if (MODE === "safe") {
     const wrongBtn = page.getByRole("button", { name: "This check seems wrong" }).first();
     if (await wrongBtn.isVisible()) {
       await wrongBtn.click();
-      await page.getByRole("radio", { name: "unknown" }).click();
-      await page.getByLabel("Optional reason").fill("Smoke test override");
+      const feedbackForm = page.locator("fieldset").filter({ hasText: "Correct status" }).first();
+      await feedbackForm.getByRole("radio", { name: "fail" }).click();
+      await page.getByLabel("Optional reason").fill("Post-merge smoke override");
       await page.getByRole("button", { name: "Submit" }).click();
       await page
-        .getByText("Thanks — your feedback has been recorded")
-        .waitFor({ timeout: 10000 });
+        .getByText(/Thanks — your feedback has been recorded/)
+        .waitFor({ timeout: 15000 });
       console.log("OK override feedback submitted");
     }
-  }
-
-  if (count !== course.expectedRows) {
-    throw new Error(`Expected ${course.expectedRows} eligibility rows, got ${count}`);
   }
 
   console.log(`PASS ${MODE.toUpperCase()} course UI smoke`);
