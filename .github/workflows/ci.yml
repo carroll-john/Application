@@ -33,6 +33,9 @@ jobs:
       - name: Run unit tests
         run: npm run test
 
+      - name: Node ESM smoke for api/* functions
+        run: npm run check:api-esm
+
       - name: Build
         run: npm run build
 

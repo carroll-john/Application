@@ -1,0 +1,28 @@
+{
+  "//": "Used by scripts/check-api-esm.mjs only. Emits api/ + src/lib/ to .api-runtime-check/ so we can node-import each function under plain Node ESM and catch ERR_MODULE_NOT_FOUND errors that Vite/Vitest's bundler resolution would mask.",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmit": false,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "outDir": ".api-runtime-check",
+    "rootDir": ".",
+    "jsx": "react-jsx"
+  },
+  "//include": "Top-level api/*.ts entrypoints only. TypeScript will pull in transitively-reached api/_*/* and src/lib/* modules via the import graph, so orphan files (e.g. unused re-export stubs) are intentionally NOT compiled.",
+  "include": [
+    "api/*.ts"
+  ],
+  "exclude": [
+    "**/__fixtures__/**",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
+}
