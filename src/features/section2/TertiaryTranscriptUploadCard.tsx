@@ -22,7 +22,7 @@ export function TertiaryTranscriptUploadCard({
 }: TertiaryTranscriptUploadCardProps) {
   return (
     <Section2FormCard
-      description="Upload your academic transcript and we'll draft your qualification details and run a course eligibility check."
+      description="Upload your academic transcript and we'll draft one qualification from it, then run a course eligibility check."
       icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
       title="Academic Transcript"
     >
@@ -30,7 +30,7 @@ export function TertiaryTranscriptUploadCard({
         <DocumentUploadField
           attachedDescription="Your transcript is the academic record that shows the subjects you studied and the results you achieved."
           attachedStatus="Transcript attached"
-          description="PDF, DOC, DOCX or TXT, up to 5 MB. We'll read your transcript and fill in the details below automatically."
+          description="PDF, DOC, DOCX or TXT, up to 5 MB. One transcript drafts one qualification — we'll fill in the details below automatically."
           document={formData.transcriptDocument}
           documentName={formData.transcriptDocumentName}
           label="Upload transcript"
@@ -44,8 +44,8 @@ export function TertiaryTranscriptUploadCard({
           showStatusIcon
         />
         <p className="text-xs text-slate-500">
-          After you choose a file, we&apos;ll draft your qualification details here. Review
-          them, then click Save & Continue.
+          Each transcript maps to one qualification. After you choose a file, we&apos;ll draft
+          that qualification here for you to review, then save when ready.
         </p>
       </div>
     </Section2FormCard>

@@ -69,7 +69,7 @@ describe("tertiaryTranscriptParsePolicy", () => {
     });
 
     expect(message?.type).toBe("success");
-    expect(message?.message).toContain("drafted your qualification");
+    expect(message?.message).toContain("saved a qualification drafted from your transcript");
   });
 
   it("builds warning flash when validation still fails", () => {
@@ -80,6 +80,6 @@ describe("tertiaryTranscriptParsePolicy", () => {
     });
 
     expect(message?.type).toBe("warning");
-    expect(message?.message).toContain("complete the remaining");
+    expect(message?.message).toContain("some details still need your input");
   });
 });

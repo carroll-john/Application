@@ -122,7 +122,8 @@ export default function Section2Qualifications() {
     data.applicationMeta?.selectedCourse?.title ?? selectedCourseEntry?.title;
   const showParsedTranscriptIntro =
     statusMessage?.type === "success" &&
-    statusMessage.message.toLowerCase().includes("drafted your qualification");
+    statusMessage.message.toLowerCase().includes("qualification") &&
+    statusMessage.message.toLowerCase().includes("transcript");
   const eligibilityDisplayRows = latestTranscriptAssessment
     ? buildEligibilityDisplayRows(
         selectedCourseEntry?.requirements,
@@ -197,8 +198,8 @@ export default function Section2Qualifications() {
           {showParsedTranscriptIntro ? (
             <p className="mt-2 text-xs text-gray-700 sm:text-sm">
               Based on your uploaded transcript
-              {selectedCourseTitle ? ` for ${selectedCourseTitle}` : ""}. Review the drafted
-              qualification details and eligibility results below.
+              {selectedCourseTitle ? ` for ${selectedCourseTitle}` : ""}. Review the
+              qualification we drafted and check your eligibility results below.
             </p>
           ) : null}
           {buildAssessmentEvidenceSummary(latestTranscriptAssessment) ? (

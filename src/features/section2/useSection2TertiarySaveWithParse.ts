@@ -19,6 +19,7 @@ import {
   getDraftedFieldCountFromParseResult,
   parseTranscriptForQualification,
   shouldEvaluateTranscriptEligibility,
+  tertiaryTranscriptParseCopy,
   type TertiaryTranscriptParseContext,
 } from "./tertiaryTranscriptParsePolicy";
 
@@ -38,7 +39,7 @@ const PROGRESS_COPY: Record<
   },
   parsing: {
     detail: "This can take a little longer for larger files.",
-    title: "Reading your transcript and drafting qualification details...",
+    title: tertiaryTranscriptParseCopy.parsingTitle,
   },
   applying: {
     detail: "Almost done.",
@@ -210,7 +211,7 @@ export function useSection2TertiarySaveWithParse({
         } else {
         setSaveProgress({
           ...PROGRESS_COPY.parsing,
-          title: "Reading your transcript and checking course eligibility...",
+          title: tertiaryTranscriptParseCopy.parsingTitle,
         });
 
         try {
@@ -288,8 +289,7 @@ export function useSection2TertiarySaveWithParse({
       if (validationFailed) {
         setSaveProgress(null);
         setStatusMessage({
-          message:
-            "We drafted what we could from your transcript. Please complete the remaining qualification fields.",
+          message: tertiaryTranscriptParseCopy.draftPartial,
           type: "warning",
         });
         return;
