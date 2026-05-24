@@ -1,3 +1,4 @@
+import type { RequirementInstance } from "../eligibility/requirements";
 import type { CourseEligibilityConfig } from "../courseEligibility";
 
 export interface RawValueItem {
@@ -50,4 +51,11 @@ export interface CourseCatalogEntry {
   feeNotes: string[];
   outcomes?: string;
   eligibility: CourseEligibilityConfig;
+  /**
+   * Canonical eligibility requirements parsed from the course's `entry_requirements` text by the
+   * offline `scripts/parse-course-requirements.ts` pipeline. Optional during the migration: when
+   * absent, the runtime falls back to the legacy `eligibility` rules and the deterministic regex
+   * thresholds from `parseEntryRequirementThresholds`.
+   */
+  requirements?: RequirementInstance[];
 }

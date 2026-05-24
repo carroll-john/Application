@@ -45,77 +45,6 @@ function toPercentFromGpa(gpa: number, scale: number): number | undefined {
   return (gpa / scale) * 100;
 }
 
-function normalizeStatus(status: unknown): EligibilityRequirementStatus {
-  if (status === "pass" || status === "fail" || status === "unknown") {
-    return status;
-  }
-  return "unknown";
-}
-
-function normalizeChecks(value: unknown): EligibilityRequirementCheck[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .map((entry, index): EligibilityRequirementCheck | null => {
-      const item = asRecord(entry);
-      if (!item) {
-        return null;
-      }
-
-      return {
-        id:
-          typeof item.id === "string" && item.id.trim()
-            ? item.id.trim()
-            : `requirement-${index + 1}`,
-        requirement:
-          typeof item.requirement === "string" && item.requirement.trim()
-            ? item.requirement.trim()
-            : `Requirement ${index + 1}`,
-        status: normalizeStatus(item.status),
-        explanation:
-          typeof item.explanation === "string" && item.explanation.trim()
-            ? item.explanation.trim()
-            : "No explanation provided.",
-      };
-    })
-    .filter((entry): entry is EligibilityRequirementCheck => Boolean(entry));
-}
-
-function findExistingAcademicThresholdCheck(
-  checks: EligibilityRequirementCheck[],
-  mode: "wam" | "gpa",
-): EligibilityRequirementCheck | undefined {
-  return checks.find((check) => {
-    const id = check.id.toLowerCase();
-    const requirement = check.requirement.toLowerCase();
-    const explanation = check.explanation.toLowerCase();
-    if (mode === "wam") {
-      return (
-        id.includes("wam") ||
-        requirement.includes("wam") ||
-        explanation.includes("wam")
-      );
-    }
-    return (
-      id.includes("gpa") ||
-      requirement.includes("gpa") ||
-      explanation.includes("gpa")
-    );
-  });
-}
-
-function mergeChecks(
-  original: EligibilityRequirementCheck[],
-  deterministic: EligibilityRequirementCheck[],
-) {
-  const deduped = original.filter(
-    (item) => !deterministic.some((deterministicItem) => deterministicItem.id === item.id),
-  );
-  return [...deduped, ...deterministic];
-}
-
 function upsertExtractedField(target: LooseRecord, key: string, value: LooseRecord) {
   target[key] = {
     confidence: typeof value.confidence === "number" ? value.confidence : 0.6,
@@ -137,7 +66,7 @@ function ensureGroup(container: LooseRecord, key: string): LooseRecord {
   return created;
 }
 
-function inferAuEnglishEvidence(
+function evaluateAuEnglishProficiency(
   assessment: LooseRecord,
   context: TranscriptEligibilityRequestContext,
 ): boolean {
@@ -158,25 +87,23 @@ function inferAuEnglishEvidence(
     return false;
   }
 
-  if (readFieldValue(englishEvidence, "englishInstructionEvidence")) {
-    return false;
+  if (!readFieldValue(englishEvidence, "englishInstructionEvidence")) {
+    upsertExtractedField(englishEvidence, "englishInstructionEvidence", {
+      confidence: 0.95,
+      missingOrAmbiguous: false,
+      normalizedValue: "english_instruction_au_institution",
+      originalValue:
+        "Completion of program at a recognised Australian tertiary institution.",
+    });
   }
 
-  upsertExtractedField(englishEvidence, "englishInstructionEvidence", {
-    confidence: 0.65,
-    missingOrAmbiguous: true,
-    normalizedValue: "likely_english_instruction_au_institution",
-    originalValue:
-      "Inferred from Australian tertiary institution match and Australia country context.",
-  });
-
-  if (!readFieldValue(englishEvidence, "uncertainty")) {
-    upsertExtractedField(englishEvidence, "uncertainty", {
-      confidence: 0.8,
+  if (!readFieldValue(englishEvidence, "englishRequirementSatisfaction")) {
+    upsertExtractedField(englishEvidence, "englishRequirementSatisfaction", {
+      confidence: 0.95,
       missingOrAmbiguous: false,
-      normalizedValue: "requires_manual_english_verification",
+      normalizedValue: "satisfied_by_au_completion",
       originalValue:
-        "English instruction inferred heuristically only; formal English evidence still required.",
+        "English proficiency satisfied by completion at a recognised Australian tertiary institution.",
     });
   }
 
@@ -232,7 +159,6 @@ export function applyDeterministicEligibilityRules(
   context: TranscriptEligibilityRequestContext,
 ) {
   const assessment = asRecord(assessmentPayload) ?? {};
-  const originalChecks = normalizeChecks(assessment.requirementsChecked);
   const applicantDetails = ensureGroup(assessment, "applicantDetails");
   const studyDetails = ensureGroup(assessment, "studyDetails");
   const academicPerformance = ensureGroup(assessment, "academicPerformance");
@@ -323,11 +249,6 @@ export function applyDeterministicEligibilityRules(
     let thresholdExplanation = "Academic threshold evidence is incomplete.";
 
     if (typeof minWam === "number") {
-      const existingWamCheck = findExistingAcademicThresholdCheck(originalChecks, "wam");
-      if (existingWamCheck?.status === "pass" || existingWamCheck?.status === "fail") {
-        thresholdStatus = existingWamCheck.status;
-        thresholdExplanation = `Structured transcript check indicates ${existingWamCheck.status} for WAM threshold: ${existingWamCheck.explanation}`;
-      }
       let comparableWam: number | undefined = wamValue;
       if (comparableWam === undefined && gpaValue !== undefined && gpaScale !== undefined) {
         comparableWam = toPercentFromGpa(gpaValue, gpaScale);
@@ -344,11 +265,6 @@ export function applyDeterministicEligibilityRules(
             : `Comparable WAM ${comparableWam.toFixed(1)} is below minimum WAM ${minWam}.`;
       }
     } else if (typeof minGpaValue === "number") {
-      const existingGpaCheck = findExistingAcademicThresholdCheck(originalChecks, "gpa");
-      if (existingGpaCheck?.status === "pass" || existingGpaCheck?.status === "fail") {
-        thresholdStatus = existingGpaCheck.status;
-        thresholdExplanation = `Structured transcript check indicates ${existingGpaCheck.status} for GPA threshold: ${existingGpaCheck.explanation}`;
-      }
       let comparableGpa: number | undefined =
         gpaValue !== undefined ? gpaValue : undefined;
       let comparableScale: number | undefined =
@@ -395,34 +311,26 @@ export function applyDeterministicEligibilityRules(
     }
   }
 
-  const inferredEnglish = inferAuEnglishEvidence(assessment, context);
-  if (inferredEnglish) {
+  const englishProficiencySatisfied = evaluateAuEnglishProficiency(assessment, context);
+  if (englishProficiencySatisfied) {
     checks.push({
-      id: "deterministic-au-english-inference",
-      requirement: "English-instruction evidence (AU institution heuristic)",
-      status: "unknown",
+      id: "deterministic-english-proficiency",
+      requirement: "English language proficiency",
+      status: "pass",
       explanation:
-        "English instruction was inferred from Australian institution/country match. Manual evidence verification is still required.",
+        "English language proficiency satisfied by completion at a recognised Australian tertiary institution.",
     });
-    missingInformation.push(
-      "English instruction is inferred heuristically; provide formal English evidence if required.",
-    );
   }
 
-  const mergedChecks = mergeChecks(originalChecks, checks);
   const deterministicChecks = checks.filter((item) => item.id.startsWith("deterministic-"));
-  const deterministicOutcomeChecks = deterministicChecks.filter(
-    (item) => item.id !== "deterministic-au-english-inference",
-  );
-  let outcome = updateOutcomeFromChecks(deterministicOutcomeChecks, assessment.outcome);
-  const needsManualReview =
-    deterministicChecks.some((item) => item.status === "unknown") || inferredEnglish;
+  let outcome = updateOutcomeFromChecks(deterministicChecks, assessment.outcome);
+  const needsManualReview = deterministicChecks.some((item) => item.status === "unknown");
 
   if (outcome === "eligible" && needsManualReview) {
     outcome = "conditionally_eligible";
   }
 
-  assessment.requirementsChecked = mergedChecks;
+  assessment.requirementsChecked = checks;
   assessment.outcome = outcome;
   assessment.manualReviewRequired =
     needsManualReview || Boolean(assessment.manualReviewRequired);

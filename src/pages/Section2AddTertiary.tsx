@@ -145,6 +145,7 @@ export default function Section2AddTertiary() {
         minGpaValue: parsedThresholds.minGpaValue,
         minWam: parsedThresholds.minWam,
         qualificationLevelRequirement: parsedThresholds.qualificationLevelRequirement,
+        requirements: selectedCourseCatalogEntry?.requirements,
       };
 
       try {

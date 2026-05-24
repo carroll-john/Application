@@ -15,7 +15,10 @@ import {
   Section2QualificationsPage,
   useSection2QualificationsFlow,
 } from "../features/section2";
+import { EligibilityRowFeedback } from "../features/section2/EligibilityRowFeedback";
 import { useReviewReturn } from "../hooks/useReviewReturn";
+import { getCourseByCode } from "../lib/courseCatalog";
+import { buildEligibilityDisplayRows } from "../lib/eligibility/displayRows";
 import type {
   EligibilityOutcome,
   TranscriptEligibilityAssessment,
@@ -114,6 +117,13 @@ export default function Section2Qualifications() {
   const latestTranscriptAssessment = getLatestTranscriptAssessment(
     data.tertiaryQualifications.map((qualification) => qualification.transcriptEligibility),
   );
+  const selectedCourseEntry = getCourseByCode(data.applicationMeta?.selectedCourse?.code);
+  const eligibilityDisplayRows = latestTranscriptAssessment
+    ? buildEligibilityDisplayRows(
+        selectedCourseEntry?.requirements,
+        latestTranscriptAssessment.requirementsChecked,
+      )
+    : [];
 
   function section2AddPath(key: Parameters<typeof getSection2Step>[0]) {
     const step = getSection2Step(key);
@@ -185,20 +195,44 @@ export default function Section2Qualifications() {
             </p>
           ) : null}
           <p className="mt-2 text-xs text-gray-600 sm:text-sm">{eligibilityAdvisoryCopy}</p>
-          {latestTranscriptAssessment.requirementsChecked.length > 0 ? (
-            <div className="mt-3 space-y-2">
-              {latestTranscriptAssessment.requirementsChecked.map((requirement) => (
-                <div key={requirement.id} className="rounded-md border border-gray-200 p-3">
-                  <p className="text-xs font-semibold text-gray-900 sm:text-sm">
-                    {requirement.requirement}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-700 sm:text-sm">
-                    {eligibilityRequirementStatusCopy[requirement.status]} -{" "}
-                    {requirement.explanation}
-                  </p>
-                </div>
+          {eligibilityDisplayRows.length > 0 ? (
+            <ul className="mt-3 space-y-2" aria-label="Eligibility requirements">
+              {eligibilityDisplayRows.map((row) => (
+                <li key={row.id} className="rounded-md border border-gray-200 p-3">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+                    <p className="text-xs font-semibold text-gray-900 sm:text-sm">
+                      {row.sourceText}
+                    </p>
+                    <p
+                      className={`text-xs font-semibold sm:text-sm ${
+                        row.status === "pass"
+                          ? "text-[var(--success-text)]"
+                          : row.status === "fail"
+                            ? "text-[var(--warning-text)]"
+                            : "text-[var(--info-text)]"
+                      }`}
+                    >
+                      {eligibilityRequirementStatusCopy[row.status]}
+                    </p>
+                  </div>
+                  {row.kindLabel ? (
+                    <p className="mt-1 text-[11px] uppercase tracking-wide text-gray-500 sm:text-xs">
+                      {row.kindLabel}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 text-xs text-gray-700 sm:text-sm">{row.explanation}</p>
+                  <EligibilityRowFeedback
+                    requirementId={row.id}
+                    requirementSourceText={row.sourceText}
+                    originalStatus={row.status}
+                    courseCode={data.applicationMeta?.selectedCourse?.code}
+                    courseTitle={data.applicationMeta?.selectedCourse?.title}
+                    rulesVersion={latestTranscriptAssessment.rulesVersion}
+                    serviceVersion={latestTranscriptAssessment.serviceVersion}
+                  />
+                </li>
               ))}
-            </div>
+            </ul>
           ) : null}
           {latestTranscriptAssessment.missingInformation.length > 0 ? (
             <div className="mt-3 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3">

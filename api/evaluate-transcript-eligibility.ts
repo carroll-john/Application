@@ -11,6 +11,12 @@ import {
   toParsedUploadFile,
 } from "./_documentParser/fileUpload.js";
 import { applyDeterministicEligibilityRules } from "../src/lib/eligibility/deterministicRules.js";
+import { aggregateOutcome, evaluateRequirements } from "../src/lib/eligibility/matcher.js";
+import type { RequirementInstance } from "../src/lib/eligibility/requirements.js";
+import type {
+  EligibilityRequirementCheck,
+  TranscriptExtractedData,
+} from "../src/lib/eligibility/types.js";
 import { captureTranscriptAiGeneration } from "./_shared/posthogAiObservability.js";
 
 type TranscriptEligibilityRequestContext = {
@@ -26,6 +32,7 @@ type TranscriptEligibilityRequestContext = {
   minGpaValue?: number;
   minWam?: number;
   qualificationLevelRequirement?: string;
+  requirements?: RequirementInstance[];
 };
 
 const DEFAULT_MODEL = "gpt-4.1-mini";
@@ -86,10 +93,46 @@ function parseContext(rawValue: FormDataEntryValue | null): TranscriptEligibilit
         typeof candidate.qualificationLevelRequirement === "string"
           ? candidate.qualificationLevelRequirement.trim()
           : undefined,
+      requirements: normalizeRequirements(candidate.requirements),
     };
   } catch {
     return {};
   }
+}
+
+const SUPPORTED_REQUIREMENT_KINDS = new Set([
+  "qualification_completed",
+  "qualification_level",
+  "academic_threshold",
+  "english_proficiency",
+  "work_experience",
+  "field_of_study",
+]);
+
+function normalizeRequirements(value: unknown): RequirementInstance[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) {
+    return undefined;
+  }
+
+  const out: RequirementInstance[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") continue;
+    const candidate = entry as Record<string, unknown>;
+    if (
+      typeof candidate.id !== "string" ||
+      typeof candidate.kind !== "string" ||
+      !SUPPORTED_REQUIREMENT_KINDS.has(candidate.kind) ||
+      typeof candidate.sourceText !== "string" ||
+      (candidate.weight !== "mandatory" && candidate.weight !== "alternative") ||
+      !candidate.params ||
+      typeof candidate.params !== "object"
+    ) {
+      continue;
+    }
+    out.push(candidate as unknown as RequirementInstance);
+  }
+
+  return out.length > 0 ? out : undefined;
 }
 
 function buildFallbackResponse(
@@ -163,6 +206,92 @@ function buildFallbackResponse(
   };
 }
 
+function extractEvidence(assessment: Record<string, unknown>): TranscriptExtractedData {
+  // The transcript-eligibility service / LLM produces evidence groups directly on the assessment.
+  // The matcher consumes a TranscriptExtractedData shape with the same group names, so we coerce
+  // by reference rather than copy.
+  const ev: TranscriptExtractedData = {};
+  if (assessment.applicantDetails && typeof assessment.applicantDetails === "object") {
+    ev.applicantDetails = assessment.applicantDetails as TranscriptExtractedData["applicantDetails"];
+  }
+  if (assessment.studyDetails && typeof assessment.studyDetails === "object") {
+    ev.studyDetails = assessment.studyDetails as TranscriptExtractedData["studyDetails"];
+  }
+  if (assessment.academicPerformance && typeof assessment.academicPerformance === "object") {
+    ev.academicPerformance =
+      assessment.academicPerformance as TranscriptExtractedData["academicPerformance"];
+  }
+  if (
+    assessment.englishLanguageEvidence &&
+    typeof assessment.englishLanguageEvidence === "object"
+  ) {
+    ev.englishLanguageEvidence =
+      assessment.englishLanguageEvidence as TranscriptExtractedData["englishLanguageEvidence"];
+  }
+  return ev;
+}
+
+function applyRequirementsMatcher(
+  assessment: Record<string, unknown>,
+  context: TranscriptEligibilityRequestContext,
+): Record<string, unknown> {
+  const requirements = context.requirements ?? [];
+  const evidence = extractEvidence(assessment);
+  const checks: EligibilityRequirementCheck[] = evaluateRequirements(
+    requirements,
+    evidence,
+    context,
+  );
+  const { outcome, manualReviewRequired } = aggregateOutcome(checks);
+
+  const patched: Record<string, unknown> = { ...assessment };
+  patched.requirementsChecked = checks;
+  patched.outcome = outcome;
+  patched.manualReviewRequired = manualReviewRequired;
+
+  const missingFromUnknown = checks
+    .filter((check) => check.status === "unknown")
+    .map((check) => check.explanation);
+  const existingMissing = Array.isArray(patched.missingInformation)
+    ? patched.missingInformation.filter((item): item is string => typeof item === "string")
+    : [];
+  patched.missingInformation = Array.from(new Set([...existingMissing, ...missingFromUnknown]));
+
+  patched.rulesVersion =
+    typeof patched.rulesVersion === "string" && patched.rulesVersion.trim()
+      ? `${patched.rulesVersion.trim()}+matcher-v1`
+      : "matcher-v1";
+
+  if (
+    typeof patched.recommendedNextStep !== "string" ||
+    !patched.recommendedNextStep.trim() ||
+    outcome !== "eligible"
+  ) {
+    patched.recommendedNextStep =
+      outcome === "ineligible"
+        ? "Applicant is below one or more mandatory requirements. Route to admissions review for final decision."
+        : outcome === "insufficient_data"
+          ? "Provide clearer transcript evidence (completion status, WAM/GPA, English-medium completion) and route for manual review."
+          : "Proceed with application submission and admissions verification.";
+  }
+
+  return patched;
+}
+
+/**
+ * Decides whether to use the new RequirementInstance matcher (when the client supplied requirements
+ * derived from the canonical catalog) or the legacy deterministic regex rules.
+ */
+function applyEligibilityResolution(
+  assessment: Record<string, unknown>,
+  context: TranscriptEligibilityRequestContext,
+): Record<string, unknown> {
+  if (context.requirements && context.requirements.length > 0) {
+    return applyRequirementsMatcher(assessment, context);
+  }
+  return applyDeterministicEligibilityRules(assessment, context) as Record<string, unknown>;
+}
+
 function withContextDefaults(
   assessment: Record<string, unknown>,
   context: TranscriptEligibilityRequestContext,
@@ -185,7 +314,7 @@ function withContextDefaults(
     patched.serviceVersion = "local-openai-fallback";
   }
 
-  return applyDeterministicEligibilityRules(patched, context);
+  return applyEligibilityResolution(patched, context);
 }
 
 async function evaluateWithLocalModel(
@@ -353,7 +482,7 @@ async function forwardToEligibilityService(
 
   const assessment =
     payload && typeof payload === "object"
-      ? applyDeterministicEligibilityRules(payload as Record<string, unknown>, context)
+      ? applyEligibilityResolution(payload as Record<string, unknown>, context)
       : buildFallbackResponse(context);
 
   await captureTranscriptAiGeneration({

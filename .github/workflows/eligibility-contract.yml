@@ -10,7 +10,11 @@ on:
       - "api/__fixtures__/transcript-service-contract.json"
       - "eligibility-service/src/server.mjs"
       - "src/lib/courseCatalog/normalize.ts"
+      - "src/lib/courseCatalog/requirements.generated.json"
+      - "src/lib/courseCatalog/requirementsLoader.ts"
       - "src/lib/eligibility/**"
+      - "scripts/eligibility-eval.ts"
+      - "scripts/parse-course-requirements.ts"
       - "package.json"
       - "package-lock.json"
   push:
@@ -25,7 +29,11 @@ on:
       - "api/__fixtures__/transcript-service-contract.json"
       - "eligibility-service/src/server.mjs"
       - "src/lib/courseCatalog/normalize.ts"
+      - "src/lib/courseCatalog/requirements.generated.json"
+      - "src/lib/courseCatalog/requirementsLoader.ts"
       - "src/lib/eligibility/**"
+      - "scripts/eligibility-eval.ts"
+      - "scripts/parse-course-requirements.ts"
       - "package.json"
       - "package-lock.json"
 
@@ -51,3 +59,6 @@ jobs:
 
       - name: Run eligibility contract suite
         run: npm run test:eligibility-contract
+
+      - name: Run eligibility matcher eval
+        run: npm run eligibility:eval
