@@ -56,6 +56,7 @@ interface UseSection2TertiarySaveWithParseOptions {
   ensureApplicationRow: () => Promise<string>;
   existingId?: string;
   formData: TertiaryQualification;
+  hasParsedTranscriptFile?: (file: File) => boolean;
   originalCertificateDocument?: UploadedDocument;
   originalTranscriptDocument?: UploadedDocument;
   selectedCertificateFile: File | null;
@@ -87,6 +88,7 @@ export function useSection2TertiarySaveWithParse({
   ensureApplicationRow,
   existingId,
   formData,
+  hasParsedTranscriptFile,
   originalCertificateDocument,
   originalTranscriptDocument,
   selectedCertificateFile,
@@ -190,6 +192,22 @@ export function useSection2TertiarySaveWithParse({
           transcriptEligibility: undefined,
         };
       } else if (shouldEvaluate && selectedTranscriptFile) {
+        const alreadyParsedOnUpload =
+          Boolean(formData.transcriptEligibility) &&
+          (hasParsedTranscriptFile?.(selectedTranscriptFile) ?? false);
+
+        if (alreadyParsedOnUpload) {
+          workingRecord = {
+            ...formData,
+            transcriptDocument,
+            transcriptDocumentName:
+              transcriptDocumentName ?? formData.transcriptDocumentName,
+            certificateDocument: formData.completed ? certificateDocument : undefined,
+            certificateDocumentName: formData.completed
+              ? certificateDocumentName ?? formData.certificateDocumentName
+              : undefined,
+          };
+        } else {
         setSaveProgress({
           ...PROGRESS_COPY.parsing,
           title: "Reading your transcript and checking course eligibility...",
@@ -243,6 +261,7 @@ export function useSection2TertiarySaveWithParse({
           } else if (parseResult.shouldAutoFill) {
             trackTertiaryTranscriptParserDraftEmpty({ parseDurationMs });
           }
+        }
         }
       }
 
@@ -311,6 +330,7 @@ export function useSection2TertiarySaveWithParse({
     existingId,
     formData,
     navigate,
+    hasParsedTranscriptFile,
     originalCertificateDocument,
     originalTranscriptDocument,
     qualificationsPath,

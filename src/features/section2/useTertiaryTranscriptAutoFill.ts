@@ -1,0 +1,166 @@
+import { useCallback, useRef, useState } from "react";
+import type { ApplicationData, TertiaryQualification } from "../../lib/applicationData";
+import {
+  getTertiaryTranscriptParserErrorCode,
+  trackTertiaryTranscriptParserDraftEmpty,
+  trackTertiaryTranscriptParserDraftFailed,
+  trackTertiaryTranscriptParserDraftSucceeded,
+} from "../../lib/analytics/tertiaryTranscriptParserAnalytics";
+import type { Section2RecordStatusMessage } from "../../hooks/useSection2RecordSave";
+import {
+  getDraftedFieldCountFromParseResult,
+  parseTranscriptForQualification,
+  shouldAutoFillQualificationFromTranscript,
+} from "./tertiaryTranscriptParsePolicy";
+
+export function getTranscriptFileKey(file: File) {
+  return `${file.name}:${file.size}:${file.lastModified}`;
+}
+
+interface UseTertiaryTranscriptAutoFillOptions {
+  applicationData: ApplicationData;
+  formData: TertiaryQualification;
+  setFormData: (record: TertiaryQualification) => void;
+}
+
+export function useTertiaryTranscriptAutoFill({
+  applicationData,
+  formData,
+  setFormData,
+}: UseTertiaryTranscriptAutoFillOptions) {
+  const [isParsingTranscript, setIsParsingTranscript] = useState(false);
+  const [parseProgress, setParseProgress] = useState<{
+    detail: string;
+    title: string;
+  } | null>(null);
+  const [parseStatusMessage, setParseStatusMessage] =
+    useState<Section2RecordStatusMessage | null>(null);
+  const lastParsedFileKeyRef = useRef<string | null>(null);
+  const parseRequestIdRef = useRef(0);
+
+  const clearParseStatusMessage = useCallback(() => {
+    setParseStatusMessage(null);
+  }, []);
+
+  const handleSelectTranscriptFile = useCallback(
+    async (file: File | null) => {
+      if (!file) {
+        lastParsedFileKeyRef.current = null;
+        setParseProgress(null);
+        setParseStatusMessage(null);
+        return;
+      }
+
+      const fileKey = getTranscriptFileKey(file);
+      if (lastParsedFileKeyRef.current === fileKey) {
+        return;
+      }
+
+      const parseContext = {
+        applicationData,
+        formData,
+        selectedTranscriptFile: file,
+      };
+
+      if (!shouldAutoFillQualificationFromTranscript(parseContext)) {
+        setParseStatusMessage({
+          message:
+            "Transcript attached. Existing qualification details were left unchanged — save to run an eligibility check.",
+          type: "status",
+        });
+        return;
+      }
+
+      const requestId = parseRequestIdRef.current + 1;
+      parseRequestIdRef.current = requestId;
+      setIsParsingTranscript(true);
+      setParseStatusMessage(null);
+      setParseProgress({
+        detail: "This can take a little longer for larger files.",
+        title: "Reading your transcript and drafting qualification details...",
+      });
+
+      const parseStartedAt = Date.now();
+
+      try {
+        const parseResult = await parseTranscriptForQualification(file, parseContext);
+
+        if (parseRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        lastParsedFileKeyRef.current = fileKey;
+        setFormData({
+          ...parseResult.mergedRecord,
+          transcriptEligibility: parseResult.assessment,
+        });
+
+        const draftedFieldCount = getDraftedFieldCountFromParseResult(parseResult);
+        const parseDurationMs = Date.now() - parseStartedAt;
+
+        if (draftedFieldCount > 0) {
+          trackTertiaryTranscriptParserDraftSucceeded({
+            draftedFieldCount,
+            eligibilityOutcome: parseResult.assessment.outcome,
+            parseDurationMs,
+          });
+          setParseStatusMessage({
+            message: `We drafted ${draftedFieldCount} qualification detail${
+              draftedFieldCount === 1 ? "" : "s"
+            } from your transcript. Review the fields below, then save when ready.`,
+            type: "success",
+          });
+        } else {
+          trackTertiaryTranscriptParserDraftEmpty({ parseDurationMs });
+          setParseStatusMessage({
+            message:
+              "We couldn't find enough detail in this transcript to auto-fill the form. Enter the details manually or try a clearer file.",
+            type: "warning",
+          });
+        }
+      } catch (error) {
+        if (parseRequestIdRef.current !== requestId) {
+          return;
+        }
+
+        trackTertiaryTranscriptParserDraftFailed({
+          errorCode: getTertiaryTranscriptParserErrorCode(error),
+          parseDurationMs: Date.now() - parseStartedAt,
+        });
+        setParseStatusMessage({
+          message:
+            "We couldn't read this transcript right now. You can still enter the details manually and save.",
+          type: "warning",
+        });
+      } finally {
+        if (parseRequestIdRef.current === requestId) {
+          setIsParsingTranscript(false);
+          setParseProgress(null);
+        }
+      }
+    },
+    [applicationData, formData, setFormData],
+  );
+
+  const markTranscriptParsed = useCallback((file: File | null) => {
+    lastParsedFileKeyRef.current = file ? getTranscriptFileKey(file) : null;
+  }, []);
+
+  const hasParsedTranscriptFile = useCallback((file: File | null) => {
+    if (!file) {
+      return false;
+    }
+
+    return lastParsedFileKeyRef.current === getTranscriptFileKey(file);
+  }, []);
+
+  return {
+    clearParseStatusMessage,
+    handleSelectTranscriptFile,
+    hasParsedTranscriptFile,
+    isParsingTranscript,
+    markTranscriptParsed,
+    parseProgress,
+    parseStatusMessage,
+  };
+}

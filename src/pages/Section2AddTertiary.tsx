@@ -14,6 +14,7 @@ import {
   canSaveTertiaryWithParseFirst,
   useSection2TertiarySaveWithParse,
 } from "../features/section2/useSection2TertiarySaveWithParse";
+import { useTertiaryTranscriptAutoFill } from "../features/section2/useTertiaryTranscriptAutoFill";
 import { useEditableRecord } from "../hooks/useEditableRecord";
 import type { TertiaryQualification } from "../lib/applicationData";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
@@ -75,6 +76,19 @@ export default function Section2AddTertiary() {
     useState<File | null>(null);
   const [showValidation, setShowValidation] = useState(false);
 
+  const {
+    clearParseStatusMessage,
+    handleSelectTranscriptFile: parseTranscriptOnSelect,
+    hasParsedTranscriptFile,
+    isParsingTranscript,
+    parseProgress,
+    parseStatusMessage,
+  } = useTertiaryTranscriptAutoFill({
+    applicationData: data,
+    formData,
+    setFormData,
+  });
+
   const hasTranscript =
     Boolean(selectedTranscriptFile) ||
     Boolean(formData.transcriptDocument) ||
@@ -121,6 +135,7 @@ export default function Section2AddTertiary() {
     ensureApplicationRow,
     existingId: existing?.id,
     formData,
+    hasParsedTranscriptFile,
     originalCertificateDocument,
     originalTranscriptDocument,
     selectedCertificateFile,
@@ -144,31 +159,45 @@ export default function Section2AddTertiary() {
     [],
   );
 
+  const onSelectTranscriptFile = useCallback(
+    (file: File | null) => {
+      setSelectedTranscriptFile(file);
+      void parseTranscriptOnSelect(file);
+    },
+    [parseTranscriptOnSelect],
+  );
+
+  const activeStatusMessage = statusMessage ?? parseStatusMessage;
+  const clearActiveStatusMessage = statusMessage
+    ? clearStatusMessage
+    : clearParseStatusMessage;
+  const activeProgress = isSaving ? saveProgress : isParsingTranscript ? parseProgress : null;
+
   return (
     <Section2RecordPage
       addTitle="Add Tertiary Qualification"
       className="overflow-x-hidden"
-      continueDisabled={isSaving || !canSave}
+      continueDisabled={isSaving || isParsingTranscript || !canSave}
       continueLabel={isSaving ? "Saving..." : "Save & Continue"}
       description="Add the details of your university degree or diploma."
       editTitle="Edit Tertiary Qualification"
       isEditing={isEditing}
       navigateAfterSave={false}
       onContinue={handleSaveAndContinue}
-      previousDisabled={isSaving}
+      previousDisabled={isSaving || isParsingTranscript}
     >
       <div className="space-y-6">
-        {statusMessage ? (
+        {activeStatusMessage ? (
           <StatusMessage
-            message={statusMessage.message}
-            type={statusMessage.type}
-            onDismiss={clearStatusMessage}
+            message={activeStatusMessage.message}
+            type={activeStatusMessage.type}
+            onDismiss={clearActiveStatusMessage}
           />
         ) : null}
-        {isSaving && saveProgress ? (
+        {activeProgress ? (
           <Section2SaveProgressPanel
-            detail={saveProgress.detail}
-            title={saveProgress.title}
+            detail={activeProgress.detail}
+            title={activeProgress.title}
           />
         ) : null}
         <TertiaryTranscriptUploadCard
@@ -183,8 +212,8 @@ export default function Section2AddTertiary() {
               transcriptEligibility: undefined,
             }))
           }
-          onClearTranscriptFile={() => setSelectedTranscriptFile(null)}
-          onSelectTranscriptFile={setSelectedTranscriptFile}
+          onClearTranscriptFile={() => onSelectTranscriptFile(null)}
+          onSelectTranscriptFile={onSelectTranscriptFile}
         />
         <TertiaryInstitutionFields formData={formData} onFormChange={onFormChange} />
         <TertiaryQualificationFields formData={formData} onFormChange={onFormChange} />

@@ -36,6 +36,25 @@ describe("normalizeTranscriptEligibilityAssessment", () => {
     });
   });
 
+  it("reads nested extractedData payloads", () => {
+    const normalized = normalizeTranscriptEligibilityAssessment({
+      confidence: 0.9,
+      outcome: "eligible",
+      extractedData: {
+        studyDetails: {
+          programName: {
+            confidence: 0.9,
+            normalizedValue: "Bachelor of Science",
+          },
+        },
+      },
+    });
+
+    expect(normalized.extractedData.studyDetails?.programName).toMatchObject({
+      normalizedValue: "Bachelor of Science",
+    });
+  });
+
   it("falls back to insufficient_data for unknown payloads", () => {
     const normalized = normalizeTranscriptEligibilityAssessment({
       confidence: 9,
