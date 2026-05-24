@@ -36,7 +36,23 @@ When gating passes, parse starts in parallel with document save. Upload failure 
 
 CV persist exception: after document save, call `uploadCV` / `removeCV` (app-scoped FK on `applications.cv_document_id`).
 
-## Adding kind #2 (future product — Phase 6)
+## Tertiary transcript kind (parse + eligibility combined)
+
+Reuses `/api/evaluate-transcript-eligibility` as a single LLM call for both field extraction and course eligibility — not a separate `documentParserRegistry` entry.
+
+| Concern | Location |
+|---------|----------|
+| Page wiring | `src/pages/Section2AddTertiary.tsx` |
+| Parse policy | `src/features/section2/tertiaryTranscriptParsePolicy.ts` |
+| Save orchestration | `src/features/section2/useSection2TertiarySaveWithParse.ts` |
+| Field mapper | `src/lib/eligibility/mapToTertiaryQualification.ts` |
+| Apply draft | merge into `TertiaryQualification` via `mergeQualificationDraft` (fill-empty-only) |
+| Eligibility API | `api/evaluate-transcript-eligibility.ts` |
+| Analytics | `tertiaryTranscriptParserAnalytics.ts` |
+
+Gating: new transcript selected **and** qualification core fields empty → auto-fill; new transcript always runs eligibility. Upload failure is **blocking**; parse/eligibility failure is **warning** (save succeeds, `insufficient_data` fallback).
+
+## Adding kind #3+ via registry (future)
 
 1. `api/_documentParser/kinds/{kind}/` + prompt/schema
 2. `src/lib/documentParsers/{kind}.ts`

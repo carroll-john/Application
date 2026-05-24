@@ -118,6 +118,11 @@ export default function Section2Qualifications() {
     data.tertiaryQualifications.map((qualification) => qualification.transcriptEligibility),
   );
   const selectedCourseEntry = getCourseByCode(data.applicationMeta?.selectedCourse?.code);
+  const selectedCourseTitle =
+    data.applicationMeta?.selectedCourse?.title ?? selectedCourseEntry?.title;
+  const showParsedTranscriptIntro =
+    statusMessage?.type === "success" &&
+    statusMessage.message.toLowerCase().includes("drafted your qualification");
   const eligibilityDisplayRows = latestTranscriptAssessment
     ? buildEligibilityDisplayRows(
         selectedCourseEntry?.requirements,
@@ -189,6 +194,13 @@ export default function Section2Qualifications() {
           <p className="mt-1 text-xs text-gray-600 sm:text-sm">
             Confidence: {Math.round(latestTranscriptAssessment.confidence * 100)}%
           </p>
+          {showParsedTranscriptIntro ? (
+            <p className="mt-2 text-xs text-gray-700 sm:text-sm">
+              Based on your uploaded transcript
+              {selectedCourseTitle ? ` for ${selectedCourseTitle}` : ""}. Review the drafted
+              qualification details and eligibility results below.
+            </p>
+          ) : null}
           {buildAssessmentEvidenceSummary(latestTranscriptAssessment) ? (
             <p className="mt-1 text-xs text-gray-700 sm:text-sm">
               Evidence: {buildAssessmentEvidenceSummary(latestTranscriptAssessment)}
@@ -272,12 +284,12 @@ export default function Section2Qualifications() {
               key={qualification.id}
               subtitle={
                 qualification.transcriptEligibility
-                  ? `${qualification.institution} - ${eligibilityOutcomeCopy[qualification.transcriptEligibility.outcome]}${buildAssessmentEvidenceSummary(
+                  ? `${qualification.institution || "Institution pending"} · ${eligibilityOutcomeCopy[qualification.transcriptEligibility.outcome]}${buildAssessmentEvidenceSummary(
                       qualification.transcriptEligibility,
                     )
                       ? ` · ${buildAssessmentEvidenceSummary(qualification.transcriptEligibility)}`
                       : ""}`
-                  : qualification.institution
+                  : qualification.institution || "Complete qualification details"
               }
               title={qualification.courseName || "Tertiary Qualification"}
               attachments={[

@@ -112,35 +112,22 @@ try {
     timeout: 20000,
   });
 
-  await page.getByPlaceholder("Start typing institution name").fill(
-    "The University of Melbourne",
-  );
-  await page.getByRole("button", { name: "The University of Melbourne" }).click();
-  await page.getByRole("combobox").nth(2).click();
-  await page.getByRole("option", { name: "Bachelor Degree" }).click();
-  await page.getByPlaceholder("e.g. Bachelor of Science").fill(
-    "Bachelor of Information Technology",
-  );
-
-  await pickMonthYear(
-    page,
-    page.getByRole("button", { name: "Select month and year" }).first(),
-    2020,
-    "March",
-  );
-  await pickMonthYear(
-    page,
-    page.getByRole("button", { name: "Select month and year" }),
-    2024,
-    "July",
-  );
-
-  await page.locator('input[type="file"]').nth(0).setInputFiles(pdfPath);
-  console.log("OK transcript file attached:", path.basename(pdfPath));
+  await page.locator('input[type="file"]').first().setInputFiles(pdfPath);
+  console.log("OK transcript file attached (parse-first):", path.basename(pdfPath));
 
   await page.getByRole("button", { name: "Save & Continue" }).click();
   await page.waitForURL("**/section2/qualifications**", { timeout: 120000 });
-  console.log("OK saved tertiary ->", page.url());
+  console.log("OK saved tertiary via parse-first ->", page.url());
+
+  await page.getByText(/drafted your qualification/i).waitFor({ timeout: 15000 }).catch(() => {
+    console.log("Note: parse-first success flash not shown (partial parse or preserved fields)");
+  });
+
+  const tertiaryItem = page
+    .locator("text=/Tertiary Qualification|Bachelor|Information Technology|University of Melbourne/i")
+    .first();
+  await tertiaryItem.waitFor({ timeout: 15000 });
+  console.log("OK tertiary list item visible after parse-first save");
 
   await page.getByRole("heading", { name: "Transcript eligibility check" }).waitFor({
     timeout: 30000,
