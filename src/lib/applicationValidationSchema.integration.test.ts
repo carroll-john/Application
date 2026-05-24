@@ -207,6 +207,10 @@ describe("getSubmissionValidationIssues", () => {
         expect.objectContaining({
           field: "Qualification 1: Academic Transcript",
         }),
+      ]),
+    );
+    expect(errors).not.toEqual(
+      expect.arrayContaining([
         expect.objectContaining({
           field: "Qualification 1: Certificate of Completion",
         }),
@@ -248,18 +252,19 @@ describe("getSubmissionValidationIssues", () => {
     );
   });
 
-  it("requires a certificate when a tertiary qualification is marked completed", () => {
+  it("does not require a certificate when a tertiary qualification is marked completed", () => {
     const errors = getSubmissionValidationIssues(
       makeValidApplication({
         tertiaryQualifications: [
           makeValidTertiaryQualification({
             certificateDocument: undefined,
+            certificateDocumentName: undefined,
           }),
         ],
       }),
     );
 
-    expect(errors).toEqual(
+    expect(errors).not.toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           field: "Qualification 1: Certificate of Completion",

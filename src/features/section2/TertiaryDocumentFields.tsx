@@ -5,7 +5,6 @@ import { Section2FormCard } from "./Section2FormCard";
 
 interface TertiaryDocumentFieldsProps {
   formData: TertiaryQualification;
-  hasCertificate: boolean;
   onClearCertificateDocument: () => void;
   onClearCertificateFile: () => void;
   onSelectCertificateFile: (file: File | null) => void;
@@ -14,7 +13,6 @@ interface TertiaryDocumentFieldsProps {
 
 export function TertiaryDocumentFields({
   formData,
-  hasCertificate,
   onClearCertificateDocument,
   onClearCertificateFile,
   onSelectCertificateFile,
@@ -26,23 +24,22 @@ export function TertiaryDocumentFields({
 
   return (
     <Section2FormCard
-      description="Attach supporting documents now or later before submit. PDF, DOC, DOCX or TXT, up to 5 MB."
+      description="Optional. PDF, DOC, DOCX or TXT, up to 5 MB."
       icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
-      title="Certificate of Completion"
+      title="Certificate of Completion (optional)"
     >
       <DocumentUploadField
         attachedDescription="Your certificate of completion confirms that you finished and were awarded this qualification."
         attachedStatus="Certificate of completion attached"
-        description="Your certificate of completion confirms that you finished and were awarded this qualification."
+        description="Attach your certificate if you have one. You can add it later or skip it entirely."
         document={formData.certificateDocument}
         documentName={formData.certificateDocumentName}
         label="Certificate of Completion"
-        missingStatus="Certificate required before submit"
-        missingTone="warning"
+        missingStatus="Optional — attach if available"
+        missingTone="info"
         onClearDocument={onClearCertificateDocument}
         onClearSelectedFile={onClearCertificateFile}
         onFileSelect={onSelectCertificateFile}
-        required={!hasCertificate}
         selectedFile={selectedCertificateFile}
         showStatusIcon
       />
