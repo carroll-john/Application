@@ -1,0 +1,620 @@
+{
+  "pack_name": "au_transcript_fixtures_v3_document_like",
+  "purpose": "Synthetic Australian university transcript PDFs for parser development.",
+  "design_notes": [
+    "Real Australian university names are used as parser targets.",
+    "Student data, document references, marks and award records are fictional.",
+    "The transcript body uses document-like field presence and omission rather than meta placeholders.",
+    "No logos, seals, signatures, QR codes, barcodes, verification URLs, exact institutional templates or security claims are included.",
+    "Each page has a visible SAMPLE watermark and synthetic fixture footer."
+  ],
+  "fixtures": [
+    {
+      "fixture_id": "AU-TX-V3-001",
+      "file": "pdfs/AU-TX-V3-001_the_university_of_melbourne.pdf",
+      "university": "The University of Melbourne",
+      "document_title": "Academic Transcript",
+      "student_name": "Lara N. Patel",
+      "student_number": "900123456",
+      "document_reference": "SYN-MEL-0001",
+      "issue_date": "22 March 2025",
+      "qualification_achieved": true,
+      "qualification_achieved_detail": "Bachelor of Information Technology conferred",
+      "programs": [
+        {
+          "Program code": "B-INFOIT",
+          "Program / award": "Bachelor of Information Technology",
+          "Status": "Award conferred",
+          "Commenced": "28 Feb 2022",
+          "Completed": "13 Dec 2024",
+          "Conferred": "22 Mar 2025",
+          "Final result": "With Distinction"
+        }
+      ],
+      "metrics": [
+        [
+          "Weighted Average Mark",
+          "82.375"
+        ],
+        [
+          "Credit points completed",
+          "300.000"
+        ]
+      ],
+      "has_credit_or_advanced_standing_section": false,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-002",
+      "file": "pdfs/AU-TX-V3-002_monash_university.pdf",
+      "university": "Monash University",
+      "document_title": "Transcript of Academic Record",
+      "student_name": "Evan K. Brooks",
+      "student_number": "32145678",
+      "document_reference": "SYN-MON-0002",
+      "issue_date": "3 September 2025",
+      "qualification_achieved": false,
+      "qualification_achieved_detail": "Course discontinued; no award conferred",
+      "programs": [
+        {
+          "Course code": "B2000",
+          "Course / award": "Bachelor of Business",
+          "Status": "Discontinued",
+          "Commenced": "26 Feb 2024",
+          "Discontinued": "29 Aug 2025",
+          "Award": ""
+        }
+      ],
+      "metrics": [
+        [
+          "Course WAM",
+          "54.125"
+        ],
+        [
+          "Course GPA",
+          "2.125"
+        ],
+        [
+          "Credit points counted",
+          "30"
+        ]
+      ],
+      "has_credit_or_advanced_standing_section": false,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade",
+        "notes"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-003",
+      "file": "pdfs/AU-TX-V3-003_the_university_of_sydney.pdf",
+      "university": "The University of Sydney",
+      "document_title": "Official Academic Record",
+      "student_name": "Mina Al-Sayed",
+      "student_number": "510234567",
+      "document_reference": "SYN-SYD-0003",
+      "issue_date": "14 August 2025",
+      "qualification_achieved": true,
+      "qualification_achieved_detail": "Master of Data Analytics conferred",
+      "programs": [
+        {
+          "Course code": "MADANALY-01",
+          "Course / award": "Master of Data Analytics",
+          "Status": "Award conferred",
+          "Commenced": "19 Feb 2024",
+          "Completed": "28 Jun 2025",
+          "Conferred": "14 Aug 2025",
+          "Final result": "Awarded"
+        }
+      ],
+      "metrics": [],
+      "has_credit_or_advanced_standing_section": true,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-004",
+      "file": "pdfs/AU-TX-V3-004_university_of_new_south_wales.pdf",
+      "university": "University of New South Wales",
+      "document_title": "Academic Transcript",
+      "student_name": "Priya S. Menon",
+      "student_number": "z5458912",
+      "document_reference": "SYN-UNSW-0004",
+      "issue_date": "6 October 2025",
+      "qualification_achieved": false,
+      "qualification_achieved_detail": "Current enrolment; no award conferred",
+      "programs": [
+        {
+          "Program code": "8660",
+          "Program / award": "Master of Engineering Science",
+          "Status": "Active",
+          "Commenced": "12 Feb 2024",
+          "Expected completion": "2026",
+          "Award": ""
+        }
+      ],
+      "metrics": [
+        [
+          "Career WAM",
+          "73.250"
+        ],
+        [
+          "UOC passed",
+          "48"
+        ],
+        [
+          "UOC attempted",
+          "60"
+        ]
+      ],
+      "has_credit_or_advanced_standing_section": false,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade",
+        "notes"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-005",
+      "file": "pdfs/AU-TX-V3-005_rmit_university.pdf",
+      "university": "RMIT University",
+      "document_title": "Academic Transcript",
+      "student_name": "Noah R. Kwan",
+      "student_number": "S3784561",
+      "document_reference": "SYN-RMIT-0005",
+      "issue_date": "18 April 2025",
+      "qualification_achieved": true,
+      "qualification_achieved_detail": "Master of Cyber Security conferred",
+      "programs": [
+        {
+          "Program code": "MC159",
+          "Program / award": "Master of Cyber Security",
+          "Status": "Completed",
+          "Commenced": "1 Mar 2023",
+          "Completed": "20 Dec 2024",
+          "Conferred": "18 Apr 2025"
+        }
+      ],
+      "metrics": [
+        [
+          "Cumulative GPA",
+          "3.6"
+        ],
+        [
+          "Weighted Average Mark",
+          "78.4"
+        ],
+        [
+          "Credit points completed",
+          "192"
+        ]
+      ],
+      "has_credit_or_advanced_standing_section": true,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-006",
+      "file": "pdfs/AU-TX-V3-006_australian_national_university.pdf",
+      "university": "Australian National University",
+      "document_title": "Academic Transcript",
+      "student_name": "Hannah J. Osei",
+      "student_number": "u7123456",
+      "document_reference": "SYN-ANU-0006",
+      "issue_date": "30 July 2025",
+      "qualification_achieved": true,
+      "qualification_achieved_detail": "Master of Public Policy conferred; earlier program discontinued",
+      "programs": [
+        {
+          "Program code": "8301XMPUBP",
+          "Program / award": "Master of Public Policy",
+          "Status": "Award conferred",
+          "Commenced": "21 Feb 2024",
+          "Completed": "20 Jun 2025",
+          "Conferred": "30 Jul 2025"
+        },
+        {
+          "Program code": "8302XMGLOB",
+          "Program / award": "Master of Global Development",
+          "Status": "Discontinued",
+          "Commenced": "20 Feb 2023",
+          "Completed": "",
+          "Conferred": ""
+        }
+      ],
+      "metrics": [
+        [
+          "GPA",
+          "6.125"
+        ],
+        [
+          "Units passed",
+          "96"
+        ]
+      ],
+      "has_credit_or_advanced_standing_section": false,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade",
+        "notes"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-007",
+      "file": "pdfs/AU-TX-V3-007_the_university_of_western_australia.pdf",
+      "university": "The University of Western Australia",
+      "document_title": "Statement of Academic Record",
+      "student_name": "Oliver M. Zhang",
+      "student_number": "23678945",
+      "document_reference": "SYN-UWA-0007",
+      "issue_date": "12 May 2025",
+      "qualification_achieved": false,
+      "qualification_achieved_detail": "Course requirements not completed",
+      "programs": [
+        {
+          "Course code": "42580",
+          "Course / award": "Master of Business Analytics",
+          "Progression status": "Inactive",
+          "Commenced": "20 Feb 2023",
+          "Course requirements": "Not completed",
+          "Award": ""
+        }
+      ],
+      "metrics": [
+        [
+          "Course WAM",
+          "61.870"
+        ],
+        [
+          "Course GPA",
+          "4.920"
+        ],
+        [
+          "Credit points completed",
+          "72"
+        ]
+      ],
+      "has_credit_or_advanced_standing_section": false,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "grade",
+        "mark"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-008",
+      "file": "pdfs/AU-TX-V3-008_the_university_of_queensland.pdf",
+      "university": "The University of Queensland",
+      "document_title": "Academic Transcript",
+      "student_name": "Sofia R. McKenzie",
+      "student_number": "44389012",
+      "document_reference": "SYN-UQ-0008",
+      "issue_date": "2 February 2025",
+      "qualification_achieved": true,
+      "qualification_achieved_detail": "Graduate Certificate in Education conferred",
+      "programs": [
+        {
+          "Program code": "5635",
+          "Program / award": "Graduate Certificate in Education",
+          "Status": "Award conferred",
+          "Commenced": "19 Feb 2024",
+          "Completed": "30 Nov 2024",
+          "Conferred": "2 Feb 2025"
+        }
+      ],
+      "metrics": [
+        [
+          "Program GPA",
+          "6.50"
+        ],
+        [
+          "Units passed",
+          "8"
+        ]
+      ],
+      "has_credit_or_advanced_standing_section": false,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade",
+        "notes"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-009",
+      "file": "pdfs/AU-TX-V3-009_university_of_tasmania.pdf",
+      "university": "University of Tasmania",
+      "document_title": "Academic Transcript",
+      "student_name": "Grace E. Wallace",
+      "student_number": "481276",
+      "document_reference": "SYN-UTAS-0009",
+      "issue_date": "9 December 2025",
+      "qualification_achieved": false,
+      "qualification_achieved_detail": "Excluded from course; no qualification achieved",
+      "programs": [
+        {
+          "Course code": "M3N",
+          "Course / award": "Bachelor of Nursing",
+          "Status": "Excluded",
+          "Commenced": "21 Feb 2022",
+          "Status date": "9 Dec 2025",
+          "Award": ""
+        }
+      ],
+      "metrics": [
+        [
+          "GPA",
+          "3.10"
+        ],
+        [
+          "Credit points passed",
+          "150"
+        ],
+        [
+          "Credit points attempted",
+          "225"
+        ]
+      ],
+      "has_credit_or_advanced_standing_section": false,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade",
+        "notes"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-010",
+      "file": "pdfs/AU-TX-V3-010_deakin_university.pdf",
+      "university": "Deakin University",
+      "document_title": "Academic Transcript",
+      "student_name": "Aisha L. Nguyen",
+      "student_number": "217654321",
+      "document_reference": "SYN-DEAKIN-0010",
+      "issue_date": "7 March 2025",
+      "qualification_achieved": true,
+      "qualification_achieved_detail": "Bachelor of Commerce conferred",
+      "programs": [
+        {
+          "Course code": "M300",
+          "Course / award": "Bachelor of Commerce",
+          "Status": "Award conferred",
+          "Commenced": "7 Mar 2022",
+          "Completed": "29 Nov 2024",
+          "Conferred": "7 Mar 2025"
+        }
+      ],
+      "metrics": [
+        [
+          "Weighted Average Mark",
+          "74.620"
+        ],
+        [
+          "Credit points completed",
+          "24"
+        ]
+      ],
+      "has_credit_or_advanced_standing_section": true,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade",
+        "notes"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-011",
+      "file": "pdfs/AU-TX-V3-011_macquarie_university.pdf",
+      "university": "Macquarie University",
+      "document_title": "Academic Transcript",
+      "student_name": "Daniel P. Rossi",
+      "student_number": "46920533",
+      "document_reference": "SYN-MQ-0011",
+      "issue_date": "21 June 2025",
+      "qualification_achieved": true,
+      "qualification_achieved_detail": "Nested exit award conferred; primary masters discontinued",
+      "programs": [
+        {
+          "Course code": "MIB",
+          "Course / award": "Master of International Business",
+          "Status": "Discontinued",
+          "Commenced": "20 Feb 2023",
+          "Completed": "",
+          "Conferred": ""
+        },
+        {
+          "Course code": "GCBUS",
+          "Course / award": "Graduate Certificate of Business",
+          "Status": "Award conferred",
+          "Commenced": "20 Feb 2023",
+          "Completed": "15 Dec 2023",
+          "Conferred": "21 Jun 2025"
+        }
+      ],
+      "metrics": [
+        [
+          "GPA for conferred exit award",
+          "5.25"
+        ],
+        [
+          "Credit points counted to exit award",
+          "40"
+        ]
+      ],
+      "has_credit_or_advanced_standing_section": false,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade",
+        "notes"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-012",
+      "file": "pdfs/AU-TX-V3-012_queensland_university_of_technology.pdf",
+      "university": "Queensland University of Technology",
+      "document_title": "Academic Transcript",
+      "student_name": "Leah T. Harris",
+      "student_number": "n10456789",
+      "document_reference": "SYN-QUT-0012",
+      "issue_date": "2 December 2025",
+      "qualification_achieved": false,
+      "qualification_achieved_detail": "Requirements completed; conferral pending",
+      "programs": [
+        {
+          "Course code": "ED79",
+          "Course / award": "Master of Education",
+          "Status": "Eligible for conferral",
+          "Commenced": "19 Feb 2024",
+          "Requirements completed": "28 Nov 2025",
+          "Conferral": ""
+        }
+      ],
+      "metrics": [
+        [
+          "Course GPA",
+          "6.12"
+        ],
+        [
+          "Credit points passed",
+          "144"
+        ]
+      ],
+      "has_credit_or_advanced_standing_section": false,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade",
+        "notes"
+      ],
+      "page_count": 1
+    },
+    {
+      "fixture_id": "AU-TX-V3-013",
+      "file": "pdfs/AU-TX-V3-013_university_of_technology_sydney.pdf",
+      "university": "University of Technology Sydney",
+      "document_title": "Academic Transcript",
+      "student_name": "Maya E. Carter",
+      "student_number": "14398201",
+      "document_reference": "SYN-UTS-0013",
+      "issue_date": "16 September 2025",
+      "qualification_achieved": true,
+      "qualification_achieved_detail": "Master of Counselling Practice conferred",
+      "programs": [
+        {
+          "Course code": "C04347",
+          "Course / award": "Master of Counselling Practice",
+          "Status": "Award conferred",
+          "Commenced": "20 Feb 2023",
+          "Completed": "30 Jun 2025",
+          "Conferred": "16 Sep 2025"
+        }
+      ],
+      "metrics": [],
+      "has_credit_or_advanced_standing_section": false,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "credit_points",
+        "mark",
+        "grade",
+        "notes"
+      ],
+      "page_count": 2
+    },
+    {
+      "fixture_id": "AU-TX-V3-014",
+      "file": "pdfs/AU-TX-V3-014_griffith_university.pdf",
+      "university": "Griffith University",
+      "document_title": "Academic Transcript",
+      "student_name": "Thomas W. Bennett",
+      "student_number": "s3056789",
+      "document_reference": "SYN-GRIFFITH-0014",
+      "issue_date": "20 November 2025",
+      "qualification_achieved": true,
+      "qualification_achieved_detail": "Doctor of Philosophy conferred",
+      "programs": [
+        {
+          "Program code": "6001",
+          "Program / award": "Doctor of Philosophy",
+          "Status": "Award conferred",
+          "Commenced": "24 Feb 2020",
+          "Thesis accepted": "9 Oct 2025",
+          "Conferred": "20 Nov 2025"
+        }
+      ],
+      "metrics": [],
+      "has_credit_or_advanced_standing_section": false,
+      "record_columns": [
+        "period",
+        "code",
+        "title",
+        "grade",
+        "notes"
+      ],
+      "page_count": 1
+    }
+  ]
+}

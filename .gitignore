@@ -13,3 +13,4 @@ supabase/.temp/
 supabase/.branches/
 .cursor/dev-console.log
 .api-runtime-check/
+.tmp/
