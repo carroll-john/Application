@@ -105,3 +105,57 @@ jobs:
             kill "$(cat /tmp/cv-parser-api.pid)" || true
           fi
           cat /tmp/cv-parser-api.log || true
+
+  transcript-eligibility-regression:
+    needs: check-secrets
+    if: ${{ needs.check-secrets.outputs.has-openai-key == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_TRANSCRIPT_ELIGIBILITY_MODEL: gpt-4.1-mini
+      TRANSCRIPT_ELIGIBILITY_BASE_URL: http://127.0.0.1:4191
+      TRANSCRIPT_ELIGIBILITY_PORT: "4191"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start transcript eligibility API server
+        run: |
+          npm run dev:transcript-eligibility-api > /tmp/transcript-eligibility-api.log 2>&1 &
+          echo $! > /tmp/transcript-eligibility-api.pid
+
+      - name: Wait for transcript eligibility API
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$TRANSCRIPT_ELIGIBILITY_BASE_URL/healthz" > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Transcript eligibility API did not become ready."
+          cat /tmp/transcript-eligibility-api.log || true
+          exit 1
+
+      - name: Run transcript eligibility regression (safe matcher course)
+        run: npm run test:eligibility-transcripts -- --base-url "$TRANSCRIPT_ELIGIBILITY_BASE_URL"
+
+      - name: Run transcript eligibility regression (unsafe legacy course)
+        run: npm run test:eligibility-transcripts -- --base-url "$TRANSCRIPT_ELIGIBILITY_BASE_URL" --course-mode unsafe --fixture AU-TX-V3-001
+
+      - name: Stop transcript eligibility API and print logs
+        if: always()
+        run: |
+          if [ -f /tmp/transcript-eligibility-api.pid ]; then
+            kill "$(cat /tmp/transcript-eligibility-api.pid)" || true
+          fi
+          cat /tmp/transcript-eligibility-api.log || true
