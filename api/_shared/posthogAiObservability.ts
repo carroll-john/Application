@@ -149,6 +149,87 @@ function summarizeInput(
   );
 }
 
+interface CaptureEligibilityFeedbackOptions {
+  courseCode?: string;
+  courseTitle?: string;
+  requirementId: string;
+  requirementSourceText?: string;
+  /**
+   * Status the matcher / deterministic rules produced for this requirement.
+   */
+  originalStatus: "pass" | "fail" | "unknown";
+  /**
+   * Status the user (or admissions reviewer) believes is correct.
+   */
+  overrideStatus: "pass" | "fail" | "unknown";
+  reason?: string;
+  rulesVersion?: string;
+  serviceVersion?: string;
+}
+
+/**
+ * Captures admissions / applicant feedback that a specific automated requirement check was wrong.
+ *
+ * Sent to PostHog as a standard event (not an $ai_generation event) so it can be paired with the
+ * upstream $ai_generation captured by `captureTranscriptAiGeneration` via the shared trace context
+ * downstream. The labelled examples accumulated here feed back into prompt / fixture tuning.
+ *
+ * Observability failures never block the calling request.
+ */
+export async function captureEligibilityFeedback(
+  options: CaptureEligibilityFeedbackOptions,
+) {
+  const apiKey = readApiKey();
+  if (!apiKey) {
+    return;
+  }
+
+  const host = normalizeHost(
+    process.env.POSTHOG_HOST?.trim() || process.env.VITE_POSTHOG_HOST?.trim(),
+  );
+
+  const distinctId = buildDistinctId({
+    courseCode: options.courseCode,
+    institution: undefined,
+    level: undefined,
+  });
+
+  const payload = {
+    api_key: apiKey,
+    event: "eligibility_check_override",
+    properties: {
+      distinct_id: distinctId,
+      eligibility_pipeline: "transcript_eligibility_v1",
+      eligibility_rules_version: options.rulesVersion ?? "unknown",
+      eligibility_service_version: options.serviceVersion ?? "unknown",
+      course_code: options.courseCode ?? null,
+      course_title: options.courseTitle ?? null,
+      requirement_id: options.requirementId,
+      requirement_source_text: options.requirementSourceText ?? null,
+      original_status: options.originalStatus,
+      override_status: options.overrideStatus,
+      reason: options.reason ?? null,
+    },
+  };
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1200);
+    try {
+      await fetch(`${host}/i/v0/e/`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+  } catch {
+    // Observability must never block the calling request.
+  }
+}
+
 export async function captureTranscriptAiGeneration(
   options: CaptureTranscriptAiGenerationOptions,
 ) {

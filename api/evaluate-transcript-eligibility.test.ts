@@ -223,9 +223,13 @@ describe("evaluate-transcript-eligibility api route", () => {
       expect(response.status).toBe(200);
       expect(payload.outcome).toBe(fixture.expectedOutcome);
       expect(payload.requirementsChecked).toBeInstanceOf(Array);
-      expect((payload.requirementsChecked as Array<Record<string, unknown>>)[0]?.status).toBe(
-        fixture.expectedPrimaryStatus,
-      );
+      const checks = payload.requirementsChecked as Array<Record<string, unknown>>;
+      expect(checks.length).toBeGreaterThan(0);
+      expect(
+        checks.every(
+          (check) => typeof check.id === "string" && (check.id as string).startsWith("deterministic-"),
+        ),
+      ).toBe(true);
     }
 
     expect(fixtures).toHaveLength(12);
@@ -319,7 +323,92 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(deterministicCheck?.status).toBe("unknown");
   });
 
-  it("adds Australian English inference evidence without auto-pass", async () => {
+  it("uses the requirements matcher when canonical requirements are supplied", async () => {
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confidence: 0.9,
+          outcome: "eligible",
+          academicPerformance: {
+            gradeAverageOrWam: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "78.6",
+              originalValue: "WAM 78.6",
+            },
+          },
+          applicantDetails: {
+            countryOfInstitution: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "Australia",
+              originalValue: "Australia",
+            },
+          },
+          studyDetails: {
+            completionStatus: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "completed",
+              originalValue: "completed",
+            },
+          },
+          englishLanguageEvidence: {},
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const requirements = [
+      {
+        id: "completion",
+        kind: "qualification_completed",
+        params: {},
+        sourceText: "Successful completion of an Australian bachelor degree.",
+        weight: "mandatory",
+      },
+      {
+        id: "wam-65",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 65 },
+        sourceText: "WAM 65% or above.",
+        weight: "mandatory",
+      },
+      {
+        id: "english",
+        kind: "english_proficiency",
+        params: {
+          acceptedPathways: [
+            { type: "completion_in_country", countries: ["AU", "NZ", "UK", "IE", "US", "CA", "ZA"] },
+          ],
+        },
+        sourceText: "Evidence of English language proficiency or completion in English.",
+        weight: "mandatory",
+      },
+    ];
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "matcher.txt", { type: "text/plain" }));
+    formData.append("context", JSON.stringify({ requirements }));
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+
+    const checks = payload.requirementsChecked as Array<Record<string, unknown>>;
+    expect(response.status).toBe(200);
+    expect(payload.outcome).toBe("eligible");
+    expect(payload.manualReviewRequired).toBe(false);
+    expect(checks.map((check) => check.id)).toEqual(["completion", "wam-65", "english"]);
+    expect(checks.every((check) => check.status === "pass")).toBe(true);
+  });
+
+  it("passes English proficiency for Australian institution completion", async () => {
     process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
     fetchMock.mockResolvedValueOnce(
       new Response(
@@ -329,7 +418,6 @@ describe("evaluate-transcript-eligibility api route", () => {
           missingInformation: [],
           outcome: "eligible",
           recommendedNextStep: "Proceed",
-          requirementsChecked: [],
           academicPerformance: {
             gradeAverageOrWam: {
               confidence: 0.9,
@@ -378,18 +466,18 @@ describe("evaluate-transcript-eligibility api route", () => {
     );
     const payload = await parseJsonResponse(response);
     const englishCheck = (payload.requirementsChecked as Array<Record<string, unknown>>).find(
-      (check) => check.id === "deterministic-au-english-inference",
+      (check) => check.id === "deterministic-english-proficiency",
     );
     const englishEvidence = payload.englishLanguageEvidence as Record<string, unknown>;
     const englishInstructionEvidence = englishEvidence
       .englishInstructionEvidence as Record<string, unknown>;
 
     expect(response.status).toBe(200);
-    expect(payload.outcome).toBe("conditionally_eligible");
-    expect(payload.manualReviewRequired).toBe(true);
-    expect(englishCheck?.status).toBe("unknown");
+    expect(payload.outcome).toBe("eligible");
+    expect(payload.manualReviewRequired).toBe(false);
+    expect(englishCheck?.status).toBe("pass");
     expect(englishInstructionEvidence.normalizedValue).toBe(
-      "likely_english_instruction_au_institution",
+      "english_instruction_au_institution",
     );
   });
 });

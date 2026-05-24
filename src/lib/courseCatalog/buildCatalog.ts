@@ -1,5 +1,6 @@
 import rawCourseData from "../../data/courses.raw.json";
 import { createCourseTransformer } from "./normalize";
+import { getGeneratedRequirementsForCourse } from "./requirementsLoader";
 import { slugify } from "./slugify";
 import type { CourseCatalogEntry, RawCourseCatalogData } from "./types";
 
@@ -12,7 +13,14 @@ const baseCodeCounts = courseEntries.reduce<Record<string, number>>((counts, cou
 }, {});
 
 const transformCourse = createCourseTransformer(baseCodeCounts);
-const courseCatalog: CourseCatalogEntry[] = courseEntries.map((course) => transformCourse(course));
+const courseCatalog: CourseCatalogEntry[] = courseEntries.map((course) => {
+  const entry = transformCourse(course);
+  const generatedRequirements = getGeneratedRequirementsForCourse(entry.code);
+  if (generatedRequirements) {
+    entry.requirements = generatedRequirements;
+  }
+  return entry;
+});
 
 export function getCourseCatalog() {
   return courseCatalog;

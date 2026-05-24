@@ -104,7 +104,6 @@ export const transcriptEligibilitySchemaV1 = {
       "programCode",
       "programTitle",
       "recommendedNextStep",
-      "requirementsChecked",
       "rulesVersion",
       "serviceVersion",
       "studyDetails",
@@ -132,23 +131,6 @@ export const transcriptEligibilitySchemaV1 = {
       programCode: { type: ["string", "null"] },
       programTitle: { type: ["string", "null"] },
       recommendedNextStep: { type: "string" },
-      requirementsChecked: {
-        type: "array",
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: ["explanation", "id", "requirement", "status"],
-          properties: {
-            explanation: { type: "string" },
-            id: { type: "string" },
-            requirement: { type: "string" },
-            status: {
-              type: "string",
-              enum: ["pass", "fail", "unknown"],
-            },
-          },
-        },
-      },
       rulesVersion: { type: ["string", "null"] },
       serviceVersion: { type: ["string", "null"] },
       studyDetails: studyDetailsSchema,

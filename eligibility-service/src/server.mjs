@@ -16,7 +16,6 @@ const REQUIRED_RESPONSE_FIELDS = [
   "programCode",
   "programTitle",
   "recommendedNextStep",
-  "requirementsChecked",
   "rulesVersion",
   "serviceVersion",
   "studyDetails",
@@ -265,9 +264,6 @@ function applyAssessmentDefaults(assessment, context) {
       assessment.recommendedNextStep.trim()
         ? assessment.recommendedNextStep.trim()
         : "Provide additional evidence and route to manual admissions review.",
-    requirementsChecked: Array.isArray(assessment.requirementsChecked)
-      ? assessment.requirementsChecked
-      : [],
     rulesVersion:
       typeof assessment.rulesVersion === "string" && assessment.rulesVersion.trim()
         ? assessment.rulesVersion.trim()
@@ -360,7 +356,7 @@ async function evaluateTranscript({
     model,
     max_output_tokens: 2500,
     instructions:
-      "You are an admissions eligibility evaluator. Use only evidence present in the transcript and provided program context. If data is missing or uncertain, return insufficient_data and unknown requirement statuses. Always populate the extracted evidence groups and set fields to null when unknown.",
+      "You are an admissions transcript extractor. Use only evidence present in the transcript and provided program context. Your job is to populate the structured extracted-evidence groups (applicant details, study details, academic performance, English language evidence) — not to form requirement-by-requirement eligibility checks. If overall evidence is missing or low-confidence, return outcome=insufficient_data. Otherwise return outcome=eligible and let the downstream rules engine decide. Always populate every extracted evidence group field and set fields to null when unknown.",
     input: [{ role: "user", content }],
     text: {
       format: {
@@ -389,23 +385,6 @@ async function evaluateTranscript({
             recommendedNextStep: { type: "string" },
             rulesVersion: { type: ["string", "null"] },
             serviceVersion: { type: ["string", "null"] },
-            requirementsChecked: {
-              type: "array",
-              items: {
-                type: "object",
-                additionalProperties: false,
-                required: ["id", "requirement", "status", "explanation"],
-                properties: {
-                  id: { type: "string" },
-                  requirement: { type: "string" },
-                  status: {
-                    type: "string",
-                    enum: ["pass", "fail", "unknown"],
-                  },
-                  explanation: { type: "string" },
-                },
-              },
-            },
             applicantDetails: APPLICANT_DETAILS_SCHEMA,
             studyDetails: STUDY_DETAILS_SCHEMA,
             academicPerformance: ACADEMIC_PERFORMANCE_SCHEMA,
@@ -422,7 +401,6 @@ async function evaluateTranscript({
             "recommendedNextStep",
             "rulesVersion",
             "serviceVersion",
-            "requirementsChecked",
             "applicantDetails",
             "studyDetails",
             "academicPerformance",

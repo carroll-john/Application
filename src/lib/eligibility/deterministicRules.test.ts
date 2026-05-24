@@ -74,7 +74,7 @@ describe("applyDeterministicEligibilityRules", () => {
     ).toBe("fail");
   });
 
-  it("adds guarded English inference for Australian institutions", () => {
+  it("passes English proficiency for Australian institutions completed in Australia", () => {
     const result = applyDeterministicEligibilityRules(
       {
         outcome: "eligible",
@@ -107,26 +107,24 @@ describe("applyDeterministicEligibilityRules", () => {
       },
     );
 
-    expect(result.manualReviewRequired).toBe(true);
-    expect(result.outcome).toBe("conditionally_eligible");
+    const englishCheck = (
+      result.requirementsChecked as Array<{ id: string; status: string }>
+    ).find((check) => check.id === "deterministic-english-proficiency");
+
+    expect(result.outcome).toBe("eligible");
+    expect(result.manualReviewRequired).toBe(false);
+    expect(englishCheck?.status).toBe("pass");
     expect(
       (result.englishLanguageEvidence as Record<string, { normalizedValue?: string }>)
         .englishInstructionEvidence?.normalizedValue,
-    ).toBe("likely_english_instruction_au_institution");
+    ).toBe("english_instruction_au_institution");
   });
 
-  it("uses existing transcript threshold checks when numeric fields are missing", () => {
+  it("marks WAM threshold unknown when no numeric WAM/GPA evidence is extracted", () => {
     const result = applyDeterministicEligibilityRules(
       {
         outcome: "eligible",
-        requirementsChecked: [
-          {
-            id: "minWam",
-            requirement: "Applicant must have a WAM of 65% or above.",
-            status: "pass",
-            explanation: "Transcript shows a WAM of 78.6, above threshold.",
-          },
-        ],
+        requirementsChecked: [],
         studyDetails: {
           completionStatus: {
             confidence: 0.9,
@@ -146,12 +144,85 @@ describe("applyDeterministicEligibilityRules", () => {
       result.requirementsChecked as Array<{
         id: string;
         status: string;
-        explanation: string;
       }>
     ).find((check) => check.id === "deterministic-wam-gpa-threshold");
 
+    expect(result.outcome).toBe("insufficient_data");
+    expect(thresholdCheck?.status).toBe("unknown");
+  });
+
+  it("emits exactly one deterministic check per applicable rule with no duplicates", () => {
+    const result = applyDeterministicEligibilityRules(
+      {
+        outcome: "eligible",
+        requirementsChecked: [
+          {
+            id: "legacy-llm-completion-check",
+            requirement: "Successful completion of an Australian bachelor degree.",
+            status: "pass",
+            explanation: "Transcript shows completed Bachelor of IT.",
+          },
+          {
+            id: "legacy-llm-wam-check",
+            requirement: "WAM 65% or above.",
+            status: "pass",
+            explanation: "Transcript reports WAM 78.6.",
+          },
+        ],
+        applicantDetails: {
+          institutionName: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "The University of Melbourne",
+            originalValue: "The University of Melbourne",
+          },
+          countryOfInstitution: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "Australia",
+            originalValue: "Australia",
+          },
+        },
+        academicPerformance: {
+          gradeAverageOrWam: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "78.6",
+            originalValue: "WAM 78.6",
+          },
+        },
+        studyDetails: {
+          completionStatus: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "completed",
+            originalValue: "completed",
+          },
+          highestEducationLevel: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "bachelor",
+            originalValue: "Bachelor of IT",
+          },
+        },
+      },
+      {
+        completed: true,
+        minWam: 65,
+        qualificationLevelRequirement: "Bachelor degree",
+      },
+    );
+
+    const checks = result.requirementsChecked as Array<{ id: string }>;
+    const ids = checks.map((check) => check.id);
+
+    expect(ids).toEqual([
+      "deterministic-completion",
+      "deterministic-qualification-level",
+      "deterministic-wam-gpa-threshold",
+      "deterministic-english-proficiency",
+    ]);
+    expect(ids.every((id) => id.startsWith("deterministic-"))).toBe(true);
     expect(result.outcome).toBe("eligible");
-    expect(thresholdCheck?.status).toBe("pass");
-    expect(thresholdCheck?.explanation).toContain("Structured transcript check indicates pass");
   });
 });

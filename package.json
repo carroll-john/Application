@@ -15,6 +15,8 @@
     "test:eligibility-contract": "vitest run api/evaluate-transcript-eligibility.test.ts src/lib/eligibility/transcriptFixtures.test.ts src/lib/eligibility/client.test.ts src/lib/eligibility/normalize.test.ts src/lib/eligibility/deterministicRules.test.ts src/lib/eligibility/uiCopy.test.ts",
     "test:cv-parser": "node ./scripts/cv-parser-regression.mjs",
     "dev:cv-parser-api": "tsx ./scripts/dev-cv-parser-server.mjs",
+    "eligibility:parse-requirements": "tsx ./scripts/parse-course-requirements.ts",
+    "eligibility:eval": "tsx ./scripts/eligibility-eval.ts",
     "supabase:types": "supabase gen types typescript --project-id \"$(cat supabase/.temp/project-ref)\" --schema public > src/lib/supabase.types.ts",
     "start-task": "bash ./scripts/start-task.sh",
     "finish-task": "bash ./scripts/finish-task.sh",

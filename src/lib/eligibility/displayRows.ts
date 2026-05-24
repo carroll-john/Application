@@ -1,0 +1,103 @@
+import type {
+  RequirementInstance,
+  RequirementKind,
+} from "./requirements";
+import { requirementKindLabel } from "./requirements";
+import type {
+  EligibilityRequirementCheck,
+  EligibilityRequirementStatus,
+} from "./types";
+
+export interface EligibilityDisplayRow {
+  id: string;
+  /**
+   * Verbatim entry-requirement sentence to render as the row heading.
+   */
+  sourceText: string;
+  /**
+   * Short kind label (e.g. "English language proficiency"); empty string when this row was produced
+   * by the legacy path that has no kind metadata.
+   */
+  kindLabel: string;
+  status: EligibilityRequirementStatus;
+  explanation: string;
+}
+
+const NOT_EVALUATED_EXPLANATION = "Not evaluated automatically — admissions will verify this requirement manually.";
+
+/**
+ * Builds the list of rows to render in the eligibility result UI.
+ *
+ * When `requirements` is non-empty, output is driven off the canonical requirement instances: one
+ * row per instance, joined to its check by id; a "Not evaluated automatically" row is emitted when
+ * the matcher did not produce a check for that instance.
+ *
+ * When `requirements` is empty (legacy deterministic-rules path), output falls back to the raw
+ * check list directly.
+ */
+export function buildEligibilityDisplayRows(
+  requirements: readonly RequirementInstance[] | undefined,
+  checks: readonly EligibilityRequirementCheck[],
+): EligibilityDisplayRow[] {
+  if (!requirements || requirements.length === 0) {
+    return checks.map((check) => ({
+      id: check.id,
+      sourceText: check.requirement,
+      kindLabel: "",
+      status: check.status,
+      explanation: check.explanation,
+    }));
+  }
+
+  const checksById = new Map<string, EligibilityRequirementCheck>(
+    checks.map((check) => [check.id, check]),
+  );
+  // Alternative-group matcher output uses a synthetic id like "<groupId>:satisfied" — also index by
+  // the group id so requirements within the same group can locate their folded result.
+  for (const check of checks) {
+    const colon = check.id.indexOf(":");
+    if (colon > 0) {
+      const groupId = check.id.slice(0, colon);
+      if (!checksById.has(groupId)) {
+        checksById.set(groupId, check);
+      }
+    }
+  }
+
+  const rows: EligibilityDisplayRow[] = [];
+  const emittedAlternativeGroups = new Set<string>();
+
+  for (const instance of requirements) {
+    if (instance.alternativeGroupId) {
+      if (emittedAlternativeGroups.has(instance.alternativeGroupId)) {
+        continue;
+      }
+      emittedAlternativeGroups.add(instance.alternativeGroupId);
+      const groupCheck =
+        checksById.get(instance.alternativeGroupId) ?? checksById.get(instance.id);
+      rows.push({
+        id: instance.alternativeGroupId,
+        sourceText: instance.sourceText,
+        kindLabel: kindLabelFor(instance.kind),
+        status: groupCheck?.status ?? "unknown",
+        explanation: groupCheck?.explanation ?? NOT_EVALUATED_EXPLANATION,
+      });
+      continue;
+    }
+
+    const check = checksById.get(instance.id);
+    rows.push({
+      id: instance.id,
+      sourceText: instance.sourceText,
+      kindLabel: kindLabelFor(instance.kind),
+      status: check?.status ?? "unknown",
+      explanation: check?.explanation ?? NOT_EVALUATED_EXPLANATION,
+    });
+  }
+
+  return rows;
+}
+
+function kindLabelFor(kind: RequirementKind): string {
+  return requirementKindLabel(kind);
+}
