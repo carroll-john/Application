@@ -10,7 +10,7 @@ import type { Section2RecordStatusMessage } from "../../hooks/useSection2RecordS
 import {
   getDraftedFieldCountFromParseResult,
   parseTranscriptForQualification,
-  shouldAutoFillQualificationFromTranscript,
+  shouldReplaceQualificationFromTranscript,
   tertiaryTranscriptParseCopy,
 } from "./tertiaryTranscriptParsePolicy";
 
@@ -62,19 +62,16 @@ export function useTertiaryTranscriptAutoFill({
         formData,
         selectedTranscriptFile: file,
       };
-
-      if (!shouldAutoFillQualificationFromTranscript(parseContext)) {
-        setParseStatusMessage({
-          message: tertiaryTranscriptParseCopy.preservedExistingFields,
-          type: "status",
-        });
-        return;
-      }
+      const isReplacement = shouldReplaceQualificationFromTranscript(parseContext);
 
       const requestId = parseRequestIdRef.current + 1;
       parseRequestIdRef.current = requestId;
       setIsParsingTranscript(true);
       setParseStatusMessage(null);
+      setFormData({
+        ...formData,
+        transcriptEligibility: undefined,
+      });
       setParseProgress({
         detail: "This can take a little longer for larger files.",
         title: tertiaryTranscriptParseCopy.parsingTitle,
@@ -95,17 +92,22 @@ export function useTertiaryTranscriptAutoFill({
           transcriptEligibility: parseResult.assessment,
         });
 
-        const draftedFieldCount = getDraftedFieldCountFromParseResult(parseResult);
+        const draftedFieldCount = getDraftedFieldCountFromParseResult(
+          parseResult,
+          formData,
+        );
         const parseDurationMs = Date.now() - parseStartedAt;
 
-        if (draftedFieldCount > 0) {
+        if (draftedFieldCount > 0 || isReplacement) {
           trackTertiaryTranscriptParserDraftSucceeded({
             draftedFieldCount,
             eligibilityOutcome: parseResult.assessment.outcome,
             parseDurationMs,
           });
           setParseStatusMessage({
-            message: tertiaryTranscriptParseCopy.draftSuccess,
+            message: isReplacement
+              ? tertiaryTranscriptParseCopy.draftUpdated
+              : tertiaryTranscriptParseCopy.draftSuccess,
             type: "success",
           });
         } else {

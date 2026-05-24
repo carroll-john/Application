@@ -277,6 +277,86 @@ export function mergeQualificationDraft(
   return merged;
 }
 
+export function applyTranscriptQualificationDraft(
+  existing: TertiaryQualification,
+  draft: TertiaryQualificationFieldDraft,
+): TertiaryQualification {
+  return {
+    ...existing,
+    institution: draft.institution,
+    country: draft.country || existing.country,
+    level: draft.level,
+    courseName: draft.courseName,
+    startMonth: draft.startMonth,
+    startYear: draft.startYear,
+    completed: draft.completed ?? existing.completed,
+    endMonth: draft.endMonth,
+    endYear: draft.endYear,
+  };
+}
+
+export function mergeQualificationFromTranscriptParse(
+  existing: TertiaryQualification,
+  draft: TertiaryQualificationFieldDraft,
+) {
+  if (isQualificationCoreEmpty(existing)) {
+    return mergeQualificationDraft(existing, draft);
+  }
+
+  return applyTranscriptQualificationDraft(existing, draft);
+}
+
+export function qualificationFieldDraftDiffers(
+  existing: Pick<
+    TertiaryQualification,
+    | "institution"
+    | "country"
+    | "level"
+    | "courseName"
+    | "startMonth"
+    | "startYear"
+    | "completed"
+    | "endMonth"
+    | "endYear"
+  >,
+  draft: TertiaryQualificationFieldDraft,
+) {
+  const country = draft.country || existing.country;
+
+  return (
+    existing.institution.trim() !== draft.institution.trim() ||
+    existing.country !== country ||
+    existing.level !== draft.level ||
+    existing.courseName.trim() !== draft.courseName.trim() ||
+    existing.startMonth !== draft.startMonth ||
+    existing.startYear !== draft.startYear ||
+    existing.completed !== (draft.completed ?? existing.completed) ||
+    existing.endMonth !== draft.endMonth ||
+    existing.endYear !== draft.endYear
+  );
+}
+
+export function countQualificationDraftUpdates(
+  before: TertiaryQualification,
+  after: TertiaryQualification,
+) {
+  let count = 0;
+
+  if (before.institution.trim() !== after.institution.trim()) count += 1;
+  if (before.country !== after.country) count += 1;
+  if (before.level !== after.level) count += 1;
+  if (before.courseName.trim() !== after.courseName.trim()) count += 1;
+  if (before.startMonth !== after.startMonth || before.startYear !== after.startYear) {
+    count += 1;
+  }
+  if (before.endMonth !== after.endMonth || before.endYear !== after.endYear) {
+    count += 1;
+  }
+  if (before.completed !== after.completed) count += 1;
+
+  return count;
+}
+
 export function countDraftedFields(draft: TertiaryQualificationFieldDraft) {
   return [
     draft.institution,

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { ApplicationData, TertiaryQualification } from "../../lib/applicationData";
 import { loadStoredDocumentFile } from "../../lib/documentStorage";
+import { mapExtractedDataToQualification, mergeQualificationFromTranscriptParse } from "../../lib/eligibility/mapToTertiaryQualification";
 import {
   getTertiaryTranscriptParserErrorCode,
   trackTertiaryTranscriptParserDraftEmpty,
@@ -93,8 +94,11 @@ export function usePendingTranscriptEligibility({
           await new Promise((resolve) =>
             window.setTimeout(resolve, CACHED_ASSESSMENT_MIN_PROGRESS_MS),
           );
+          const fieldDraft = mapExtractedDataToQualification(
+            job.cachedAssessment.extractedData,
+          );
           workingRecord = {
-            ...qualification,
+            ...mergeQualificationFromTranscriptParse(qualification, fieldDraft),
             transcriptEligibility: job.cachedAssessment,
           };
         } else {
@@ -133,7 +137,10 @@ export function usePendingTranscriptEligibility({
             };
 
             const parseDurationMs = Date.now() - parseStartedAt;
-            const draftedFieldCount = getDraftedFieldCountFromParseResult(parseResult);
+            const draftedFieldCount = getDraftedFieldCountFromParseResult(
+              parseResult,
+              qualification,
+            );
 
             if (draftedFieldCount > 0) {
               trackTertiaryTranscriptParserDraftSucceeded({
@@ -152,11 +159,13 @@ export function usePendingTranscriptEligibility({
         const flashMessage = buildTertiaryTranscriptFlashMessage({
           assessment: workingRecord.transcriptEligibility,
           draftedFieldCount: parseResult
-            ? getDraftedFieldCountFromParseResult(parseResult)
+            ? getDraftedFieldCountFromParseResult(parseResult, qualification)
             : 0,
           parseError,
           preservedExistingFields: Boolean(
-            parseResult && !parseResult.shouldAutoFill && job.transcriptFile,
+            parseResult &&
+              !parseResult.shouldAutoFill &&
+              job.transcriptFile,
           ),
           validationFailed: false,
         });

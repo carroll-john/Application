@@ -2,11 +2,15 @@ import { describe, expect, it } from "vitest";
 import type { TertiaryQualification } from "../applicationData";
 import { matcherFixtures } from "./matcherFixtures";
 import {
+  applyTranscriptQualificationDraft,
   countDraftedFields,
+  countQualificationDraftUpdates,
   isQualificationCoreEmpty,
   mapExtractedDataToQualification,
   mergeQualificationDraft,
+  mergeQualificationFromTranscriptParse,
   normalizeQualificationLevel,
+  qualificationFieldDraftDiffers,
 } from "./mapToTertiaryQualification";
 
 function emptyQualification(): TertiaryQualification {
@@ -107,6 +111,69 @@ describe("mergeQualificationDraft", () => {
     });
 
     expect(merged.completed).toBe(false);
+  });
+});
+
+describe("applyTranscriptQualificationDraft", () => {
+  it("replaces existing qualification fields from a new transcript parse", () => {
+    const existing: TertiaryQualification = {
+      ...emptyQualification(),
+      institution: "Old University",
+      level: "Diploma",
+      courseName: "Old Course",
+      startMonth: "January",
+      startYear: "2018",
+      endMonth: "December",
+      endYear: "2020",
+    };
+
+    const merged = applyTranscriptQualificationDraft(existing, {
+      institution: "The University of Melbourne",
+      country: "Australia",
+      level: "Bachelor",
+      courseName: "Bachelor of Science",
+      startMonth: "March",
+      startYear: "2020",
+      completed: true,
+      endMonth: "July",
+      endYear: "2024",
+    });
+
+    expect(merged.institution).toBe("The University of Melbourne");
+    expect(merged.level).toBe("Bachelor");
+    expect(merged.courseName).toBe("Bachelor of Science");
+    expect(merged.startYear).toBe("2020");
+    expect(merged.endYear).toBe("2024");
+  });
+});
+
+describe("mergeQualificationFromTranscriptParse", () => {
+  it("fills empty fields only for a blank qualification", () => {
+    const existing = emptyQualification();
+    const draft = mapExtractedDataToQualification(matcherFixtures[0].evidence);
+
+    const merged = mergeQualificationFromTranscriptParse(existing, draft);
+
+    expect(merged.institution).toBe("The University of Melbourne");
+    expect(merged.level).toBe("Bachelor");
+  });
+
+  it("replaces populated fields when a new transcript is parsed", () => {
+    const existing: TertiaryQualification = {
+      ...emptyQualification(),
+      institution: "Old University",
+      level: "Diploma",
+      courseName: "Old Course",
+    };
+    const draft = mapExtractedDataToQualification(matcherFixtures[0].evidence);
+
+    const merged = mergeQualificationFromTranscriptParse(existing, draft);
+
+    expect(merged.institution).toBe("The University of Melbourne");
+    expect(merged.level).toBe("Bachelor");
+    expect(
+      qualificationFieldDraftDiffers(existing, draft),
+    ).toBe(true);
   });
 });
 
