@@ -5,7 +5,7 @@
 - **Triggers:** `pull_request` (all branches) and `push` to `master` only. Feature/`codex/**` branches are not built on push alone, which avoids duplicate runs alongside PR checks.
 - **Concurrency:** Superseded runs on the same ref are cancelled (`cancel-in-progress`).
 - **`test-and-build`:** Always runs (lint, full Vitest, `check:api-esm`, build).
-- **`llm-regression`:** Runs only when `OPENAI_API_KEY` is set and path filters match CV and/or transcript eligibility areas. Combines former `cv-parser-regression` and `transcript-eligibility-regression` jobs (single `npm ci`, conditional API startup per area).
+- **`llm-regression`:** Runs only when `check-secrets` confirms `OPENAI_API_KEY` and path filters match CV and/or transcript eligibility areas. Combines former `cv-parser-regression` and `transcript-eligibility-regression` jobs (single `npm ci`, conditional API startup per area).
 
 ## Eligibility contract status check
 
