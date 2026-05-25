@@ -11,7 +11,6 @@ import {
   countQualificationDraftUpdates,
   isQualificationCoreEmpty,
   mapExtractedDataToQualification,
-  mergeQualificationDraft,
   mergeQualificationFromTranscriptParse,
   qualificationFieldDraftDiffers,
   type TertiaryQualificationFieldDraft,
