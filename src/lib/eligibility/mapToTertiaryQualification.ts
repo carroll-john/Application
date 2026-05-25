@@ -357,6 +357,26 @@ export function countQualificationDraftUpdates(
   return count;
 }
 
+export function clearTertiaryQualificationFromTranscript(
+  qualification: TertiaryQualification,
+): TertiaryQualification {
+  return {
+    ...qualification,
+    institution: "",
+    country: "Australia",
+    level: "",
+    courseName: "",
+    startMonth: "",
+    startYear: "",
+    completed: true,
+    endMonth: "",
+    endYear: "",
+    transcriptDocument: undefined,
+    transcriptDocumentName: undefined,
+    transcriptEligibility: undefined,
+  };
+}
+
 export function countDraftedFields(draft: TertiaryQualificationFieldDraft) {
   return [
     draft.institution,

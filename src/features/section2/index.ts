@@ -1,5 +1,6 @@
 export * from "./QualificationsSectionUi";
 export { createCvDocumentParsePolicy } from "./cvDocumentParsePolicy";
+export { documentRemovalCopy } from "./documentRemovalCopy";
 export { CvUploadFields } from "./CvUploadFields";
 export { saveSection2DocumentRecord } from "./section2DocumentSave";
 export { Section2FormCard } from "./Section2FormCard";

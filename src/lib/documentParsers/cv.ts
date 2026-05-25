@@ -102,6 +102,25 @@ export function normalizeYear(value: string | null | undefined) {
   return match?.[0] ?? "";
 }
 
+export function getEmploymentExperienceSetSignature(
+  experiences: EmploymentExperience[],
+) {
+  return experiences
+    .map((experience) => createExperienceSignature(experience))
+    .sort()
+    .join(";;");
+}
+
+export function employmentExperiencesDiffer(
+  before: EmploymentExperience[],
+  after: EmploymentExperience[],
+) {
+  return (
+    getEmploymentExperienceSetSignature(before) !==
+    getEmploymentExperienceSetSignature(after)
+  );
+}
+
 function createExperienceSignature(experience: Omit<EmploymentExperience, "id">) {
   return [
     experience.company,

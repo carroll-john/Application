@@ -5,6 +5,8 @@ import { useSection2Navigation } from "../../hooks/useSection2Navigation";
 import { getDocumentUploadErrorMessage } from "../../lib/documentStorage";
 import type { DocumentKind, UploadedDocument } from "../../lib/documentStorage";
 import { saveSection2DocumentRecord } from "./section2DocumentSave";
+import { confirmDocumentRemoval } from "./documentRemovalCopy";
+import { isSection2DocumentRemoved } from "./section2DocumentRemoval";
 
 export interface DocumentParsePolicy<TDraft, TContext> {
   documentKind: DocumentKind;
@@ -31,6 +33,10 @@ export interface DocumentParsePolicy<TDraft, TContext> {
   }) => Section2RecordStatusMessage | undefined;
   errorFallbackMessage: string;
   hasDocumentChanges: (context: TContext) => boolean;
+  getDocumentRemovalImpact?: (context: TContext) => {
+    confirmMessage: string;
+  } | null;
+  clearDerivedDataOnRemoval?: (context: TContext) => Promise<void>;
   afterDocumentSave?: (args: {
     context: TContext;
     savedDocument?: UploadedDocument;
@@ -84,6 +90,11 @@ export function useSection2DocumentSaveWithParse<TDraft, TContext>({
 
     policy.analytics.onContinueClick(context);
 
+    const removalImpact = policy.getDocumentRemovalImpact?.(context);
+    if (removalImpact && !confirmDocumentRemoval(removalImpact.confirmMessage)) {
+      return;
+    }
+
     setIsSaving(true);
     setStatusMessage(null);
     setSaveProgress(policy.progress.saving(context));
@@ -119,6 +130,16 @@ export function useSection2DocumentSaveWithParse<TDraft, TContext>({
             uploadDocument,
           });
         }
+      }
+
+      const documentRemoved = isSection2DocumentRemoved({
+        currentDocument: getCurrentDocument(context),
+        originalDocument: getOriginalDocument(context),
+        selectedFile,
+      });
+
+      if (documentRemoved && policy.clearDerivedDataOnRemoval) {
+        await policy.clearDerivedDataOnRemoval(context);
       }
 
       if (shouldParse && parsePromise) {

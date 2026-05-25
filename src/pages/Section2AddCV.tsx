@@ -4,10 +4,13 @@ import { useApplication } from "../context/ApplicationContext";
 import {
   createCvDocumentParsePolicy,
   CvUploadFields,
+  documentRemovalCopy,
   Section2RecordPage,
   Section2SaveProgressPanel,
   useSection2DocumentSaveWithParse,
 } from "../features/section2";
+import { isSection2DocumentRemoved } from "../features/section2/section2DocumentRemoval";
+import { useCvEmploymentAutoFill } from "../features/section2/useCvEmploymentAutoFill";
 
 export default function Section2AddCV() {
   const {
@@ -37,6 +40,26 @@ export default function Section2AddCV() {
     ],
   );
 
+  const {
+    clearParseStatusMessage,
+    handleSelectCvFile,
+    hasParsedCvFile,
+    isParsingCv,
+    parseProgress,
+    parseStatusMessage,
+  } = useCvEmploymentAutoFill({
+    employmentExperiences: data.employmentExperiences,
+    replaceEmploymentExperiences,
+  });
+
+  const parseContextWithParseState = useMemo(
+    () => ({
+      ...parseContext,
+      hasParsedCvFile,
+    }),
+    [hasParsedCvFile, parseContext],
+  );
+
   const policy = useMemo(
     () => createCvDocumentParsePolicy({ replaceEmploymentExperiences }),
     [replaceEmploymentExperiences],
@@ -44,6 +67,11 @@ export default function Section2AddCV() {
 
   const hasDocument = Boolean(selectedFile) || Boolean(currentDocument);
   const canSave = hasDocument || currentDocument !== originalDocument;
+  const cvMarkedForRemoval = isSection2DocumentRemoved({
+    currentDocument,
+    originalDocument,
+    selectedFile,
+  });
 
   const {
     clearStatusMessage,
@@ -52,7 +80,7 @@ export default function Section2AddCV() {
     saveProgress,
     statusMessage,
   } = useSection2DocumentSaveWithParse({
-    context: parseContext,
+    context: parseContextWithParseState,
     ensureApplicationRow,
     getCurrentDocument: (context) => context.currentDocument,
     getOriginalDocument: (context) => context.originalDocument,
@@ -62,29 +90,42 @@ export default function Section2AddCV() {
     uploadDocument: uploadCV,
   });
 
+  const activeStatusMessage = statusMessage ?? parseStatusMessage;
+  const clearActiveStatusMessage = statusMessage
+    ? clearStatusMessage
+    : clearParseStatusMessage;
+  const activeProgress = isSaving ? saveProgress : isParsingCv ? parseProgress : null;
+
   return (
     <Section2RecordPage
       addTitle="Upload your CV"
-      continueDisabled={isSaving || !canSave}
+      continueDisabled={isSaving || isParsingCv || !canSave}
       continueLabel={isSaving ? "Saving..." : "Save & Continue"}
       description="Add your current CV or resume."
       editTitle="Upload your CV"
       isEditing={false}
       onContinue={handleSaveAndContinue}
-      previousDisabled={isSaving}
+      previousDisabled={isSaving || isParsingCv}
     >
       <div className="space-y-6">
-        {statusMessage ? (
+        {activeStatusMessage ? (
           <StatusMessage
-            message={statusMessage.message}
-            type={statusMessage.type}
-            onDismiss={clearStatusMessage}
+            message={activeStatusMessage.message}
+            type={activeStatusMessage.type}
+            onDismiss={clearActiveStatusMessage}
           />
         ) : null}
-        {isSaving && saveProgress ? (
+        {cvMarkedForRemoval && data.employmentExperiences.length > 0 ? (
+          <StatusMessage
+            message={documentRemovalCopy.cvPendingWarning}
+            onDismiss={() => undefined}
+            type="warning"
+          />
+        ) : null}
+        {activeProgress ? (
           <Section2SaveProgressPanel
-            detail={saveProgress.detail}
-            title={saveProgress.title}
+            detail={activeProgress.detail}
+            title={activeProgress.title}
           />
         ) : null}
         <CvUploadFields
@@ -99,7 +140,8 @@ export default function Section2AddCV() {
           onClearSelectedFile={() => setSelectedFile(null)}
           onFileSelect={(file) => {
             setSelectedFile(file);
-            setCurrentFileName(file.name);
+            setCurrentFileName(file?.name);
+            void handleSelectCvFile(file);
           }}
         />
       </div>
