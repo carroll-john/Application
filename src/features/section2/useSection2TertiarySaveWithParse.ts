@@ -16,7 +16,6 @@ import {
   needsHubTranscriptEligibilityProcessing,
   shouldUseCachedTranscriptAssessment,
   tertiaryTranscriptParseCopy,
-  type TertiaryTranscriptParseContext,
 } from "./tertiaryTranscriptParsePolicy";
 
 interface UseSection2TertiarySaveWithParseOptions {
@@ -81,12 +80,6 @@ export function useSection2TertiarySaveWithParse({
   }, []);
 
   const handleSaveAndContinue = useCallback(async () => {
-    const parseContext: TertiaryTranscriptParseContext = {
-      applicationData,
-      formData,
-      selectedTranscriptFile,
-    };
-
     const parseFirst =
       Boolean(selectedTranscriptFile) && isQualificationCoreEmpty(formData);
 

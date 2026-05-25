@@ -5,7 +5,6 @@ import {
   applyTranscriptQualificationDraft,
   clearTertiaryQualificationFromTranscript,
   countDraftedFields,
-  countQualificationDraftUpdates,
   isQualificationCoreEmpty,
   mapExtractedDataToQualification,
   mergeQualificationDraft,
