@@ -9,7 +9,9 @@ import {
   TertiaryQualificationFields,
   TertiaryStudyPeriodFields,
   TertiaryTranscriptUploadCard,
+  documentRemovalCopy,
 } from "../features/section2";
+import { isSection2DocumentRemoved } from "../features/section2/section2DocumentRemoval";
 import {
   canSaveTertiaryWithParseFirst,
   useSection2TertiarySaveWithParse,
@@ -17,6 +19,7 @@ import {
 import { useTertiaryTranscriptAutoFill } from "../features/section2/useTertiaryTranscriptAutoFill";
 import { useEditableRecord } from "../hooks/useEditableRecord";
 import type { TertiaryQualification } from "../lib/applicationData";
+import { isQualificationCoreEmpty } from "../lib/eligibility/mapToTertiaryQualification";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
 
 function validateTertiaryRecord(record: TertiaryQualification) {
@@ -93,6 +96,12 @@ export default function Section2AddTertiary() {
     Boolean(selectedTranscriptFile) ||
     Boolean(formData.transcriptDocument) ||
     Boolean(formData.transcriptDocumentName);
+
+  const transcriptMarkedForRemoval = isSection2DocumentRemoved({
+    currentDocument: formData.transcriptDocument,
+    originalDocument: originalTranscriptDocument,
+    selectedFile: selectedTranscriptFile,
+  });
 
   const missingRequiredFields = useMemo(() => {
     return [
@@ -188,6 +197,13 @@ export default function Section2AddTertiary() {
             message={activeStatusMessage.message}
             type={activeStatusMessage.type}
             onDismiss={clearActiveStatusMessage}
+          />
+        ) : null}
+        {transcriptMarkedForRemoval && !isQualificationCoreEmpty(formData) ? (
+          <StatusMessage
+            message={documentRemovalCopy.transcriptPendingWarning}
+            onDismiss={() => undefined}
+            type="warning"
           />
         ) : null}
         {activeProgress ? (

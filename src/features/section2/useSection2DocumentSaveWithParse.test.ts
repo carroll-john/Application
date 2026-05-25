@@ -6,7 +6,7 @@ describe("createCvDocumentParsePolicy", () => {
     replaceEmploymentExperiences: vi.fn(),
   });
 
-  it("parses only when a new file is selected and employment is empty", () => {
+  it("parses when a new file is selected", () => {
     const file = new File(["cv"], "cv.pdf", { type: "application/pdf" });
 
     expect(
@@ -17,6 +17,10 @@ describe("createCvDocumentParsePolicy", () => {
         selectedFile: file,
       }),
     ).toBe(true);
+  });
+
+  it("still parses when employment history already exists", () => {
+    const file = new File(["cv"], "cv.pdf", { type: "application/pdf" });
 
     expect(
       policy.shouldParse({
@@ -35,6 +39,20 @@ describe("createCvDocumentParsePolicy", () => {
             type: "Full-time",
           },
         ],
+        originalDocument: undefined,
+        selectedFile: file,
+      }),
+    ).toBe(true);
+  });
+
+  it("skips parsing when the same file was already parsed on upload", () => {
+    const file = new File(["cv"], "cv.pdf", { type: "application/pdf" });
+
+    expect(
+      policy.shouldParse({
+        currentDocument: undefined,
+        employmentExperiences: [],
+        hasParsedCvFile: () => true,
         originalDocument: undefined,
         selectedFile: file,
       }),

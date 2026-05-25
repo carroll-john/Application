@@ -1,4 +1,5 @@
 import type { EmploymentExperience } from "../../lib/applicationData";
+import { employmentExperiencesDiffer } from "../../lib/documentParsers/cv";
 import {
   getCvParserErrorCode,
   trackCvParserDraftEmpty,
@@ -11,11 +12,23 @@ import {
   parseEmploymentExperiencesFromCv,
 } from "../../lib/cvParserClient";
 import type { UploadedDocument } from "../../lib/documentStorage";
+import { documentRemovalCopy } from "./documentRemovalCopy";
+import { isSection2DocumentRemoved } from "./section2DocumentRemoval";
 import type { DocumentParsePolicy } from "./useSection2DocumentSaveWithParse";
+
+export const cvEmploymentParseCopy = {
+  draftSuccess:
+    "We drafted employment history from your CV. Review the roles below or on the qualifications page.",
+  draftUpdated:
+    "We updated your employment history from your new CV. Review the roles and adjust anything that looks off.",
+  draftEmpty:
+    "We couldn't find clear employment history in this CV. You can add roles manually.",
+} as const;
 
 export interface CvDocumentParseContext {
   currentDocument?: UploadedDocument;
   employmentExperiences: EmploymentExperience[];
+  hasParsedCvFile?: (file: File) => boolean;
   originalDocument?: UploadedDocument;
   selectedFile: File | null;
 }
@@ -31,8 +44,8 @@ export function createCvDocumentParsePolicy(deps: {
 }): DocumentParsePolicy<CvParseDraft, CvDocumentParseContext> {
   return {
     documentKind: "cv",
-    shouldParse: ({ selectedFile, employmentExperiences }) =>
-      Boolean(selectedFile) && employmentExperiences.length === 0,
+    shouldParse: ({ selectedFile, hasParsedCvFile }) =>
+      Boolean(selectedFile) && !(hasParsedCvFile?.(selectedFile!) ?? false),
     parseFile: parseEmploymentExperiencesFromCv,
     applyDraft: async (draft) => {
       await deps.replaceEmploymentExperiences(draft.experiences);
@@ -91,7 +104,20 @@ export function createCvDocumentParsePolicy(deps: {
       }
 
       if (draft && draft.experiences.length > 0) {
+        const isReplacement = context.employmentExperiences.length > 0;
+        const experiencesChanged = employmentExperiencesDiffer(
+          context.employmentExperiences,
+          draft.experiences,
+        );
         const rolesLabel = draft.experiences.length === 1 ? "role" : "roles";
+
+        if (isReplacement && experiencesChanged) {
+          return {
+            message: `We updated ${draft.experiences.length} employment ${rolesLabel} from your new CV. Review the details and adjust anything that looks off.`,
+            type: "success",
+          };
+        }
+
         return {
           message: `We drafted ${draft.experiences.length} employment ${rolesLabel} from your CV. Review the details and adjust anything that looks off.`,
           type: "success",
@@ -100,17 +126,8 @@ export function createCvDocumentParsePolicy(deps: {
 
       if (draft && draft.experiences.length === 0) {
         return {
-          message:
-            "We saved your CV, but couldn't find clear employment history to auto-fill.",
+          message: cvEmploymentParseCopy.draftEmpty,
           type: "warning",
-        };
-      }
-
-      if (context.selectedFile && context.employmentExperiences.length > 0) {
-        return {
-          message:
-            "We saved your CV. Existing employment history was left unchanged to avoid duplicate roles.",
-          type: "status",
         };
       }
 
@@ -123,6 +140,25 @@ export function createCvDocumentParsePolicy(deps: {
       originalDocument,
       selectedFile,
     }) => Boolean(selectedFile) || currentDocument !== originalDocument,
+    getDocumentRemovalImpact: (context) => {
+      if (
+        !isSection2DocumentRemoved({
+          currentDocument: context.currentDocument,
+          originalDocument: context.originalDocument,
+          selectedFile: context.selectedFile,
+        }) ||
+        context.employmentExperiences.length === 0
+      ) {
+        return null;
+      }
+
+      return {
+        confirmMessage: documentRemovalCopy.cvConfirm,
+      };
+    },
+    clearDerivedDataOnRemoval: async () => {
+      await deps.replaceEmploymentExperiences([]);
+    },
     afterDocumentSave: async ({ savedDocument, uploadDocument, removeDocument }) => {
       if (savedDocument) {
         await uploadDocument(savedDocument);

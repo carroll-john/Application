@@ -3,6 +3,7 @@ import type { TertiaryQualification } from "../applicationData";
 import { matcherFixtures } from "./matcherFixtures";
 import {
   applyTranscriptQualificationDraft,
+  clearTertiaryQualificationFromTranscript,
   countDraftedFields,
   countQualificationDraftUpdates,
   isQualificationCoreEmpty,
@@ -189,6 +190,39 @@ describe("isQualificationCoreEmpty", () => {
         institution: "University",
       }),
     ).toBe(false);
+  });
+});
+
+describe("clearTertiaryQualificationFromTranscript", () => {
+  it("clears qualification fields and transcript metadata", () => {
+    const cleared = clearTertiaryQualificationFromTranscript({
+      ...emptyQualification(),
+      institution: "Monash University",
+      courseName: "Bachelor of IT",
+      transcriptDocument: {
+        id: "doc-1",
+        name: "transcript.pdf",
+        size: 1,
+        type: "application/pdf",
+        lastModified: 1,
+        uploadedAt: new Date().toISOString(),
+      },
+      transcriptEligibility: {
+        checkedAt: new Date().toISOString(),
+        confidence: 0.9,
+        extractedData: {},
+        manualReviewRequired: false,
+        missingInformation: [],
+        outcome: "eligible",
+        recommendedNextStep: "Proceed",
+        requirementsChecked: [],
+      },
+    });
+
+    expect(cleared.institution).toBe("");
+    expect(cleared.courseName).toBe("");
+    expect(cleared.transcriptDocument).toBeUndefined();
+    expect(cleared.transcriptEligibility).toBeUndefined();
   });
 });
 

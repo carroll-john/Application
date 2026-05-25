@@ -5,9 +5,11 @@ import { getDocumentUploadErrorMessage } from "../../lib/documentStorage";
 import type { UploadedDocument } from "../../lib/documentStorage";
 import { trackTertiaryTranscriptParserSaveContinueClicked } from "../../lib/analytics/tertiaryTranscriptParserAnalytics";
 import { isQualificationCoreEmpty } from "../../lib/eligibility/mapToTertiaryQualification";
+import { clearTertiaryQualificationFromTranscript } from "../../lib/eligibility/mapToTertiaryQualification";
 import { useSection2Navigation } from "../../hooks/useSection2Navigation";
 import type { Section2RecordStatusMessage } from "../../hooks/useSection2RecordSave";
 import { saveSection2DocumentRecord } from "./section2DocumentSave";
+import { confirmDocumentRemoval, documentRemovalCopy } from "./documentRemovalCopy";
 import type { Section2NavigationState } from "./section2NavigationState";
 import {
   buildTertiaryTranscriptFlashMessage,
@@ -98,6 +100,19 @@ export function useSection2TertiarySaveWithParse({
       return;
     }
 
+    const transcriptRemoved =
+      !selectedTranscriptFile &&
+      !formData.transcriptDocument &&
+      Boolean(originalTranscriptDocument);
+
+    if (
+      transcriptRemoved &&
+      !isQualificationCoreEmpty(formData) &&
+      !confirmDocumentRemoval(documentRemovalCopy.transcriptConfirm)
+    ) {
+      return;
+    }
+
     setIsSaving(true);
     setStatusMessage(null);
     setSaveProgress({
@@ -107,10 +122,6 @@ export function useSection2TertiarySaveWithParse({
 
     try {
       const applicationId = await ensureApplicationRow();
-      const transcriptRemoved =
-        !selectedTranscriptFile &&
-        !formData.transcriptDocument &&
-        Boolean(originalTranscriptDocument);
       const certificateRemoved =
         !selectedCertificateFile &&
         !formData.certificateDocument &&
@@ -147,10 +158,7 @@ export function useSection2TertiarySaveWithParse({
       };
 
       if (transcriptRemoved) {
-        workingRecord = {
-          ...workingRecord,
-          transcriptEligibility: undefined,
-        };
+        workingRecord = clearTertiaryQualificationFromTranscript(workingRecord);
       }
 
       const deferEligibilityToHub = needsHubTranscriptEligibilityProcessing({
