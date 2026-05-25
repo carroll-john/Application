@@ -5,12 +5,49 @@ on:
   push:
     branches:
       - master
-      - "codex/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      cv: ${{ steps.filter.outputs.cv }}
+      transcript: ${{ steps.filter.outputs.transcript }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect path changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            cv:
+              - api/parse-cv.ts
+              - api/_documentParser/**
+              - api/_ai/**
+              - scripts/cv-parser-regression.mjs
+              - scripts/dev-cv-parser-server.mjs
+              - package.json
+              - package-lock.json
+            transcript:
+              - api/evaluate-transcript-eligibility.ts
+              - api/_ai/prompts/transcriptEligibility.v1.ts
+              - api/_ai/schemas/transcriptEligibility.v1.ts
+              - src/lib/eligibility/**
+              - src/lib/courseCatalog/**
+              - tests/fixtures/transcript-v3/**
+              - scripts/eligibility-transcript-regression.mjs
+              - scripts/dev-transcript-eligibility-server.mjs
+              - package.json
+              - package-lock.json
+
   test-and-build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -39,80 +76,16 @@ jobs:
       - name: Build
         run: npm run build
 
-  check-secrets:
+  llm-regression:
+    needs: changes
+    if: ${{ secrets.OPENAI_API_KEY != '' && (needs.changes.outputs.cv == 'true' || needs.changes.outputs.transcript == 'true') }}
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      has-openai-key: ${{ steps.check.outputs.has-key }}
-    steps:
-      - id: check
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          if [ -n "$OPENAI_API_KEY" ]; then
-            echo "has-key=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has-key=false" >> "$GITHUB_OUTPUT"
-          fi
-
-  cv-parser-regression:
-    needs: check-secrets
-    if: ${{ needs.check-secrets.outputs.has-openai-key == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       CV_PARSER_BASE_URL: http://127.0.0.1:4190
       CV_PARSER_PORT: "4190"
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_CV_PARSER_MODEL: gpt-4.1-mini
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Start parser API server
-        run: |
-          npm run dev:cv-parser-api > /tmp/cv-parser-api.log 2>&1 &
-          echo $! > /tmp/cv-parser-api.pid
-
-      - name: Wait for parser API
-        run: |
-          for attempt in $(seq 1 30); do
-            if curl -fsS "$CV_PARSER_BASE_URL/healthz" > /dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Parser API did not become ready."
-          cat /tmp/cv-parser-api.log || true
-          exit 1
-
-      - name: Run parser regression suite
-        run: npm run test:cv-parser -- --base-url "$CV_PARSER_BASE_URL"
-
-      - name: Stop parser API and print logs
-        if: always()
-        run: |
-          if [ -f /tmp/cv-parser-api.pid ]; then
-            kill "$(cat /tmp/cv-parser-api.pid)" || true
-          fi
-          cat /tmp/cv-parser-api.log || true
-
-  transcript-eligibility-regression:
-    needs: check-secrets
-    if: ${{ needs.check-secrets.outputs.has-openai-key == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_TRANSCRIPT_ELIGIBILITY_MODEL: gpt-4.1-mini
       TRANSCRIPT_ELIGIBILITY_BASE_URL: http://127.0.0.1:4191
       TRANSCRIPT_ELIGIBILITY_PORT: "4191"
@@ -129,12 +102,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Start parser API server
+        if: needs.changes.outputs.cv == 'true'
+        run: |
+          npm run dev:cv-parser-api > /tmp/cv-parser-api.log 2>&1 &
+          echo $! > /tmp/cv-parser-api.pid
+
+      - name: Wait for parser API
+        if: needs.changes.outputs.cv == 'true'
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS "$CV_PARSER_BASE_URL/healthz" > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Parser API did not become ready."
+          cat /tmp/cv-parser-api.log || true
+          exit 1
+
       - name: Start transcript eligibility API server
+        if: needs.changes.outputs.transcript == 'true'
         run: |
           npm run dev:transcript-eligibility-api > /tmp/transcript-eligibility-api.log 2>&1 &
           echo $! > /tmp/transcript-eligibility-api.pid
 
       - name: Wait for transcript eligibility API
+        if: needs.changes.outputs.transcript == 'true'
         run: |
           for attempt in $(seq 1 30); do
             if curl -fsS "$TRANSCRIPT_ELIGIBILITY_BASE_URL/healthz" > /dev/null; then
@@ -146,14 +140,28 @@ jobs:
           cat /tmp/transcript-eligibility-api.log || true
           exit 1
 
+      - name: Run parser regression suite
+        if: needs.changes.outputs.cv == 'true'
+        run: npm run test:cv-parser -- --base-url "$CV_PARSER_BASE_URL"
+
       - name: Run transcript eligibility regression (safe matcher course)
+        if: needs.changes.outputs.transcript == 'true'
         run: npm run test:eligibility-transcripts -- --base-url "$TRANSCRIPT_ELIGIBILITY_BASE_URL"
 
       - name: Run transcript eligibility regression (unsafe legacy course)
+        if: needs.changes.outputs.transcript == 'true'
         run: npm run test:eligibility-transcripts -- --base-url "$TRANSCRIPT_ELIGIBILITY_BASE_URL" --course-mode unsafe --fixture AU-TX-V3-001
 
+      - name: Stop parser API and print logs
+        if: always() && needs.changes.outputs.cv == 'true'
+        run: |
+          if [ -f /tmp/cv-parser-api.pid ]; then
+            kill "$(cat /tmp/cv-parser-api.pid)" || true
+          fi
+          cat /tmp/cv-parser-api.log || true
+
       - name: Stop transcript eligibility API and print logs
-        if: always()
+        if: always() && needs.changes.outputs.transcript == 'true'
         run: |
           if [ -f /tmp/transcript-eligibility-api.pid ]; then
             kill "$(cat /tmp/transcript-eligibility-api.pid)" || true
