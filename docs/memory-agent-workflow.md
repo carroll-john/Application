@@ -89,4 +89,9 @@ Load only these files for typical tasks (~5–15 files each):
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`): lint → test → build on PR/push. Optional CV parser regression when `OPENAI_API_KEY` secret is set.
+GitHub Actions:
+
+- **`.github/workflows/ci.yml`** — `test-and-build` on every PR and on `master` push. `llm-regression` (CV parser + transcript eligibility LLM suites) runs only when `OPENAI_API_KEY` is set and changed paths match parser/eligibility areas; one job, path-gated. PR updates do not also trigger a duplicate `codex/**` push run.
+- **`.github/workflows/eligibility-contract.yml`** — path-filtered `eligibility:eval` for branch protection (`Eligibility Contract / eligibility-contract`). Vitest contract tests run in `test-and-build`.
+
+Details: [docs/ci-notes.md](ci-notes.md).

@@ -22,7 +22,6 @@ on:
   push:
     branches:
       - master
-      - "codex/**"
     paths:
       - "api/evaluate-transcript-eligibility.ts"
       - "api/evaluate-transcript-eligibility.test.ts"
@@ -40,6 +39,10 @@ on:
       - "scripts/dump-eligibility-overrides.ts"
       - "package.json"
       - "package-lock.json"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -60,9 +63,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Run eligibility contract suite
-        run: npm run test:eligibility-contract
 
       - name: Run eligibility matcher eval
         run: npm run eligibility:eval
