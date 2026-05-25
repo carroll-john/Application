@@ -70,25 +70,33 @@ function buildDistinctId(context: Record<string, unknown>) {
   return `eligibility-${digest}`;
 }
 
-function summarizeOutput(output: Record<string, unknown>) {
-  const requirements = Array.isArray(output.requirementsChecked)
-    ? output.requirementsChecked.map((item) => {
-        if (!item || typeof item !== "object") {
-          return null;
-        }
+function summarizeRequirements(output: Record<string, unknown>) {
+  if (!Array.isArray(output.requirementsChecked)) {
+    return [];
+  }
 
-        const candidate = item as Record<string, unknown>;
-        return {
-          id: typeof candidate.id === "string" ? candidate.id : "unknown",
-          status:
-            candidate.status === "pass" ||
-            candidate.status === "fail" ||
-            candidate.status === "unknown"
-              ? candidate.status
-              : "unknown",
-        };
-      })
-    : [];
+  return output.requirementsChecked
+    .map((item) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const candidate = item as Record<string, unknown>;
+      return {
+        id: typeof candidate.id === "string" ? candidate.id : "unknown",
+        status:
+          candidate.status === "pass" ||
+          candidate.status === "fail" ||
+          candidate.status === "unknown"
+            ? candidate.status
+            : "unknown",
+      };
+    })
+    .filter(Boolean) as Array<{ id: string; status: "pass" | "fail" | "unknown" }>;
+}
+
+function summarizeOutput(output: Record<string, unknown>) {
+  const requirements = summarizeRequirements(output);
 
   return JSON.stringify(
     {
@@ -104,7 +112,7 @@ function summarizeOutput(output: Record<string, unknown>) {
         typeof output.recommendedNextStep === "string"
           ? output.recommendedNextStep
           : "manual_review",
-      requirementsChecked: requirements.filter(Boolean),
+      requirementsChecked: requirements,
       rulesVersion: typeof output.rulesVersion === "string" ? output.rulesVersion : null,
       serviceVersion:
         typeof output.serviceVersion === "string" ? output.serviceVersion : null,
@@ -147,6 +155,78 @@ function summarizeInput(
     null,
     0,
   );
+}
+
+function stripUndefinedProperties(properties: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(properties).filter(([, value]) => value !== undefined),
+  );
+}
+
+function buildAiCaptureFormData(options: {
+  distinctId: string;
+  aiInput: AiMessage[];
+  aiOutputChoices: AiMessage[];
+  properties: Record<string, unknown>;
+}) {
+  const form = new FormData();
+  const timestamp = new Date().toISOString();
+  const inlineProperties = stripUndefinedProperties({
+    distinct_id: options.distinctId,
+    ...options.properties,
+  });
+
+  form.append(
+    "event",
+    new Blob(
+      [
+        JSON.stringify({
+          event: "$ai_generation",
+          distinct_id: options.distinctId,
+          timestamp,
+        }),
+      ],
+      { type: "application/json" },
+    ),
+  );
+
+  form.append(
+    "event.properties",
+    new Blob([JSON.stringify(inlineProperties)], { type: "application/json" }),
+  );
+
+  form.append(
+    "event.properties.$ai_input",
+    new Blob([JSON.stringify(options.aiInput)], { type: "application/json" }),
+    "ai_input.json",
+  );
+
+  form.append(
+    "event.properties.$ai_output_choices",
+    new Blob([JSON.stringify(options.aiOutputChoices)], { type: "application/json" }),
+    "ai_output_choices.json",
+  );
+
+  return form;
+}
+
+async function posthogFetch(
+  host: string,
+  path: string,
+  init: RequestInit,
+  timeoutMs: number,
+) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    await fetch(`${host}${path}`, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 interface CaptureEligibilityFeedbackOptions {
@@ -213,18 +293,16 @@ export async function captureEligibilityFeedback(
   };
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1200);
-    try {
-      await fetch(`${host}/i/v0/e/`, {
+    await posthogFetch(
+      host,
+      "/i/v0/e/",
+      {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
+      },
+      1200,
+    );
   } catch {
     // Observability must never block the calling request.
   }
@@ -255,47 +333,57 @@ export async function captureTranscriptAiGeneration(
       content: summarizeOutput(options.output),
     },
   ];
+  const requirements = summarizeRequirements(options.output);
+  const hasFailCheck = requirements.some((check) => check.status === "fail");
+  const hasUnknownCheck = requirements.some((check) => check.status === "unknown");
+  const outcome =
+    typeof options.output.outcome === "string" ? options.output.outcome : "insufficient_data";
 
-  const payload = {
-    api_key: apiKey,
-    event: "$ai_generation",
-    properties: {
-      distinct_id: distinctId,
-      $ai_trace_id: traceId,
-      $ai_model: options.model,
-      $ai_provider: options.provider,
-      $ai_input: aiInput,
-      $ai_output_choices: aiOutputChoices,
-      $ai_input_tokens: options.tokenUsage?.inputTokens,
-      $ai_output_tokens: options.tokenUsage?.outputTokens,
-      $ai_latency: Number((options.latencyMs / 1000).toFixed(3)),
-      eligibility_outcome:
-        typeof options.output.outcome === "string" ? options.output.outcome : "insufficient_data",
-      eligibility_rules_version:
-        typeof options.output.rulesVersion === "string" ? options.output.rulesVersion : "unknown",
-      eligibility_service_version:
-        typeof options.output.serviceVersion === "string"
-          ? options.output.serviceVersion
-          : "unknown",
-      eligibility_pipeline: "transcript_eligibility_v1",
-      eligibility_source: options.evaluationSource,
-    },
-  };
+  const eventProperties = stripUndefinedProperties({
+    $ai_trace_id: traceId,
+    $ai_model: options.model,
+    $ai_provider: options.provider,
+    $ai_lib: "applications-api",
+    $ai_lib_version: "transcript-eligibility-v1",
+    $ai_input_tokens: options.tokenUsage?.inputTokens,
+    $ai_output_tokens: options.tokenUsage?.outputTokens,
+    $ai_latency: Number((options.latencyMs / 1000).toFixed(3)),
+    eligibility_outcome: outcome,
+    eligibility_has_fail_check: hasFailCheck,
+    eligibility_has_unknown_check: hasUnknownCheck,
+    eligibility_manual_review_required:
+      typeof options.output.manualReviewRequired === "boolean"
+        ? options.output.manualReviewRequired
+        : null,
+    eligibility_requirement_count: requirements.length,
+    eligibility_rules_version:
+      typeof options.output.rulesVersion === "string" ? options.output.rulesVersion : "unknown",
+    eligibility_service_version:
+      typeof options.output.serviceVersion === "string"
+        ? options.output.serviceVersion
+        : "unknown",
+    eligibility_pipeline: "transcript_eligibility_v1",
+    eligibility_source: options.evaluationSource,
+  });
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1200);
-
-    try {
-      await fetch(`${host}/i/v0/e/`, {
+    await posthogFetch(
+      host,
+      "/i/v0/ai/",
+      {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: buildAiCaptureFormData({
+          aiInput,
+          aiOutputChoices,
+          distinctId,
+          properties: eventProperties,
+        }),
+      },
+      3000,
+    );
   } catch {
     // Observability must never block transcript evaluation responses.
   }
