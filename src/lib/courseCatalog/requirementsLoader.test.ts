@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RequirementInstance } from "../eligibility/requirements";
+import { getCourseCatalog } from "./buildCatalog";
 import generated from "./requirements.generated.json";
 import { getGeneratedRequirementsForCourse, isMatcherUnsafe } from "./requirementsLoader";
 
@@ -160,9 +161,10 @@ describe("isMatcherUnsafe", () => {
  * reviewed, rather than silently shifting a course between the two evaluation engines.
  */
 describe("catalog requirement routing", () => {
-  const courseCodes = Object.keys(
-    (generated as { courses: Record<string, unknown[]> }).courses,
-  );
+  // Derive codes from the real catalog (not the generated file's keys) so that a course added to
+  // courses.raw.json without a matching generated entry is caught here instead of silently routing
+  // to the legacy fallback.
+  const courseCodes = getCourseCatalog().map((course) => course.code);
 
   // Courses that intentionally fall back to deterministicRules: 1 with no parseable requirements,
   // 9 multi-pathway courses the flat matcher schema cannot safely represent.
@@ -179,8 +181,14 @@ describe("catalog requirement routing", () => {
     "master-of-business-marketing",
   ]);
 
-  it("every catalog course is parsed (no missing generated entry)", () => {
-    expect(courseCodes.length).toBeGreaterThanOrEqual(34);
+  it("every catalog course has a generated requirements entry", () => {
+    const generatedKeys = new Set(
+      Object.keys((generated as { courses: Record<string, unknown[]> }).courses),
+    );
+    const missing = courseCodes.filter((code) => !generatedKeys.has(code));
+    // A catalog course with no generated entry would silently route to the legacy fallback;
+    // fail loudly so the parser is re-run (or the fallback list is updated deliberately).
+    expect(missing).toEqual([]);
   });
 
   it("exactly the documented courses fall back to the legacy engine", () => {
