@@ -409,6 +409,72 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(payload.rulesVersion).toBe("rules-v1");
   });
 
+  it("returns conditionally_eligible when only a conditional requirement fails", async () => {
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confidence: 0.9,
+          outcome: "eligible",
+          studyDetails: {
+            completionStatus: {
+              confidence: 0.9,
+              normalizedValue: "completed",
+              originalValue: "completed",
+            },
+            programName: {
+              confidence: 0.9,
+              normalizedValue: "Bachelor of Arts",
+              originalValue: "Bachelor of Arts",
+            },
+          },
+          applicantDetails: {},
+          academicPerformance: {},
+          englishLanguageEvidence: {},
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const requirements = [
+      {
+        id: "completion",
+        kind: "qualification_completed",
+        params: {},
+        sourceText: "Successful completion of a bachelor degree.",
+        weight: "mandatory",
+      },
+      {
+        id: "field",
+        kind: "field_of_study",
+        params: { acceptedAreas: ["business"] },
+        sourceText: "Preferably a business-related background.",
+        weight: "conditional",
+      },
+    ];
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "conditional.txt", { type: "text/plain" }));
+    formData.append("context", JSON.stringify({ requirements }));
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+    const checks = payload.requirementsChecked as Array<Record<string, unknown>>;
+
+    expect(response.status).toBe(200);
+    expect(payload.outcome).toBe("conditionally_eligible");
+    expect(payload.manualReviewRequired).toBe(true);
+    expect(payload.rulesVersion).toBe("rules-v1");
+    const fieldCheck = checks.find((check) => check.id === "field");
+    expect(fieldCheck?.status).toBe("fail");
+    expect(fieldCheck?.reasonCode).toBe("FIELD_MISMATCH");
+  });
+
   it("passes English proficiency for Australian institution completion", async () => {
     process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
     fetchMock.mockResolvedValueOnce(
