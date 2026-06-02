@@ -6,6 +6,42 @@ export type EligibilityOutcome =
 
 export type EligibilityRequirementStatus = "pass" | "fail" | "unknown";
 
+/**
+ * Stable, machine-readable reason for a requirement check's status. Unlike the free-text
+ * `explanation` (which is tuned for display and may change), these codes are durable and safe to
+ * branch UI on or aggregate in analytics. Optional so the legacy `deterministicRules` path and any
+ * future producer can omit them without breaking the contract.
+ */
+export type RequirementReasonCode =
+  // qualification_completed
+  | "QUALIFICATION_COMPLETE"
+  | "QUALIFICATION_INCOMPLETE"
+  | "QUALIFICATION_COMPLETION_UNKNOWN"
+  // qualification_level
+  | "QUALIFICATION_LEVEL_MET"
+  | "QUALIFICATION_LEVEL_BELOW"
+  | "QUALIFICATION_LEVEL_UNKNOWN"
+  // academic_threshold
+  | "WAM_MET"
+  | "WAM_BELOW"
+  | "GPA_MET"
+  | "GPA_BELOW"
+  | "ACADEMIC_EVIDENCE_MISSING"
+  // english_proficiency
+  | "ENGLISH_OK_COUNTRY"
+  | "ENGLISH_TEST_UNVERIFIED"
+  | "ENGLISH_UNVERIFIED"
+  // work_experience
+  | "WORK_EXPERIENCE_UNVERIFIED"
+  // field_of_study
+  | "FIELD_MATCH"
+  | "FIELD_MISMATCH"
+  | "FIELD_PROGRAM_MISSING"
+  // alternative-group fold
+  | "GROUP_SATISFIED"
+  | "GROUP_UNSATISFIED"
+  | "GROUP_UNCONFIRMED";
+
 export interface EligibilityExtractedField {
   confidence: number;
   missingOrAmbiguous?: boolean;
@@ -56,6 +92,7 @@ export interface TranscriptExtractedData {
 export interface EligibilityRequirementCheck {
   explanation: string;
   id: string;
+  reasonCode?: RequirementReasonCode;
   requirement: string;
   status: EligibilityRequirementStatus;
 }

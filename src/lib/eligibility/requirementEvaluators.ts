@@ -97,6 +97,7 @@ function evaluateQualificationCompleted(
       instance,
       "fail",
       "Qualification appears incomplete or withdrawn based on supplied evidence.",
+      "QUALIFICATION_INCOMPLETE",
     );
   }
 
@@ -105,6 +106,7 @@ function evaluateQualificationCompleted(
       instance,
       "pass",
       "Qualification appears completed based on supplied evidence.",
+      "QUALIFICATION_COMPLETE",
     );
   }
 
@@ -112,6 +114,7 @@ function evaluateQualificationCompleted(
     instance,
     "unknown",
     "Completion status is unclear or not confirmed in transcript evidence.",
+    "QUALIFICATION_COMPLETION_UNKNOWN",
   );
 }
 
@@ -129,6 +132,7 @@ function evaluateQualificationLevel(
       instance,
       "unknown",
       "Qualification level could not be mapped from transcript evidence.",
+      "QUALIFICATION_LEVEL_UNKNOWN",
     );
   }
 
@@ -142,6 +146,7 @@ function evaluateQualificationLevel(
     status === "pass"
       ? `Extracted level "${extractedLevel}" meets the required ${instance.params.level.replace("_", " ")} level.`
       : `Extracted level "${extractedLevel}" is below the required ${instance.params.level.replace("_", " ")} level.`,
+    status === "pass" ? "QUALIFICATION_LEVEL_MET" : "QUALIFICATION_LEVEL_BELOW",
   );
 }
 
@@ -169,6 +174,7 @@ function evaluateAcademicThreshold(
         instance,
         "unknown",
         "No usable WAM or GPA evidence was extracted from the transcript.",
+        "ACADEMIC_EVIDENCE_MISSING",
       );
     }
 
@@ -181,6 +187,7 @@ function evaluateAcademicThreshold(
           ? `WAM ${comparableWam.toFixed(1)} meets minimum WAM ${params.min}.`
           : `WAM ${comparableWam.toFixed(1)} is below minimum WAM ${params.min}.`
       }`,
+      status === "pass" ? "WAM_MET" : "WAM_BELOW",
     );
   }
 
@@ -206,6 +213,7 @@ function evaluateAcademicThreshold(
       instance,
       "unknown",
       "No usable GPA or WAM evidence was extracted from the transcript.",
+      "ACADEMIC_EVIDENCE_MISSING",
     );
   }
 
@@ -222,6 +230,7 @@ function evaluateAcademicThreshold(
         ? `GPA ${comparableGpa.toFixed(2)}/${comparableScale} meets minimum GPA ${params.min}/${requiredScale}.`
         : `GPA ${comparableGpa.toFixed(2)}/${comparableScale} is below minimum GPA ${params.min}/${requiredScale}.`
     }`,
+    status === "pass" ? "GPA_MET" : "GPA_BELOW",
   );
 }
 
@@ -240,6 +249,7 @@ function evaluateEnglishProficiency(
           instance,
           "pass",
           `English language proficiency satisfied by completion at an institution in ${country}.`,
+          "ENGLISH_OK_COUNTRY",
         );
       }
     }
@@ -254,6 +264,7 @@ function evaluateEnglishProficiency(
       instance,
       "unknown",
       "Applicant has provided English test evidence elsewhere in the application; verify the test type and score meet the program's accepted pathway.",
+      "ENGLISH_TEST_UNVERIFIED",
     );
   }
 
@@ -261,6 +272,7 @@ function evaluateEnglishProficiency(
     instance,
     "unknown",
     "No English-medium country completion or test evidence available; manual verification required.",
+    "ENGLISH_UNVERIFIED",
   );
 }
 
@@ -275,6 +287,7 @@ function evaluateWorkExperience(
     instance,
     "unknown",
     `Requires ${params.minYears}+ years of relevant work experience; transcript evidence alone cannot confirm this.`,
+    "WORK_EXPERIENCE_UNVERIFIED",
   );
 }
 
@@ -290,6 +303,7 @@ function evaluateFieldOfStudy(
       instance,
       "unknown",
       "Program name could not be extracted from the transcript.",
+      "FIELD_PROGRAM_MISSING",
     );
   }
 
@@ -300,6 +314,7 @@ function evaluateFieldOfStudy(
     matched
       ? `Program name matches an accepted field of study.`
       : `Program name does not match any accepted field of study (${params.acceptedAreas.join(", ")}).`,
+    matched ? "FIELD_MATCH" : "FIELD_MISMATCH",
   );
 }
 

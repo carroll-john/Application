@@ -23,6 +23,7 @@ function foldAlternativeGroup(
       id: `${groupId}:satisfied`,
       requirement: group.map((entry) => entry.instance.sourceText).join(" — OR — "),
       status: "pass",
+      reasonCode: "GROUP_SATISFIED",
       explanation: `One alternative satisfied: ${passEntry.check.explanation}`,
     };
   }
@@ -33,6 +34,7 @@ function foldAlternativeGroup(
       id: `${groupId}:unknown`,
       requirement: group.map((entry) => entry.instance.sourceText).join(" — OR — "),
       status: "unknown",
+      reasonCode: "GROUP_UNCONFIRMED",
       explanation: `No alternative confirmed. ${unknownEntry.check.explanation}`,
     };
   }
@@ -41,6 +43,7 @@ function foldAlternativeGroup(
     id: `${groupId}:failed`,
     requirement: group.map((entry) => entry.instance.sourceText).join(" — OR — "),
     status: "fail",
+    reasonCode: "GROUP_UNSATISFIED",
     explanation: "None of the listed alternatives was satisfied by the supplied evidence.",
   };
 }
