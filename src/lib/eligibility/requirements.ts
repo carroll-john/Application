@@ -1,4 +1,8 @@
-import type { EligibilityRequirementCheck, EligibilityRequirementStatus } from "./types";
+import type {
+  EligibilityRequirementCheck,
+  EligibilityRequirementStatus,
+  RequirementReasonCode,
+} from "./types";
 
 /**
  * The closed set of requirement kinds the eligibility matcher knows how to evaluate.
@@ -164,11 +168,13 @@ export function buildRequirementCheck(
   instance: RequirementInstance,
   status: EligibilityRequirementStatus,
   explanation: string,
+  reasonCode?: RequirementReasonCode,
 ): EligibilityRequirementCheck {
   return {
     id: instance.id,
     requirement: instance.sourceText,
     status,
     explanation,
+    ...(reasonCode ? { reasonCode } : {}),
   };
 }
