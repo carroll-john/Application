@@ -97,7 +97,7 @@ export interface FieldOfStudyParams {
   acceptedAreas: string[];
 }
 
-export type RequirementWeight = "mandatory" | "alternative";
+export type RequirementWeight = "mandatory" | "alternative" | "conditional";
 
 /**
  * Discriminated union that ties each kind to its params shape so consumers don't need casts.

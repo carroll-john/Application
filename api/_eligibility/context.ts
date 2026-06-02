@@ -41,7 +41,9 @@ function normalizeRequirements(value: unknown): RequirementInstance[] | undefine
       typeof candidate.kind !== "string" ||
       !SUPPORTED_REQUIREMENT_KINDS.has(candidate.kind) ||
       typeof candidate.sourceText !== "string" ||
-      (candidate.weight !== "mandatory" && candidate.weight !== "alternative") ||
+      (candidate.weight !== "mandatory" &&
+        candidate.weight !== "alternative" &&
+        candidate.weight !== "conditional") ||
       !candidate.params ||
       typeof candidate.params !== "object"
     ) {

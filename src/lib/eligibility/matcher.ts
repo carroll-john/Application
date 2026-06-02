@@ -116,15 +116,34 @@ export function evaluateRequirements(
 
 /**
  * Aggregates per-requirement check statuses into an overall eligibility outcome.
- * Mirrors the precedence used in deterministicRules.ts so the legacy and new paths produce consistent
- * outcome semantics during the migration.
+ *
+ * Precedence (strongest signal first):
+ *   ineligible            — any failed requirement that is NOT conditional (mandatory / alternative-group)
+ *   conditionally_eligible — failures only on conditional requirements
+ *   insufficient_data     — no failures, but some checks are unknown
+ *   eligible              — everything passed
+ *
+ * `options.conditionalIds` is the set of check ids whose source requirement has
+ * `weight: "conditional"`. When omitted, every failure is treated as hard (the
+ * pre-conditional behavior), so existing callers are unaffected.
  */
-export function aggregateOutcome(checks: ReadonlyArray<EligibilityRequirementCheck>): {
-  outcome: "eligible" | "ineligible" | "insufficient_data";
+export function aggregateOutcome(
+  checks: ReadonlyArray<EligibilityRequirementCheck>,
+  options?: { conditionalIds?: ReadonlySet<string> },
+): {
+  outcome: "eligible" | "conditionally_eligible" | "ineligible" | "insufficient_data";
   manualReviewRequired: boolean;
 } {
-  if (checks.some((check) => check.status === "fail")) {
+  const conditionalIds = options?.conditionalIds;
+  const failures = checks.filter((check) => check.status === "fail");
+  const hasHardFailure = failures.some((check) => !conditionalIds?.has(check.id));
+  const hasConditionalFailure = failures.some((check) => conditionalIds?.has(check.id));
+
+  if (hasHardFailure) {
     return { outcome: "ineligible", manualReviewRequired: false };
+  }
+  if (hasConditionalFailure) {
+    return { outcome: "conditionally_eligible", manualReviewRequired: true };
   }
   if (checks.some((check) => check.status === "unknown")) {
     return { outcome: "insufficient_data", manualReviewRequired: true };
