@@ -1,8 +1,16 @@
 # Eligibility Rules Engine v1 — Implementation Plan
 
-> Status: **proposal for review**. No feature code yet. Targets the roadmap item
-> "Stand up rules engine v1 with per-program reason codes and explanation payloads"
+> Status: **v1 core shipped (2026-06-03)**. Targets the roadmap item "Stand up rules
+> engine v1 with per-program reason codes and explanation payloads"
 > (`docs/eligibility-check-roadmap.md` → Next 3 Tasks #3, Phase 2.1).
+>
+> - [x] **PR 1** — reason codes (#99)
+> - [x] **PR 2** — `conditionally_eligible` via `weight: "conditional"` (#100)
+> - [x] **PR 3** — single `RULES_VERSION` constant (#101)
+> - [x] **PR 4** — four-status contract coverage through the proxy (this PR)
+> - [ ] **PR 5** — full-catalog generated-requirements coverage + legacy
+>   `deterministicRules.ts` retirement (deferred; the legacy path stays as fallback
+>   per the locked decision until coverage is proven)
 
 ## Where we already are
 
