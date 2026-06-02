@@ -280,6 +280,44 @@ describe("evaluateRequirements", () => {
   });
 });
 
+describe("conditional requirements end-to-end", () => {
+  it("a failed conditional requirement yields conditionally_eligible", () => {
+    const instances: RequirementInstance[] = [
+      {
+        id: "completion",
+        kind: "qualification_completed",
+        params: {},
+        sourceText: "Completed bachelor degree.",
+        weight: "mandatory",
+      },
+      {
+        id: "field",
+        kind: "field_of_study",
+        params: { acceptedAreas: ["business"] },
+        sourceText: "Preferably a business background.",
+        weight: "conditional",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      studyDetails: {
+        completionStatus: { confidence: 1, normalizedValue: "completed" },
+        programName: { confidence: 1, normalizedValue: "Bachelor of Arts" },
+      },
+    };
+
+    const checks = evaluateRequirements(instances, evidence, emptyContext());
+    const conditionalIds = new Set(
+      instances.filter((i) => i.weight === "conditional").map((i) => i.id),
+    );
+
+    expect(checks.find((c) => c.id === "field")?.status).toBe("fail");
+    expect(aggregateOutcome(checks, { conditionalIds })).toEqual({
+      outcome: "conditionally_eligible",
+      manualReviewRequired: true,
+    });
+  });
+});
+
 describe("aggregateOutcome", () => {
   it("returns eligible when all checks pass", () => {
     expect(
@@ -307,5 +345,49 @@ describe("aggregateOutcome", () => {
         { id: "b", requirement: "B", status: "unknown", explanation: "" },
       ]),
     ).toEqual({ outcome: "insufficient_data", manualReviewRequired: true });
+  });
+
+  it("returns conditionally_eligible when only conditional requirements fail", () => {
+    expect(
+      aggregateOutcome(
+        [
+          { id: "a", requirement: "A", status: "pass", explanation: "" },
+          { id: "cond", requirement: "Cond", status: "fail", explanation: "" },
+        ],
+        { conditionalIds: new Set(["cond"]) },
+      ),
+    ).toEqual({ outcome: "conditionally_eligible", manualReviewRequired: true });
+  });
+
+  it("conditional failure does not override a hard (mandatory) failure", () => {
+    expect(
+      aggregateOutcome(
+        [
+          { id: "mand", requirement: "M", status: "fail", explanation: "" },
+          { id: "cond", requirement: "Cond", status: "fail", explanation: "" },
+        ],
+        { conditionalIds: new Set(["cond"]) },
+      ),
+    ).toEqual({ outcome: "ineligible", manualReviewRequired: false });
+  });
+
+  it("conditional failure outranks unknowns", () => {
+    expect(
+      aggregateOutcome(
+        [
+          { id: "cond", requirement: "Cond", status: "fail", explanation: "" },
+          { id: "u", requirement: "U", status: "unknown", explanation: "" },
+        ],
+        { conditionalIds: new Set(["cond"]) },
+      ),
+    ).toEqual({ outcome: "conditionally_eligible", manualReviewRequired: true });
+  });
+
+  it("without conditionalIds, every failure is hard (unchanged behavior)", () => {
+    expect(
+      aggregateOutcome([
+        { id: "cond", requirement: "Cond", status: "fail", explanation: "" },
+      ]),
+    ).toEqual({ outcome: "ineligible", manualReviewRequired: false });
   });
 });

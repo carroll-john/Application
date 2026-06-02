@@ -115,7 +115,10 @@ function applyRequirementsMatcher(
     evidence,
     context,
   );
-  const { outcome, manualReviewRequired } = aggregateOutcome(checks);
+  const conditionalIds = new Set(
+    requirements.filter((r) => r.weight === "conditional").map((r) => r.id),
+  );
+  const { outcome, manualReviewRequired } = aggregateOutcome(checks, { conditionalIds });
 
   const patched: Record<string, unknown> = { ...assessment };
   patched.requirementsChecked = checks;
@@ -143,9 +146,11 @@ function applyRequirementsMatcher(
     patched.recommendedNextStep =
       outcome === "ineligible"
         ? "Applicant is below one or more mandatory requirements. Route to admissions review for final decision."
-        : outcome === "insufficient_data"
-          ? "Provide clearer transcript evidence (completion status, WAM/GPA, English-medium completion) and route for manual review."
-          : "Proceed with application submission and admissions verification.";
+        : outcome === "conditionally_eligible"
+          ? "Applicant meets the mandatory requirements; one or more conditional requirements need follow-up. Route for conditional-offer review."
+          : outcome === "insufficient_data"
+            ? "Provide clearer transcript evidence (completion status, WAM/GPA, English-medium completion) and route for manual review."
+            : "Proceed with application submission and admissions verification.";
   }
 
   return patched;
