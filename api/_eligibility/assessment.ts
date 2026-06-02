@@ -4,6 +4,7 @@ import type {
   EligibilityRequirementCheck,
   TranscriptExtractedData,
 } from "../../src/lib/eligibility/types.js";
+import { RULES_VERSION } from "../../src/lib/eligibility/version.js";
 import type { TranscriptEligibilityRequestContext } from "./context.js";
 
 /** Shapes an eligibility assessment payload from upstream/LLM output + request context. */
@@ -135,8 +136,8 @@ function applyRequirementsMatcher(
 
   patched.rulesVersion =
     typeof patched.rulesVersion === "string" && patched.rulesVersion.trim()
-      ? `${patched.rulesVersion.trim()}+matcher-v1`
-      : "matcher-v1";
+      ? `${patched.rulesVersion.trim()}+${RULES_VERSION}`
+      : RULES_VERSION;
 
   if (
     typeof patched.recommendedNextStep !== "string" ||

@@ -406,6 +406,7 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(payload.manualReviewRequired).toBe(false);
     expect(checks.map((check) => check.id)).toEqual(["completion", "wam-65", "english"]);
     expect(checks.every((check) => check.status === "pass")).toBe(true);
+    expect(payload.rulesVersion).toBe("rules-v1");
   });
 
   it("passes English proficiency for Australian institution completion", async () => {
