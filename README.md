@@ -238,6 +238,7 @@ Hosted/Vercel auth requires an **active** Supabase project, email confirmation e
 | [docs/memory-auth.md](docs/memory-auth.md) | Auth, password sign-in, redirects, session |
 | [docs/memory-applications.md](docs/memory-applications.md) | Applications, validation, submit |
 | [docs/memory-documents.md](docs/memory-documents.md) | Uploads, storage, delivery proxy |
+| [docs/memory-document-parsing.md](docs/memory-document-parsing.md) | Kind-pluggable document parsing (CV first) |
 | [docs/memory-ui.md](docs/memory-ui.md) | UI primitives, forms, CTAs |
 | [docs/memory-agent-workflow.md](docs/memory-agent-workflow.md) | Tests, module boundaries, dev ops |
 | [docs/current-phase.md](docs/current-phase.md) | Active priorities and tracks |
