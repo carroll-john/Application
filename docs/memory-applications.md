@@ -28,7 +28,8 @@
 
 ## Course Catalog
 
-- Source: `src/data/courses.raw.json` → `src/lib/courseCatalog.ts`.
+- Source: `src/data/courses.raw.json` → `src/lib/courseCatalog.ts` (public barrel).
+- Implementation lives in `src/lib/courseCatalog/`: `buildCatalog.ts` (catalog assembly), `normalize.ts` (orchestrator mapping a raw entry to a `CourseCatalogEntry`), and focused parsers — `fees.ts`, `duration.ts`, `intake.ts`, `inference.ts`, `entryRequirements.ts`, `text.ts`. Behavior is locked by `normalize.test.ts`.
 - Preserve raw academic fields; normalize display labels per `project-memory.md`.
 
 ## Key Files

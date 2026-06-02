@@ -10,6 +10,11 @@ export default tseslint.config(
       "dist/**",
       "node_modules/**",
       "coverage/**",
+      // Build artifacts (gitignored): linting them flags directives copied
+      // from their TypeScript sources, which is noise.
+      ".api-runtime-check/**",
+      ".tmp/**",
+      "eligibility-service/node_modules/**",
       "*.config.js",
       "*.config.ts",
     ],
