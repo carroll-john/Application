@@ -95,8 +95,15 @@ So v1 is less "build from scratch" and more "close the gaps and formalize the co
 - Docs updated per the roadmap's iteration protocol (decisions → roadmap → phase →
   memory → stakeholder note).
 
-## Decision needed from you
+## Decisions (locked 2026-06-03)
 
-- **The `conditionally_eligible` trigger rule** (PR 2): explicit `weight: "conditional"`
-  on requirements, or a derived rule? This shapes the schema and the offline parser.
-- Whether to **retire `deterministicRules.ts`** in this effort or keep it as a fallback.
+- **`conditionally_eligible` trigger (PR 2):** add an explicit third requirement weight
+  `"conditional"`. A missed **mandatory** requirement → `ineligible`; a missed
+  **conditional** requirement (with no mandatory failures) → `conditionally_eligible`.
+  This adds a `weight` value to `RequirementInstance` and a field the offline parser /
+  curator sets. Outcome precedence becomes:
+  `ineligible (any mandatory fail) > conditionally_eligible (only conditional fails) >
+  insufficient_data (any unknown) > eligible`.
+- **Legacy `deterministicRules.ts`:** **keep as the fallback** for courses without
+  generated requirements. Retire only once `requirements.generated.json` covers the full
+  catalog and the matcher emits all four statuses (PR 5, later).

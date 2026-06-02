@@ -88,10 +88,26 @@ That makes this a clean lift-out.
   already provides a local stand-in; document that the external repo is only needed for
   full end-to-end testing.
 
-## Decision needed from you
+## Decisions (locked 2026-06-03)
 
-- **Where should the new repo live** (GitHub org/owner + name)? I can prepare the
-  subtree-split branch and the contract doc as a first PR in *this* repo, but creating
-  the new remote and Render service is an action I should not take unilaterally.
-- **Scope of the first move**: lift-and-shift as-is (recommended), or also fold the
-  app's local-OpenAI fallback into the service at the same time (larger).
+- **Repo home:** `github.com/carroll-john/eligibility-service` — a new repo under the
+  existing account (no org). Easy to move into an org later if it grows.
+- **First-move scope:** **lift-and-shift as-is** (history-preserving). The app keeps its
+  local-OpenAI + static fallback; folding that into the service is deferred.
+
+### Still requires an account action from you (cannot be done from this repo)
+
+Creating the GitHub remote and the Render service are your actions. Once the
+`carroll-john/eligibility-service` repo exists, the history-preserving move is:
+
+```bash
+# in this repo
+git subtree split --prefix=eligibility-service -b eligibility-service-export
+git push git@github.com:carroll-john/eligibility-service.git eligibility-service-export:main
+```
+
+Then move `render.yaml` to the new repo root, set `OPENAI_API_KEY` / `SERVICE_API_TOKEN`
+/ `SERVICE_VERSION` in Render, and confirm `/healthz`. After the service deploys, the
+in-repo `eligibility-service/` is removed here in a PR that also adds the pinned v1
+contract doc + contract test (steps 1, 4, 5 above). App `ELIGIBILITY_SERVICE_URL` /
+`ELIGIBILITY_SERVICE_TOKEN` env wiring is unchanged.
