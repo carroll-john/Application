@@ -8,9 +8,11 @@
 > - [x] **PR 2** — `conditionally_eligible` via `weight: "conditional"` (#100)
 > - [x] **PR 3** — single `RULES_VERSION` constant (#101)
 > - [x] **PR 4** — four-status contract coverage through the proxy (this PR)
-> - [ ] **PR 5** — full-catalog generated-requirements coverage + legacy
->   `deterministicRules.ts` retirement (deferred; the legacy path stays as fallback
->   per the locked decision until coverage is proven)
+> - [x] **PR 5** — coverage audit + routing-lock test (this PR). Finding: coverage is
+>   already complete (34/34 parsed); 24 route to the matcher, 10 to the legacy fallback
+>   (1 empty + 9 multi-pathway the flat schema can't represent). `deterministicRules.ts`
+>   is **load-bearing and retained**; full retirement is reclassified as a v2 item
+>   (needs a nested-pathway schema).
 
 ## Where we already are
 
@@ -81,11 +83,31 @@ So v1 is less "build from scratch" and more "close the gaps and formalize the co
   no-service fallback (extend the existing 10-case suite).
 - Align the documented response schema with what the UI renders (`uiCopy.ts`).
 
-### PR 5 — Coverage + legacy retirement (optional, later)
-- Broaden `requirements.generated.json` to the full catalog via
-  `scripts/parse-course-requirements.ts`.
-- Once coverage is complete and matcher emits all four statuses, plan deprecation of the
-  legacy `deterministicRules.ts` path (keep as fallback until coverage is proven).
+### PR 5 — Coverage audit + routing lock (revised after investigation, 2026-06-03)
+
+Investigation finding: **catalog coverage is already complete** — all 34 courses have
+generated entries in `requirements.generated.json`. But the matcher does **not** run for
+all of them. Actual routing:
+
+- **24/34 courses → matcher** (non-empty, matcher-safe requirements).
+- **10/34 courses → legacy `deterministicRules` fallback**:
+  - 1 has no machine-parseable requirements (empty entry).
+  - 9 are multi-pathway courses (`(A AND B) OR (C AND D)`) that the **flat requirement
+    schema cannot represent**; `isMatcherUnsafe()` deliberately routes them to the
+    fallback rather than evaluate them over-permissively.
+
+**Therefore `deterministicRules.ts` is load-bearing and must NOT be retired** — re-running
+the parser cannot fix the 9 unsafe courses, because the limitation is the flat schema, not
+missing data. Retirement is reclassified as a **v2 item**: extend the schema to express
+nested entry pathways, migrate those 9 courses, then deprecate the legacy path.
+
+Shipped instead: a **routing-coverage test** (`requirementsLoader.test.ts`) that locks the
+per-course matcher-vs-fallback split, so any future parser regen or schema change surfaces
+routing changes in review instead of silently moving a course between engines.
+
+(Optional, separate: re-run `scripts/parse-course-requirements.ts --code=<x>` for the one
+empty course if its published text actually contains parseable requirements — needs an
+`OPENAI_API_KEY` run + human review of the extracted rules.)
 
 ## Sequencing & risk
 
