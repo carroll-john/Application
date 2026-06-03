@@ -1,8 +1,11 @@
 # Eligibility Service — Repo Extraction Plan
 
-> Status: **proposal for review**. No code moved yet. Resolves the drift flagged in
-> the code review: `eligibility-service/` lives in this repo, but `docs/current-phase.md`
-> calls for eligibility/integration work to run as a separate workstream/repo.
+> Status: **SHIPPED (2026-06-03).** The service now lives at
+> [github.com/carroll-john/eligibility-service](https://github.com/carroll-john/eligibility-service)
+> (history-preserving `git subtree split`), is deployed on Render, and the in-repo copy has been
+> removed. The boundary is pinned in [docs/contracts/eligibility-evaluate.v1.md](contracts/eligibility-evaluate.v1.md)
+> and guarded by `api/_eligibility/contractV1.test.ts`. The steps below are kept as the record of
+> how it was done.
 
 ## Why extract
 

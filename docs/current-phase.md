@@ -29,8 +29,16 @@ Run two active tracks in parallel:
 - Maintain frequent doc updates so agents can reconstruct intent from markdown state alone.
 - Publish date-stamped stakeholder notes in `docs/stakeholder-updates/` as milestones land.
 
+### Delivery Status (2026-06-03)
+- The eligibility service is now extracted to its own repo
+  ([github.com/carroll-john/eligibility-service](https://github.com/carroll-john/eligibility-service))
+  and deployed on Render, talking to the app over the pinned
+  [v1 contract](contracts/eligibility-evaluate.v1.md). Rules engine v1 has shipped (reason codes,
+  four-status outcomes, `RULES_VERSION`). Remaining: per-environment `ELIGIBILITY_SERVICE_URL`/token
+  wiring and the integration-platform scaffold (Track A).
+
 ### Next 3 Tasks
-1. Connect `api/evaluate-transcript-eligibility` proxy to the external eligibility service in each environment (`ELIGIBILITY_SERVICE_URL` + token management).
+1. Set `ELIGIBILITY_SERVICE_URL` + `ELIGIBILITY_SERVICE_TOKEN` per environment (Vercel) so each app deployment calls the deployed service; confirm fallback when unset.
 2. Validate service responses against synthetic Australian transcript fixtures and tune status mapping for ambiguous GPA/English evidence cases.
 3. Stand up rules engine v1 with per-program reason codes and explanation payloads.
 
