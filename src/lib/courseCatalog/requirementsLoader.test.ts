@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { RequirementInstance } from "../eligibility/requirements";
-import { isMatcherUnsafe } from "./requirementsLoader";
+import { getCourseCatalog } from "./buildCatalog";
+import generated from "./requirements.generated.json";
+import { getGeneratedRequirementsForCourse, isMatcherUnsafe } from "./requirementsLoader";
 
 describe("isMatcherUnsafe", () => {
   it("treats a clean single-pathway course as safe", () => {
@@ -144,5 +146,71 @@ describe("isMatcherUnsafe", () => {
     ];
 
     expect(isMatcherUnsafe(requirements)).toBe(false);
+  });
+});
+
+/**
+ * Locks the matcher-vs-fallback routing for the whole generated catalog. The matcher path runs only
+ * for courses whose generated requirements are non-empty AND matcher-safe; everything else falls back
+ * to the legacy deterministicRules path (which is therefore load-bearing and must not be retired
+ * until the flat schema can express nested entry pathways — see
+ * docs/eligibility-rules-engine-v1-plan.md).
+ *
+ * The explicit FALLBACK_COURSES list means any change in how a course routes (e.g. after re-running
+ * scripts/parse-course-requirements.ts) shows up here as a failing test that must be consciously
+ * reviewed, rather than silently shifting a course between the two evaluation engines.
+ */
+describe("catalog requirement routing", () => {
+  // Derive codes from the real catalog (not the generated file's keys) so that a course added to
+  // courses.raw.json without a matching generated entry is caught here instead of silently routing
+  // to the legacy fallback.
+  const courseCodes = getCourseCatalog().map((course) => course.code);
+
+  // Courses that intentionally fall back to deterministicRules: 1 with no parseable requirements,
+  // 9 multi-pathway courses the flat matcher schema cannot safely represent.
+  const FALLBACK_COURSES = new Set<string>([
+    "cquniversity-australia-master-of-information-technology",
+    "uts-online-university-of-technology-sydney-master-of-business-administration-mba",
+    "master-of-health-management",
+    "unsw-online-university-of-new-south-wales-master-of-data-science",
+    "deakin-university-master-of-data-science",
+    "university-of-melbourne-master-of-public-health",
+    "master-of-business-management-with-discipline-studies-in-project-management",
+    "deakin-university-master-of-cyber-security",
+    "monash-online-monash-university-master-of-human-resource-management",
+    "master-of-business-marketing",
+  ]);
+
+  it("every catalog course has a generated requirements entry", () => {
+    const generatedKeys = new Set(
+      Object.keys((generated as { courses: Record<string, unknown[]> }).courses),
+    );
+    const missing = courseCodes.filter((code) => !generatedKeys.has(code));
+    // A catalog course with no generated entry would silently route to the legacy fallback;
+    // fail loudly so the parser is re-run (or the fallback list is updated deliberately).
+    expect(missing).toEqual([]);
+  });
+
+  it("exactly the documented courses fall back to the legacy engine", () => {
+    const actualFallback = courseCodes
+      .filter((code) => getGeneratedRequirementsForCourse(code) === undefined)
+      .sort();
+    expect(actualFallback).toEqual([...FALLBACK_COURSES].sort());
+  });
+
+  it("every matcher-exposed course is non-empty and matcher-safe", () => {
+    for (const code of courseCodes) {
+      const exposed = getGeneratedRequirementsForCourse(code);
+      if (!exposed) continue;
+      expect(exposed.length).toBeGreaterThan(0);
+      expect(isMatcherUnsafe(exposed)).toBe(false);
+    }
+  });
+
+  it("the matcher covers the majority of the catalog", () => {
+    const matcherCount = courseCodes.filter(
+      (code) => getGeneratedRequirementsForCourse(code) !== undefined,
+    ).length;
+    expect(matcherCount).toBeGreaterThan(courseCodes.length / 2);
   });
 });
