@@ -34,13 +34,15 @@ Run two active tracks in parallel:
   ([github.com/carroll-john/eligibility-service](https://github.com/carroll-john/eligibility-service))
   and deployed on Render, talking to the app over the pinned
   [v1 contract](contracts/eligibility-evaluate.v1.md). Rules engine v1 has shipped (reason codes,
-  four-status outcomes, `RULES_VERSION`). Remaining: per-environment `ELIGIBILITY_SERVICE_URL`/token
-  wiring and the integration-platform scaffold (Track A).
+  four-status outcomes, `RULES_VERSION`). Per-environment Vercel wiring is now live and verified —
+  Preview + Production both resolve to the deployed service (`ELIGIBILITY_SERVICE_URL` + token),
+  `/healthz` green and token-protected; Development is intentionally unset so local dev uses the
+  OpenAI fallback. Remaining: the integration-platform scaffold (Track A).
 
 ### Next 3 Tasks
-1. Set `ELIGIBILITY_SERVICE_URL` + `ELIGIBILITY_SERVICE_TOKEN` per environment (Vercel) so each app deployment calls the deployed service; confirm fallback when unset.
-2. Validate service responses against synthetic Australian transcript fixtures and tune status mapping for ambiguous GPA/English evidence cases.
-3. Stand up rules engine v1 with per-program reason codes and explanation payloads.
+1. Validate service responses against synthetic Australian transcript fixtures and tune status mapping for ambiguous GPA/English evidence cases.
+2. Mitigate Render free-tier cold start (~12s) on the first user-facing eligibility call (keep-warm ping or paid plan).
+3. Harden the service repo: bump `multer` 1.x → 2.x (deprecated, known vulns) and add a minimal test/lint CI workflow.
 
 ### Known Risks
 - Variability in transcript formats can degrade extraction quality.
