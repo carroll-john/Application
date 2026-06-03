@@ -9,6 +9,8 @@ dist/
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
+scripts/viteDevConsolePlugin.js
+scripts/viteDevConsolePlugin.d.ts
 supabase/.temp/
 supabase/.branches/
 .cursor/dev-console.log
