@@ -82,41 +82,60 @@ describe("documentStoragePath", () => {
 });
 
 describe("storage upload migration regressions", () => {
-  it("keeps document metadata storage checks as security definer", () => {
-    const sql = readMigration(
-      "20260523103000_application_document_storage_trigger_definer.sql",
-    );
+  const privateHelpersMigration = readMigration(
+    "20260611123849_revoke_internal_upload_limit_function_grants.sql",
+  );
 
-    expect(sql).toContain("security definer");
-    expect(sql).toContain("enforce_application_document_storage_exists");
-    expect(sql).toContain("storage.objects");
+  it("keeps internal upload helpers in private schema as security definer", () => {
+    expect(privateHelpersMigration).toContain(
+      "private.enforce_application_document_storage_exists",
+    );
+    expect(privateHelpersMigration).toContain(
+      "private.check_application_upload_limits",
+    );
+    expect(privateHelpersMigration).toContain(
+      "private.check_application_storage_upload_limits",
+    );
+    expect(privateHelpersMigration).toMatch(
+      /private\.check_application_storage_upload_limits[\s\S]*security definer/,
+    );
+    expect(privateHelpersMigration).toMatch(
+      /private\.check_application_upload_limits[\s\S]*security definer/,
+    );
+    expect(privateHelpersMigration).toContain("storage.objects");
   });
 
-  it("keeps upload limit checks as security definer", () => {
-    const sql = readMigration(
-      "20260523120000_storage_upload_limit_checks_security_definer.sql",
+  it("revokes anon RPC access and drops public helper functions", () => {
+    expect(privateHelpersMigration).toMatch(
+      /revoke all on function private\.check_application_upload_limits\(uuid, bigint\) from public, anon/,
     );
-
-    expect(sql).toContain("check_application_upload_limits");
-    expect(sql).toContain("check_application_storage_upload_limits");
-    expect(sql).toMatch(
-      /check_application_storage_upload_limits[\s\S]*security definer/,
+    expect(privateHelpersMigration).toMatch(
+      /revoke all on function private\.check_application_storage_upload_limits\(uuid, uuid, text, bigint\)[\s\S]*from public, anon/,
     );
-    expect(sql).toMatch(/check_application_upload_limits[\s\S]*security definer/);
+    expect(privateHelpersMigration).toMatch(
+      /revoke all on function private\.enforce_application_document_storage_exists\(\) from public, anon/,
+    );
+    expect(privateHelpersMigration).toContain(
+      "drop function if exists public.check_application_upload_limits(uuid, bigint)",
+    );
+    expect(privateHelpersMigration).toContain(
+      "drop function if exists public.check_application_storage_upload_limits(uuid, uuid, text, bigint)",
+    );
+    expect(privateHelpersMigration).toContain(
+      "drop function if exists public.enforce_application_document_storage_exists()",
+    );
   });
 
   it("uses the path owner instead of auth.uid() for storage trigger limit checks", () => {
-    const sql = readMigration(
-      "20260523123000_storage_upload_trigger_auth_context.sql",
+    expect(privateHelpersMigration).toContain(
+      "owner_user_id := parsed.owner_user_id::uuid",
     );
-
-    expect(sql).toContain("owner_user_id := parsed.owner_user_id::uuid");
-    expect(sql).toContain("auth.uid() is not null");
-    expect(sql).toMatch(
-      /perform public\.check_application_storage_upload_limits\([\s\S]*owner_user_id,/,
+    expect(privateHelpersMigration).toContain("auth.uid() is not null");
+    expect(privateHelpersMigration).toMatch(
+      /perform private\.check_application_storage_upload_limits\([\s\S]*owner_user_id,/,
     );
-    expect(sql).not.toMatch(
-      /perform public\.check_application_storage_upload_limits\([\s\S]*auth\.uid\(\),/,
+    expect(privateHelpersMigration).not.toMatch(
+      /perform private\.check_application_storage_upload_limits\([\s\S]*auth\.uid\(\),/,
     );
   });
 });
