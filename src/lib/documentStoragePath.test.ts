@@ -85,6 +85,12 @@ describe("storage upload migration regressions", () => {
   const privateHelpersMigration = readMigration(
     "20260611123849_revoke_internal_upload_limit_function_grants.sql",
   );
+  const authenticatedRevokeMigration = readMigration(
+    "20260611132055_revoke_authenticated_private_upload_helper_grants.sql",
+  );
+  const privateTriggerWrappersMigration = readMigration(
+    "20260611132230_move_upload_trigger_wrappers_to_private.sql",
+  );
 
   it("keeps internal upload helpers in private schema as security definer", () => {
     expect(privateHelpersMigration).toContain(
@@ -136,6 +142,51 @@ describe("storage upload migration regressions", () => {
     );
     expect(privateHelpersMigration).not.toMatch(
       /perform private\.check_application_storage_upload_limits\([\s\S]*auth\.uid\(\),/,
+    );
+  });
+
+  it("revokes authenticated access to private upload helpers (DIS-127)", () => {
+    expect(authenticatedRevokeMigration).toMatch(
+      /revoke execute on function private\.check_application_upload_limits\(uuid, bigint\) from authenticated/,
+    );
+    expect(authenticatedRevokeMigration).toMatch(
+      /revoke execute on function private\.check_application_storage_upload_limits\(uuid, uuid, text, bigint\)[\s\S]*from authenticated/,
+    );
+    expect(authenticatedRevokeMigration).toMatch(
+      /revoke execute on function private\.enforce_application_document_storage_exists\(\) from authenticated/,
+    );
+    expect(authenticatedRevokeMigration).toContain(
+      "revoke usage on schema private from authenticated",
+    );
+    expect(authenticatedRevokeMigration).not.toMatch(
+      /grant execute on function private\./,
+    );
+  });
+
+  it("moves upload trigger wrappers to private schema and drops public RPC copies", () => {
+    expect(privateTriggerWrappersMigration).toMatch(
+      /private\.enforce_application_document_upload_limits\(\)[\s\S]*security definer/,
+    );
+    expect(privateTriggerWrappersMigration).toMatch(
+      /private\.enforce_application_storage_upload_limits\(\)[\s\S]*security definer/,
+    );
+    expect(privateTriggerWrappersMigration).toMatch(
+      /revoke all on function private\.enforce_application_document_upload_limits\(\) from public, anon, authenticated/,
+    );
+    expect(privateTriggerWrappersMigration).toMatch(
+      /revoke all on function private\.enforce_application_storage_upload_limits\(\) from public, anon, authenticated/,
+    );
+    expect(privateTriggerWrappersMigration).toContain(
+      "execute function private.enforce_application_document_upload_limits()",
+    );
+    expect(privateTriggerWrappersMigration).toContain(
+      "execute function private.enforce_application_storage_upload_limits()",
+    );
+    expect(privateTriggerWrappersMigration).toContain(
+      "drop function if exists public.enforce_application_document_upload_limits()",
+    );
+    expect(privateTriggerWrappersMigration).toContain(
+      "drop function if exists public.enforce_application_storage_upload_limits()",
     );
   });
 });
