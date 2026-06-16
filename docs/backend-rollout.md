@@ -13,6 +13,59 @@
 - Signed-in users use Supabase-backed profile, application, and document storage. Anonymous users can browse courses and keep pre-auth local drafts.
 - RLS protects applicant data with `auth.uid()` ownership checks.
 
+## Auth security hardening (DIS-119, DIS-123)
+
+The Supabase Security Advisor flags two hosted Auth settings for project
+**Application** (`weyxnhykyyetquqprfnu`). Both are project-level Auth
+configuration, not application code — they cannot be set from a migration or
+the app, and they take effect only on the hosted project. Local dev intent is
+captured in `supabase/config.toml`; the hosted project must be changed in the
+dashboard (or via the Management API) by someone with project access. Both
+features require the **Pro plan or above**.
+
+> The project is currently on the **free tier**, so `supabase config push`
+> fails before reaching these settings — the custom email templates already in
+> `config.toml` are rejected by the default email provider ("Email template
+> modification is not available for free tier projects"). Until the project is
+> upgraded (and/or a custom SMTP provider is configured), apply both settings
+> in the **dashboard** rather than via `config push`.
+
+### Leaked password protection (DIS-119)
+
+Supabase Auth can reject known-compromised passwords by checking new passwords
+against the [HaveIBeenPwned.org](https://haveibeenpwned.com/Passwords) Pwned
+Passwords API. This is a hosted-only setting (no `config.toml` key exists for
+it).
+
+- **Dashboard:** Authentication → Providers → Email → *Password security* →
+  enable **Prevent the use of leaked passwords**.
+- **Management API:** `PATCH https://api.supabase.com/v1/projects/weyxnhykyyetquqprfnu/config/auth`
+  — see the [config/auth API reference](https://supabase.com/docs/reference/api/v1-update-an-auth-config)
+  for the exact field.
+- Reference: <https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection>
+- Optional adjacent hardening: the project's `minimum_password_length` is `6`;
+  the docs recommend at least `8`.
+
+### Additional MFA options (DIS-123)
+
+The project has too few MFA methods enabled. TOTP (authenticator app) is the
+recommended additional factor — it needs no SMS provider and no per-message
+cost. `supabase/config.toml` now enables TOTP under `[auth.mfa.totp]`
+(`enroll_enabled`/`verify_enabled = true`); apply it to the hosted project as
+well:
+
+- **Dashboard:** Authentication → Multi-Factor Authentication → enable
+  **App Authenticator (TOTP)**.
+- **CLI (applies `config.toml` to the linked project):** `supabase config push`.
+- Reference: <https://supabase.com/docs/guides/auth/auth-mfa>
+- Follow-up (separate task): enabling the factor only allows enrollment. A
+  user-facing enroll/verify flow in `/profile` is still required before
+  applicants can actually use TOTP.
+
+After enabling either setting, re-run the Security Advisor (or
+`get_advisors`) to confirm the `auth_leaked_password_protection` and
+`auth_insufficient_mfa_options` warnings clear.
+
 ## Environment Variables
 Add these to Vercel and local `.env`:
 

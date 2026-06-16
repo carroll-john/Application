@@ -83,6 +83,7 @@ npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts
 - Production sender (Resend): `Applications <noreply@carroll.consulting>` — see [auth-password-troubleshooting.md](auth-password-troubleshooting.md) and `npm run verify-resend`.
 - Site URL: `https://application-prototype.vercel.app`
 - Redirect URLs: production `/**`, localhost `http://localhost:5173/**`
+- Enable **leaked password protection** and **TOTP MFA** (Pro plan) — see [backend-rollout.md](backend-rollout.md) "Auth security hardening (DIS-119, DIS-123)".
 
 ## Storage Mode
 
