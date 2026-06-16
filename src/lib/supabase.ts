@@ -4,6 +4,7 @@ import {
   resolveSupabaseAnonKey,
   resolveSupabaseUrl,
 } from "./supabaseConfig";
+import { createFetchWithRetry } from "./supabaseFetch";
 
 const supabaseUrl = resolveSupabaseUrl(
   import.meta.env.VITE_SUPABASE_URL,
@@ -34,6 +35,12 @@ export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+      },
+      // DIS-142: retry transient network failures (e.g. "Failed to fetch")
+      // with exponential back-off across all auth, database, storage, and RPC
+      // calls before the error surfaces to the UI.
+      global: {
+        fetch: createFetchWithRetry(),
       },
     })
   : null;
