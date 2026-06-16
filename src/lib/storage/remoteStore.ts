@@ -111,6 +111,16 @@ async function fetchRemoteApplicationRow(
   session: Session,
   applicationId: string,
 ): Promise<RemoteApplicationRow | null> {
+  // DIS-141: local- prefixed IDs are not valid UUIDs and must never reach
+  // Supabase — Postgres would throw "invalid input syntax for type uuid".
+  if (!getRemoteUuid(applicationId)) {
+    console.error(
+      `[remoteStore] Skipping remote fetch: applicationId is not a valid UUID ("${applicationId}"). ` +
+        "The local ID was not replaced after the first remote sync.",
+    );
+    return null;
+  }
+
   const client = requireSupabaseClient();
 
   const { data, error } = await client
@@ -352,7 +362,16 @@ async function upsertApplicationRow(
   return applicationRow;
 }
 
-/** Replaces every child-table collection for the application (delete-all then re-insert). */
+/**
+ * Replaces every child-table collection for the application.
+ *
+ * DIS-140: Previously used bare .insert() after delete-all. If two saves
+ * raced (e.g. double-click or retry), both DELETEs would succeed and then
+ * both INSERTs would attempt to write the same client-side UUIDs, causing a
+ * duplicate key error on the primary key constraint. Switching to .upsert()
+ * with onConflict: 'id' makes the write idempotent — a concurrent second
+ * save simply overwrites the row that the first write just inserted.
+ */
 async function rewriteChildTables(
   client: SupabaseClient,
   applicationId: string,
@@ -375,24 +394,31 @@ async function rewriteChildTables(
   if (data.tertiaryQualifications.length > 0) {
     const { error } = await client
       .from("tertiary_qualifications")
-      .insert(data.tertiaryQualifications.map((q) => toTertiaryInsert(applicationId, q)));
+      .upsert(
+        data.tertiaryQualifications.map((q) => toTertiaryInsert(applicationId, q)),
+        { onConflict: "id" },
+      );
     if (error) throw error;
   }
 
   if (data.employmentExperiences.length > 0) {
     const { error } = await client
       .from("employment_experiences")
-      .insert(data.employmentExperiences.map((e) => toEmploymentInsert(applicationId, e)));
+      .upsert(
+        data.employmentExperiences.map((e) => toEmploymentInsert(applicationId, e)),
+        { onConflict: "id" },
+      );
     if (error) throw error;
   }
 
   if (data.professionalAccreditations.length > 0) {
     const { error } = await client
       .from("professional_accreditations")
-      .insert(
+      .upsert(
         data.professionalAccreditations.map((a) =>
           toProfessionalAccreditationInsert(applicationId, a),
         ),
+        { onConflict: "id" },
       );
     if (error) throw error;
   }
@@ -400,10 +426,11 @@ async function rewriteChildTables(
   if (data.secondaryQualifications.length > 0) {
     const { error } = await client
       .from("secondary_qualifications")
-      .insert(
+      .upsert(
         data.secondaryQualifications.map((q) =>
           toSecondaryQualificationInsert(applicationId, q),
         ),
+        { onConflict: "id" },
       );
     if (error) throw error;
   }
@@ -411,7 +438,10 @@ async function rewriteChildTables(
   if (data.languageTests.length > 0) {
     const { error } = await client
       .from("language_tests")
-      .insert(data.languageTests.map((t) => toLanguageTestInsert(applicationId, t)));
+      .upsert(
+        data.languageTests.map((t) => toLanguageTestInsert(applicationId, t)),
+        { onConflict: "id" },
+      );
     if (error) throw error;
   }
 }
@@ -511,6 +541,14 @@ export async function deleteRemoteApplication(
   session: Session,
   recordId: string,
 ) {
+  // DIS-141: guard against local- IDs that were never reconciled to a remote UUID.
+  if (!getRemoteUuid(recordId)) {
+    console.error(
+      `[remoteStore] Skipping remote delete: recordId is not a valid UUID ("${recordId}").`,
+    );
+    return;
+  }
+
   const client = requireSupabaseClient();
   const { error } = await client
     .from("applications")

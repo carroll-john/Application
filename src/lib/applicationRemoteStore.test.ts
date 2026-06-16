@@ -9,6 +9,7 @@ interface MockQuery {
   eq: (...args: unknown[]) => MockQuery;
   order: (...args: unknown[]) => MockQuery;
   insert: (...args: unknown[]) => MockQuery;
+  upsert: (...args: unknown[]) => MockQuery;
   update: (...args: unknown[]) => MockQuery;
   delete: (...args: unknown[]) => MockQuery;
   single: (...args: unknown[]) => MockQuery;
@@ -33,6 +34,10 @@ function createQuery(result: QueryResult): MockQuery {
     },
     insert(...args) {
       this.calls.push({ method: "insert", args });
+      return this;
+    },
+    upsert(...args) {
+      this.calls.push({ method: "upsert", args });
       return this;
     },
     update(...args) {
@@ -136,6 +141,9 @@ const session = {
   user: { id: "user-123", email: "applicant@example.com" },
 } as unknown as Session;
 
+// A stable UUID to use anywhere a valid remote ID is needed.
+const VALID_UUID = "550e8400-e29b-41d4-a716-446655440000";
+
 beforeEach(() => {
   mockClient.fromCalls = [];
   mockClient.rpcCalls = [];
@@ -209,15 +217,16 @@ describe("listRemoteApplications", () => {
 
 describe("loadRemoteApplicationById", () => {
   it("returns null when the application is not found", async () => {
+    // Use a real UUID so the guard passes and the mock can return null.
     mockClient.tableResults.set("applications", [{ data: null, error: null }]);
 
-    const result = await loadRemoteApplicationById(session, "missing-id");
+    const result = await loadRemoteApplicationById(session, VALID_UUID);
 
     expect(result).toBeNull();
     const query = mockClient.fromCalls[0]?.query;
     expect(query?.calls).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ method: "eq", args: ["id", "missing-id"] }),
+        expect.objectContaining({ method: "eq", args: ["id", VALID_UUID] }),
         expect.objectContaining({ method: "eq", args: ["user_id", "user-123"] }),
         expect.objectContaining({ method: "maybeSingle", args: [] }),
       ]),
@@ -225,11 +234,23 @@ describe("loadRemoteApplicationById", () => {
   });
 
   it("propagates supabase errors when fetching the application", async () => {
+    // Use a real UUID so the guard passes and the mock error is thrown.
     mockClient.tableResults.set("applications", [
       { data: null, error: new Error("network down") },
     ]);
 
-    await expect(loadRemoteApplicationById(session, "any")).rejects.toThrow("network down");
+    await expect(loadRemoteApplicationById(session, VALID_UUID)).rejects.toThrow("network down");
+  });
+
+  it("returns null without querying Supabase when given a local- prefixed ID (DIS-141)", async () => {
+    const result = await loadRemoteApplicationById(
+      session,
+      "local-550e8400-e29b-41d4-a716-446655440000",
+    );
+
+    expect(result).toBeNull();
+    // Guard must have fired before any Supabase call.
+    expect(mockClient.fromCalls).toHaveLength(0);
   });
 });
 
@@ -871,25 +892,37 @@ describe("submitRemoteApplication", () => {
 
 describe("deleteRemoteApplication", () => {
   it("scopes the delete to the current user", async () => {
+    // Use a real UUID so the guard passes.
     mockClient.tableResults.set("applications", [{ data: null, error: null }]);
 
-    await deleteRemoteApplication(session, "record-9");
+    await deleteRemoteApplication(session, VALID_UUID);
 
     const query = mockClient.fromCalls[0]?.query;
     expect(query?.calls).toEqual([
       { method: "delete", args: [] },
-      { method: "eq", args: ["id", "record-9"] },
+      { method: "eq", args: ["id", VALID_UUID] },
       { method: "eq", args: ["user_id", "user-123"] },
     ]);
   });
 
   it("throws when supabase rejects the delete", async () => {
+    // Use a real UUID so the guard passes and the mock error is thrown.
     mockClient.tableResults.set("applications", [
       { data: null, error: new Error("foreign key violation") },
     ]);
 
-    await expect(deleteRemoteApplication(session, "x")).rejects.toThrow(
+    await expect(deleteRemoteApplication(session, VALID_UUID)).rejects.toThrow(
       "foreign key violation",
     );
+  });
+
+  it("skips the Supabase delete when given a local- prefixed ID (DIS-141)", async () => {
+    await deleteRemoteApplication(
+      session,
+      "local-550e8400-e29b-41d4-a716-446655440000",
+    );
+
+    // Guard must have fired before any Supabase call.
+    expect(mockClient.fromCalls).toHaveLength(0);
   });
 });
