@@ -37,8 +37,9 @@ export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
         detectSessionInUrl: true,
       },
       // DIS-142: retry transient network failures (e.g. "Failed to fetch")
-      // with exponential back-off across all auth, database, storage, and RPC
-      // calls before the error surfaces to the UI.
+      // with exponential back-off before the error surfaces to the UI. Only
+      // idempotent requests (reads, deletes) are retried — never POST/PATCH —
+      // so a lost response can't duplicate a non-idempotent insert.
       global: {
         fetch: createFetchWithRetry(),
       },

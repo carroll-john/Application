@@ -41,6 +41,36 @@ export function isTransientFetchError(error: unknown): boolean {
   return error instanceof TypeError;
 }
 
+// HTTP-idempotent methods are safe to replay: re-sending them cannot create a
+// second resource. A `TypeError` usually means the request never reached the
+// server, but it can also fire after the server committed and the response was
+// lost — so we must only auto-retry requests that are harmless to repeat.
+// POST and PATCH are deliberately excluded: a retried PostgREST INSERT with a
+// server-generated id (see upsertApplicationRow) would create a duplicate row.
+// Those still surface to the existing "please try again" UI; the user retries
+// safely by hand.
+const IDEMPOTENT_METHODS = new Set(["GET", "HEAD", "OPTIONS", "PUT", "DELETE"]);
+
+function getRequestMethod(input: FetchInput, init?: FetchInit): string {
+  if (init?.method) {
+    return init.method.toUpperCase();
+  }
+
+  if (typeof Request !== "undefined" && input instanceof Request) {
+    return input.method.toUpperCase();
+  }
+
+  // Per the fetch spec, an omitted method defaults to GET.
+  return "GET";
+}
+
+export function isIdempotentRequest(
+  input: FetchInput,
+  init?: FetchInit,
+): boolean {
+  return IDEMPOTENT_METHODS.has(getRequestMethod(input, init));
+}
+
 function defaultSleep(ms: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -61,6 +91,8 @@ export function createFetchWithRetry(
     input: FetchInput,
     init?: FetchInit,
   ): Promise<Response> {
+    // The method cannot change between attempts, so decide retry-eligibility once.
+    const retryable = isIdempotentRequest(input, init);
     let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -72,7 +104,12 @@ export function createFetchWithRetry(
         const aborted = init?.signal?.aborted ?? false;
         const isLastAttempt = attempt === maxAttempts;
 
-        if (aborted || isLastAttempt || !isTransientFetchError(error)) {
+        if (
+          aborted ||
+          isLastAttempt ||
+          !retryable ||
+          !isTransientFetchError(error)
+        ) {
           throw error;
         }
 
