@@ -47,11 +47,11 @@ export default defineConfig(({ mode }) => {
       sourcemap: enableSentryUpload,
       rollupOptions: {
         output: {
-          manualChunks: {
-            react: ["react", "react-dom", "react-router-dom"],
-            sentry: ["@sentry/react"],
-            supabase: ["@supabase/supabase-js"],
-            datepicker: ["react-datepicker", "date-fns"],
+          manualChunks(id) {
+            if (["react", "react-dom", "react-router-dom"].some((m) => id.includes(`/node_modules/${m}/`))) return "react";
+            if (id.includes("/node_modules/@sentry/react/")) return "sentry";
+            if (id.includes("/node_modules/@supabase/supabase-js/")) return "supabase";
+            if (["react-datepicker", "date-fns"].some((m) => id.includes(`/node_modules/${m}/`))) return "datepicker";
           },
         },
       },
