@@ -23,6 +23,13 @@ captured in `supabase/config.toml`; the hosted project must be changed in the
 dashboard (or via the Management API) by someone with project access. Both
 features require the **Pro plan or above**.
 
+> The project is currently on the **free tier**, so `supabase config push`
+> fails before reaching these settings — the custom email templates already in
+> `config.toml` are rejected by the default email provider ("Email template
+> modification is not available for free tier projects"). Until the project is
+> upgraded (and/or a custom SMTP provider is configured), apply both settings
+> in the **dashboard** rather than via `config push`.
+
 ### Leaked password protection (DIS-119)
 
 Supabase Auth can reject known-compromised passwords by checking new passwords
