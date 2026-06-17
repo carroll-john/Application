@@ -119,6 +119,7 @@ SENTRY_PROJECT=your_sentry_project_slug
 Current workspace values:
 - `VITE_SUPABASE_URL` points at your Supabase project
 - `VITE_CLARITY_PROJECT_ID` is optional; the frontend loader is a no-op until it is set
+- `VITE_GOOGLE_MAPS_API_KEY` powers the residential/postal address auto-suggest in Section 1; until it is set the fields stay in manual-entry mode (see [Address auto-suggest (Google Places)](#address-auto-suggest-google-places))
 - remote upload guardrail defaults are:
   - `VITE_REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION=30`
   - `VITE_REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION=104857600` (100 MB)
@@ -134,6 +135,64 @@ Current workspace values:
 - PostHog runs with manual event capture only (`autocapture: false`) and uses hashed analytics user IDs.
 - Clarity excludes likely automated traffic (for example `navigator.webdriver`, headless/bot user agents), supports explicit opt-out via `?clarity=off` or local/session storage key `application-prototype:disable-clarity=1`, and is masked/disabled on PII-heavy application routes.
 - keep the publishable key only in local env and Vercel envs, not in checked-in docs
+
+## Address auto-suggest (Google Places)
+
+Section 1 of the application (`/section1/address`) already ships live
+address auto-suggest for both the **residential address** and the
+**postal address** (the latter appears once "My postal address is
+different" is ticked). The UI lives in
+`src/features/section1/AddressSectionUi.tsx`; the lookup is
+`createGoogleAddressLookup()` in `src/lib/googlePlaces.ts`, which uses the
+Google Maps JavaScript loader plus the Places API (New)
+`AutocompleteSuggestion` / `Place.fetchFields`, and
+`src/lib/googlePlacesAddress.ts` maps the result into the structured
+address fields (unit, street, suburb, state, postcode, country).
+
+The feature is gated entirely on `VITE_GOOGLE_MAPS_API_KEY`. When the key
+is **absent**, `hasGooglePlacesApiKey()` returns `false`, the inputs drop
+to manual-entry mode, and the form shows *"Live address lookup is not
+configured in this environment. Keep typing to enter the address
+manually."* — i.e. no dropdown appears. Setting the key is all that's
+needed to turn auto-suggest on; **no code change is required.**
+
+### Enable it
+
+1. **Google Cloud project** — in a project with **billing enabled**
+   (Places requests are billed; Google's monthly free tier usually covers
+   low volume), enable both:
+   - **Maps JavaScript API** (loads the client library)
+   - **Places API (New)** (backs `AutocompleteSuggestion` + `fetchFields`)
+2. **Create an API key** (APIs & Services → Credentials → Create
+   credentials → API key). This key ships in the client bundle, so lock it
+   down rather than relying on secrecy:
+   - **Application restriction → HTTP referrers (web sites):** add the
+     production domain, the Vercel preview wildcard
+     (`*.vercel.app/*` or your project's preview pattern), and
+     `http://localhost:*/*` for local dev.
+   - **API restriction:** restrict the key to *Maps JavaScript API* and
+     *Places API (New)* only.
+3. **Set the env var** as `VITE_GOOGLE_MAPS_API_KEY`:
+   - **Vercel:** Project → Settings → Environment Variables, for the
+     Production and Preview environments (and Development if you use
+     `vercel dev`).
+   - **Local:** add it to your `.env` (see `.env.example`).
+   - It is a `VITE_`-prefixed value, so it is **inlined at build time** —
+     after adding/changing it you must trigger a fresh build/redeploy; an
+     already-built deployment will not pick it up at runtime.
+4. **CSP is already configured** — `vercel.json` whitelists
+   `https://maps.googleapis.com` and `https://maps.gstatic.com` in
+   `script-src`, `img-src`, and `connect-src`, so no header changes are
+   needed.
+
+### Verify
+
+After redeploying with the key set, open `/section1/address`, type at
+least 3 characters of a street address, and confirm a suggestions dropdown
+appears; selecting one should populate the suburb/state/postcode meta line
+below the field. Lookups are scoped to Australia (`includedRegionCodes:
+["au"]`, `region: "au"`, `language: "en-AU"`) in `googlePlaces.ts` — adjust
+there if other regions are ever needed.
 
 ## Restore a paused or inactive hosted project
 Free-tier Supabase projects auto-pause after inactivity. While paused, the project API hostname does not resolve (`NXDOMAIN` / `Failed to fetch`), so hosted auth and `supabase db push` both fail until the project is restored.
