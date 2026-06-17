@@ -7,6 +7,14 @@
 - New accounts require email confirmation before first sign-in.
 - Forgot password sends a reset link; user sets a new password on `/sign-in` while `isPasswordRecovery` is true.
 - Logged-in users change password on `/profile` via `ProfilePasswordSection`.
+- New passwords (sign-up, reset, profile change) are checked against the Pwned
+  Passwords data set via `isPasswordLeaked` (`src/lib/leakedPassword.ts`) →
+  `api/check-leaked-password.ts`. App-level, free-tier equivalent of Supabase's
+  Pro-only leaked-password protection (DIS-119). k-anonymity: only the 5-char
+  SHA-1 prefix leaves the browser. **Fails open** — never blocks on error.
+- Logged-in users can enable TOTP two-factor auth on `/profile` via
+  `ProfileMfaSection` (`src/lib/authMfa.ts`) (DIS-123). Requires the TOTP factor
+  enabled on the Supabase project; the section self-describes when it isn't.
 - Configured by `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - Local dev: `supabase start` + Mailpit at http://127.0.0.1:54324 (confirmation emails do not go to real inboxes).
 - Troubleshooting: [auth-password-troubleshooting.md](auth-password-troubleshooting.md)
@@ -60,6 +68,8 @@ Shared field UI: `features/auth/components/AuthEmailField.tsx`, `AuthPasswordPai
 | `src/features/auth/AuthPanel.tsx` | Thin screen router (~80 lines) |
 | `src/features/auth/AuthModal.tsx` | Modal wrapper reusing `AuthPanel` |
 | `src/features/profile/ProfilePasswordSection.tsx` | Logged-in password change |
+| `src/lib/leakedPassword.ts` | Pwned Passwords check (client) + `api/check-leaked-password.ts` proxy |
+| `src/lib/authMfa.ts` | TOTP MFA wrappers; UI in `src/features/profile/ProfileMfaSection.tsx` |
 | `src/pages/SignIn.tsx` | Full-page sign-in route |
 | `src/pages/AuthCallback.tsx` | Email confirmation callback handler |
 
@@ -72,7 +82,9 @@ Shared field UI: `features/auth/components/AuthEmailField.tsx`, `AuthPasswordPai
 ## Required Tests After Auth Changes
 
 ```bash
-npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts
+npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
+  src/lib/leakedPassword.test.ts src/lib/authMfa.test.ts \
+  api/check-leaked-password.test.ts
 ```
 
 ## Supabase Dashboard

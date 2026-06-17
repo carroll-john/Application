@@ -26,6 +26,7 @@ import {
   isSupabaseConfigured,
   supabase,
 } from "../lib/supabase";
+import { isPasswordLeaked } from "../lib/leakedPassword";
 import { syncPostHogUser } from "../lib/posthog";
 import { syncSentryUser } from "../lib/sentry";
 
@@ -192,6 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return signUpWithPasswordRequest(supabase.auth, email, password, {
           emailRedirectTo,
           supabaseUrl: configuredSupabaseUrl,
+          checkLeakedPassword: isPasswordLeaked,
         });
       },
       requestPasswordReset: async (email, options) => {
@@ -224,7 +226,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error } = await updatePasswordAfterRecoveryRequest(
           supabase.auth,
           password,
-          { supabaseUrl: configuredSupabaseUrl },
+          {
+            supabaseUrl: configuredSupabaseUrl,
+            checkLeakedPassword: isPasswordLeaked,
+          },
         );
 
         if (!error) {
@@ -243,6 +248,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         return updatePasswordAfterRecoveryRequest(supabase.auth, password, {
           supabaseUrl: configuredSupabaseUrl,
+          checkLeakedPassword: isPasswordLeaked,
         });
       },
       signOut: async () => {

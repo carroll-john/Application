@@ -184,3 +184,22 @@
 - Use `eligible`, `conditionally_eligible`, `ineligible`, and `insufficient_data` for transcript eligibility outcomes.
 - Persist transcript eligibility assessments alongside tertiary qualification records to support explainable review surfaces.
 - On service unavailability or uncertain extraction, default to `insufficient_data` with explicit manual-review guidance instead of guessing.
+
+## 2026-06-17
+
+### Auth hardening lands in app code rather than a Supabase Pro upgrade (DIS-119, DIS-123)
+- The hosted Supabase project stays on the free tier, so the native
+  leaked-password protection (Pro-only) and the Security Advisor toggles are not
+  used. Deliver the protection in app code instead.
+- Leaked-password protection (DIS-119): check new passwords (sign-up, reset,
+  profile change) against the Pwned Passwords range API using k-anonymity (only
+  the 5-char SHA-1 prefix leaves the browser), proxied through
+  `api/check-leaked-password.ts` to stay within the app CSP. The check fails
+  open so a breach-check outage never blocks an auth action.
+- MFA (DIS-123): ship a `/profile` TOTP enroll/verify/disable flow over
+  `supabase.auth.mfa`. It works wherever the TOTP factor is enabled and shows a
+  clear message where it isn't.
+- These do not clear the `auth_leaked_password_protection` /
+  `auth_insufficient_mfa_options` advisor lints (the advisor inspects the
+  Supabase setting, not app code). Clearing the lints still requires the
+  dashboard toggles on a Pro project — tracked in `backend-rollout.md`.

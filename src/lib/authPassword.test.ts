@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  AUTH_LEAKED_PASSWORD_MESSAGE,
   AUTH_MIN_PASSWORD_LENGTH,
   formatAuthConnectivityError,
   requestPasswordReset,
@@ -137,6 +138,53 @@ describe("authPassword", () => {
     ).resolves.toEqual({
       error: "An account with this email already exists. Sign in instead.",
     });
+  });
+
+  it("blocks sign-up with a leaked password before calling Supabase", async () => {
+    const auth = createAuthMock();
+    const checkLeakedPassword = vi.fn().mockResolvedValue(true);
+
+    await expect(
+      signUpWithPassword(auth, "user@example.com", "secret123", {
+        checkLeakedPassword,
+      }),
+    ).resolves.toEqual({ error: AUTH_LEAKED_PASSWORD_MESSAGE });
+    expect(checkLeakedPassword).toHaveBeenCalledWith("secret123");
+    expect(auth.signUp).not.toHaveBeenCalled();
+  });
+
+  it("allows sign-up when the leaked-password check passes", async () => {
+    const auth = createAuthMock();
+    const checkLeakedPassword = vi.fn().mockResolvedValue(false);
+
+    await expect(
+      signUpWithPassword(auth, "user@example.com", "secret123", {
+        checkLeakedPassword,
+      }),
+    ).resolves.toEqual({ error: null, outcome: "confirmation_sent" });
+    expect(auth.signUp).toHaveBeenCalled();
+  });
+
+  it("fails open and signs up when the leaked-password check throws", async () => {
+    const auth = createAuthMock();
+    const checkLeakedPassword = vi.fn().mockRejectedValue(new Error("offline"));
+
+    await expect(
+      signUpWithPassword(auth, "user@example.com", "secret123", {
+        checkLeakedPassword,
+      }),
+    ).resolves.toEqual({ error: null, outcome: "confirmation_sent" });
+    expect(auth.signUp).toHaveBeenCalled();
+  });
+
+  it("blocks a leaked password during password recovery", async () => {
+    const auth = createAuthMock();
+    const checkLeakedPassword = vi.fn().mockResolvedValue(true);
+
+    await expect(
+      updatePasswordAfterRecovery(auth, "secret123", { checkLeakedPassword }),
+    ).resolves.toEqual({ error: AUTH_LEAKED_PASSWORD_MESSAGE });
+    expect(auth.updateUser).not.toHaveBeenCalled();
   });
 
   it("requests a password reset with redirect URL", async () => {

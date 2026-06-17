@@ -37,6 +37,19 @@ against the [HaveIBeenPwned.org](https://haveibeenpwned.com/Passwords) Pwned
 Passwords API. This is a hosted-only setting (no `config.toml` key exists for
 it).
 
+> **App-level mitigation now ships (free tier).** Because the native setting is
+> Pro-only, the app reproduces the same protection in code: `signUpWithPassword`
+> and `updatePasswordAfterRecovery` (`src/lib/authPassword.ts`) call
+> `isPasswordLeaked` (`src/lib/leakedPassword.ts`), which checks the candidate
+> password against the Pwned Passwords range API via the `Add-Padding`
+> k-anonymity model — only the first 5 chars of the SHA-1 hash leave the
+> browser, proxied through `api/check-leaked-password.ts` so the request stays
+> inside the app's CSP. The check **fails open** (never blocks an auth action on
+> error). This covers sign-up, password reset, and `/profile` password change.
+> It does **not** clear the `auth_leaked_password_protection` advisor lint — the
+> advisor only inspects the Supabase setting — so the dashboard toggle below is
+> still the way to make the warning go away if/when the project moves to Pro.
+
 - **Dashboard:** Authentication → Providers → Email → *Password security* →
   enable **Prevent the use of leaked passwords**.
 - **Management API:** `PATCH https://api.supabase.com/v1/projects/weyxnhykyyetquqprfnu/config/auth`
@@ -58,9 +71,13 @@ well:
   **App Authenticator (TOTP)**.
 - **CLI (applies `config.toml` to the linked project):** `supabase config push`.
 - Reference: <https://supabase.com/docs/guides/auth/auth-mfa>
-- Follow-up (separate task): enabling the factor only allows enrollment. A
-  user-facing enroll/verify flow in `/profile` is still required before
-  applicants can actually use TOTP.
+- **Enroll/verify UI now ships.** `/profile` has a *Two-factor authentication*
+  section (`src/features/profile/ProfileMfaSection.tsx` over
+  `src/lib/authMfa.ts`) that enrolls a TOTP factor, shows the QR + manual key,
+  verifies the 6-digit code, and lets the user turn it off. It works wherever
+  the TOTP factor is enabled (local dev via `config.toml` now; the hosted
+  project once the toggle above is on) and degrades gracefully with a clear
+  message where the project hasn't enabled TOTP yet.
 
 After enabling either setting, re-run the Security Advisor (or
 `get_advisors`) to confirm the `auth_leaked_password_protection` and
