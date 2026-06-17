@@ -16,6 +16,32 @@ export type SignUpWithPasswordResult = {
   outcome?: "confirmation_sent" | "existing_account";
 };
 
+// DIS-119: an injected checker that resolves true when a password is known to
+// be compromised. Injected (rather than imported) so this module stays a pure
+// validation/error-mapping layer and the network call can be mocked in tests.
+export type LeakedPasswordChecker = (password: string) => Promise<boolean>;
+
+export const AUTH_LEAKED_PASSWORD_MESSAGE =
+  "This password has appeared in a known data breach. Choose a different password.";
+
+async function findLeakedPasswordError(
+  password: string,
+  checkLeakedPassword: LeakedPasswordChecker | undefined,
+): Promise<string | null> {
+  if (!checkLeakedPassword) {
+    return null;
+  }
+
+  try {
+    return (await checkLeakedPassword(password))
+      ? AUTH_LEAKED_PASSWORD_MESSAGE
+      : null;
+  } catch {
+    // Fail open: a broken breach check must never block setting a password.
+    return null;
+  }
+}
+
 function isRepeatedSignUpResponse(user: { identities?: unknown[] } | null) {
   return Boolean(user && (!user.identities || user.identities.length === 0));
 }
@@ -181,7 +207,11 @@ export async function signUpWithPassword(
   auth: AuthClient,
   email: string,
   password: string,
-  options?: { emailRedirectTo?: string; supabaseUrl?: string | null },
+  options?: {
+    emailRedirectTo?: string;
+    supabaseUrl?: string | null;
+    checkLeakedPassword?: LeakedPasswordChecker;
+  },
 ): Promise<SignUpWithPasswordResult> {
   const normalizedEmail = normalizeAuthEmail(email);
 
@@ -201,6 +231,15 @@ export async function signUpWithPassword(
     return {
       error: `Password must be at least ${AUTH_MIN_PASSWORD_LENGTH} characters.`,
     };
+  }
+
+  const leakedPasswordError = await findLeakedPasswordError(
+    password,
+    options?.checkLeakedPassword,
+  );
+
+  if (leakedPasswordError) {
+    return { error: leakedPasswordError };
   }
 
   try {
@@ -259,7 +298,10 @@ export async function requestPasswordReset(
 export async function updatePasswordAfterRecovery(
   auth: AuthClient,
   password: string,
-  options?: { supabaseUrl?: string | null },
+  options?: {
+    supabaseUrl?: string | null;
+    checkLeakedPassword?: LeakedPasswordChecker;
+  },
 ): Promise<{ error: string | null }> {
   if (!password) {
     return { error: "Enter a password." };
@@ -269,6 +311,15 @@ export async function updatePasswordAfterRecovery(
     return {
       error: `Password must be at least ${AUTH_MIN_PASSWORD_LENGTH} characters.`,
     };
+  }
+
+  const leakedPasswordError = await findLeakedPasswordError(
+    password,
+    options?.checkLeakedPassword,
+  );
+
+  if (leakedPasswordError) {
+    return { error: leakedPasswordError };
   }
 
   try {

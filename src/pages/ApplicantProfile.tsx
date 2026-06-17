@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   ProfileDetailsFields,
   ProfileLoadingState,
+  ProfileMfaSection,
   ProfilePage,
   ProfilePasswordSection,
 } from "../features/profile";
@@ -13,6 +14,7 @@ import {
   saveApplicantProfile,
   type StoredApplicantProfile,
 } from "../lib/applicantProfileStore";
+import { supabase } from "../lib/supabase";
 
 export default function ApplicantProfile() {
   const navigate = useNavigate();
@@ -152,6 +154,7 @@ export default function ApplicantProfile() {
           onSave={() => void handleSave()}
         />
         <ProfilePasswordSection onChangePassword={changePassword} />
+        {supabase ? <ProfileMfaSection mfa={supabase.auth.mfa} /> : null}
       </div>
     </ProfilePage>
   );
