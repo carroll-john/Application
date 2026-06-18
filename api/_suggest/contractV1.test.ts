@@ -14,7 +14,7 @@ import {
   SUGGEST_ADDRESS_SUGGEST_PATH,
   SUGGEST_CONTRACT_VERSION,
   SUGGEST_INSTITUTION_SUGGEST_PATH,
-} from "./contractV1.ts";
+} from "./contractV1.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const serviceContractPath = path.resolve(

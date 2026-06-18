@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createSuggestApp } from "../../../suggest-service/src/server.mjs";
-import { handleInstitutionSuggest } from "./proxy.ts";
+import { handleInstitutionSuggest } from "./proxy.js";
 
 let server;
 let baseUrl;

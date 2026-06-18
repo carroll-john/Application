@@ -3,7 +3,7 @@ import {
   SUGGEST_ADDRESS_SUGGEST_PATH,
   SUGGEST_AUTH_SCHEME,
   SUGGEST_INSTITUTION_SUGGEST_PATH,
-} from "./contractV1.ts";
+} from "./contractV1.js";
 
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");

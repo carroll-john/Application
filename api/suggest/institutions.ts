@@ -1,3 +1,3 @@
-import handler from "../_suggest/proxy.ts";
+import handler from "../_suggest/proxy.js";
 
 export default handler;
