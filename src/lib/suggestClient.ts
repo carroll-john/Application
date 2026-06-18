@@ -28,16 +28,24 @@ export function getSuggestProxyBaseUrl() {
   return `http://${host}:${port}/api/suggest`;
 }
 
-function createProxySuggestClient() {
+function createProxyEndpoint(pathname: string) {
   const baseUrl = trimTrailingSlash(getSuggestProxyBaseUrl());
+  const path = `${baseUrl}/${pathname.replace(/^\//, "")}`;
 
+  if (typeof window !== "undefined") {
+    return new URL(path, window.location.origin);
+  }
+
+  return new URL(path);
+}
+function createProxySuggestClient() {
   return {
     async suggestInstitutions(params: {
       query: string;
       country?: string;
       limit?: number;
     }): Promise<InstitutionSuggestion[]> {
-      const url = new URL(`${baseUrl}/institutions`);
+      const url = createProxyEndpoint("institutions");
       url.searchParams.set("q", params.query);
       if (params.country?.trim()) {
         url.searchParams.set("country", params.country.trim());
@@ -66,7 +74,7 @@ function createProxySuggestClient() {
       query: string;
       regionCodes?: string[];
     }): Promise<AddressSuggestion[]> {
-      const url = new URL(`${baseUrl}/addresses`);
+      const url = createProxyEndpoint("addresses");
       url.searchParams.set("q", params.query);
       if (params.regionCodes?.length) {
         url.searchParams.set("regionCodes", params.regionCodes.join(","));
@@ -89,7 +97,7 @@ function createProxySuggestClient() {
     },
 
     async resolveAddress(placeId: string) {
-      const url = new URL(`${baseUrl}/addresses`);
+      const url = createProxyEndpoint("addresses");
       url.searchParams.set("resolve", "1");
       url.searchParams.set("placeId", placeId);
 
