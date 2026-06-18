@@ -7,10 +7,10 @@ import {
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import type { StructuredAddress } from "../../lib/address";
-import { createGoogleAddressLookup } from "../../lib/googlePlaces";
+import { createAppAddressLookup } from "../../lib/suggestClient";
 
 type AddressKey = "residentialAddress" | "postalAddress";
-type AddressLookup = ReturnType<typeof createGoogleAddressLookup>;
+type AddressLookup = ReturnType<typeof createAppAddressLookup>;
 
 interface AddressSectionCardsProps {
   formData: {
@@ -29,7 +29,7 @@ interface AddressSectionCardsProps {
   renderAddressMeta: (address: StructuredAddress) => ReactNode;
   residentialLookup: AddressLookup;
   unavailableLookupMessage: string;
-  useGoogleAddressSearch: boolean;
+  useAddressSearch: boolean;
 }
 
 export function AddressSectionCards({
@@ -42,7 +42,7 @@ export function AddressSectionCards({
   renderAddressMeta,
   residentialLookup,
   unavailableLookupMessage,
-  useGoogleAddressSearch,
+  useAddressSearch,
 }: AddressSectionCardsProps) {
   return (
     <div className="space-y-6">
@@ -74,12 +74,10 @@ export function AddressSectionCards({
             <AddressAutocomplete
               id="residentialAddress"
               searchSuggestions={
-                useGoogleAddressSearch
-                  ? residentialLookup.searchSuggestions
-                  : undefined
+                useAddressSearch ? residentialLookup.searchSuggestions : undefined
               }
               emptyMessage={
-                useGoogleAddressSearch
+                useAddressSearch
                   ? "No matching addresses found. Check the spelling or keep typing."
                   : unavailableLookupMessage
               }
@@ -94,7 +92,7 @@ export function AddressSectionCards({
             />
           </div>
         </div>
-        {!useGoogleAddressSearch ? (
+        {!useAddressSearch ? (
           <p className="mt-2 text-xs text-slate-500">
             Manual entry mode is active because live address lookup is unavailable.
           </p>
@@ -141,10 +139,10 @@ export function AddressSectionCards({
                 <AddressAutocomplete
                   id="postalAddress"
                   searchSuggestions={
-                    useGoogleAddressSearch ? postalLookup.searchSuggestions : undefined
+                    useAddressSearch ? postalLookup.searchSuggestions : undefined
                   }
                   emptyMessage={
-                    useGoogleAddressSearch
+                    useAddressSearch
                       ? "No matching addresses found. Check the spelling or keep typing."
                       : unavailableLookupMessage
                   }
@@ -159,7 +157,7 @@ export function AddressSectionCards({
                 />
               </div>
             </div>
-            {!useGoogleAddressSearch ? (
+            {!useAddressSearch ? (
               <p className="mt-2 text-xs text-slate-500">
                 Manual entry mode is active because live address lookup has not been configured.
               </p>

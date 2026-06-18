@@ -1,9 +1,11 @@
 import { Building2 } from "lucide-react";
+import { useMemo } from "react";
 import { InstitutionAutocomplete } from "../../components/ui/institution-autocomplete";
 import { Label } from "../../components/ui/label";
 import { NativeSelect } from "../../components/ui/native-select";
 import type { TertiaryQualification } from "../../lib/applicationData";
 import { countries } from "../../lib/formOptions";
+import { createAppInstitutionLookup } from "../../lib/suggestClient";
 import { Section2FormCard } from "./Section2FormCard";
 
 interface TertiaryInstitutionFieldsProps {
@@ -17,6 +19,8 @@ export function TertiaryInstitutionFields({
   formData,
   onFormChange,
 }: TertiaryInstitutionFieldsProps) {
+  const institutionLookup = useMemo(() => createAppInstitutionLookup(), []);
+
   return (
     <Section2FormCard
       description="Where did you study?"
@@ -29,6 +33,7 @@ export function TertiaryInstitutionFields({
           <InstitutionAutocomplete
             className="h-12 text-base"
             placeholder="Start typing institution name"
+            searchSuggestions={institutionLookup.searchSuggestions}
             value={formData.institution}
             onValueChange={(institution) =>
               onFormChange((previous) => ({

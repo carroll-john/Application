@@ -43,6 +43,14 @@ export default defineConfig(({ mode }) => {
       environment: "node",
       include: ["src/**/*.test.ts", "api/**/*.test.ts"],
     },
+    server: {
+      proxy: {
+        "/api/suggest": {
+          target: "http://127.0.0.1:4193",
+          changeOrigin: true,
+        },
+      },
+    },
     build: {
       sourcemap: enableSentryUpload,
       rollupOptions: {

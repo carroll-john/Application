@@ -17,7 +17,7 @@ export default function Section1Address() {
     unavailableLookupMessage,
     updateManualAddress,
     updateUnitNumber,
-    useGoogleAddressSearch,
+    useAddressSearch,
   } = useSection1AddressForm(data.contactDetails);
 
   const persist = () => updateContactDetails(formData);
@@ -39,7 +39,7 @@ export default function Section1Address() {
         renderAddressMeta={renderAddressMeta}
         residentialLookup={residentialLookup}
         unavailableLookupMessage={unavailableLookupMessage}
-        useGoogleAddressSearch={useGoogleAddressSearch}
+        useAddressSearch={useAddressSearch}
       />
     </Section1StepPage>
   );

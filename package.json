@@ -17,6 +17,7 @@
     "test:eligibility-transcripts": "node ./scripts/eligibility-transcript-regression.mjs",
     "dev:cv-parser-api": "tsx ./scripts/dev-cv-parser-server.mjs",
     "dev:transcript-eligibility-api": "tsx ./scripts/dev-transcript-eligibility-server.mjs",
+    "dev:suggest-api": "tsx ./scripts/dev-suggest-server.mjs",
     "smoke:eligibility-ui": "node ./scripts/smoke-eligibility-ui.mjs",
     "eligibility:parse-requirements": "tsx ./scripts/parse-course-requirements.ts",
     "eligibility:eval": "tsx ./scripts/eligibility-eval.ts",
@@ -28,6 +29,8 @@
     "notion:publish-note": "node ./scripts/publish-stakeholder-note-to-notion.mjs"
   },
   "dependencies": {
+    "@keypath/suggest-core": "file:./packages/suggest-core",
+    "@keypath/suggest-react": "file:./packages/suggest-react",
     "@sentry/node": "^10.58.0",
     "@sentry/react": "^10.58.0",
     "@supabase/supabase-js": "^2.108.2",

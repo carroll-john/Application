@@ -6,10 +6,7 @@ import {
   hasStructuredAddressParts,
   type StructuredAddress,
 } from "../../lib/address";
-import {
-  createGoogleAddressLookup,
-  hasGooglePlacesApiKey,
-} from "../../lib/googlePlaces";
+import { createAppAddressLookup } from "../../lib/suggestClient";
 
 type AddressKey = "residentialAddress" | "postalAddress";
 
@@ -19,9 +16,8 @@ export function useSection1AddressForm(contactDetails: ContactDetails) {
     postalDifferent: contactDetails.postalDifferent,
     postalAddress: contactDetails.postalAddress,
   });
-  const useGoogleAddressSearch = hasGooglePlacesApiKey();
-  const residentialLookup = useMemo(() => createGoogleAddressLookup(), []);
-  const postalLookup = useMemo(() => createGoogleAddressLookup(), []);
+  const residentialLookup = useMemo(() => createAppAddressLookup(["au"]), []);
+  const postalLookup = useMemo(() => createAppAddressLookup(["au"]), []);
   const unavailableLookupMessage =
     "Live address lookup is not configured in this environment. Keep typing to enter the address manually.";
 
@@ -87,7 +83,7 @@ export function useSection1AddressForm(contactDetails: ContactDetails) {
     unavailableLookupMessage,
     updateManualAddress,
     updateUnitNumber,
-    useGoogleAddressSearch,
+    useAddressSearch: true,
   };
 }
 

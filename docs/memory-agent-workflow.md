@@ -6,6 +6,7 @@
 npm install
 npm run dev                    # Vite frontend (:5173)
 npm run dev:cv-parser-api      # Local /api/parse-cv (:4190)
+npm run dev:suggest-api        # Local /api/suggest proxy (:4193)
 supabase start                 # Local Supabase + Mailpit
 npm run sync-supabase-env      # Sync .env.local from supabase status
 npm test                       # Vitest unit tests
