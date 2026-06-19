@@ -10,12 +10,15 @@ export {
   trackCvParserSaveContinueClicked,
 } from "./analytics/cvParserAnalytics";
 export {
+  associateCourseProviderGroup,
   canCapturePostHog,
   capturePostHogEvent,
   initPostHog,
   isPostHogEnabled,
+  isReplayPiiRoute,
   onPostHogFeatureFlags,
   syncPostHogUser,
+  syncReplayRoutePrivacy,
 } from "./analytics/posthogClient";
 export {
   captureApplicationStepEvent,

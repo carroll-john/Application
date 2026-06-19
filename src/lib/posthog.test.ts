@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { getApplicationAnalyticsProperties } from "./posthog";
+import { getApplicationAnalyticsProperties, isReplayPiiRoute } from "./posthog";
 
 // The barrel pulls in posthogClient, which imports the real posthog-js SDK.
 // Vitest runs in a node environment, so mock the SDK to keep the import hermetic.
@@ -29,5 +29,28 @@ describe("getApplicationAnalyticsProperties", () => {
 
     expect(properties.applicant_profile_id).toMatch(/^fnv1a:/);
     expect(properties.applicant_profile_id).not.toContain("user@example.com");
+  });
+});
+
+describe("isReplayPiiRoute", () => {
+  it("marks authenticated/application routes as PII routes (replay stopped)", () => {
+    expect(isReplayPiiRoute("/sign-in")).toBe(true);
+    expect(isReplayPiiRoute("/profile")).toBe(true);
+    expect(isReplayPiiRoute("/section1/personal-contact")).toBe(true);
+    expect(isReplayPiiRoute("/section2/add-cv")).toBe(true);
+    expect(isReplayPiiRoute("/review")).toBe(true);
+    expect(isReplayPiiRoute("/auth/callback")).toBe(true);
+  });
+
+  it("treats trailing-slash variants of PII routes as PII (replay stopped)", () => {
+    expect(isReplayPiiRoute("/profile/")).toBe(true);
+    expect(isReplayPiiRoute("/review/")).toBe(true);
+    expect(isReplayPiiRoute("/dashboard/")).toBe(true);
+    expect(isReplayPiiRoute("/section1/")).toBe(true);
+  });
+
+  it("does not mark public catalog routes as PII routes (replay allowed)", () => {
+    expect(isReplayPiiRoute("/")).toBe(false);
+    expect(isReplayPiiRoute("/courses/mba")).toBe(false);
   });
 });

@@ -10,13 +10,16 @@ import { LoadingSpinner } from "./components/LoadingSpinner";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { useApplication } from "./context/ApplicationContext";
 import { useAuth } from "./context/AuthContext";
-import { setClarityTag, syncClarityRoutePrivacy } from "./lib/clarity";
 import AuthCallback from "./pages/AuthCallback";
 import CourseList from "./pages/CourseList";
 import ApplicantProfile from "./pages/ApplicantProfile";
 import CourseDetails from "./pages/CourseDetails";
 import SignIn from "./pages/SignIn";
-import { trackApplicationStepView, trackPostHogPageView } from "./lib/posthog";
+import {
+  syncReplayRoutePrivacy,
+  trackApplicationStepView,
+  trackPostHogPageView,
+} from "./lib/posthog";
 import { isSentryEnabled } from "./lib/sentry";
 import { lazyWithRetry } from "./lib/routeChunkRecovery";
 import RouteErrorBoundary from "./pages/RouteErrorBoundary";
@@ -99,56 +102,18 @@ function RouteLoadingScreen() {
   );
 }
 
-function normalizeClarityRoute(pathname: string) {
-  const normalizedPath = pathname
-    .split("/")
-    .map((segment) => {
-      if (!segment) {
-        return segment;
-      }
-
-      if (/^\d+$/.test(segment)) {
-        return ":id";
-      }
-
-      if (
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-          segment,
-        )
-      ) {
-        return ":id";
-      }
-
-      return segment;
-    })
-    .join("/");
-
-  return normalizedPath || "/";
-}
-
-function ClarityRouteTracker() {
-  const location = useLocation();
-
-  useEffect(() => {
-    syncClarityRoutePrivacy(location.pathname);
-    setClarityTag("route", normalizeClarityRoute(location.pathname));
-  }, [location.pathname]);
-
-  return null;
-}
-
 function Layout() {
   const location = useLocation();
   const { data } = useApplication();
 
   useEffect(() => {
+    syncReplayRoutePrivacy(location.pathname);
     trackPostHogPageView(location.pathname, location.search);
     trackApplicationStepView(location.pathname, data);
   }, [data, location.pathname, location.search]);
 
   return (
     <>
-      <ClarityRouteTracker />
       <ScrollToTop />
       <Suspense fallback={<RouteLoadingScreen />}>
         <Outlet />

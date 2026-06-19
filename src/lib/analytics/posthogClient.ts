@@ -123,7 +123,13 @@ export function initPostHog() {
     capture_pageleave: true,
     persistence: "localStorage+cookie",
     person_profiles: "identified_only",
+    // Replay is default-disabled and started per route via syncReplayRoutePrivacy
+    // (public catalog routes only). Inputs and text are masked while it runs.
     disable_session_recording: true,
+    session_recording: {
+      maskAllInputs: true,
+      maskTextSelector: "*",
+    },
     before_send: beforeSendPostHog,
     loaded: (loadedPostHog) => {
       if (!canCapturePostHog()) {
@@ -133,6 +139,51 @@ export function initPostHog() {
   });
   posthog.register({ app_environment: APP_ENVIRONMENT });
   postHogStarted = true;
+}
+
+// Routes that show authenticated or otherwise sensitive content. Session replay
+// is stopped on these (ported from the previous Clarity PII-route list); replay
+// only runs on the public catalog routes.
+const REPLAY_PII_ROUTE_PATTERNS = [
+  /^\/sign-in$/,
+  /^\/auth\/callback$/,
+  /^\/profile$/,
+  /^\/dashboard$/,
+  /^\/overview$/,
+  /^\/section1(?:\/|$)/,
+  /^\/section2(?:\/|$)/,
+  /^\/review$/,
+  /^\/submitted$/,
+  /^\/profile-recommendations$/,
+];
+
+export function isReplayPiiRoute(pathname: string) {
+  // Normalize a trailing slash so `/profile/` is treated the same as `/profile`
+  // (React Router matches both), otherwise replay would wrongly start on a
+  // trailing-slash authenticated route.
+  const normalizedPathname =
+    pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  return REPLAY_PII_ROUTE_PATTERNS.some((pattern) =>
+    pattern.test(normalizedPathname),
+  );
+}
+
+// Default-deny session replay: started only on non-PII (public catalog) routes
+// and stopped whenever the user is on a sensitive route. Inputs/text are masked
+// whenever replay is active (see the session_recording config in initPostHog).
+export function syncReplayRoutePrivacy(pathname: string) {
+  if (!canCapturePostHog()) {
+    return;
+  }
+
+  initPostHog();
+
+  if (isReplayPiiRoute(pathname)) {
+    posthog.stopSessionRecording();
+    return;
+  }
+
+  posthog.startSessionRecording();
 }
 
 export function syncPostHogUser(user: PostHogUserContext | null) {
@@ -164,6 +215,20 @@ export function syncPostHogUser(user: PostHogUserContext | null) {
       email_domain: emailDomain,
     });
   });
+}
+
+// Associate the current person with their course provider as a PostHog group,
+// so analytics can be segmented by institution. Group associations persist until
+// reset() (logout) and are re-asserted whenever a course flow re-runs.
+export function associateCourseProviderGroup(
+  provider: string | null | undefined,
+) {
+  if (!canCapturePostHog() || !provider) {
+    return;
+  }
+
+  initPostHog();
+  posthog.group("course_provider", provider, { name: provider });
 }
 
 export function onPostHogFeatureFlags(callback: () => void) {
