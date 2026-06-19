@@ -6,7 +6,9 @@ import {
   useLocation,
   useNavigationType,
 } from "react-router-dom";
+import posthog from "posthog-js";
 import { hashAnalyticsIdentifierSync } from "./analyticsIdentity";
+import { isPostHogEnabled } from "./posthog";
 
 type SentryUserContext = {
   email?: string;
@@ -98,6 +100,34 @@ function isSmokeTestEvent(event: Sentry.Event) {
   );
 }
 
+// Link Sentry issues to PostHog: tag each event with the current PostHog
+// distinct_id so a Sentry error can be traced to the person — and their session
+// replay / events — in PostHog. (posthog-js's own Sentry integration targets the
+// legacy setupOnce/getCurrentHub API that @sentry/react v10 removed, so we wire
+// the link manually here, which is version-agnostic.)
+function getPostHogDistinctId(): string | null {
+  if (!isPostHogEnabled) {
+    return null;
+  }
+
+  try {
+    const distinctId = posthog.get_distinct_id();
+    return typeof distinctId === "string" && distinctId ? distinctId : null;
+  } catch {
+    return null;
+  }
+}
+
+// Tag a Sentry event (error or transaction) with the current PostHog distinct_id
+// so both error and performance/tracing events carry the PostHog link.
+function tagEventWithPostHog<T extends Sentry.Event>(event: T): T {
+  const posthogDistinctId = getPostHogDistinctId();
+  if (posthogDistinctId) {
+    event.tags = { ...event.tags, posthog_distinct_id: posthogDistinctId };
+  }
+  return event;
+}
+
 export function initSentry() {
   if (!isSentryEnabled || sentryStarted) {
     return;
@@ -137,12 +167,18 @@ export function initSentry() {
     replaysSessionSampleRate,
     replaysOnErrorSampleRate,
     beforeSend(event) {
-      return SHOULD_FILTER_SMOKE_EVENTS && isSmokeTestEvent(event) ? null : event;
+      if (SHOULD_FILTER_SMOKE_EVENTS && isSmokeTestEvent(event)) {
+        return null;
+      }
+
+      return tagEventWithPostHog(event);
     },
     beforeSendTransaction(event) {
-      return SHOULD_FILTER_SMOKE_EVENTS && isSmokeTestEvent(event)
-        ? null
-        : event;
+      if (SHOULD_FILTER_SMOKE_EVENTS && isSmokeTestEvent(event)) {
+        return null;
+      }
+
+      return tagEventWithPostHog(event);
     },
   });
 
