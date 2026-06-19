@@ -191,13 +191,17 @@ deliberate, gated doorway:
 - Load the app with `?kp_synthetic=<token>`. A matching token bypasses the
   bot filter (persisted to `localStorage` for the session) and stamps every
   event with the `synthetic_test: true` super-property.
-- Exclude `synthetic_test` from real metrics: add it as a property under the
-  project's **internal & test accounts** filter, then leave "filter test
-  accounts" on for the real dashboards. Toggle it off to *see* the synthetic run
-  (useful for validating the funnel / submit-blocker tiles).
+- `synthetic_test` is already registered under the project's **internal & test
+  accounts** filter (`synthetic_test is_not_set`), so turning on "filter test
+  accounts" on any insight/dashboard excludes the synthetic run. Toggle it off to
+  *see* the synthetic data (useful for validating the funnel / blocker tiles).
 - Driver script: `scripts/synthetic-funnel-bot.mjs` (Playwright). It activates
-  the doorway, tallies `/ingest/*` POSTs as proof of capture, and walks the
-  journey including a deliberate `application_submit_blocked` (DIS-197).
+  the doorway, signs in (`TEST_EMAIL`/`TEST_PASSWORD`), tallies `/ingest/*` POSTs
+  as proof of capture, and drives the full journey — eligibility → start → the six
+  Section 1 steps → a tertiary qualification → submit (`application_submitted`,
+  DIS-196) — plus a `MODE=blocked` path for `application_submit_blocked` (DIS-197).
+  Selectors are mapped from the components (no `data-testid`s exist), so a live
+  run may need minor tweaks; every step logs, so mismatches are obvious.
 
 Submissions write real rows to Supabase (and can trigger eligibility AI /
 emails), so run against a preview environment and/or clean up the test
