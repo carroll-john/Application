@@ -210,6 +210,20 @@ export function syncPostHogUser(user: PostHogUserContext | null) {
   });
 }
 
+// Associate the current person with their course provider as a PostHog group,
+// so analytics can be segmented by institution. Group associations persist until
+// reset() (logout) and are re-asserted whenever a course flow re-runs.
+export function associateCourseProviderGroup(
+  provider: string | null | undefined,
+) {
+  if (!canCapturePostHog() || !provider) {
+    return;
+  }
+
+  initPostHog();
+  posthog.group("course_provider", provider, { name: provider });
+}
+
 export function onPostHogFeatureFlags(callback: () => void) {
   if (!canCapturePostHog()) {
     return () => {};

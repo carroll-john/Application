@@ -4,6 +4,7 @@ import type { ApplicationSummary } from "../../lib/applicationRecords";
 import type { ApplicationData, SelectedCourse } from "../../lib/applicationData";
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
 import {
+  associateCourseProviderGroup,
   capturePostHogEvent,
   getCourseAnalyticsProperties,
 } from "../../lib/posthog";
@@ -113,6 +114,7 @@ export function useCourseApplicationStart({
     setApplyError(null);
 
     if (isAuthenticated) {
+      associateCourseProviderGroup(selectedCourse.provider);
       capturePostHogEvent("application_start_requested", {
         ...getCourseAnalyticsProperties(course),
         auth_state: "authenticated",
@@ -146,6 +148,7 @@ export function useCourseApplicationStart({
     isAuthenticated,
     onAuthRequired,
     reusableSourceApplications.length,
+    selectedCourse,
     startApplication,
   ]);
 
