@@ -10,6 +10,7 @@ export {
   trackCvParserSaveContinueClicked,
 } from "./analytics/cvParserAnalytics";
 export {
+  associateCourseProviderGroup,
   canCapturePostHog,
   capturePostHogEvent,
   initPostHog,

@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import type { ApplicationData, SelectedCourse } from "../../../lib/applicationData";
 import {
+  associateCourseProviderGroup,
   capturePostHogEvent,
   getApplicationAnalyticsProperties,
   getCourseAnalyticsProperties,
@@ -19,6 +20,7 @@ export function useApplicationAnalytics({
 }: UseApplicationAnalyticsOptions) {
   const trackDraftResumed = useCallback(
     (course: SelectedCourse, applicationId: string) => {
+      associateCourseProviderGroup(course.provider);
       capturePostHogEvent("application_draft_resumed", {
         ...getCourseAnalyticsProperties(course),
         application_id: applicationId,
@@ -34,6 +36,7 @@ export function useApplicationAnalytics({
       applicantProfileId: string | null,
       applicationId: string | null,
     ) => {
+      associateCourseProviderGroup(course.provider);
       capturePostHogEvent("application_draft_created", {
         ...getCourseAnalyticsProperties(course),
         applicant_profile_id: applicantProfileId,
