@@ -224,15 +224,21 @@ async function signIn(page) {
 
 /** Catalog → course details. */
 async function openCourse(page) {
-  await page.goto(`${BASE_URL}/`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
   const viewCourse = page.getByRole("button", { name: /view course/i }).first();
+  // Cards render from bundled data after hydration, which can land after the
+  // network goes idle — wait for the button rather than checking immediately.
+  await viewCourse.waitFor({ state: "visible", timeout: 12000 }).catch(() => {});
   if (await viewCourse.count()) {
     await viewCourse.click().catch(() => {});
     await page.waitForLoadState("networkidle").catch(() => {});
   } else if (process.env.COURSE_PATH) {
     await page.goto(`${BASE_URL}${process.env.COURSE_PATH}`, { waitUntil: "networkidle" });
   } else {
-    warn("No 'View course' button and no COURSE_PATH — staying on catalog.");
+    const snippet = await page
+      .evaluate(() => document.body.innerText.replace(/\s+/g, " ").trim().slice(0, 200))
+      .catch(() => "");
+    warn(`No 'View course' button. At ${page.url()} — page text: "${snippet}"`);
   }
 }
 
