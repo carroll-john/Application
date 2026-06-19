@@ -28,8 +28,12 @@
  *   values and a drop-off behaviour). MODE=happy|blocked|both (default both) ·
  *   ITERATIONS=1 · HEADFUL=1 to watch · COURSE_PATH=/courses/<slug> (fallback if
  *   the catalog button selector misses) · TRANSCRIPT_PATH / CV_PATH to upload
- *   real documents and exercise the parsers + AI eligibility.
+ *   real documents and exercise the parsers + AI eligibility ·
+ *   VERCEL_BYPASS=<secret> to pass Vercel deployment protection (Protection
+ *   Bypass for Automation), needed when the preview is password-walled.
  *   (If chromium isn't installed: `npx playwright install chromium`.)
+ *   Easiest way to run this without a local setup: the "Synthetic funnel bot"
+ *   GitHub Action (.github/workflows/synthetic-bot.yml) — Actions tab → Run.
  *
  * The app's selects are a custom `NativeSelect` (a button[role=combobox] over a
  * hidden <select>), so we open the combobox and click a role=option rather than
@@ -47,6 +51,10 @@ const TEST_PASSWORD = process.env.TEST_PASSWORD ?? "";
 const MODE = (process.env.MODE ?? "both").toLowerCase(); // happy | blocked | both
 const ITERATIONS = Number(process.env.ITERATIONS ?? "1");
 const HEADFUL = process.env.HEADFUL === "1";
+// Vercel "Protection Bypass for Automation" secret. When the preview has
+// deployment protection on, this header lets the automated browser through
+// (harmless if the preview is public / the secret is unset).
+const VERCEL_BYPASS = process.env.VERCEL_BYPASS ?? "";
 const persona = getPersona(process.env.PERSONA ?? "career-changer");
 
 if (!BASE_URL || !SYNTHETIC_TOKEN) {
@@ -389,7 +397,17 @@ async function runBlocked(page) {
 
 async function run() {
   const browser = await chromium.launch({ headless: !HEADFUL });
-  const page = await browser.newContext().then((c) => c.newPage());
+  const context = await browser.newContext(
+    VERCEL_BYPASS
+      ? {
+          extraHTTPHeaders: {
+            "x-vercel-protection-bypass": VERCEL_BYPASS,
+            "x-vercel-set-bypass-cookie": "true",
+          },
+        }
+      : {},
+  );
+  const page = await context.newPage();
   const ingest = attachIngestCounter(page);
 
   console.log(`Persona: ${persona.label} (MODE=${MODE})`);
