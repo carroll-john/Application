@@ -1,0 +1,75 @@
+name: Synthetic funnel bot
+
+# Manually-triggered persona-driven bot that drives a real applicant journey on a
+# deployed preview, so the PostHog funnel / eligibility / parser dashboards get
+# believable, synthetic_test-tagged data. Press "Run workflow" in the Actions tab.
+#
+# Requires repository secrets (Settings → Secrets and variables → Actions):
+#   SYNTHETIC_TOKEN          the VITE_ANALYTICS_SYNTHETIC_TOKEN set on the preview
+#   SYNTHETIC_TEST_PASSWORD  password for the test account
+#   VERCEL_BYPASS            (optional) Vercel "Protection Bypass for Automation"
+#                            secret — only needed if the preview has deployment
+#                            protection on. Leave unset if the preview is public.
+
+on:
+  workflow_dispatch:
+    inputs:
+      persona:
+        description: Which persona to run
+        type: choice
+        default: career-changer
+        options:
+          - career-changer
+          - school-leaver
+          - international-applicant
+      base_url:
+        description: Preview URL to drive
+        type: string
+        default: https://application-prototype-git-cl-aaecb1-carroll-john-3665s-projects.vercel.app
+      mode:
+        description: happy = submit, blocked = submit-blocker, both
+        type: choice
+        default: both
+        options:
+          - both
+          - happy
+          - blocked
+      iterations:
+        description: How many times to repeat
+        type: string
+        default: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the bot
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          PERSONA: ${{ inputs.persona }}
+          MODE: ${{ inputs.mode }}
+          ITERATIONS: ${{ inputs.iterations }}
+          SYNTHETIC_TOKEN: ${{ secrets.SYNTHETIC_TOKEN }}
+          TEST_EMAIL: ${{ vars.SYNTHETIC_TEST_EMAIL || 'carroll_john+bot@me.com' }}
+          TEST_PASSWORD: ${{ secrets.SYNTHETIC_TEST_PASSWORD }}
+          VERCEL_BYPASS: ${{ secrets.VERCEL_BYPASS }}
+        run: node scripts/synthetic-funnel-bot.mjs
