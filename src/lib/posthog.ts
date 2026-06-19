@@ -10,6 +10,11 @@ export {
   trackCvParserSaveContinueClicked,
 } from "./analytics/cvParserAnalytics";
 export {
+  type FeatureFlagKey,
+  getFeatureFlagPayload,
+  isFeatureFlagEnabled,
+} from "./analytics/featureFlags";
+export {
   associateCourseProviderGroup,
   canCapturePostHog,
   capturePostHogEvent,
