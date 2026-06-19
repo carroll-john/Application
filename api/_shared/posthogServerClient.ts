@@ -45,6 +45,12 @@ export function getPostHogServerClient(): PostHog | null {
       host: normalizeHost(
         process.env.POSTHOG_HOST?.trim() || process.env.VITE_POSTHOG_HOST?.trim(),
       ),
+      // Bound the request so a slow/unreachable PostHog can't add latency to the
+      // user-facing feedback endpoint — `captureImmediate` awaits the HTTP
+      // request, and the SDK default is 10s. This restores the ~1.2s ceiling the
+      // previous raw fetch enforced via AbortController (one attempt, no retries).
+      requestTimeout: 1500,
+      fetchRetryCount: 0,
     });
   }
 
