@@ -158,7 +158,14 @@ const REPLAY_PII_ROUTE_PATTERNS = [
 ];
 
 export function isReplayPiiRoute(pathname: string) {
-  return REPLAY_PII_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname));
+  // Normalize a trailing slash so `/profile/` is treated the same as `/profile`
+  // (React Router matches both), otherwise replay would wrongly start on a
+  // trailing-slash authenticated route.
+  const normalizedPathname =
+    pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  return REPLAY_PII_ROUTE_PATTERNS.some((pattern) =>
+    pattern.test(normalizedPathname),
+  );
 }
 
 // Default-deny session replay: started only on non-PII (public catalog) routes

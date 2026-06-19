@@ -42,6 +42,13 @@ describe("isReplayPiiRoute", () => {
     expect(isReplayPiiRoute("/auth/callback")).toBe(true);
   });
 
+  it("treats trailing-slash variants of PII routes as PII (replay stopped)", () => {
+    expect(isReplayPiiRoute("/profile/")).toBe(true);
+    expect(isReplayPiiRoute("/review/")).toBe(true);
+    expect(isReplayPiiRoute("/dashboard/")).toBe(true);
+    expect(isReplayPiiRoute("/section1/")).toBe(true);
+  });
+
   it("does not mark public catalog routes as PII routes (replay allowed)", () => {
     expect(isReplayPiiRoute("/")).toBe(false);
     expect(isReplayPiiRoute("/courses/mba")).toBe(false);
