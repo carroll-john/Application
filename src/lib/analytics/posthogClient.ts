@@ -7,11 +7,15 @@ import {
   APP_ENVIRONMENT,
   AUTOMATION_USER_AGENT_PATTERN,
   BOT_USER_AGENT_PATTERN,
-  POSTHOG_HOST,
   POSTHOG_KEY,
   POSTHOG_UI_HOST,
   type PostHogUserContext,
 } from "./posthogTypes";
+
+// Same-origin reverse-proxy path (configured in vercel.json) so analytics
+// requests are first-party and are not dropped by ad-blockers. It proxies to
+// the EU ingestion host, with /ingest/static/* going to the EU assets host.
+const POSTHOG_INGEST_PROXY_PATH = "/ingest";
 
 let postHogStarted = false;
 let postHogBlockReason: string | null = null;
@@ -113,7 +117,7 @@ export function initPostHog() {
   }
 
   posthog.init(POSTHOG_KEY, {
-    api_host: POSTHOG_HOST,
+    api_host: POSTHOG_INGEST_PROXY_PATH,
     ui_host: POSTHOG_UI_HOST,
     autocapture: false,
     capture_pageview: false,
