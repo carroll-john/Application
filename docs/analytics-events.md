@@ -202,6 +202,11 @@ deliberate, gated doorway:
   DIS-196) — plus a `MODE=blocked` path for `application_submit_blocked` (DIS-197).
   Selectors are mapped from the components (no `data-testid`s exist), so a live
   run may need minor tweaks; every step logs, so mismatches are obvious.
+- Personas (`scripts/synthetic-personas.mjs`, selected with `PERSONA=<key>`) supply
+  the field values and a drop-off behaviour, so each run is a believable applicant
+  (varied `course_provider`, citizenship, `eligibility_outcome`, and funnel drop-off)
+  rather than generic data. `TRANSCRIPT_PATH` / `CV_PATH` upload real documents to
+  exercise the parsers + AI eligibility. Add personas freely.
 
 Submissions write real rows to Supabase (and can trigger eligibility AI /
 emails), so run against a preview environment and/or clean up the test

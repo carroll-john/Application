@@ -23,8 +23,12 @@
  *   TEST_EMAIL=<acct> TEST_PASSWORD=<pw> \
  *   node scripts/synthetic-funnel-bot.mjs
  *
- *   MODE=happy|blocked|both (default both) · ITERATIONS=1 · HEADFUL=1 to watch ·
- *   COURSE_PATH=/courses/<slug> (fallback if the catalog button selector misses).
+ *   PERSONA=career-changer|school-leaver|international-applicant (default
+ *   career-changer; see scripts/synthetic-personas.mjs — personas set the field
+ *   values and a drop-off behaviour). MODE=happy|blocked|both (default both) ·
+ *   ITERATIONS=1 · HEADFUL=1 to watch · COURSE_PATH=/courses/<slug> (fallback if
+ *   the catalog button selector misses) · TRANSCRIPT_PATH / CV_PATH to upload
+ *   real documents and exercise the parsers + AI eligibility.
  *   (If chromium isn't installed: `npx playwright install chromium`.)
  *
  * The app's selects are a custom `NativeSelect` (a button[role=combobox] over a
@@ -32,7 +36,9 @@
  * calling selectOption(). Submissions write Supabase rows and can trigger the
  * eligibility AI / emails — run against preview and clean up after.
  */
+import { existsSync } from "node:fs";
 import { chromium } from "playwright";
+import { getPersona } from "./synthetic-personas.mjs";
 
 const BASE_URL = (process.env.BASE_URL ?? "").replace(/\/+$/, "");
 const SYNTHETIC_TOKEN = process.env.SYNTHETIC_TOKEN ?? "";
@@ -41,6 +47,7 @@ const TEST_PASSWORD = process.env.TEST_PASSWORD ?? "";
 const MODE = (process.env.MODE ?? "both").toLowerCase(); // happy | blocked | both
 const ITERATIONS = Number(process.env.ITERATIONS ?? "1");
 const HEADFUL = process.env.HEADFUL === "1";
+const persona = getPersona(process.env.PERSONA ?? "career-changer");
 
 if (!BASE_URL || !SYNTHETIC_TOKEN) {
   console.error(
@@ -77,6 +84,29 @@ async function fillField(page, labelRe, value) {
   }
   warn(`field not found: ${labelRe}`);
   return false;
+}
+
+/** A persona value (regex/string) picks that option; null/undefined → first valid. */
+function optionOrPick(value) {
+  return value == null ? {} : { option: value };
+}
+
+/** Upload a persona document (transcript/CV) into the first file input on the page. */
+async function uploadFile(page, path) {
+  if (!path) return false;
+  if (!existsSync(path)) {
+    warn(`document not found, skipping upload: ${path}`);
+    return false;
+  }
+  const input = page.locator('input[type="file"]').first();
+  if (!(await input.count())) {
+    warn("no file input on this page — skipping upload.");
+    return false;
+  }
+  await input.setInputFiles(path).catch(() => {});
+  log(`uploaded ${path}`);
+  await page.waitForTimeout(2000); // let the parser kick off
+  return true;
 }
 
 /** Locate a NativeSelect's combobox button by accessible name, else by label text. */
@@ -195,8 +225,9 @@ async function openCourse(page) {
 async function startApplication(page) {
   if (!(await clickButton(page, /eligibility check/i, { required: true }))) return false;
   await page.waitForTimeout(600);
-  await selectField(page, /Education level/i, { pick: "last" });
-  await selectField(page, /Experience/i, { pick: "last" }); // conditional; warns if absent
+  const pick = persona.eligibility?.pick ?? "last";
+  await selectField(page, /Education level/i, { pick });
+  await selectField(page, /Experience/i, { pick }); // conditional; warns if absent
   await clickButton(page, /^Next$/i, { required: true });
 
   const start = page
@@ -225,50 +256,60 @@ async function enterSections(page) {
   }
 }
 
-/** Fill the six Section 1 steps with valid minimal values. */
+/** Fill the six Section 1 steps from the persona's profile. */
 async function fillSection1(page) {
+  const p = persona.profile;
   // basic-info
-  await selectField(page, /^Title/);
-  await fillField(page, /^First name/, "Synth");
-  await fillField(page, /^Last name/, "Test");
+  await selectField(page, /^Title/, optionOrPick(p.title));
+  await fillField(page, /^First name/, p.firstName);
+  await fillField(page, /^Last name/, p.lastName);
   await continueStep(page);
   // personal-contact
-  await selectField(page, /^Gender/);
-  await fillField(page, /Date of birth/i, "1990-01-15");
+  await selectField(page, /^Gender/, optionOrPick(p.gender));
+  await fillField(page, /Date of birth/i, p.dob);
   await fillField(page, /^Email/i, TEST_EMAIL || "synthetic@example.com");
-  await fillField(page, /^Phone/i, "0400000000");
+  await fillField(page, /^Phone/i, p.phone);
   await continueStep(page);
+  if (persona.behavior?.dropOffAt === "section1") return; // abandon mid-section
   // contact-info (citizenship)
-  await selectField(page, /^Status/, { option: /Australian Citizen/i });
+  await selectField(page, /^Status/, optionOrPick(p.citizenship));
   await continueStep(page);
   // address
-  await fillField(page, /residential address/i, "123 Test Street, Melbourne VIC 3000");
+  await fillField(page, /residential address/i, p.residentialAddress);
   await page.waitForTimeout(600);
   await page.keyboard.press("Escape").catch(() => {}); // dismiss any autocomplete dropdown
   await continueStep(page);
   // cultural-background
-  await selectField(page, /^Language/);
-  await selectField(page, /^Status/); // Aboriginal/TSI status
-  await selectField(page, /School level/i);
+  await selectField(page, /^Language/, optionOrPick(p.language));
+  await selectField(page, /^Status/, optionOrPick(p.aboriginalStatus)); // Aboriginal/TSI status
+  await selectField(page, /School level/i, optionOrPick(p.schoolLevel));
   await continueStep(page);
   // family-support
-  await selectField(page, /parents|guardians/i, { option: "0", exact: true });
+  await selectField(page, /parents|guardians/i, { option: String(p.parents ?? "2"), exact: true });
+  for (let i = 1; i <= 5; i += 1) {
+    const labelRe = new RegExp(`Parent ${i}`, "i");
+    if (await findCombobox(page, labelRe)) await selectField(page, labelRe);
+    else break;
+  }
   await page.getByRole("radio", { name: /^no$/i }).first().check().catch(() => {});
   await continueStep(page);
 }
 
-/** Section 2: add one tertiary qualification (enough to satisfy submit validation). */
+/** Section 2: add the persona's tertiary qualification (satisfies submit validation). */
 async function addTertiary(page) {
+  const t = persona.tertiary;
   await clickButton(page, /add.*tertiary/i, { required: true });
   await page.waitForLoadState("networkidle").catch(() => {});
-  await fillField(page, /^Institution/, "Test University");
-  await selectField(page, /^Country/, { option: /Australia/i });
-  await selectField(page, /Qualification level/i);
-  await fillField(page, /Course name|Program name/i, "Bachelor of Testing");
+  await fillField(page, /^Institution/, t.institution);
+  await selectField(page, /^Country/, optionOrPick(t.country));
+  await selectField(page, /Qualification level/i, optionOrPick(t.level));
+  await fillField(page, /Course name|Program name/i, t.course);
   await selectField(page, /Start month/i);
   await selectField(page, /Start year/i);
   await selectField(page, /End month/i);
   await selectField(page, /End year/i, { pick: "last" });
+  const transcript = persona.documents?.transcript ?? process.env.TRANSCRIPT_PATH;
+  if (transcript) await uploadFile(page, transcript);
   await clickButton(page, /^Save & Continue$/i, { required: true });
   await page.waitForLoadState("networkidle").catch(() => {});
   await page.waitForTimeout(400);
@@ -291,12 +332,39 @@ async function submitHappy(page) {
 }
 
 async function runHappy(page) {
-  console.log("\n=== happy path ===");
+  const drop = persona.behavior?.dropOffAt ?? null;
+  console.log(`\n=== happy path · ${persona.label} ===`);
   await openCourse(page);
   if (!(await startApplication(page))) return;
   await enterSections(page);
   await fillSection1(page);
-  await addTertiary(page);
+  if (drop === "section1") {
+    log("↩︎ persona abandons during Section 1 (expected drop-off).");
+    return;
+  }
+  if (!page.url().includes("/section2/qualifications")) {
+    await page.goto(`${BASE_URL}/section2/qualifications`, { waitUntil: "networkidle" }).catch(() => {});
+  }
+  if (drop === "qualifications") {
+    log("↩︎ persona abandons at qualifications (expected drop-off).");
+    return;
+  }
+  if (persona.tertiary) await addTertiary(page);
+  else await continueStep(page);
+  const cv = persona.documents?.cv ?? process.env.CV_PATH;
+  if (cv) {
+    await page.goto(`${BASE_URL}/section2/add-cv`, { waitUntil: "networkidle" }).catch(() => {});
+    await uploadFile(page, cv);
+    await clickButton(page, /^Save & Continue$/i);
+    await page.waitForLoadState("networkidle").catch(() => {});
+  }
+  if (drop === "review") {
+    if (!page.url().includes("/review")) {
+      await page.goto(`${BASE_URL}/review`, { waitUntil: "networkidle" }).catch(() => {});
+    }
+    log("↩︎ persona reviews but does not submit (expected drop-off).");
+    return;
+  }
   await submitHappy(page);
 }
 
@@ -324,6 +392,7 @@ async function run() {
   const page = await browser.newContext().then((c) => c.newPage());
   const ingest = attachIngestCounter(page);
 
+  console.log(`Persona: ${persona.label} (MODE=${MODE})`);
   await activateSynthetic(page);
   const authed = await signIn(page);
 
