@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { getApplicationAnalyticsProperties, isReplayPiiRoute } from "./posthog";
+import { matchesSyntheticTestToken } from "./analytics/posthogClient";
 
 // The barrel pulls in posthogClient, which imports the real posthog-js SDK.
 // Vitest runs in a node environment, so mock the SDK to keep the import hermetic.
@@ -53,5 +54,20 @@ describe("isReplayPiiRoute", () => {
   it("does not mark public catalog routes as PII routes (replay allowed)", () => {
     expect(isReplayPiiRoute("/")).toBe(false);
     expect(isReplayPiiRoute("/courses/mba")).toBe(false);
+  });
+});
+
+describe("matchesSyntheticTestToken", () => {
+  it("allows synthetic traffic only when a token is configured and matches exactly", () => {
+    expect(matchesSyntheticTestToken("s3cret", "s3cret")).toBe(true);
+    expect(matchesSyntheticTestToken("s3cret", "wrong")).toBe(false);
+    expect(matchesSyntheticTestToken("s3cret", null)).toBe(false);
+    expect(matchesSyntheticTestToken("s3cret", undefined)).toBe(false);
+  });
+
+  it("stays disabled when no token is configured (closed by default in prod)", () => {
+    expect(matchesSyntheticTestToken("", "s3cret")).toBe(false);
+    expect(matchesSyntheticTestToken("", "")).toBe(false);
+    expect(matchesSyntheticTestToken("", null)).toBe(false);
   });
 });

@@ -7,6 +7,9 @@ import {
   BOT_USER_AGENT_PATTERN,
   POSTHOG_KEY,
   POSTHOG_UI_HOST,
+  SYNTHETIC_TEST_QUERY_PARAM,
+  SYNTHETIC_TEST_STORAGE_KEY,
+  SYNTHETIC_TEST_TOKEN,
   type PostHogUserContext,
 } from "./posthogTypes";
 
@@ -46,8 +49,79 @@ function sanitizeEventUrlProperties(
   }
 }
 
+// A token is "live" only when one is configured at build time and the provided
+// value matches it exactly — kept pure so it is unit-testable without globals.
+export function matchesSyntheticTestToken(
+  configuredToken: string,
+  providedToken: string | null | undefined,
+): boolean {
+  return Boolean(configuredToken) && providedToken === configuredToken;
+}
+
+function readStoredSyntheticToken(): string | null {
+  try {
+    return window.localStorage?.getItem(SYNTHETIC_TEST_STORAGE_KEY) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function readQuerySyntheticToken(): string | null {
+  try {
+    return new URLSearchParams(window.location.search).get(
+      SYNTHETIC_TEST_QUERY_PARAM,
+    );
+  } catch {
+    return null;
+  }
+}
+
+// Is this an authorised synthetic-test session? True when the matching token is
+// present in localStorage (sticky once activated) or in the current URL's query
+// string (which we then persist so it survives SPA navigation).
+function isSyntheticTestSession(): boolean {
+  if (!SYNTHETIC_TEST_TOKEN || typeof window === "undefined") {
+    return false;
+  }
+
+  if (matchesSyntheticTestToken(SYNTHETIC_TEST_TOKEN, readStoredSyntheticToken())) {
+    return true;
+  }
+
+  if (matchesSyntheticTestToken(SYNTHETIC_TEST_TOKEN, readQuerySyntheticToken())) {
+    try {
+      window.localStorage?.setItem(
+        SYNTHETIC_TEST_STORAGE_KEY,
+        SYNTHETIC_TEST_TOKEN,
+      );
+    } catch {
+      // localStorage may be unavailable; query-param detection still holds for this load.
+    }
+    return true;
+  }
+
+  return false;
+}
+
+// Register the super-properties carried on every event. `synthetic_test: true`
+// is stamped on authorised QA sessions so their events can be filtered out of
+// real metrics. Re-applied after reset() (which clears super-properties).
+function registerBaseSuperProperties() {
+  posthog.register({
+    app_environment: APP_ENVIRONMENT,
+    ...(isSyntheticTestSession() ? { synthetic_test: true } : {}),
+  });
+}
+
 function detectPostHogBlockReason() {
   if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return null;
+  }
+
+  // Let authorised synthetic test traffic through the bot filter — its events
+  // are tagged `synthetic_test: true` (see registerBaseSuperProperties) so they
+  // stay separable from real applicant data.
+  if (isSyntheticTestSession()) {
     return null;
   }
 
@@ -137,7 +211,7 @@ export function initPostHog() {
       }
     },
   });
-  posthog.register({ app_environment: APP_ENVIRONMENT });
+  registerBaseSuperProperties();
   postHogStarted = true;
 }
 
@@ -198,7 +272,7 @@ export function syncPostHogUser(user: PostHogUserContext | null) {
 
   if (!user) {
     posthog.reset();
-    posthog.register({ app_environment: APP_ENVIRONMENT });
+    registerBaseSuperProperties();
     return;
   }
 

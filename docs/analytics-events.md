@@ -179,3 +179,26 @@ Current exclusion checks:
 - User-agent matches known crawler/bot patterns (`bot`, `spider`, `crawl`, `headless`, `gptbot`, `chatgpt-user`, `claudebot`, `perplexitybot`, `facebookexternalhit`, `ahrefsbot`, `semrushbot`, etc.)
 
 This filtering only affects new sessions after deployment. Existing historical events remain in PostHog.
+
+## Synthetic Test Traffic (authorised QA bot)
+
+Because bot/automation traffic is dropped, an end-to-end QA bot needs a
+deliberate, gated doorway:
+
+- Set `VITE_ANALYTICS_SYNTHETIC_TOKEN` (a long random value) on the **preview /
+  QA deployment only** — leave it unset in normal production, which keeps the
+  doorway closed.
+- Load the app with `?kp_synthetic=<token>`. A matching token bypasses the
+  bot filter (persisted to `localStorage` for the session) and stamps every
+  event with the `synthetic_test: true` super-property.
+- Exclude `synthetic_test` from real metrics: add it as a property under the
+  project's **internal & test accounts** filter, then leave "filter test
+  accounts" on for the real dashboards. Toggle it off to *see* the synthetic run
+  (useful for validating the funnel / submit-blocker tiles).
+- Driver script: `scripts/synthetic-funnel-bot.mjs` (Playwright). It activates
+  the doorway, tallies `/ingest/*` POSTs as proof of capture, and walks the
+  journey including a deliberate `application_submit_blocked` (DIS-197).
+
+Submissions write real rows to Supabase (and can trigger eligibility AI /
+emails), so run against a preview environment and/or clean up the test
+applications afterwards.
