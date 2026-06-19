@@ -88,7 +88,6 @@ Add these to Vercel and local `.env`:
 
 ```env
 VITE_ANALYTICS_HASH_SALT=replace_with_private_salt
-VITE_CLARITY_PROJECT_ID=your_clarity_project_id
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 VITE_POSTHOG_KEY=your_posthog_project_key
 VITE_POSTHOG_HOST=https://eu.i.posthog.com
@@ -118,7 +117,6 @@ SENTRY_PROJECT=your_sentry_project_slug
 
 Current workspace values:
 - `VITE_SUPABASE_URL` points at your Supabase project
-- `VITE_CLARITY_PROJECT_ID` is optional; the frontend loader is a no-op until it is set
 - `VITE_GOOGLE_MAPS_API_KEY` powers the residential/postal address auto-suggest in Section 1; until it is set the fields stay in manual-entry mode (see [Address auto-suggest (Google Places)](#address-auto-suggest-google-places))
 - remote upload guardrail defaults are:
   - `VITE_REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION=30`
@@ -133,7 +131,7 @@ Current workspace values:
 - frontend smoke-test markers are filtered before send in non-development environments (`/dev/sentry-smoke`, `dev_sentry_smoke`, and codex smoke messages)
 - source map upload during build requires `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`
 - PostHog runs with manual event capture only (`autocapture: false`) and uses hashed analytics user IDs.
-- Clarity excludes likely automated traffic (for example `navigator.webdriver`, headless/bot user agents), supports explicit opt-out via `?clarity=off` or local/session storage key `application-prototype:disable-clarity=1`, and is masked/disabled on PII-heavy application routes.
+- PostHog session replay is disabled by default and only started on the public catalog routes (`/`, `/courses/:code`); it is stopped on all authenticated/PII routes and masks all inputs and text while active.
 - keep the publishable key only in local env and Vercel envs, not in checked-in docs
 
 ## Address auto-suggest (Google Places)

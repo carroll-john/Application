@@ -14,8 +14,10 @@ export {
   capturePostHogEvent,
   initPostHog,
   isPostHogEnabled,
+  isReplayPiiRoute,
   onPostHogFeatureFlags,
   syncPostHogUser,
+  syncReplayRoutePrivacy,
 } from "./analytics/posthogClient";
 export {
   captureApplicationStepEvent,

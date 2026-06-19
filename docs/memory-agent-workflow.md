@@ -31,7 +31,7 @@ npm run finish-task -- "Task name"
 | CV parser API | `api/_ai/callLlm.test.ts`, `npm run test:cv-parser` (needs dev server + OPENAI_API_KEY) |
 | Section 2 document save | `src/features/section2/section2DocumentSave.test.ts`, `useSection2DocumentSaveWithParse.test.ts` |
 | Course catalog / eligibility | `src/lib/courseCatalog.test.ts`, `courseEligibility.test.ts`, `courseBrowse.test.ts`, `npm run eligibility:eval`, `npm run test:eligibility-transcripts` (needs `dev:transcript-eligibility-api` + `OPENAI_API_KEY`) |
-| Analytics | `src/lib/posthog.test.ts`, `analyticsIdentity.test.ts`, `clarity.test.ts` |
+| Analytics | `src/lib/posthog.test.ts`, `analyticsIdentity.test.ts` |
 | Hooks (Section 1/2) | `src/hooks/*.test.ts`, `src/hooks/section1Navigation.test.ts`, `src/hooks/useSection1Step.ts` |
 | Full CI parity | `npm run lint && npm test && npm run build` |
 
@@ -67,7 +67,7 @@ Load only these files for typical tasks (~5–15 files each):
 `api/parse-cv.ts`, `api/_documentParser/*`, `api/_ai/*`, `src/lib/documentParserClient.ts`, `src/lib/documentParserRegistry.ts`, `src/lib/documentParsers/*`, `src/features/section2/cvDocumentParsePolicy.ts`, `src/features/section2/useSection2DocumentSaveWithParse.ts`, `src/lib/analytics/documentParserAnalytics.ts`
 
 ### analytics
-`src/lib/posthog.ts`, `src/lib/analytics/*`, `src/lib/clarity.ts`, `src/lib/sentry.ts`, `src/features/application/hooks/useApplicationAnalytics.ts`
+`src/lib/posthog.ts`, `src/lib/analytics/*`, `src/lib/sentry.ts`, `src/features/application/hooks/useApplicationAnalytics.ts`
 
 ## Parallel Agent Rules
 
