@@ -204,23 +204,20 @@ async function signIn(page) {
   const emailOk = await fillField(page, /^Email/i, TEST_EMAIL);
   const pwOk = await fillField(page, /^Password/i, TEST_PASSWORD);
   log(`sign-in: email field ${emailOk ? "filled" : "NOT FOUND"}, password field ${pwOk ? "filled" : "NOT FOUND"}`);
-  await clickButton(page, /sign in|log in/i, { required: true });
-  await page.waitForLoadState("networkidle").catch(() => {});
-  await page.waitForTimeout(1500); // allow the auth round-trip + any error to render
+  // Submit the form's own submit button (falling back to Enter) so we can't
+  // accidentally click a same-named nav/tab control instead of submitting.
+  const submit = page.locator('button[type="submit"]').first();
+  if (await submit.count()) await submit.click().catch(() => {});
+  else await page.getByLabel(/^Password/i).press("Enter").catch(() => {});
+  await page.waitForTimeout(4000); // auth round-trip + redirect (networkidle never settles here)
   const authed = !page.url().includes("/sign-in");
   if (authed) {
     log("✓ Signed in.");
   } else {
-    const err = await page
-      .locator('[role="alert"], [aria-live], .text-destructive, .text-red-500')
-      .first()
-      .innerText()
+    const msg = await page
+      .evaluate(() => document.body.innerText.replace(/\s+/g, " ").trim().slice(0, 300))
       .catch(() => "");
-    warn(
-      `Sign-in did not complete (still on /sign-in).${
-        err ? ` Page says: "${err.trim().slice(0, 160)}"` : " (no visible error text — likely wrong password)"
-      }`,
-    );
+    warn(`Sign-in did not complete (still on /sign-in). Page text: "${msg}"`);
   }
   return authed;
 }
