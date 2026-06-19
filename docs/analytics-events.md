@@ -160,7 +160,7 @@ Flag reads are typed via a `FeatureFlagKey` union (`src/lib/analytics/featureFla
 
 - **React:** `useFeatureFlag(key)` (`src/hooks/useFeatureFlag.ts`) over `posthog-js/react`. The app tree is wrapped in `<PostHogProvider client={posthog}>` (`src/App.tsx`).
 - **Imperative:** `isFeatureFlagEnabled(key)` / `getFeatureFlagPayload(key)` from `src/lib/posthog.ts`.
-- **Flicker:** flags resolve asynchronously, so a flag is `undefined` until loaded. The wrapper treats that as `false`; render the control/default variant until flags resolve to avoid layout shift (and for experiments, exposure is tracked automatically by the hook).
+- **Resolution / freshness:** for first-time users a flag is `undefined` until the `/flags` response arrives; the wrapper treats that as `false` (control/default variant, no flicker). For returning users posthog-js returns the value cached in localStorage immediately, which may briefly be stale until the fresh response arrives — gate kill-switch / freshness-sensitive flags on `posthog.onFeatureFlags` rather than the cached value. Experiment exposure is tracked automatically by the hook.
 
 ## Bot And Agent Exclusion
 
