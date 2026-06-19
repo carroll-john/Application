@@ -5,7 +5,7 @@
  * funnel (DIS-196) and submit-blocker (DIS-197) tiles populate with *labelled*
  * test data. Every event captured during this run carries `synthetic_test: true`
  * (see src/lib/analytics/posthogClient.ts), so it can be excluded from real
- * metrics.
+ * metrics (the project's internal/test-account filter already lists it).
  *
  * HOW IT WORKS
  *   1. The app drops automation traffic (navigator.webdriver / headless /
@@ -13,10 +13,9 @@
  *      authorised doorway and persists it to localStorage for the session.
  *   2. The token must match `VITE_ANALYTICS_SYNTHETIC_TOKEN` baked into the
  *      deployment. Set it on a PREVIEW/QA deploy — never production.
- *   3. The journey is auth-gated, so TEST_EMAIL/TEST_PASSWORD are required for
- *      the happy/blocked paths (a throwaway account on the target environment).
- *   4. The script tallies ingestion POSTs to `/ingest/*` as live proof of capture
- *      and logs every step so any selector mismatch is obvious.
+ *   3. The journey is auth-gated, so TEST_EMAIL/TEST_PASSWORD are required.
+ *   4. The script tallies ingestion POSTs to `/ingest/*` as proof of capture and
+ *      logs every step so any selector mismatch is obvious.
  *
  * USAGE
  *   BASE_URL=https://<preview>.vercel.app \
@@ -28,9 +27,10 @@
  *   COURSE_PATH=/courses/<slug> (fallback if the catalog button selector misses).
  *   (If chromium isn't installed: `npx playwright install chromium`.)
  *
- * SELECTORS were mapped from the components (no data-testid in the app, so we use
- * getByLabel / getByRole). Real submissions write Supabase rows and can trigger
- * the eligibility AI / emails — run against preview and clean up after.
+ * The app's selects are a custom `NativeSelect` (a button[role=combobox] over a
+ * hidden <select>), so we open the combobox and click a role=option rather than
+ * calling selectOption(). Submissions write Supabase rows and can trigger the
+ * eligibility AI / emails — run against preview and clean up after.
  */
 import { chromium } from "playwright";
 
@@ -79,25 +79,50 @@ async function fillField(page, labelRe, value) {
   return false;
 }
 
-/** Pick the first real <option> (index 1 skips the placeholder) unless a label is given. */
-async function selectField(page, labelRe, option = { index: 1 }) {
-  const f = page.getByLabel(labelRe).first();
-  if (!(await f.count())) {
+/** Locate a NativeSelect's combobox button by accessible name, else by label text. */
+async function findCombobox(page, labelRe) {
+  const byName = page.getByRole("combobox", { name: labelRe }).first();
+  if (await byName.count()) return byName;
+  const label = page.locator("label").filter({ hasText: labelRe }).first();
+  if (await label.count()) {
+    // first combobox appearing after the label in document order
+    const near = label.locator('xpath=following::*[@role="combobox"][1]');
+    if (await near.count()) return near;
+  }
+  return null;
+}
+
+/**
+ * Drive a NativeSelect: open it and click an option.
+ * opts.option — exact/regex option text to pick; opts.pick — "first" | "last"
+ * real (non-placeholder) option when no explicit option is given.
+ */
+async function selectField(page, labelRe, opts = {}) {
+  const { option = null, pick = "first", exact = false } = opts;
+  const combo = await findCombobox(page, labelRe);
+  if (!combo) {
     warn(`select not found: ${labelRe}`);
     return false;
   }
-  try {
-    await f.selectOption(option);
-    return true;
-  } catch {
-    try {
-      await f.selectOption({ index: 1 });
-      return true;
-    } catch {
-      warn(`could not select an option for: ${labelRe}`);
-      return false;
-    }
+  await combo.scrollIntoViewIfNeeded().catch(() => {});
+  await combo.click().catch(() => {});
+  const listbox = page.getByRole("listbox").first();
+  await listbox.waitFor({ state: "visible", timeout: 4000 }).catch(() => {});
+
+  let target;
+  if (option != null) {
+    target = listbox.getByRole("option", { name: option, exact }).first();
+  } else {
+    const real = listbox.locator('[role="option"][data-value]:not([data-value=""])');
+    target = pick === "last" ? real.last() : real.first();
   }
+  if (!(await target.count())) {
+    warn(`no matching option for: ${labelRe}`);
+    await page.keyboard.press("Escape").catch(() => {});
+    return false;
+  }
+  await target.click().catch(() => {});
+  return true;
 }
 
 async function clickButton(page, nameRe, { required = false } = {}) {
@@ -162,25 +187,42 @@ async function openCourse(page) {
   }
 }
 
-/** Eligibility check → "Start application" (fires application_start_requested). */
+/**
+ * Eligibility check → "Start application" (fires application_start_requested).
+ * The modal has "Select: Education level" / "Select: Experience" NativeSelects
+ * and a "Next" button. Pick the highest (last) option to maximise eligibility.
+ */
 async function startApplication(page) {
-  await clickButton(page, /eligibility check/i);
-  await page.waitForTimeout(800);
-  // Best-effort: answer the eligibility questions affirmatively.
-  const yes = page.getByRole("radio", { name: /^yes$/i });
-  for (let i = 0; i < (await yes.count()); i += 1) {
-    await yes.nth(i).check().catch(() => {});
+  if (!(await clickButton(page, /eligibility check/i, { required: true }))) return false;
+  await page.waitForTimeout(600);
+  await selectField(page, /Education level/i, { pick: "last" });
+  await selectField(page, /Experience/i, { pick: "last" }); // conditional; warns if absent
+  await clickButton(page, /^Next$/i, { required: true });
+
+  const start = page
+    .getByRole("button", {
+      name: /start application|continue application|choose how to start|start brand new application/i,
+    })
+    .first();
+  await start.waitFor({ state: "visible", timeout: 15000 }).catch(() => {});
+  if (!(await start.count())) {
+    warn("No 'Start application' button appeared — may not be eligible for this course.");
+    return false;
   }
-  await clickButton(page, /check (my )?eligibility|see results|continue/i);
-  await page.waitForTimeout(1500);
-  const started = await clickButton(
-    page,
-    /start application|continue application|choose how to start|start brand new application/i,
-    { required: true },
-  );
+  await start.click().catch(() => {});
   await page.waitForLoadState("networkidle").catch(() => {});
   await page.waitForTimeout(500);
-  return started;
+  return true;
+}
+
+/** A fresh draft lands on /overview; click its CTA through to Section 1. */
+async function enterSections(page) {
+  if (!page.url().includes("/overview")) return;
+  await clickButton(page, /start|continue|resume|begin/i);
+  await page.waitForLoadState("networkidle").catch(() => {});
+  if (page.url().includes("/overview")) {
+    await page.goto(`${BASE_URL}/section1/basic-info`, { waitUntil: "networkidle" }).catch(() => {});
+  }
 }
 
 /** Fill the six Section 1 steps with valid minimal values. */
@@ -197,7 +239,7 @@ async function fillSection1(page) {
   await fillField(page, /^Phone/i, "0400000000");
   await continueStep(page);
   // contact-info (citizenship)
-  await selectField(page, /^Status/, { label: "Australian Citizen" });
+  await selectField(page, /^Status/, { option: /Australian Citizen/i });
   await continueStep(page);
   // address
   await fillField(page, /residential address/i, "123 Test Street, Melbourne VIC 3000");
@@ -207,15 +249,10 @@ async function fillSection1(page) {
   // cultural-background
   await selectField(page, /^Language/);
   await selectField(page, /^Status/); // Aboriginal/TSI status
-  await selectField(page, /^School level/);
+  await selectField(page, /School level/i);
   await continueStep(page);
   // family-support
-  await selectField(page, /parents|guardians/i, { label: "0" });
-  // any conditional parent-education selects that appeared:
-  const parentSelects = page.getByLabel(/Parent .* completed/i);
-  for (let i = 0; i < (await parentSelects.count()); i += 1) {
-    await parentSelects.nth(i).selectOption({ index: 1 }).catch(() => {});
-  }
+  await selectField(page, /parents|guardians/i, { option: "0", exact: true });
   await page.getByRole("radio", { name: /^no$/i }).first().check().catch(() => {});
   await continueStep(page);
 }
@@ -225,18 +262,17 @@ async function addTertiary(page) {
   await clickButton(page, /add.*tertiary/i, { required: true });
   await page.waitForLoadState("networkidle").catch(() => {});
   await fillField(page, /^Institution/, "Test University");
-  await selectField(page, /^Country/, { label: "Australia" });
+  await selectField(page, /^Country/, { option: /Australia/i });
   await selectField(page, /Qualification level/i);
   await fillField(page, /Course name|Program name/i, "Bachelor of Testing");
   await selectField(page, /Start month/i);
   await selectField(page, /Start year/i);
   await selectField(page, /End month/i);
-  await selectField(page, /End year/i);
+  await selectField(page, /End year/i, { pick: "last" });
   await clickButton(page, /^Save & Continue$/i, { required: true });
   await page.waitForLoadState("networkidle").catch(() => {});
   await page.waitForTimeout(400);
-  // back on the qualifications overview → continue to /review
-  await continueStep(page);
+  await continueStep(page); // qualifications overview → /review
 }
 
 /** Submit and verify we reach /submitted. */
@@ -258,6 +294,7 @@ async function runHappy(page) {
   console.log("\n=== happy path ===");
   await openCourse(page);
   if (!(await startApplication(page))) return;
+  await enterSections(page);
   await fillSection1(page);
   await addTertiary(page);
   await submitHappy(page);
