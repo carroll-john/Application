@@ -1,3 +1,5 @@
+import { getPostHogServerClient } from "./posthogServerClient.js";
+
 type AiMessage = {
   role: "system" | "user" | "assistant";
   content: string;
@@ -259,14 +261,10 @@ interface CaptureEligibilityFeedbackOptions {
 export async function captureEligibilityFeedback(
   options: CaptureEligibilityFeedbackOptions,
 ) {
-  const apiKey = readApiKey();
-  if (!apiKey) {
+  const client = getPostHogServerClient();
+  if (!client) {
     return;
   }
-
-  const host = normalizeHost(
-    process.env.POSTHOG_HOST?.trim() || process.env.VITE_POSTHOG_HOST?.trim(),
-  );
 
   const distinctId = buildDistinctId({
     courseCode: options.courseCode,
@@ -274,35 +272,23 @@ export async function captureEligibilityFeedback(
     level: undefined,
   });
 
-  const payload = {
-    api_key: apiKey,
-    event: "eligibility_check_override",
-    properties: {
-      distinct_id: distinctId,
-      eligibility_pipeline: "transcript_eligibility_v1",
-      eligibility_rules_version: options.rulesVersion ?? "unknown",
-      eligibility_service_version: options.serviceVersion ?? "unknown",
-      course_code: options.courseCode ?? null,
-      course_title: options.courseTitle ?? null,
-      requirement_id: options.requirementId,
-      requirement_source_text: options.requirementSourceText ?? null,
-      original_status: options.originalStatus,
-      override_status: options.overrideStatus,
-      reason: options.reason ?? null,
-    },
-  };
-
   try {
-    await posthogFetch(
-      host,
-      "/i/v0/e/",
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
+    await client.captureImmediate({
+      distinctId,
+      event: "eligibility_check_override",
+      properties: {
+        eligibility_pipeline: "transcript_eligibility_v1",
+        eligibility_rules_version: options.rulesVersion ?? "unknown",
+        eligibility_service_version: options.serviceVersion ?? "unknown",
+        course_code: options.courseCode ?? null,
+        course_title: options.courseTitle ?? null,
+        requirement_id: options.requirementId,
+        requirement_source_text: options.requirementSourceText ?? null,
+        original_status: options.originalStatus,
+        override_status: options.overrideStatus,
+        reason: options.reason ?? null,
       },
-      1200,
-    );
+    });
   } catch {
     // Observability must never block the calling request.
   }
