@@ -1,8 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  getApplicationAnalyticsProperties,
-  getRequiredFunnelStepDefinition,
-} from "./posthog";
+import { getApplicationAnalyticsProperties } from "./posthog";
 
 // The barrel pulls in posthogClient, which imports the real posthog-js SDK.
 // Vitest runs in a node environment, so mock the SDK to keep the import hermetic.
@@ -32,23 +29,5 @@ describe("getApplicationAnalyticsProperties", () => {
 
     expect(properties.applicant_profile_id).toMatch(/^fnv1a:/);
     expect(properties.applicant_profile_id).not.toContain("user@example.com");
-  });
-});
-
-describe("getRequiredFunnelStepDefinition", () => {
-  it("maps required funnel step source events", () => {
-    expect(getRequiredFunnelStepDefinition("application_step_viewed")?.eventName).toBe(
-      "funnel_step_3_application_step_viewed",
-    );
-    expect(getRequiredFunnelStepDefinition("application_step_completed")?.eventName).toBe(
-      "funnel_step_4_application_step_completed",
-    );
-    expect(getRequiredFunnelStepDefinition("application_submit_started")?.eventName).toBe(
-      "funnel_step_5_application_submit_started",
-    );
-  });
-
-  it("returns null for non-required events", () => {
-    expect(getRequiredFunnelStepDefinition("application_draft_created")).toBeNull();
   });
 });

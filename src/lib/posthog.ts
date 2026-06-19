@@ -1,6 +1,5 @@
 export {
   getApplicationStepDefinition,
-  getRequiredFunnelStepDefinition,
   getRouteAnalyticsDefinition,
 } from "./analytics/applicationSteps";
 export {

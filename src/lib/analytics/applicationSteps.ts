@@ -15,16 +15,6 @@ export type ApplicationStepDefinition = {
   pattern: RegExp;
 };
 
-export type RequiredFunnelStepDefinition = {
-  eventName: string;
-  sourceEventName:
-    | "application_step_viewed"
-    | "application_step_completed"
-    | "application_submit_started";
-  stepLabel: string;
-  stepNumber: 3 | 4 | 5;
-};
-
 export type RouteAnalyticsDefinition = {
   group:
     | "application"
@@ -135,39 +125,10 @@ export const applicationStepDefinitions: ApplicationStepDefinition[] = [
   },
 ];
 
-export const requiredFunnelStepDefinitions: RequiredFunnelStepDefinition[] = [
-  {
-    eventName: "funnel_step_3_application_step_viewed",
-    sourceEventName: "application_step_viewed",
-    stepLabel: "Application step viewed",
-    stepNumber: 3,
-  },
-  {
-    eventName: "funnel_step_4_application_step_completed",
-    sourceEventName: "application_step_completed",
-    stepLabel: "Application step completed",
-    stepNumber: 4,
-  },
-  {
-    eventName: "funnel_step_5_application_submit_started",
-    sourceEventName: "application_submit_started",
-    stepLabel: "Application submit started",
-    stepNumber: 5,
-  },
-];
-
 export function getRouteAnalyticsDefinition(pathname: string) {
   return routeAnalyticsDefinitions.find((route) => route.pattern.test(pathname)) ?? null;
 }
 
 export function getApplicationStepDefinition(pathname: string) {
   return applicationStepDefinitions.find((step) => step.pattern.test(pathname)) ?? null;
-}
-
-export function getRequiredFunnelStepDefinition(sourceEventName: string) {
-  return (
-    requiredFunnelStepDefinitions.find(
-      (definition) => definition.sourceEventName === sourceEventName,
-    ) ?? null
-  );
 }

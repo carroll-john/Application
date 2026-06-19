@@ -61,20 +61,19 @@ Recommended main application funnel:
 5. `application_submit_started`
 6. `application_submitted`
 
-## Required Funnel Step Events (3-5)
+## Building the funnel in PostHog
 
-These explicit events are emitted in addition to their source events so funnel
-reporting can target a stable required step series across platforms.
+Funnels are built natively in PostHog directly from the source events above —
+there are no separate `funnel_step_*` events (these were removed; PostHog
+constructs the funnel from the real events). Define the funnel as the ordered
+sequence:
 
-| Explicit event | Source event | Required step |
-| --- | --- | --- |
-| `funnel_step_3_application_step_viewed` | `application_step_viewed` | 3 |
-| `funnel_step_4_application_step_completed` | `application_step_completed` | 4 |
-| `funnel_step_5_application_submit_started` | `application_submit_started` | 5 |
+`application_start_requested` → `application_draft_created` →
+`application_step_viewed` → `application_step_completed` →
+`application_submit_started` → `application_submitted`
 
-Platform setup:
-- PostHog: use the explicit `funnel_step_3_*` to `funnel_step_5_*` events directly in funnels.
-- Clarity: the same explicit event names are sent as Clarity custom events when Clarity tracking is active.
+Each step already carries `application_step_order` / `application_step_key`
+plus course and application context, which can be used for funnel breakdowns.
 
 Important submit-path rules:
 
