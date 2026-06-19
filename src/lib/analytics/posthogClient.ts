@@ -14,7 +14,8 @@ import {
 
 // Same-origin reverse-proxy path (configured in vercel.json) so analytics
 // requests are first-party and are not dropped by ad-blockers. It proxies to
-// the EU ingestion host, with /ingest/static/* going to the EU assets host.
+// the EU ingestion host, with /ingest/static/* and /ingest/array/* (the SDK's
+// static assets and remote config) going to the EU assets host.
 const POSTHOG_INGEST_PROXY_PATH = "/ingest";
 
 let postHogStarted = false;
