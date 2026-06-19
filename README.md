@@ -79,7 +79,7 @@ Configure these frontend env vars for analytics:
 ```env
 VITE_ANALYTICS_HASH_SALT=any_non_empty_string
 VITE_POSTHOG_KEY=your_posthog_project_api_key
-VITE_POSTHOG_HOST=https://us.i.posthog.com
+VITE_POSTHOG_HOST=https://eu.i.posthog.com
 ```
 
 > `VITE_ANALYTICS_HASH_SALT` is bundled into the client build and is therefore
@@ -257,4 +257,4 @@ Hosted/Vercel auth requires an **active** Supabase project, email confirmation e
 - Read `docs/project-memory.md` and the relevant `docs/memory-*.md` before making product or UX changes.
 - The transcript **eligibility service** lives in its own repo: [github.com/carroll-john/eligibility-service](https://github.com/carroll-john/eligibility-service). This app talks to it over the pinned [v1 HTTP contract](docs/contracts/eligibility-evaluate.v1.md) via `api/evaluate-transcript-eligibility.ts` (`ELIGIBILITY_SERVICE_URL` + `ELIGIBILITY_SERVICE_TOKEN`). With the URL unset, the app falls back to a local OpenAI call, so the service is optional for local dev (`npm run dev:transcript-eligibility-api`).
 - Applicant auth uses public email + password (no company-domain gate). See `docs/auth-password-troubleshooting.md`.
-- PostHog is optional and activates when `VITE_POSTHOG_KEY` is set and bot/automation filters pass. Use `VITE_POSTHOG_HOST` to point at your PostHog region, for example `https://us.i.posthog.com`.
+- PostHog is optional and activates when `VITE_POSTHOG_KEY` is set and bot/automation filters pass. Use `VITE_POSTHOG_HOST` to point at your PostHog region, for example `https://eu.i.posthog.com`.

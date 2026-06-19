@@ -9,7 +9,7 @@
  * Auth:
  *   POSTHOG_PERSONAL_API_KEY  required (starts with `phx_…`). Project keys do NOT work for queries.
  *   POSTHOG_PROJECT_ID        required (the numeric project id).
- *   POSTHOG_HOST              optional (defaults to https://us.i.posthog.com). EU users: https://eu.i.posthog.com.
+ *   POSTHOG_HOST              optional (defaults to https://eu.i.posthog.com). US users: https://us.i.posthog.com.
  *
  * Usage:
  *   POSTHOG_PERSONAL_API_KEY=phx_… POSTHOG_PROJECT_ID=12345 \
@@ -31,7 +31,7 @@ const repoRoot = resolve(__filename, "../..");
 
 const DEFAULT_OUT = resolve(repoRoot, "data/eligibility-overrides.json");
 const DEFAULT_SINCE = "90d";
-const DEFAULT_HOST = "https://us.i.posthog.com";
+const DEFAULT_HOST = "https://eu.i.posthog.com";
 
 interface Flags {
   since: string;
