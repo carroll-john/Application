@@ -75,6 +75,10 @@ sequence:
 Each step already carries `application_step_order` / `application_step_key`
 plus course and application context, which can be used for funnel breakdowns.
 
+The funnel and its supporting charts are built as three pinned PostHog
+dashboards (EU project `133929`) — see `docs/posthog-integrations.md` §4 for the
+links and current data caveats.
+
 Important submit-path rules:
 
 - `application_submit_started` fires only when the user clicks `Submit application` on `/review` and there are no validation errors.

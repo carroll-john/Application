@@ -41,24 +41,41 @@ Keep credentials in PostHog's source config only — never in this repo.
   `VITE_POSTHOG_KEY` / host into the project's env (instead of setting them by
   hand). It does not replace the proxy.
 
-## 4. Dashboards & funnels to build (PostHog UI / MCP)
+## 4. Dashboards & funnels (built)
 
-Build these from the events documented in `docs/analytics-events.md`:
+Three pinned dashboards are live in EU project `133929`, built from the events
+in `docs/analytics-events.md`:
 
-- **Application funnel** (core): `application_start_requested` →
+- **[Applicant journey & activation](https://eu.posthog.com/project/133929/dashboard/761609)**
+  — Core application funnel (`application_start_requested` →
   `application_draft_created` → `application_step_viewed` →
   `application_step_completed` → `application_submit_started` →
-  `application_submitted`. Break down by the `course_provider` group.
-- **Activation / retention:** new vs returning, and return-to-submit retention.
-- **Where applicants get stuck (DIS-197):** `application_submit_blocked` broken
-  down by `application_step_key` / validation properties.
-- **Parser success:** CV + transcript `*_draft_succeeded / _empty / _failed`
-  with `parse_duration_ms`.
-- **AI eligibility:** the server `$ai_generation` events (model, tokens,
-  latency, outcome).
+  `application_submitted`, ordered; toggle a `course_provider` / `storage_mode`
+  breakdown in-UI), daily activation trend, steps reached by
+  `application_step_key`, and submit blockers (`application_submit_blocked` by
+  step — DIS-197).
+- **[Document parsing & AI eligibility](https://eu.posthog.com/project/133929/dashboard/761610)**
+  — CV + transcript parser outcomes (`*_draft_succeeded` / `_empty` / `_failed`),
+  CV `parse_duration_ms` p50/p95, AI `$ai_generation` latency p50/p95, generations
+  vs `eligibility_check_override` volume (the gap = human-correction rate), and
+  `eligibility_outcome` distribution.
+- **[Auth & quality](https://eu.posthog.com/project/133929/dashboard/761612)** —
+  sign-in / sign-up / OTP outcomes and `$exception` volume.
 
-These can be created with the PostHog MCP (`query-funnel`, `query-trends`,
-`dashboard-create`, …) once an interactive session can approve the calls.
+### Status / caveats (as of first build)
+
+- **Live data present:** funnel through `application_step_completed`,
+  `$ai_generation` (~40/30d), `eligibility_check_override`, both parsers, auth,
+  and `$exception` all populate.
+- **Empty but ready:** `application_submit_started` / `application_submitted` /
+  `application_submit_blocked` have never fired (no real submission has reached
+  `/review` yet), so the funnel's last two steps and the submit-blocker tile show
+  zero until a real submission occurs.
+- The Phase 0–8 production deploy landed 2026-06-19; legacy `funnel_step_N_*`
+  duplicate events all predate it and should stop — re-check after real traffic.
+
+Re-run / extend with the PostHog MCP (`query-funnel`, `query-trends`,
+`insight-create`, `dashboard-create`, …).
 
 ## Linear
 
