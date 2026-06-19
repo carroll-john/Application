@@ -37,6 +37,7 @@
     "date-fns": "^4.4.0",
     "lucide-react": "^1.18.0",
     "posthog-js": "^1.391.0",
+    "posthog-node": "^5.38.1",
     "react": "^19.2.0",
     "react-datepicker": "^9.1.0",
     "react-dom": "^19.2.0",

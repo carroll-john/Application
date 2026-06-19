@@ -1,16 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const captureImmediate = vi.hoisted(() => vi.fn());
+const PostHogMock = vi.hoisted(() =>
+  vi.fn(function PostHog() {
+    return { captureImmediate };
+  }),
+);
+
+vi.mock("posthog-node", () => ({ PostHog: PostHogMock }));
+
 import feedbackRoute from "./capture-eligibility-feedback";
 
-const originalFetch = globalThis.fetch;
-const fetchMock = vi.fn();
-
 beforeEach(() => {
-  fetchMock.mockReset();
-  globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+  captureImmediate.mockReset();
+  captureImmediate.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
-  globalThis.fetch = originalFetch;
   delete process.env.POSTHOG_PROJECT_API_KEY;
   delete process.env.POSTHOG_HOST;
 });
@@ -49,12 +55,11 @@ describe("capture-eligibility-feedback api route", () => {
       }),
     );
     expect(response.status).toBe(200);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(captureImmediate).not.toHaveBeenCalled();
   });
 
   it("forwards a captured override event to PostHog when configured", async () => {
     process.env.POSTHOG_PROJECT_API_KEY = "test-key";
-    fetchMock.mockResolvedValueOnce(new Response("", { status: 200 }));
 
     const response = await feedbackRoute.fetch(
       makeRequest({
@@ -69,17 +74,17 @@ describe("capture-eligibility-feedback api route", () => {
     );
 
     expect(response.status).toBe(200);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(String(url)).toMatch(/posthog\.com\/i\/v0\/e\//);
-    const body = JSON.parse((init as { body: string }).body) as {
+    expect(captureImmediate).toHaveBeenCalledTimes(1);
+    const event = captureImmediate.mock.calls[0][0] as {
+      distinctId: string;
       event: string;
       properties: Record<string, unknown>;
     };
-    expect(body.event).toBe("eligibility_check_override");
-    expect(body.properties.requirement_id).toBe("wam-65");
-    expect(body.properties.original_status).toBe("fail");
-    expect(body.properties.override_status).toBe("pass");
-    expect(body.properties.course_code).toBe("mit-online");
+    expect(event.event).toBe("eligibility_check_override");
+    expect(typeof event.distinctId).toBe("string");
+    expect(event.properties.requirement_id).toBe("wam-65");
+    expect(event.properties.original_status).toBe("fail");
+    expect(event.properties.override_status).toBe("pass");
+    expect(event.properties.course_code).toBe("mit-online");
   });
 });
