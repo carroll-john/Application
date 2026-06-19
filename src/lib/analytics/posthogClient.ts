@@ -97,10 +97,31 @@ function isSyntheticTestSession(): boolean {
     } catch {
       // localStorage may be unavailable; query-param detection still holds for this load.
     }
+    // Scrub the token from the URL/history so it can't reach analytics via
+    // $current_url/$referrer (the sanitizer also strips kp_synthetic as a
+    // defense-in-depth backstop).
+    stripSyntheticTokenFromUrl();
     return true;
   }
 
   return false;
+}
+
+function stripSyntheticTokenFromUrl() {
+  try {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has(SYNTHETIC_TEST_QUERY_PARAM)) {
+      return;
+    }
+    url.searchParams.delete(SYNTHETIC_TEST_QUERY_PARAM);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+  } catch {
+    // history/URL APIs unavailable — the sanitizer backstop still applies.
+  }
 }
 
 // Register the super-properties carried on every event. `synthetic_test: true`

@@ -24,6 +24,16 @@ describe("sanitizeAnalyticsUrl", () => {
 
     expect(sanitized).toBe("https://app.example/sign-in?redirect=%2F");
   });
+
+  it("strips the synthetic-test activation token (kp_synthetic)", () => {
+    const sanitized = sanitizeAnalyticsUrl(
+      "https://app.example/?kp_synthetic=long-random-secret&utm_source=x",
+    );
+
+    expect(sanitized).not.toContain("kp_synthetic");
+    expect(sanitized).not.toContain("long-random-secret");
+    expect(sanitized).toContain("utm_source=x");
+  });
 });
 
 describe("sanitizeAnalyticsSearch", () => {

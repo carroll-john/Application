@@ -8,6 +8,9 @@ const SENSITIVE_QUERY_KEYS = new Set([
   "error_description",
   "provider_token",
   "provider_refresh_token",
+  // Synthetic-test activation token (kp_synthetic) — must never reach analytics
+  // in $current_url/$referrer. Keep in sync with SYNTHETIC_TEST_QUERY_PARAM.
+  "kp_synthetic",
 ]);
 
 const AUTH_CALLBACK_PATH = "/auth/callback";
