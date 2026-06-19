@@ -154,6 +154,14 @@ Application-step events also include:
 - `application_step_group`
 - `application_step_order`
 
+## Feature Flags
+
+Flag reads are typed via a `FeatureFlagKey` union (`src/lib/analytics/featureFlags.ts`) — keep it in sync with the flags defined in the PostHog project.
+
+- **React:** `useFeatureFlag(key)` (`src/hooks/useFeatureFlag.ts`) over `posthog-js/react`. The app tree is wrapped in `<PostHogProvider client={posthog}>` (`src/App.tsx`).
+- **Imperative:** `isFeatureFlagEnabled(key)` / `getFeatureFlagPayload(key)` from `src/lib/posthog.ts`.
+- **Flicker:** flags resolve asynchronously, so a flag is `undefined` until loaded. The wrapper treats that as `false`; render the control/default variant until flags resolve to avoid layout shift (and for experiments, exposure is tracked automatically by the hook).
+
 ## Bot And Agent Exclusion
 
 Client-side PostHog capture is disabled for detected automation or bot traffic before events are sent.
