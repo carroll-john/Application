@@ -118,6 +118,16 @@ function getPostHogDistinctId(): string | null {
   }
 }
 
+// Tag a Sentry event (error or transaction) with the current PostHog distinct_id
+// so both error and performance/tracing events carry the PostHog link.
+function tagEventWithPostHog<T extends Sentry.Event>(event: T): T {
+  const posthogDistinctId = getPostHogDistinctId();
+  if (posthogDistinctId) {
+    event.tags = { ...event.tags, posthog_distinct_id: posthogDistinctId };
+  }
+  return event;
+}
+
 export function initSentry() {
   if (!isSentryEnabled || sentryStarted) {
     return;
@@ -161,17 +171,14 @@ export function initSentry() {
         return null;
       }
 
-      const posthogDistinctId = getPostHogDistinctId();
-      if (posthogDistinctId) {
-        event.tags = { ...event.tags, posthog_distinct_id: posthogDistinctId };
-      }
-
-      return event;
+      return tagEventWithPostHog(event);
     },
     beforeSendTransaction(event) {
-      return SHOULD_FILTER_SMOKE_EVENTS && isSmokeTestEvent(event)
-        ? null
-        : event;
+      if (SHOULD_FILTER_SMOKE_EVENTS && isSmokeTestEvent(event)) {
+        return null;
+      }
+
+      return tagEventWithPostHog(event);
     },
   });
 
