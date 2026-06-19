@@ -17,7 +17,7 @@ interface CaptureTranscriptAiGenerationOptions {
   };
 }
 
-const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
+const DEFAULT_POSTHOG_HOST = "https://eu.i.posthog.com";
 
 function hashString(value: string) {
   let hash = 2166136261;

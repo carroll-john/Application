@@ -58,6 +58,7 @@ export default defineConfig(({ mode }) => {
           manualChunks(id) {
             if (["react", "react-dom", "react-router-dom"].some((m) => id.includes(`/node_modules/${m}/`))) return "react";
             if (id.includes("/node_modules/@sentry/react/")) return "sentry";
+            if (id.includes("/node_modules/posthog-js/")) return "posthog";
             if (id.includes("/node_modules/@supabase/supabase-js/")) return "supabase";
             if (["react-datepicker", "date-fns"].some((m) => id.includes(`/node_modules/${m}/`))) return "datepicker";
           },

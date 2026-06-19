@@ -14,7 +14,6 @@ import {
   capturePostHogEvent,
   initPostHog,
 } from "./posthogClient";
-import { APP_ENVIRONMENT } from "./posthogTypes";
 
 type CourseAnalyticsContext = {
   code?: string;
@@ -147,10 +146,9 @@ export function trackPostHogPageView(pathname: string, search = "") {
       ? sanitizeAnalyticsUrl(window.location.href)
       : `${pathname}${sanitizedSearch}`;
 
-  window.posthog?.capture?.("$pageview", {
+  capturePostHogEvent("$pageview", {
     $current_url: safeUrl,
     $pathname: pathname,
-    app_environment: APP_ENVIRONMENT,
     page_group: route?.group ?? "system",
     page_key: route?.key ?? "unknown_page",
     page_name: route?.label ?? "Unknown page",
