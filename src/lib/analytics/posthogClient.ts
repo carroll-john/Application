@@ -1,7 +1,5 @@
 import posthog, { type CaptureResult } from "posthog-js";
-import { getRequiredFunnelStepDefinition } from "./applicationSteps";
 import { hashAnalyticsIdentifier } from "../analyticsIdentity";
-import { captureClarityEvent } from "../clarity";
 import { sanitizeAnalyticsUrl } from "./sanitizeAnalyticsUrl";
 import {
   APP_ENVIRONMENT,
@@ -183,12 +181,6 @@ export function capturePostHogEvent(
   eventName: string,
   properties?: Record<string, unknown>,
 ) {
-  const requiredFunnelStepDefinition = getRequiredFunnelStepDefinition(eventName);
-
-  if (requiredFunnelStepDefinition) {
-    captureClarityEvent(requiredFunnelStepDefinition.eventName);
-  }
-
   if (!canCapturePostHog()) {
     return;
   }
@@ -197,18 +189,6 @@ export function capturePostHogEvent(
 
   posthog.capture(eventName, {
     app_environment: APP_ENVIRONMENT,
-    ...properties,
-  });
-
-  if (!requiredFunnelStepDefinition) {
-    return;
-  }
-
-  posthog.capture(requiredFunnelStepDefinition.eventName, {
-    app_environment: APP_ENVIRONMENT,
-    funnel_source_event: eventName,
-    required_funnel_step_label: requiredFunnelStepDefinition.stepLabel,
-    required_funnel_step_number: requiredFunnelStepDefinition.stepNumber,
     ...properties,
   });
 }
