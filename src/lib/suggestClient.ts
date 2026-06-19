@@ -1,5 +1,4 @@
 import {
-  createAddressLookupFromClient,
   createEmptyStructuredAddress,
   createInstitutionLookupFromClient,
   createSuggestClient,
