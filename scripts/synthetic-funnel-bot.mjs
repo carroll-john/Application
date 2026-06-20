@@ -236,6 +236,45 @@ async function setStudyDate(page, labelRe, monthIdx, year) {
   return true;
 }
 
+/**
+ * Set a YearPickerField (react-datepicker year grid) located by its field label —
+ * open it and click the year cell. Used for the language test's "Test Year".
+ */
+async function setYearPicker(page, labelRe, year) {
+  const label = page.locator("label").filter({ hasText: labelRe }).first();
+  const trigger = (await label.count())
+    ? label.locator("xpath=following::button[1]")
+    : page.getByRole("button", { name: /Select year/i }).first();
+  if (!(await trigger.count())) {
+    warn(`year picker not found: ${labelRe}`);
+    return false;
+  }
+  await trigger.scrollIntoViewIfNeeded().catch(() => {});
+  await trigger.click().catch(() => {});
+  const cal = page.locator(".react-datepicker").first();
+  const opened = await cal
+    .waitFor({ state: "visible", timeout: 6000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!opened) {
+    warn(`year calendar did not open: ${labelRe}`);
+    return false;
+  }
+  const yearCell = cal
+    .locator(".react-datepicker__year-text")
+    .filter({ hasText: new RegExp(`^${year}$`) })
+    .first();
+  if (!(await yearCell.count())) {
+    warn(`year ${year} not visible in picker`);
+    await page.keyboard.press("Escape").catch(() => {});
+    return false;
+  }
+  await yearCell.click().catch(() => {});
+  await page.waitForTimeout(300);
+  log(`test year set to ${year}`);
+  return true;
+}
+
 /** Upload a persona document (transcript/CV) into the first file input on the page. */
 async function uploadFile(page, path) {
   if (!path) return false;
@@ -589,6 +628,7 @@ async function addTertiary(page) {
   // Fill the required fields, overriding whatever the parser drafted so the record is
   // deterministic and valid regardless of how the AI parse turned out this run.
   await fillByPlaceholder(page, /start typing institution/i, t.institution, { dismiss: true });
+  if (t.country) await selectField(page, /^Country/, { option: t.country });
   await selectField(page, /Qualification level/i, optionOrPick(t.level));
   await fillByPlaceholder(page, /Bachelor of Science/i, t.course);
   // Always set both study dates explicitly (overriding the parser, which fills them
@@ -677,6 +717,7 @@ async function correctTertiaryRecord(page) {
   }
   await page.waitForTimeout(800); // let the edit form render
   await fillByPlaceholder(page, /start typing institution/i, t.institution, { dismiss: true });
+  if (t.country) await selectField(page, /^Country/, { option: t.country });
   await selectField(page, /Qualification level/i, optionOrPick(t.level));
   await fillByPlaceholder(page, /Bachelor of Science/i, t.course);
   await setStudyDate(page, /Start date/i, 1, 2015);
@@ -757,6 +798,50 @@ async function addCv(page) {
   return true;
 }
 
+/**
+ * Add an English language test (e.g. IELTS) with its results document. Used when a
+ * persona's overseas, non-English-medium transcript means English proficiency must be
+ * evidenced before submitting. Reached client-side via the English Language
+ * Proficiency card's Add button.
+ */
+async function addLanguageTest(page) {
+  const lt = persona.languageTest;
+  if (!lt) return false;
+  if (!page.url().includes("/section2/qualifications")) {
+    warn(`not on qualifications for language test — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  const card = page
+    .locator("div.rounded-lg.border")
+    .filter({ hasText: /English Language Proficiency/i })
+    .first();
+  const addBtn = card.getByRole("button", { name: /^(Add|Replace)$/i }).first();
+  await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  if (!(await addBtn.count())) {
+    warn("English Language Proficiency Add button not found — skipping language test.");
+    return false;
+  }
+  await addBtn.scrollIntoViewIfNeeded().catch(() => {});
+  await addBtn.click().catch(() => {});
+  await page.waitForURL(/add-language-test/, { timeout: 12000 }).catch(() => {});
+  if (!page.url().includes("add-language-test")) {
+    warn(`language test page did not open — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  await page.waitForTimeout(700);
+  await selectField(page, /^Test Type/i, { option: lt.type });
+  await fillByPlaceholder(page, /IELTS Academic/i, lt.name);
+  await setYearPicker(page, /^Test Year/i, lt.year);
+  await uploadFile(page, lt.document);
+  const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
+  await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  await save.click().catch(() => {});
+  await page.waitForURL(/section2\/qualifications/, { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(1000);
+  log(`language test added — at ${new URL(page.url()).pathname}`);
+  return true;
+}
+
 /** Submit and verify we reach /submitted. */
 async function submitHappy(page) {
   // Reach /review via the UI only — a full reload wipes the in-memory application
@@ -825,6 +910,7 @@ async function runHappy(page) {
     await continueStep(page);
   }
   await addCv(page); // no-op unless the persona supplies a CV
+  await addLanguageTest(page); // no-op unless the persona supplies a language test
   if (drop === "review") {
     if (!page.url().includes("/review")) {
       await page.goto(`${BASE_URL}/review`, { waitUntil: "networkidle" }).catch(() => {});
