@@ -358,6 +358,7 @@ async function enterSections(page) {
         name: /^(Start application|Continue to next step|Go to review & submit)$/i,
       })
       .first();
+    await cta.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
     if (!(await cta.count())) {
       warn("overview continue CTA not found");
       break;
