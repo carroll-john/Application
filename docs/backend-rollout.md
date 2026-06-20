@@ -265,6 +265,7 @@ Notes:
   - `contact_details`
 - repeated section 2 records are normalized into their own tables
 - uploaded files are stored in the private `application-documents` bucket and referenced from `application_documents`
+- `applications.requires_english_proficiency` and `tertiary_qualifications.transcript_confirms_completion` (both `boolean default false`) feed the conditional submit checks — see "Conditional submission requirements" below
 - The Tuesday-demo product model is:
   - one reusable profile per signed-in user
   - multiple applications per user
@@ -331,6 +332,26 @@ Notes:
   - the remote storage path still needs end-to-end verification against a real Supabase project and bucket configuration
   - document cleanup is best-effort today; orphaned remote file records are still possible if a document upload succeeds but a later draft save fails
   - `supabase db push` from this workspace is currently blocked by hosted DB DNS resolution, so new SQL migrations should be run in the Supabase SQL editor
+
+## Conditional submission requirements (migration `20260620120000`)
+
+`20260620120000_conditional_submission_requirements.sql` adds
+`tertiary_qualifications.transcript_confirms_completion` and
+`applications.requires_english_proficiency`, and rebuilds
+`application_submission_missing_fields` to make the Certificate-of-Completion and
+English-proficiency requirements conditional (see
+[memory-applications.md](memory-applications.md) → Validation/Submission). It is
+additive and idempotent (`add column if not exists`, `create or replace function`,
+`set search_path` inline since `CREATE OR REPLACE` resets it).
+
+> **Production migration-history note.** On project **Application**
+> (`weyxnhykyyetquqprfnu`) this was first applied **manually via the MCP** while
+> the feature was in flight, then corrected — so the hosted migration history shows
+> two ad-hoc rows (`…_conditional_submission_requirements` and
+> `…_fix_submission_validation_regressions`) instead of the canonical
+> `20260620120000` filename. The deployed function matches the repo file (verified),
+> and re-applying the file is a no-op. A fresh environment (or the Supabase preview
+> branch) applies the single canonical file. Don't be alarmed by the extra rows.
 
 ## Clean Test Reset
 To reset hosted test data before a fresh run, execute:

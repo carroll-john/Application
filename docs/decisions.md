@@ -203,3 +203,21 @@
   `auth_insufficient_mfa_options` advisor lints (the advisor inspects the
   Supabase setting, not app code). Clearing the lints still requires the
   dashboard toggles on a Pro project — tracked in `backend-rollout.md`.
+
+## 2026-06-20
+
+### Conditional ("optional hard") submission requirements
+- Certificate of Completion and English-proficiency proof are required only under
+  conditions, not unconditionally. Enforce in **both** the client review and the
+  `submit_application` RPC; never let one side gate without the other.
+- Certificate of Completion: required only when a tertiary is `completed` but its
+  transcript can't evidence completion. Persist the transcript signal
+  (`tertiary_qualifications.transcript_confirms_completion`) since the in-memory
+  eligibility assessment doesn't survive reloads.
+- English proficiency: required only when the course needs it, it can't be inferred
+  from an English-medium-country qualification, and there's no language test **or
+  AHPRA registration**. An AHPRA registration (recognised from the free-text
+  accreditation name) counts as proof — at the submit gate and on the eligibility
+  card (`ENGLISH_OK_AHPRA`). No new UI field; inferred from the accreditation name.
+- Shared rule source: `src/lib/eligibility/englishProficiencyEvidence.ts`. The SQL
+  RPC duplicates the AHPRA regex + English-medium-country list — keep them in sync.
