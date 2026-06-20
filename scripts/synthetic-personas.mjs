@@ -42,7 +42,11 @@ export const personas = {
       level: /Bachelor/i,
       course: "Bachelor of Commerce",
     },
-    documents: { transcript: null, cv: null },
+    documents: {
+      // Required to submit; also exercises the transcript parser + AI eligibility.
+      transcript: "tests/fixtures/transcript-v3/pdfs/AU-TX-V3-002_monash_university.pdf",
+      cv: null,
+    },
     behavior: { dropOffAt: null },
   },
 

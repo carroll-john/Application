@@ -253,6 +253,7 @@ async function selectField(page, labelRe, opts = {}) {
     return false;
   }
   await target.click().catch(() => {});
+  await page.waitForTimeout(250); // let React commit the onChange before the next step persists
   return true;
 }
 
@@ -443,19 +444,34 @@ async function addTertiary(page) {
   await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
   await addBtn.click().catch(() => {});
   await page.waitForURL(/add-tertiary/, { timeout: 12000 }).catch(() => {});
-  // Institution + Course Name labels aren't associated — target their placeholders.
+  const transcript = persona.documents?.transcript ?? process.env.TRANSCRIPT_PATH;
+  if (transcript) {
+    // The transcript is a required document; uploading it also kicks off the parser
+    // + AI eligibility, which auto-fills the form and gates Save until it finishes.
+    await uploadFile(page, transcript);
+    log("transcript uploaded — waiting for parse/eligibility to settle…");
+    await page
+      .getByText(/parsing|checking eligibility|analy[sz]ing|reading your transcript/i)
+      .first()
+      .waitFor({ state: "hidden", timeout: 90000 })
+      .catch(() => {});
+    await page.waitForTimeout(1500);
+  }
+  // Fill required fields (overrides / fills any gap the parser left). Date pickers the
+  // parser already set no longer read "Select month and year", so those calls no-op.
   await fillByPlaceholder(page, /start typing institution/i, t.institution, { dismiss: true });
   await selectField(page, /Qualification level/i, optionOrPick(t.level));
   await fillByPlaceholder(page, /Bachelor of Science/i, t.course);
-  // Country defaults to Australia. Start/End are MonthYearPickerField date pickers;
-  // once the start is set its trigger text changes, so the end is again the first
-  // remaining empty "Select month and year" (index 0).
   await fillMonthYear(page, 0, 1, 2015); // start: February 2015
   await fillMonthYear(page, 0, 10, 2018); // end: November 2018
-  const transcript = persona.documents?.transcript ?? process.env.TRANSCRIPT_PATH;
-  if (transcript) await uploadFile(page, transcript);
-  await clickButton(page, /^Save & Continue$/i, { required: true });
-  await page.waitForURL(/section2\/qualifications/, { timeout: 15000 }).catch(() => {});
+  // Save & Continue — wait for it to become enabled (parse/save gating).
+  const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
+  await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  for (let i = 0; i < 30 && (await save.isDisabled().catch(() => false)); i += 1) {
+    await page.waitForTimeout(1000);
+  }
+  await save.click().catch(() => {});
+  await page.waitForURL(/section2\/qualifications/, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(1000); // back on the qualifications list with the saved record
 }
 
