@@ -23,6 +23,7 @@ on:
           - school-leaver
           - international-applicant
           - overseas-english
+          - ahpra-nurse
       base_url:
         description: Preview URL to drive
         type: string
