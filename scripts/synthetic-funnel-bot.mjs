@@ -681,6 +681,17 @@ async function correctTertiaryRecord(page) {
   await fillByPlaceholder(page, /Bachelor of Science/i, t.course);
   await setStudyDate(page, /Start date/i, 1, 2015);
   await setStudyDate(page, /End date/i, 10, 2018);
+  // Mark the qualification as NOT completed. A completed qualification requires a
+  // Certificate of Completion server-side (the client doesn't surface this), which
+  // we don't upload — so a parser-set "completed" flag blocks submit. Leaving it
+  // unchecked keeps the record submittable with just the transcript.
+  const completedCheckbox = page
+    .getByRole("checkbox", { name: /completed this qualification/i })
+    .first();
+  await completedCheckbox.waitFor({ state: "visible", timeout: 3000 }).catch(() => {});
+  if (await completedCheckbox.count()) {
+    await completedCheckbox.uncheck().catch(() => {});
+  }
   const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
   await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
   for (let i = 0; i < 20 && (await save.isDisabled().catch(() => false)); i += 1) {
