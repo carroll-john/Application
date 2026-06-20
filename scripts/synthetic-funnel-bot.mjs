@@ -236,6 +236,8 @@ async function selectField(page, labelRe, opts = {}) {
 
 async function clickButton(page, nameRe, { required = false } = {}) {
   const b = page.getByRole("button", { name: nameRe }).first();
+  // Buttons live on lazy routes too — wait for render before giving up.
+  await b.waitFor({ state: "visible", timeout: required ? 8000 : 2500 }).catch(() => {});
   if (await b.count()) {
     await b.click().catch(() => {});
     return true;
