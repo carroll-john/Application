@@ -175,9 +175,10 @@ async function clickButton(page, nameRe, { required = false } = {}) {
 
 async function continueStep(page) {
   const before = page.url();
-  await clickButton(page, /^(Continue|Save & Continue|Next)$/i, { required: true });
-  await page.waitForLoadState("networkidle").catch(() => {});
-  await page.waitForTimeout(400);
+  if (!(await clickButton(page, /^(Continue|Save & Continue|Next)$/i, { required: true }))) return;
+  // SPA route changes fire after the save resolves — wait for the URL, not networkidle.
+  await page.waitForURL((u) => u.toString() !== before, { timeout: 12000 }).catch(() => {});
+  await page.waitForTimeout(300);
   if (page.url() === before) {
     warn(`did not advance from ${new URL(before).pathname} (validation may have blocked it)`);
   }
@@ -266,18 +267,23 @@ async function startApplication(page) {
     return false;
   }
   await start.click().catch(() => {});
-  await page.waitForLoadState("networkidle").catch(() => {});
+  await page.waitForURL(/\/(overview|section1)/, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(500);
   return true;
 }
 
 /** A fresh draft lands on /overview; click its CTA through to Section 1. */
 async function enterSections(page) {
-  if (!page.url().includes("/overview")) return;
-  await clickButton(page, /start|continue|resume|begin/i);
-  await page.waitForLoadState("networkidle").catch(() => {});
-  if (page.url().includes("/overview")) {
-    await page.goto(`${BASE_URL}/section1/basic-info`, { waitUntil: "networkidle" }).catch(() => {});
+  await page.waitForURL(/\/(overview|section1)/, { timeout: 20000 }).catch(() => {});
+  for (let i = 0; i < 2 && page.url().includes("/overview"); i += 1) {
+    const cta = page
+      .getByRole("button", {
+        name: /^(Start application|Continue to next step|Go to review & submit)$/i,
+      })
+      .first();
+    if (!(await cta.count())) break;
+    await cta.click().catch(() => {});
+    await page.waitForURL((u) => !u.toString().includes("/overview"), { timeout: 15000 }).catch(() => {});
   }
 }
 
