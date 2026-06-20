@@ -45,7 +45,8 @@ export const personas = {
     documents: {
       // Required to submit; also exercises the transcript parser + AI eligibility.
       transcript: "tests/fixtures/transcript-v3/pdfs/AU-TX-V3-002_monash_university.pdf",
-      cv: null,
+      // Exercises the CV parser + employment auto-fill.
+      cv: "tests/fixtures/cv/synthetic_cv_alex_morgan.pdf",
     },
     behavior: { dropOffAt: null },
   },
@@ -98,7 +99,7 @@ export const personas = {
     documents: {
       // Required to submit; a different fixture than the career-changer for variety.
       transcript: "tests/fixtures/transcript-v3/pdfs/AU-TX-V3-001_the_university_of_melbourne.pdf",
-      cv: null,
+      cv: "tests/fixtures/cv/synthetic_cv_alex_morgan.pdf",
     },
     behavior: { dropOffAt: null },
   },

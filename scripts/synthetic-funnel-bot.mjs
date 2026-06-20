@@ -696,6 +696,56 @@ async function correctTertiaryRecord(page) {
   return true;
 }
 
+/**
+ * Upload the persona's CV. Reached client-side from the qualifications hub via the
+ * CV card's Add button (a full reload would wipe the in-memory application context).
+ * The CV parser drafts employment history, so we wait for it to settle before saving.
+ */
+async function addCv(page) {
+  const cv = persona.documents?.cv ?? process.env.CV_PATH;
+  if (!cv) return false;
+  if (!page.url().includes("/section2/qualifications")) {
+    warn(`not on qualifications for CV upload — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  const cvCard = page
+    .locator("div.rounded-lg.border")
+    .filter({ hasText: /Curriculum Vitae/i })
+    .first();
+  const cvAdd = cvCard.getByRole("button", { name: /^(Add|Replace)$/i }).first();
+  await cvAdd.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  if (!(await cvAdd.count())) {
+    warn("CV card Add button not found — skipping CV upload.");
+    return false;
+  }
+  await cvAdd.scrollIntoViewIfNeeded().catch(() => {});
+  await cvAdd.click().catch(() => {});
+  await page.waitForURL(/add-cv/, { timeout: 12000 }).catch(() => {});
+  if (!page.url().includes("add-cv")) {
+    warn(`CV page did not open — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  await page.waitForTimeout(600);
+  if (!(await uploadFile(page, cv))) return false;
+  log("CV uploaded — waiting for the CV parser to settle…");
+  await page
+    .getByText(/reading your cv|drafting employment|parsing|analy[sz]ing/i)
+    .first()
+    .waitFor({ state: "hidden", timeout: 90000 })
+    .catch(() => {});
+  await page.waitForTimeout(1000);
+  const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
+  await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  for (let i = 0; i < 30 && (await save.isDisabled().catch(() => false)); i += 1) {
+    await page.waitForTimeout(1000);
+  }
+  await save.click().catch(() => {});
+  await page.waitForURL(/section2\/qualifications/, { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(1000);
+  log(`CV saved — at ${new URL(page.url()).pathname}`);
+  return true;
+}
+
 /** Submit and verify we reach /submitted. */
 async function submitHappy(page) {
   // Reach /review via the UI only — a full reload wipes the in-memory application
@@ -751,13 +801,7 @@ async function runHappy(page) {
   } else {
     await continueStep(page);
   }
-  const cv = persona.documents?.cv ?? process.env.CV_PATH;
-  if (cv) {
-    await page.goto(`${BASE_URL}/section2/add-cv`, { waitUntil: "networkidle" }).catch(() => {});
-    await uploadFile(page, cv);
-    await clickButton(page, /^Save & Continue$/i);
-    await page.waitForLoadState("networkidle").catch(() => {});
-  }
+  await addCv(page); // no-op unless the persona supplies a CV
   if (drop === "review") {
     if (!page.url().includes("/review")) {
       await page.goto(`${BASE_URL}/review`, { waitUntil: "networkidle" }).catch(() => {});
