@@ -1,5 +1,9 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { createCollectionMutators } from "../../../lib/collectionMutators";
+import {
+  createApplicationUpdateQueue,
+  type ApplicationUpdateQueue,
+} from "./applicationUpdateQueue";
 import type {
   ApplicationData,
   ContactDetails,
@@ -43,12 +47,28 @@ export function useApplicationData({
     [data],
   );
 
+  // Serialize writes so rapid successive edits accumulate in submission order rather
+  // than racing on a stale `data` snapshot (which dropped the earlier edit when the
+  // next step was reached before the async persist + re-render cycle completed).
+  // Refs keep the queue stable while always reading the latest committed data and
+  // persist function.
+  const committedDataRef = useRef(data);
+  committedDataRef.current = data;
+  const persistApplicationRef = useRef(persistApplication);
+  persistApplicationRef.current = persistApplication;
+  const updateQueueRef = useRef<ApplicationUpdateQueue<ApplicationData> | null>(null);
+  if (!updateQueueRef.current) {
+    updateQueueRef.current = createApplicationUpdateQueue<ApplicationData>({
+      getCommitted: () => committedDataRef.current,
+      persist: (nextData) => persistApplicationRef.current(nextData),
+    });
+  }
+
   const updateData = useCallback(
     async (updater: (current: ApplicationData) => ApplicationData) => {
-      const nextData = updater(data);
-      await persistApplication(nextData);
+      await updateQueueRef.current!.enqueue(updater);
     },
-    [data, persistApplication],
+    [],
   );
 
   const updateDataWithEvent = useCallback(
@@ -59,11 +79,10 @@ export function useApplicationData({
         | Record<string, unknown>
         | ((application: ApplicationData) => Record<string, unknown>),
     ) => {
-      const nextData = updater(data);
-      const persisted = await persistApplication(nextData);
+      const persisted = await updateQueueRef.current!.enqueue(updater);
       trackApplicationDataEvent(eventName, persisted, properties);
     },
-    [data, persistApplication, trackApplicationDataEvent],
+    [trackApplicationDataEvent],
   );
 
   const employmentMutators = useMemo(

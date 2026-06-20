@@ -116,6 +116,11 @@ function optionOrPick(value) {
   return value == null ? {} : { option: value };
 }
 
+/** Escape a string for safe use inside a RegExp. */
+function escapeRe(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -190,6 +195,86 @@ async function fillMonthYear(page, index, monthIdx, year) {
   return true;
 }
 
+/**
+ * Set a MonthYearPickerField located by its field label (e.g. "Start date" /
+ * "End date"), working whether the picker is empty or already filled — so we can
+ * deterministically override whatever the transcript parser drafted and guarantee a
+ * valid, in-order date range. `monthIdx` is 0-11.
+ */
+async function setStudyDate(page, labelRe, monthIdx, year) {
+  const label = page.locator("label").filter({ hasText: labelRe }).first();
+  if (!(await label.count())) {
+    warn(`study-date label not found: ${labelRe}`);
+    return false;
+  }
+  // The picker trigger is the first button after the label (filled triggers show the
+  // date, empty ones show "Select month and year", so don't match on the text).
+  const trigger = label.locator("xpath=following::button[1]");
+  if (!(await trigger.count())) {
+    warn(`study-date trigger not found: ${labelRe}`);
+    return false;
+  }
+  await trigger.scrollIntoViewIfNeeded().catch(() => {});
+  await trigger.click().catch(() => {});
+  const cal = page.locator(".react-datepicker").first();
+  const opened = await cal
+    .waitFor({ state: "visible", timeout: 6000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!opened) {
+    warn(`study-date calendar did not open: ${labelRe}`);
+    return false;
+  }
+  const yearCombo = cal.getByRole("combobox").nth(1); // header: month (0), year (1)
+  if (await yearCombo.count()) {
+    await yearCombo.click().catch(() => {});
+    await page.getByRole("option", { name: new RegExp(`^${year}$`) }).first().click().catch(() => {});
+  }
+  await cal.locator(`.react-datepicker__month-${monthIdx}`).first().click().catch(() => {});
+  await page.waitForTimeout(300);
+  log(`study date "${labelRe.source ?? labelRe}" set to ${MONTHS[monthIdx]} ${year}`);
+  return true;
+}
+
+/**
+ * Set a YearPickerField (react-datepicker year grid) located by its field label —
+ * open it and click the year cell. Used for the language test's "Test Year".
+ */
+async function setYearPicker(page, labelRe, year) {
+  const label = page.locator("label").filter({ hasText: labelRe }).first();
+  const trigger = (await label.count())
+    ? label.locator("xpath=following::button[1]")
+    : page.getByRole("button", { name: /Select year/i }).first();
+  if (!(await trigger.count())) {
+    warn(`year picker not found: ${labelRe}`);
+    return false;
+  }
+  await trigger.scrollIntoViewIfNeeded().catch(() => {});
+  await trigger.click().catch(() => {});
+  const cal = page.locator(".react-datepicker").first();
+  const opened = await cal
+    .waitFor({ state: "visible", timeout: 6000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!opened) {
+    warn(`year calendar did not open: ${labelRe}`);
+    return false;
+  }
+  const yearCell = cal
+    .locator(".react-datepicker__year-text")
+    .filter({ hasText: new RegExp(`^${year}$`) })
+    .first();
+  if (!(await yearCell.count())) {
+    warn(`year ${year} not visible in picker`);
+    await page.keyboard.press("Escape").catch(() => {});
+    return false;
+  }
+  await yearCell.click().catch(() => {});
+  await page.waitForTimeout(300);
+  log(`test year set to ${year}`);
+  return true;
+}
+
 /** Upload a persona document (transcript/CV) into the first file input on the page. */
 async function uploadFile(page, path) {
   if (!path) return false;
@@ -198,11 +283,16 @@ async function uploadFile(page, path) {
     return false;
   }
   const input = page.locator('input[type="file"]').first();
+  // The upload control is a lazy route + an sr-only <input type=file>; wait for it
+  // to mount (it's hidden, so "attached" — not "visible" — is the right state).
+  await input.waitFor({ state: "attached", timeout: 10000 }).catch(() => {});
   if (!(await input.count())) {
     warn("no file input on this page — skipping upload.");
     return false;
   }
-  await input.setInputFiles(path).catch(() => {});
+  await input
+    .setInputFiles(path)
+    .catch((e) => warn(`setInputFiles failed: ${e?.message ?? e}`));
   log(`uploaded ${path}`);
   await page.waitForTimeout(2000); // let the parser kick off
   return true;
@@ -224,7 +314,49 @@ async function findCombobox(page, labelRe) {
 }
 
 /**
- * Drive a NativeSelect: open it and click an option.
+ * Set a NativeSelect's underlying hidden <select> directly and fire a real change
+ * event, so React's onChange runs even when the combobox UI click doesn't take.
+ * Bypasses React's value tracker via the native setter (the standard pattern), so
+ * controlled state updates. Returns the chosen value, or null if nothing matched.
+ */
+async function setNativeSelectDirect(combo, { source = null, flags = "", pick = "first" }) {
+  return combo
+    .evaluate(
+      (btn, a) => {
+        const root = btn.closest("div");
+        const select = root ? root.querySelector("select") : null;
+        if (!select) return null;
+        const all = Array.from(select.options);
+        let chosen = null;
+        if (a.source != null) {
+          const re = new RegExp(a.source, a.flags);
+          chosen = all.find(
+            (o) => re.test((o.textContent || "").trim()) || re.test(o.value),
+          );
+        } else {
+          const real = all.filter((o) => o.value !== "");
+          chosen = a.pick === "last" ? real[real.length - 1] : real[0];
+        }
+        if (!chosen) return null;
+        const setter = Object.getOwnPropertyDescriptor(
+          window.HTMLSelectElement.prototype,
+          "value",
+        ).set;
+        setter.call(select, chosen.value);
+        select.dispatchEvent(new Event("input", { bubbles: true }));
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        return chosen.value;
+      },
+      { source, flags, pick },
+    )
+    .catch(() => null);
+}
+
+/**
+ * Drive a NativeSelect: open it and click an option, then verify the combobox's
+ * displayed value actually changed. If the UI click silently fails to commit
+ * (some lazy/upward-opening selects don't), fall back to setting the hidden
+ * <select> directly so the value always lands.
  * opts.option — exact/regex option text to pick; opts.pick — "first" | "last"
  * real (non-placeholder) option when no explicit option is given.
  */
@@ -236,24 +368,59 @@ async function selectField(page, labelRe, opts = {}) {
     return false;
   }
   await combo.scrollIntoViewIfNeeded().catch(() => {});
-  await combo.click().catch(() => {});
-  const listbox = page.getByRole("listbox").first();
-  await listbox.waitFor({ state: "visible", timeout: 4000 }).catch(() => {});
 
-  let target;
-  if (option != null) {
-    target = listbox.getByRole("option", { name: option, exact }).first();
-  } else {
-    const real = listbox.locator('[role="option"][data-value]:not([data-value=""])');
-    target = pick === "last" ? real.last() : real.first();
-  }
-  if (!(await target.count())) {
-    warn(`no matching option for: ${labelRe}`);
+  // A regex used both to find the listbox option and to verify the result.
+  const optionRe =
+    option == null
+      ? null
+      : option instanceof RegExp
+        ? option
+        : new RegExp(exact ? `^${escapeRe(String(option))}$` : escapeRe(String(option)), "i");
+
+  const readDisplay = async () => (await combo.innerText().catch(() => "")).trim();
+  const before = await readDisplay();
+
+  // Primary path: drive the real combobox UI (keeps session replays realistic).
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await combo.click().catch(() => {});
+    const listbox = page.getByRole("listbox").first();
+    await listbox.waitFor({ state: "visible", timeout: 4000 }).catch(() => {});
+    let target;
+    if (option != null) {
+      target = listbox.getByRole("option", { name: option, exact }).first();
+    } else {
+      const real = listbox.locator('[role="option"][data-value]:not([data-value=""])');
+      target = pick === "last" ? real.last() : real.first();
+    }
+    if (!(await target.count())) {
+      if (attempt === 0) {
+        await page.keyboard.press("Escape").catch(() => {});
+        continue; // listbox may not have opened yet — try once more
+      }
+      break;
+    }
+    await target.click().catch(() => {});
+    await page.waitForTimeout(200); // let React commit onChange
+    const after = await readDisplay();
+    if (after && after !== before && (!optionRe || optionRe.test(after))) {
+      return true; // selection visibly landed
+    }
     await page.keyboard.press("Escape").catch(() => {});
-    return false;
   }
-  await target.click().catch(() => {});
-  return true;
+
+  // Fallback: the UI click didn't commit — set the hidden <select> directly.
+  const set = await setNativeSelectDirect(combo, {
+    source: optionRe ? optionRe.source : null,
+    flags: optionRe ? optionRe.flags : "",
+    pick,
+  });
+  if (set) {
+    await page.waitForTimeout(150);
+    log(`select(${labelRe}) committed via fallback → "${set}"`);
+    return true;
+  }
+  warn(`no matching option for ${labelRe} (combobox shows "${await readDisplay()}")`);
+  return false;
 }
 
 async function clickButton(page, nameRe, { required = false } = {}) {
@@ -276,6 +443,8 @@ async function continueStep(page) {
   await page.waitForTimeout(300);
   if (page.url() === before) {
     warn(`did not advance from ${new URL(before).pathname} (validation may have blocked it)`);
+  } else {
+    log(`→ ${new URL(page.url()).pathname}`);
   }
 }
 
@@ -443,20 +612,254 @@ async function addTertiary(page) {
   await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
   await addBtn.click().catch(() => {});
   await page.waitForURL(/add-tertiary/, { timeout: 12000 }).catch(() => {});
-  // Institution + Course Name labels aren't associated — target their placeholders.
+  const transcript = persona.documents?.transcript ?? process.env.TRANSCRIPT_PATH;
+  if (transcript) {
+    // The transcript is a required document; uploading it also kicks off the parser
+    // + AI eligibility, which auto-fills the form and gates Save until it finishes.
+    await uploadFile(page, transcript);
+    log("transcript uploaded — waiting for parse/eligibility to settle…");
+    await page
+      .getByText(/parsing|checking eligibility|analy[sz]ing|reading your transcript/i)
+      .first()
+      .waitFor({ state: "hidden", timeout: 90000 })
+      .catch(() => {});
+    await page.waitForTimeout(1500);
+  }
+  // Fill the required fields, overriding whatever the parser drafted so the record is
+  // deterministic and valid regardless of how the AI parse turned out this run.
   await fillByPlaceholder(page, /start typing institution/i, t.institution, { dismiss: true });
+  if (t.country) await selectField(page, /^Country/, { option: t.country });
   await selectField(page, /Qualification level/i, optionOrPick(t.level));
   await fillByPlaceholder(page, /Bachelor of Science/i, t.course);
-  // Country defaults to Australia. Start/End are MonthYearPickerField date pickers;
-  // once the start is set its trigger text changes, so the end is again the first
-  // remaining empty "Select month and year" (index 0).
-  await fillMonthYear(page, 0, 1, 2015); // start: February 2015
-  await fillMonthYear(page, 0, 10, 2018); // end: November 2018
-  const transcript = persona.documents?.transcript ?? process.env.TRANSCRIPT_PATH;
-  if (transcript) await uploadFile(page, transcript);
-  await clickButton(page, /^Save & Continue$/i, { required: true });
-  await page.waitForURL(/section2\/qualifications/, { timeout: 15000 }).catch(() => {});
+  // Always set both study dates explicitly (overriding the parser, which fills them
+  // non-deterministically — sometimes only one, risking an out-of-order range that
+  // blocks Save). February 2015 → November 2018 is always valid and in order.
+  await setStudyDate(page, /Start date/i, 1, 2015);
+  await setStudyDate(page, /End date/i, 10, 2018);
+  // Save & Continue — wait for it to become enabled (parse/save gating).
+  const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
+  await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  for (let i = 0; i < 30 && (await save.isDisabled().catch(() => false)); i += 1) {
+    await page.waitForTimeout(1000);
+  }
+  if (await save.isDisabled().catch(() => false)) {
+    warn("tertiary Save & Continue stayed disabled (a required field/date range is invalid).");
+  }
+  await save.click().catch(() => {});
+  await page.waitForURL(/section2\/qualifications/, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(1000); // back on the qualifications list with the saved record
+  if (page.url().includes("/add-tertiary")) {
+    warn(`tertiary save did not navigate — still at ${new URL(page.url()).pathname}`);
+  } else {
+    log(`tertiary saved — at ${new URL(page.url()).pathname}`);
+  }
+}
+
+/**
+ * Wait for the qualifications-hub primary CTA to be present and enabled. After a
+ * tertiary record with a transcript is saved, the hub kicks off a *deferred* AI
+ * eligibility check; while it runs the CTA reads "Checking eligibility..." and is
+ * disabled, so we poll for the real, enabled "Save & Continue" / "Return to Review".
+ */
+async function waitForQualificationsReady(page) {
+  const cta = page
+    .getByRole("button", { name: /^(Save & Continue|Return to Review)$/i })
+    .first();
+  for (let i = 0; i < 100; i += 1) {
+    if ((await cta.count()) && !(await cta.isDisabled().catch(() => true))) {
+      return cta;
+    }
+    if (i === 0) log("waiting for qualifications hub (eligibility check) to settle…");
+    await page.waitForTimeout(1000);
+  }
+  warn("qualifications continue CTA never became ready (eligibility still processing?)");
+  return null;
+}
+
+/** Click the qualifications-hub primary CTA through to /review (once it's ready). */
+async function continueFromQualifications(page) {
+  const cta = await waitForQualificationsReady(page);
+  if (!cta) return false;
+  await cta.scrollIntoViewIfNeeded().catch(() => {});
+  await cta.click().catch(() => {});
+  return true;
+}
+
+/**
+ * The deferred hub eligibility re-parses the transcript and overwrites the saved
+ * tertiary record with the AI's extraction, which can leave required fields (level,
+ * end date) blank — blocking submit. Once the hub has settled, edit the record to
+ * restore complete, valid values. Editing without re-selecting the transcript does
+ * NOT re-trigger the hub (eligibility is already cached), so these corrections stick.
+ */
+async function correctTertiaryRecord(page) {
+  const t = persona.tertiary;
+  if (!t) return false;
+  await waitForQualificationsReady(page); // let the hub finish overwriting first
+  const fileName = (persona.documents?.transcript ?? "").split("/").pop() ?? "";
+  // The tertiary row is the rounded list card showing the transcript filename; its
+  // first button is the (icon-only) Edit action.
+  const row = fileName
+    ? page.locator("div.rounded.border").filter({ hasText: fileName }).first()
+    : page.locator("div.rounded.border").first();
+  const editBtn = row.getByRole("button").first();
+  await editBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  if (!(await editBtn.count())) {
+    warn("tertiary Edit button not found — skipping record correction.");
+    return false;
+  }
+  await editBtn.scrollIntoViewIfNeeded().catch(() => {});
+  await editBtn.click().catch(() => {});
+  await page.waitForURL(/edit-tertiary/, { timeout: 12000 }).catch(() => {});
+  if (!page.url().includes("edit-tertiary")) {
+    warn(`tertiary edit did not open — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  await page.waitForTimeout(800); // let the edit form render
+  await fillByPlaceholder(page, /start typing institution/i, t.institution, { dismiss: true });
+  if (t.country) await selectField(page, /^Country/, { option: t.country });
+  await selectField(page, /Qualification level/i, optionOrPick(t.level));
+  await fillByPlaceholder(page, /Bachelor of Science/i, t.course);
+  await setStudyDate(page, /Start date/i, 1, 2015);
+  await setStudyDate(page, /End date/i, 10, 2018);
+  // Mark the qualification as NOT completed. A completed qualification requires a
+  // Certificate of Completion server-side (the client doesn't surface this), which
+  // we don't upload — so a parser-set "completed" flag blocks submit. Leaving it
+  // unchecked keeps the record submittable with just the transcript.
+  const completedCheckbox = page
+    .getByRole("checkbox", { name: /completed this qualification/i })
+    .first();
+  await completedCheckbox.waitFor({ state: "visible", timeout: 3000 }).catch(() => {});
+  if (await completedCheckbox.count()) {
+    await completedCheckbox.uncheck().catch(() => {});
+  }
+  const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
+  await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  for (let i = 0; i < 20 && (await save.isDisabled().catch(() => false)); i += 1) {
+    await page.waitForTimeout(1000);
+  }
+  if (await save.isDisabled().catch(() => false)) {
+    warn("tertiary edit Save stayed disabled (a required field is still invalid).");
+  }
+  await save.click().catch(() => {});
+  await page.waitForURL(/section2\/qualifications/, { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(1000);
+  log(`tertiary corrected — at ${new URL(page.url()).pathname}`);
+  return true;
+}
+
+/**
+ * Upload the persona's CV. Reached client-side from the qualifications hub via the
+ * CV card's Add button (a full reload would wipe the in-memory application context).
+ * The CV parser drafts employment history, so we wait for it to settle before saving.
+ */
+async function addCv(page) {
+  const cv = persona.documents?.cv ?? process.env.CV_PATH;
+  if (!cv) return false;
+  if (!page.url().includes("/section2/qualifications")) {
+    warn(`not on qualifications for CV upload — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  const cvCard = page
+    .locator("div.rounded-lg.border")
+    .filter({ has: page.getByRole("heading", { name: /Curriculum Vitae/i }) })
+    .first();
+  const cvAdd = cvCard.getByRole("button", { name: /^(Add|Replace)$/i }).first();
+  await cvAdd.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  if (!(await cvAdd.count())) {
+    warn("CV card Add button not found — skipping CV upload.");
+    return false;
+  }
+  await cvAdd.scrollIntoViewIfNeeded().catch(() => {});
+  await cvAdd.click().catch(() => {});
+  await page.waitForURL(/add-cv/, { timeout: 12000 }).catch(() => {});
+  if (!page.url().includes("add-cv")) {
+    warn(`CV page did not open — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  await page.waitForTimeout(600);
+  if (!(await uploadFile(page, cv))) return false;
+  log("CV uploaded — waiting for the CV parser to settle…");
+  await page
+    .getByText(/reading your cv|drafting employment|parsing|analy[sz]ing/i)
+    .first()
+    .waitFor({ state: "hidden", timeout: 90000 })
+    .catch(() => {});
+  await page.waitForTimeout(1000);
+  const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
+  await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  for (let i = 0; i < 30 && (await save.isDisabled().catch(() => false)); i += 1) {
+    await page.waitForTimeout(1000);
+  }
+  await save.click().catch(() => {});
+  await page.waitForURL(/section2\/qualifications/, { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(1000);
+  log(`CV saved — at ${new URL(page.url()).pathname}`);
+  return true;
+}
+
+/**
+ * Add an English language test (e.g. IELTS) with its results document. Used when a
+ * persona's overseas, non-English-medium transcript means English proficiency must be
+ * evidenced before submitting. Reached client-side via the English Language
+ * Proficiency card's Add button.
+ */
+async function addLanguageTest(page) {
+  const lt = persona.languageTest;
+  if (!lt) return false;
+  if (!page.url().includes("/section2/qualifications")) {
+    warn(`not on qualifications for language test — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  // Scope by the section card's heading — "English language proficiency" also appears
+  // as an eligibility requirement row, so a plain text match grabs the wrong card.
+  const card = page
+    .locator("div.rounded-lg.border")
+    .filter({ has: page.getByRole("heading", { name: /English Language Proficiency/i }) })
+    .first();
+  const addBtn = card.getByRole("button", { name: /^(Add|Replace)$/i }).first();
+  await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  // Sections unlock in order — the language-test card (last) is locked until the
+  // intervening sections are addressed. Skip the active, empty ones to reveal its Add
+  // button (skipping unlocks the next section each time).
+  for (let i = 0; i < 5 && !(await addBtn.count()); i += 1) {
+    const skip = page.getByRole("button", { name: /^Skip$/i }).first();
+    if (!(await skip.count())) break;
+    await skip.scrollIntoViewIfNeeded().catch(() => {});
+    await skip.click().catch(() => {});
+    await page.waitForTimeout(600);
+  }
+  if (!(await addBtn.count())) {
+    warn("English Language Proficiency Add button not found (section still locked).");
+    return false;
+  }
+  await addBtn.scrollIntoViewIfNeeded().catch(() => {});
+  await addBtn.click().catch(() => {});
+  await page.waitForURL(/add-language-test/, { timeout: 12000 }).catch(() => {});
+  if (!page.url().includes("add-language-test")) {
+    warn(`language test page did not open — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  await page.waitForTimeout(700);
+  await selectField(page, /^Test Type/i, { option: lt.type });
+  await fillByPlaceholder(page, /IELTS Academic/i, lt.name);
+  await setYearPicker(page, /^Test Year/i, lt.year);
+  await uploadFile(page, lt.document);
+  const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
+  await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  await save.click().catch(() => {});
+  await page.waitForURL(/section2\/qualifications/, { timeout: 20000 }).catch(() => {});
+  // Wait for the saved test to show in the qualifications list. This confirms it
+  // landed in the in-memory data before submit — the submit writes the whole record
+  // and would otherwise race (and drop) the language-test persist.
+  await page
+    .getByText(new RegExp(escapeRe(lt.name), "i"))
+    .first()
+    .waitFor({ state: "visible", timeout: 12000 })
+    .catch(() => {});
+  await page.waitForTimeout(1500);
+  log(`language test added — at ${new URL(page.url()).pathname}`);
+  return true;
 }
 
 /** Submit and verify we reach /submitted. */
@@ -464,24 +867,36 @@ async function submitHappy(page) {
   // Reach /review via the UI only — a full reload wipes the in-memory application
   // context (everything entered this session), which fails review validation.
   if (!page.url().includes("/review")) {
-    await clickButton(page, /^Save & Continue$/i, { required: true }); // qualifications → review
+    await continueFromQualifications(page); // qualifications → review (waits out eligibility)
     await page.waitForURL(/\/review/, { timeout: 15000 }).catch(() => {});
   }
   if (!page.url().includes("/review")) {
     warn(`could not reach /review client-side — at ${new URL(page.url()).pathname}`);
     return false;
   }
+  // Let the review page's validation settle before submitting — clicking while it's
+  // still computing can fire application_submit_blocked and not navigate.
+  await page
+    .getByText(/all required fields are complete|ready to submit/i)
+    .first()
+    .waitFor({ state: "visible", timeout: 10000 })
+    .catch(() => {});
   const submit = page.getByRole("button", { name: /^Submit application$/i }).first();
   await submit.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
   if (!(await submit.count())) {
     warn(`Submit button not found at ${new URL(page.url()).pathname}`);
     return false;
   }
-  await submit.click().catch(() => {});
-  await page.waitForURL(/\/submitted/, { timeout: 10000 }).catch(() => {});
-  if (page.url().includes("/submitted")) {
-    log("✅ Reached /submitted — application_submitted fired.");
-    return true;
+  // The submit writes the whole record to Supabase before navigating, which can take
+  // a while; click, wait generously, and retry once if it doesn't land.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await submit.click().catch(() => {});
+    await page.waitForURL(/\/submitted/, { timeout: 20000 }).catch(() => {});
+    if (page.url().includes("/submitted")) {
+      log("✅ Reached /submitted — application_submitted fired.");
+      return true;
+    }
+    await page.waitForTimeout(1500);
   }
   const txt = await page
     .evaluate(() => document.body.innerText.replace(/\s+/g, " ").trim().slice(0, 400))
@@ -508,15 +923,14 @@ async function runHappy(page) {
     log("↩︎ persona abandons at qualifications (expected drop-off).");
     return;
   }
-  if (persona.tertiary) await addTertiary(page);
-  else await continueStep(page);
-  const cv = persona.documents?.cv ?? process.env.CV_PATH;
-  if (cv) {
-    await page.goto(`${BASE_URL}/section2/add-cv`, { waitUntil: "networkidle" }).catch(() => {});
-    await uploadFile(page, cv);
-    await clickButton(page, /^Save & Continue$/i);
-    await page.waitForLoadState("networkidle").catch(() => {});
+  if (persona.tertiary) {
+    await addTertiary(page);
+    await correctTertiaryRecord(page); // restore fields the hub re-parse may have blanked
+  } else {
+    await continueStep(page);
   }
+  await addCv(page); // no-op unless the persona supplies a CV
+  await addLanguageTest(page); // no-op unless the persona supplies a language test
   if (drop === "review") {
     if (!page.url().includes("/review")) {
       await page.goto(`${BASE_URL}/review`, { waitUntil: "networkidle" }).catch(() => {});

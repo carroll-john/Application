@@ -12,6 +12,12 @@
  * - `documents.transcript` / `documents.cv` are optional file paths. Provide real
  *   PDF/DOCX files to exercise the transcript + CV parsers and the AI eligibility
  *   check; leave null to skip uploads (the happy path doesn't require them).
+ * - `tertiary.country` (regex/string) is set on the qualification when present; an
+ *   overseas, non-English-medium country makes the English proficiency check
+ *   mandatory, which `languageTest` then satisfies.
+ * - `languageTest` (optional) makes the bot add an English language test record
+ *   (type/name/year + results document) — used when English proficiency must be
+ *   evidenced.
  * - `behavior.dropOffAt` makes the persona abandon at a step instead of
  *   submitting, so the funnel shows realistic drop-off. One of:
  *   "section1" | "qualifications" | "review" | null (completes).
@@ -42,7 +48,12 @@ export const personas = {
       level: /Bachelor/i,
       course: "Bachelor of Commerce",
     },
-    documents: { transcript: null, cv: null },
+    documents: {
+      // Required to submit; also exercises the transcript parser + AI eligibility.
+      transcript: "tests/fixtures/transcript-v3/pdfs/AU-TX-V3-002_monash_university.pdf",
+      // Exercises the CV parser + employment auto-fill.
+      cv: "tests/fixtures/cv/synthetic_cv_alex_morgan.pdf",
+    },
     behavior: { dropOffAt: null },
   },
 
@@ -91,7 +102,51 @@ export const personas = {
       level: /Bachelor/i,
       course: "Bachelor of Science",
     },
-    documents: { transcript: null, cv: null },
+    documents: {
+      // Required to submit; a different fixture than the career-changer for variety.
+      transcript: "tests/fixtures/transcript-v3/pdfs/AU-TX-V3-001_the_university_of_melbourne.pdf",
+      cv: "tests/fixtures/cv/synthetic_cv_alex_morgan.pdf",
+    },
+    behavior: { dropOffAt: null },
+  },
+
+  "overseas-english": {
+    label:
+      "Overseas grad, non-English transcript → adds English test → completes",
+    profile: {
+      title: null,
+      firstName: "Diego",
+      lastName: "Santos",
+      gender: null,
+      dob: "1994-07-22",
+      phone: "0400555666",
+      citizenship: /International/i,
+      residentialAddress: "200 Spencer Street, Melbourne VIC 3000",
+      language: null,
+      aboriginalStatus: null,
+      schoolLevel: /Year 12/i,
+      parents: "2",
+    },
+    eligibility: { pick: "last" },
+    tertiary: {
+      institution: "Universitas Indonesia",
+      // Overseas + non-English-medium, so the English proficiency check is mandatory.
+      country: /^Indonesia$/i,
+      level: /Bachelor/i,
+      course: "Bachelor of Engineering",
+    },
+    documents: {
+      // Transcript is taught in Indonesian, so it can't evidence English on its own.
+      transcript: "tests/fixtures/transcript-v3/pdfs/SYNTH-INT-universitas_indonesia.pdf",
+      cv: "tests/fixtures/cv/synthetic_cv_alex_morgan.pdf",
+    },
+    // Evidences English proficiency once the transcript can't (uploads IELTS results).
+    languageTest: {
+      type: "IELTS",
+      name: "IELTS Academic",
+      year: "2023",
+      document: "tests/fixtures/language/synthetic_ielts_results.pdf",
+    },
     behavior: { dropOffAt: null },
   },
 };

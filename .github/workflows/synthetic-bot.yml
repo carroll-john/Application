@@ -22,6 +22,7 @@ on:
           - career-changer
           - school-leaver
           - international-applicant
+          - overseas-english
       base_url:
         description: Preview URL to drive
         type: string
@@ -68,10 +69,12 @@ jobs:
           PERSONA: ${{ inputs.persona }}
           MODE: ${{ inputs.mode }}
           ITERATIONS: ${{ inputs.iterations }}
-          # The synthetic token is a public client-side value (it's also embedded
-          # in the deployed JS bundle), so it's hard-wired here to guarantee it
-          # matches VITE_ANALYTICS_SYNTHETIC_TOKEN on the preview — no secret to mistype.
-          SYNTHETIC_TOKEN: MNfIcPR7zZfX6fkf2RVaRtPPtUansDRl
+          # The synthetic token must match VITE_ANALYTICS_SYNTHETIC_TOKEN on the
+          # target deploy, or synthetic mode won't activate and events are dropped.
+          # It's a public client-side value (also embedded in the deployed JS bundle),
+          # so the default below matches the default preview; set a SYNTHETIC_TOKEN
+          # repository secret to run against a different preview/QA deploy.
+          SYNTHETIC_TOKEN: ${{ secrets.SYNTHETIC_TOKEN || 'MNfIcPR7zZfX6fkf2RVaRtPPtUansDRl' }}
           TEST_EMAIL: ${{ vars.SYNTHETIC_TEST_EMAIL || 'carroll_john+bot@me.com' }}
           TEST_PASSWORD: ${{ secrets.SYNTHETIC_TEST_PASSWORD }}
           VERCEL_BYPASS: ${{ secrets.VERCEL_BYPASS }}
