@@ -29,6 +29,7 @@ export type RequirementReasonCode =
   | "ACADEMIC_EVIDENCE_MISSING"
   // english_proficiency
   | "ENGLISH_OK_COUNTRY"
+  | "ENGLISH_OK_AHPRA"
   | "ENGLISH_TEST_UNVERIFIED"
   | "ENGLISH_UNVERIFIED"
   // work_experience
@@ -120,6 +121,8 @@ export interface TranscriptEligibilityRequestContext {
   courseCode?: string;
   courseTitle?: string;
   entryRequirementsText?: string;
+  /** Whether the applicant holds an AHPRA registration (accepted as English-proficiency evidence). */
+  hasAhpraRegistration?: boolean;
   institution?: string;
   languageTestsCount?: number;
   level?: string;

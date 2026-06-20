@@ -257,6 +257,17 @@ function evaluateEnglishProficiency(
     // transcripts. When score evidence is added (separate doc kind), this branch will handle it.
   }
 
+  // An AHPRA registration (Australian Health Practitioner Regulation Agency) requires English
+  // proficiency to obtain, so it satisfies the requirement on its own.
+  if (context.hasAhpraRegistration) {
+    return buildRequirementCheck(
+      instance,
+      "pass",
+      "English language proficiency satisfied by AHPRA registration.",
+      "ENGLISH_OK_AHPRA",
+    );
+  }
+
   // No country-based pathway matched. If a separate language-tests record exists in the form context,
   // surface that as a hint but mark unknown so admissions can verify.
   if ((context.languageTestsCount ?? 0) > 0) {
