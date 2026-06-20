@@ -758,17 +758,29 @@ async function submitHappy(page) {
     warn(`could not reach /review client-side — at ${new URL(page.url()).pathname}`);
     return false;
   }
+  // Let the review page's validation settle before submitting — clicking while it's
+  // still computing can fire application_submit_blocked and not navigate.
+  await page
+    .getByText(/all required fields are complete|ready to submit/i)
+    .first()
+    .waitFor({ state: "visible", timeout: 10000 })
+    .catch(() => {});
   const submit = page.getByRole("button", { name: /^Submit application$/i }).first();
   await submit.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
   if (!(await submit.count())) {
     warn(`Submit button not found at ${new URL(page.url()).pathname}`);
     return false;
   }
-  await submit.click().catch(() => {});
-  await page.waitForURL(/\/submitted/, { timeout: 10000 }).catch(() => {});
-  if (page.url().includes("/submitted")) {
-    log("✅ Reached /submitted — application_submitted fired.");
-    return true;
+  // The submit writes the whole record to Supabase before navigating, which can take
+  // a while; click, wait generously, and retry once if it doesn't land.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await submit.click().catch(() => {});
+    await page.waitForURL(/\/submitted/, { timeout: 20000 }).catch(() => {});
+    if (page.url().includes("/submitted")) {
+      log("✅ Reached /submitted — application_submitted fired.");
+      return true;
+    }
+    await page.waitForTimeout(1500);
   }
   const txt = await page
     .evaluate(() => document.body.innerText.replace(/\s+/g, " ").trim().slice(0, 400))
