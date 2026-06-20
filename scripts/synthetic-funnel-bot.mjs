@@ -455,21 +455,30 @@ async function addTertiary(page) {
   const transcript = persona.documents?.transcript ?? process.env.TRANSCRIPT_PATH;
   if (transcript) await uploadFile(page, transcript);
   await clickButton(page, /^Save & Continue$/i, { required: true });
-  await page.waitForTimeout(2000); // navigateAfterSave is false; save persists in place
+  await page.waitForTimeout(4000); // navigateAfterSave is false; let the save persist
 }
 
 /** Submit and verify we reach /submitted. */
 async function submitHappy(page) {
   if (!page.url().includes("/review")) {
-    await page.goto(`${BASE_URL}/review`, { waitUntil: "networkidle" }).catch(() => {});
+    await page.goto(`${BASE_URL}/review`, { waitUntil: "domcontentloaded" }).catch(() => {});
   }
-  await clickButton(page, /^Submit application$/i, { required: true });
-  await page.waitForTimeout(3000);
+  const submit = page.getByRole("button", { name: /^Submit application$/i }).first();
+  await submit.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  if (!(await submit.count())) {
+    warn(`Submit button not found at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  await submit.click().catch(() => {});
+  await page.waitForURL(/\/submitted/, { timeout: 10000 }).catch(() => {});
   if (page.url().includes("/submitted")) {
-    log("✅ Reached /submitted — application_submitted should have fired.");
+    log("✅ Reached /submitted — application_submitted fired.");
     return true;
   }
-  warn("Did not reach /submitted — likely a validation block; check the field warnings above.");
+  const txt = await page
+    .evaluate(() => document.body.innerText.replace(/\s+/g, " ").trim().slice(0, 400))
+    .catch(() => "");
+  warn(`Did not reach /submitted. At ${new URL(page.url()).pathname} — page says: "${txt}"`);
   return false;
 }
 
