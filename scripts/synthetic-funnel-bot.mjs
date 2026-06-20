@@ -799,6 +799,66 @@ async function addCv(page) {
 }
 
 /**
+ * Add a professional accreditation (e.g. an AHPRA registration). Used when a persona
+ * evidences English proficiency via a recognised registration instead of a language
+ * test — the registration name (e.g. "Registered Nurse") is accepted as proof on its
+ * own. Reached client-side via the Professional Accreditations card's Add button.
+ */
+async function addAccreditation(page) {
+  const acc = persona.accreditation;
+  if (!acc) return false;
+  if (!page.url().includes("/section2/qualifications")) {
+    warn(`not on qualifications for accreditation — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  const card = page
+    .locator("div.rounded-lg.border")
+    .filter({ has: page.getByRole("heading", { name: /Professional Accreditations/i }) })
+    .first();
+  const addBtn = card.getByRole("button", { name: /^(Add|Replace)$/i }).first();
+  await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  // Sections unlock in order — skip the active, empty ones before this card to reveal
+  // its Add button (each skip unlocks the next section).
+  for (let i = 0; i < 5 && !(await addBtn.count()); i += 1) {
+    const skip = page.getByRole("button", { name: /^Skip$/i }).first();
+    if (!(await skip.count())) break;
+    await skip.scrollIntoViewIfNeeded().catch(() => {});
+    await skip.click().catch(() => {});
+    await page.waitForTimeout(600);
+  }
+  if (!(await addBtn.count())) {
+    warn("Professional Accreditations Add button not found (section still locked).");
+    return false;
+  }
+  await addBtn.scrollIntoViewIfNeeded().catch(() => {});
+  await addBtn.click().catch(() => {});
+  await page.waitForURL(/add-accreditation/, { timeout: 12000 }).catch(() => {});
+  if (!page.url().includes("add-accreditation")) {
+    warn(`accreditation page did not open — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  await page.waitForTimeout(700);
+  await fillByPlaceholder(page, /Registered Nurse/i, acc.name);
+  await selectField(page, /^Status/i, { option: acc.status });
+  if (acc.document) await uploadFile(page, acc.document);
+  const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
+  await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  await save.click().catch(() => {});
+  await page.waitForURL(/section2\/qualifications/, { timeout: 20000 }).catch(() => {});
+  // Confirm the accreditation shows in the list before continuing, so it's in the
+  // in-memory data by submit time (submit writes the whole record and would otherwise
+  // race the persist).
+  await page
+    .getByText(new RegExp(escapeRe(acc.name), "i"))
+    .first()
+    .waitFor({ state: "visible", timeout: 12000 })
+    .catch(() => {});
+  await page.waitForTimeout(1500);
+  log(`accreditation added — at ${new URL(page.url()).pathname}`);
+  return true;
+}
+
+/**
  * Add an English language test (e.g. IELTS) with its results document. Used when a
  * persona's overseas, non-English-medium transcript means English proficiency must be
  * evidenced before submitting. Reached client-side via the English Language
@@ -930,6 +990,7 @@ async function runHappy(page) {
     await continueStep(page);
   }
   await addCv(page); // no-op unless the persona supplies a CV
+  await addAccreditation(page); // no-op unless the persona supplies an accreditation
   await addLanguageTest(page); // no-op unless the persona supplies a language test
   if (drop === "review") {
     if (!page.url().includes("/review")) {

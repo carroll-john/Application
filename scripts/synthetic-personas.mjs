@@ -18,6 +18,10 @@
  * - `languageTest` (optional) makes the bot add an English language test record
  *   (type/name/year + results document) — used when English proficiency must be
  *   evidenced.
+ * - `accreditation` (optional) makes the bot add a professional accreditation
+ *   (name/status + optional document). An AHPRA registration name (e.g. "Registered
+ *   Nurse") is itself accepted as proof of English proficiency, so it satisfies the
+ *   English check without a language test.
  * - `behavior.dropOffAt` makes the persona abandon at a step instead of
  *   submitting, so the funnel shows realistic drop-off. One of:
  *   "section1" | "qualifications" | "review" | null (completes).
@@ -146,6 +150,45 @@ export const personas = {
       name: "IELTS Academic",
       year: "2023",
       document: "tests/fixtures/language/synthetic_ielts_results.pdf",
+    },
+    behavior: { dropOffAt: null },
+  },
+
+  "ahpra-nurse": {
+    label:
+      "Overseas grad, non-English transcript → AHPRA registration evidences English → completes",
+    profile: {
+      title: null,
+      firstName: "Priya",
+      lastName: "Sharma",
+      gender: null,
+      dob: "1992-03-15",
+      phone: "0400777888",
+      citizenship: /International/i,
+      residentialAddress: "120 Collins Street, Melbourne VIC 3000",
+      language: null,
+      aboriginalStatus: null,
+      schoolLevel: /Year 12/i,
+      parents: "2",
+    },
+    eligibility: { pick: "last" },
+    tertiary: {
+      institution: "Universitas Indonesia",
+      // Overseas + non-English-medium, so the English proficiency check is mandatory.
+      country: /^Indonesia$/i,
+      level: /Bachelor/i,
+      course: "Bachelor of Nursing",
+    },
+    documents: {
+      // Transcript is taught in Indonesian, so it can't evidence English on its own.
+      transcript: "tests/fixtures/transcript-v3/pdfs/SYNTH-INT-universitas_indonesia.pdf",
+      cv: "tests/fixtures/cv/synthetic_cv_alex_morgan.pdf",
+    },
+    // Evidences English proficiency via an AHPRA registration instead of a language
+    // test — the registration name is recognised as proof on its own.
+    accreditation: {
+      name: "Registered Nurse",
+      status: "Active",
     },
     behavior: { dropOffAt: null },
   },
