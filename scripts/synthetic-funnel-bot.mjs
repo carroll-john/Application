@@ -116,6 +116,11 @@ function optionOrPick(value) {
   return value == null ? {} : { option: value };
 }
 
+/** Escape a string for safe use inside a RegExp. */
+function escapeRe(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -198,11 +203,16 @@ async function uploadFile(page, path) {
     return false;
   }
   const input = page.locator('input[type="file"]').first();
+  // The upload control is a lazy route + an sr-only <input type=file>; wait for it
+  // to mount (it's hidden, so "attached" — not "visible" — is the right state).
+  await input.waitFor({ state: "attached", timeout: 10000 }).catch(() => {});
   if (!(await input.count())) {
     warn("no file input on this page — skipping upload.");
     return false;
   }
-  await input.setInputFiles(path).catch(() => {});
+  await input
+    .setInputFiles(path)
+    .catch((e) => warn(`setInputFiles failed: ${e?.message ?? e}`));
   log(`uploaded ${path}`);
   await page.waitForTimeout(2000); // let the parser kick off
   return true;
@@ -224,7 +234,49 @@ async function findCombobox(page, labelRe) {
 }
 
 /**
- * Drive a NativeSelect: open it and click an option.
+ * Set a NativeSelect's underlying hidden <select> directly and fire a real change
+ * event, so React's onChange runs even when the combobox UI click doesn't take.
+ * Bypasses React's value tracker via the native setter (the standard pattern), so
+ * controlled state updates. Returns the chosen value, or null if nothing matched.
+ */
+async function setNativeSelectDirect(combo, { source = null, flags = "", pick = "first" }) {
+  return combo
+    .evaluate(
+      (btn, a) => {
+        const root = btn.closest("div");
+        const select = root ? root.querySelector("select") : null;
+        if (!select) return null;
+        const all = Array.from(select.options);
+        let chosen = null;
+        if (a.source != null) {
+          const re = new RegExp(a.source, a.flags);
+          chosen = all.find(
+            (o) => re.test((o.textContent || "").trim()) || re.test(o.value),
+          );
+        } else {
+          const real = all.filter((o) => o.value !== "");
+          chosen = a.pick === "last" ? real[real.length - 1] : real[0];
+        }
+        if (!chosen) return null;
+        const setter = Object.getOwnPropertyDescriptor(
+          window.HTMLSelectElement.prototype,
+          "value",
+        ).set;
+        setter.call(select, chosen.value);
+        select.dispatchEvent(new Event("input", { bubbles: true }));
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        return chosen.value;
+      },
+      { source, flags, pick },
+    )
+    .catch(() => null);
+}
+
+/**
+ * Drive a NativeSelect: open it and click an option, then verify the combobox's
+ * displayed value actually changed. If the UI click silently fails to commit
+ * (some lazy/upward-opening selects don't), fall back to setting the hidden
+ * <select> directly so the value always lands.
  * opts.option — exact/regex option text to pick; opts.pick — "first" | "last"
  * real (non-placeholder) option when no explicit option is given.
  */
@@ -236,25 +288,59 @@ async function selectField(page, labelRe, opts = {}) {
     return false;
   }
   await combo.scrollIntoViewIfNeeded().catch(() => {});
-  await combo.click().catch(() => {});
-  const listbox = page.getByRole("listbox").first();
-  await listbox.waitFor({ state: "visible", timeout: 4000 }).catch(() => {});
 
-  let target;
-  if (option != null) {
-    target = listbox.getByRole("option", { name: option, exact }).first();
-  } else {
-    const real = listbox.locator('[role="option"][data-value]:not([data-value=""])');
-    target = pick === "last" ? real.last() : real.first();
-  }
-  if (!(await target.count())) {
-    warn(`no matching option for: ${labelRe}`);
+  // A regex used both to find the listbox option and to verify the result.
+  const optionRe =
+    option == null
+      ? null
+      : option instanceof RegExp
+        ? option
+        : new RegExp(exact ? `^${escapeRe(String(option))}$` : escapeRe(String(option)), "i");
+
+  const readDisplay = async () => (await combo.innerText().catch(() => "")).trim();
+  const before = await readDisplay();
+
+  // Primary path: drive the real combobox UI (keeps session replays realistic).
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    await combo.click().catch(() => {});
+    const listbox = page.getByRole("listbox").first();
+    await listbox.waitFor({ state: "visible", timeout: 4000 }).catch(() => {});
+    let target;
+    if (option != null) {
+      target = listbox.getByRole("option", { name: option, exact }).first();
+    } else {
+      const real = listbox.locator('[role="option"][data-value]:not([data-value=""])');
+      target = pick === "last" ? real.last() : real.first();
+    }
+    if (!(await target.count())) {
+      if (attempt === 0) {
+        await page.keyboard.press("Escape").catch(() => {});
+        continue; // listbox may not have opened yet — try once more
+      }
+      break;
+    }
+    await target.click().catch(() => {});
+    await page.waitForTimeout(200); // let React commit onChange
+    const after = await readDisplay();
+    if (after && after !== before && (!optionRe || optionRe.test(after))) {
+      return true; // selection visibly landed
+    }
     await page.keyboard.press("Escape").catch(() => {});
-    return false;
   }
-  await target.click().catch(() => {});
-  await page.waitForTimeout(250); // let React commit the onChange before the next step persists
-  return true;
+
+  // Fallback: the UI click didn't commit — set the hidden <select> directly.
+  const set = await setNativeSelectDirect(combo, {
+    source: optionRe ? optionRe.source : null,
+    flags: optionRe ? optionRe.flags : "",
+    pick,
+  });
+  if (set) {
+    await page.waitForTimeout(150);
+    log(`select(${labelRe}) committed via fallback → "${set}"`);
+    return true;
+  }
+  warn(`no matching option for ${labelRe} (combobox shows "${await readDisplay()}")`);
+  return false;
 }
 
 async function clickButton(page, nameRe, { required = false } = {}) {
@@ -277,6 +363,8 @@ async function continueStep(page) {
   await page.waitForTimeout(300);
   if (page.url() === before) {
     warn(`did not advance from ${new URL(before).pathname} (validation may have blocked it)`);
+  } else {
+    log(`→ ${new URL(page.url()).pathname}`);
   }
 }
 
