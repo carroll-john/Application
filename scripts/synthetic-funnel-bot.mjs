@@ -195,6 +195,47 @@ async function fillMonthYear(page, index, monthIdx, year) {
   return true;
 }
 
+/**
+ * Set a MonthYearPickerField located by its field label (e.g. "Start date" /
+ * "End date"), working whether the picker is empty or already filled — so we can
+ * deterministically override whatever the transcript parser drafted and guarantee a
+ * valid, in-order date range. `monthIdx` is 0-11.
+ */
+async function setStudyDate(page, labelRe, monthIdx, year) {
+  const label = page.locator("label").filter({ hasText: labelRe }).first();
+  if (!(await label.count())) {
+    warn(`study-date label not found: ${labelRe}`);
+    return false;
+  }
+  // The picker trigger is the first button after the label (filled triggers show the
+  // date, empty ones show "Select month and year", so don't match on the text).
+  const trigger = label.locator("xpath=following::button[1]");
+  if (!(await trigger.count())) {
+    warn(`study-date trigger not found: ${labelRe}`);
+    return false;
+  }
+  await trigger.scrollIntoViewIfNeeded().catch(() => {});
+  await trigger.click().catch(() => {});
+  const cal = page.locator(".react-datepicker").first();
+  const opened = await cal
+    .waitFor({ state: "visible", timeout: 6000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!opened) {
+    warn(`study-date calendar did not open: ${labelRe}`);
+    return false;
+  }
+  const yearCombo = cal.getByRole("combobox").nth(1); // header: month (0), year (1)
+  if (await yearCombo.count()) {
+    await yearCombo.click().catch(() => {});
+    await page.getByRole("option", { name: new RegExp(`^${year}$`) }).first().click().catch(() => {});
+  }
+  await cal.locator(`.react-datepicker__month-${monthIdx}`).first().click().catch(() => {});
+  await page.waitForTimeout(300);
+  log(`study date "${labelRe.source ?? labelRe}" set to ${MONTHS[monthIdx]} ${year}`);
+  return true;
+}
+
 /** Upload a persona document (transcript/CV) into the first file input on the page. */
 async function uploadFile(page, path) {
   if (!path) return false;
@@ -545,33 +586,33 @@ async function addTertiary(page) {
       .catch(() => {});
     await page.waitForTimeout(1500);
   }
-  // Fill required fields (overrides / fills any gap the parser left). Date pickers the
-  // parser already set no longer read "Select month and year", so those calls no-op.
+  // Fill the required fields, overriding whatever the parser drafted so the record is
+  // deterministic and valid regardless of how the AI parse turned out this run.
   await fillByPlaceholder(page, /start typing institution/i, t.institution, { dismiss: true });
   await selectField(page, /Qualification level/i, optionOrPick(t.level));
   await fillByPlaceholder(page, /Bachelor of Science/i, t.course);
-  // The transcript parser usually fills the study dates; only enter them manually
-  // if the empty-state ("Select month and year") pickers are still showing.
-  const emptyDates = await page
-    .getByRole("button", { name: /Select month and year/i })
-    .count();
-  if (emptyDates >= 2) {
-    await fillMonthYear(page, 0, 1, 2015); // start: February 2015
-    await fillMonthYear(page, 0, 10, 2018); // end: November 2018
-  } else if (emptyDates === 1) {
-    await fillMonthYear(page, 0, 10, 2018); // fill whichever date the parser left blank
-  } else {
-    log("study dates pre-filled by transcript parser.");
-  }
+  // Always set both study dates explicitly (overriding the parser, which fills them
+  // non-deterministically — sometimes only one, risking an out-of-order range that
+  // blocks Save). February 2015 → November 2018 is always valid and in order.
+  await setStudyDate(page, /Start date/i, 1, 2015);
+  await setStudyDate(page, /End date/i, 10, 2018);
   // Save & Continue — wait for it to become enabled (parse/save gating).
   const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
   await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
   for (let i = 0; i < 30 && (await save.isDisabled().catch(() => false)); i += 1) {
     await page.waitForTimeout(1000);
   }
+  if (await save.isDisabled().catch(() => false)) {
+    warn("tertiary Save & Continue stayed disabled (a required field/date range is invalid).");
+  }
   await save.click().catch(() => {});
   await page.waitForURL(/section2\/qualifications/, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(1000); // back on the qualifications list with the saved record
+  if (page.url().includes("/add-tertiary")) {
+    warn(`tertiary save did not navigate — still at ${new URL(page.url()).pathname}`);
+  } else {
+    log(`tertiary saved — at ${new URL(page.url()).pathname}`);
+  }
 }
 
 /**
@@ -584,7 +625,7 @@ async function continueFromQualifications(page) {
   const cta = page
     .getByRole("button", { name: /^(Save & Continue|Return to Review)$/i })
     .first();
-  for (let i = 0; i < 75; i += 1) {
+  for (let i = 0; i < 100; i += 1) {
     if ((await cta.count()) && !(await cta.isDisabled().catch(() => true))) {
       await cta.scrollIntoViewIfNeeded().catch(() => {});
       await cta.click().catch(() => {});
