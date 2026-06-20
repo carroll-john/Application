@@ -5,6 +5,7 @@ import {
   type EmploymentExperience,
   type TertiaryQualification,
 } from "./applicationData";
+import type { TranscriptEligibilityAssessment } from "./eligibility/types";
 import {
   getNextIncompleteStep,
   getSubmissionValidationIssues,
@@ -13,6 +14,23 @@ import {
   isTertiaryQualificationSubmissionReady,
 } from "./applicationValidationSchema";
 import { getTertiaryQualificationSubmissionMissingFields } from "./validation/rules/section2";
+
+function makeCompletionAssessment(): TranscriptEligibilityAssessment {
+  return {
+    checkedAt: new Date().toISOString(),
+    confidence: 0.9,
+    extractedData: {
+      studyDetails: {
+        completionStatus: { confidence: 0.9, normalizedValue: "Completed" },
+      },
+    },
+    manualReviewRequired: false,
+    missingInformation: [],
+    outcome: "eligible",
+    recommendedNextStep: "",
+    requirementsChecked: [],
+  };
+}
 
 function makeBaseApplication(
   overrides: Partial<ApplicationData> = {},
@@ -140,12 +158,24 @@ describe("applicationValidationSchema", () => {
     expect(getNextIncompleteStep(data)).toBe("Basic information");
   });
 
-  it("does not require a certificate of completion for submission readiness", () => {
+  it("requires a certificate of completion only when the transcript can't evidence completion", () => {
+    // Completed, no certificate, and the transcript can't confirm completion → required.
     expect(
       getTertiaryQualificationSubmissionMissingFields(
         makeTertiaryQualification({
           certificateDocument: undefined,
           certificateDocumentName: undefined,
+        }),
+      ),
+    ).toContain("Certificate of Completion");
+
+    // The transcript evidences completion → no certificate needed.
+    expect(
+      getTertiaryQualificationSubmissionMissingFields(
+        makeTertiaryQualification({
+          certificateDocument: undefined,
+          certificateDocumentName: undefined,
+          transcriptEligibility: makeCompletionAssessment(),
         }),
       ),
     ).not.toContain("Certificate of Completion");

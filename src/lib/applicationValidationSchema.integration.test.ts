@@ -5,7 +5,27 @@ import {
   type TertiaryQualification,
 } from "./applicationData";
 import type { UploadedDocument } from "./documentStorage";
+import type { TranscriptEligibilityAssessment } from "./eligibility/types";
 import { getSubmissionValidationIssues } from "./applicationValidationSchema";
+
+function makeCompletionAssessment(
+  completionStatus = "Completed",
+): TranscriptEligibilityAssessment {
+  return {
+    checkedAt: new Date().toISOString(),
+    confidence: 0.9,
+    extractedData: {
+      studyDetails: {
+        completionStatus: { confidence: 0.9, normalizedValue: completionStatus },
+      },
+    },
+    manualReviewRequired: false,
+    missingInformation: [],
+    outcome: "eligible",
+    recommendedNextStep: "",
+    requirementsChecked: [],
+  };
+}
 
 function makeRemoteDocument(
   overrides: Partial<UploadedDocument> = {},
@@ -48,6 +68,8 @@ function makeValidTertiaryQualification(
       name: "certificate.pdf",
       storagePath: "user-1/app-1/certificate/doc-certificate-certificate.pdf",
     }),
+    // A completed qualification whose transcript evidences completion needs no certificate.
+    transcriptEligibility: makeCompletionAssessment(),
     ...overrides,
   };
 }
@@ -252,7 +274,7 @@ describe("getSubmissionValidationIssues", () => {
     );
   });
 
-  it("does not require a certificate when a tertiary qualification is marked completed", () => {
+  it("does not require a certificate when the transcript evidences completion", () => {
     const errors = getSubmissionValidationIssues(
       makeValidApplication({
         tertiaryQualifications: [
@@ -265,6 +287,29 @@ describe("getSubmissionValidationIssues", () => {
     );
 
     expect(errors).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: "Qualification 1: Certificate of Completion",
+        }),
+      ]),
+    );
+  });
+
+  it("requires a certificate when completed but the transcript can't evidence completion", () => {
+    const errors = getSubmissionValidationIssues(
+      makeValidApplication({
+        tertiaryQualifications: [
+          makeValidTertiaryQualification({
+            completed: true,
+            certificateDocument: undefined,
+            certificateDocumentName: undefined,
+            transcriptEligibility: makeCompletionAssessment("Discontinued"),
+          }),
+        ],
+      }),
+    );
+
+    expect(errors).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           field: "Qualification 1: Certificate of Completion",
