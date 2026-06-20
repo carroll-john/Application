@@ -421,8 +421,12 @@ async function fillSection1(page) {
 /** Section 2: add the persona's tertiary qualification (satisfies submit validation). */
 async function addTertiary(page) {
   const t = persona.tertiary;
-  await clickButton(page, /add.*tertiary/i, { required: true });
-  await page.waitForLoadState("networkidle").catch(() => {});
+  // The Tertiary card's CTA is a generic "Add" (+) button; it's the first card,
+  // so the first "Add" on the qualifications page → /section2/add-tertiary.
+  const addBtn = page.getByRole("button", { name: /^Add$/i }).first();
+  await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  await addBtn.click().catch(() => {});
+  await page.waitForURL(/add-tertiary/, { timeout: 12000 }).catch(() => {});
   await fillField(page, /^Institution/, t.institution);
   // Country defaults to Australia in the form; only override when the persona set one.
   if (t.country) await selectField(page, /^Country/, optionOrPick(t.country));
