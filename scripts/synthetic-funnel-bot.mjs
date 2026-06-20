@@ -86,6 +86,7 @@ function attachIngestCounter(page) {
 
 async function fillField(page, labelRe, value) {
   const f = page.getByLabel(labelRe).first();
+  await f.waitFor({ state: "visible", timeout: 3000 }).catch(() => {});
   if (await f.count()) {
     await f.fill(String(value)).catch(() => {});
     return true;
@@ -120,6 +121,8 @@ async function uploadFile(page, path) {
 /** Locate a NativeSelect's combobox button by accessible name, else by label text. */
 async function findCombobox(page, labelRe) {
   const byName = page.getByRole("combobox", { name: labelRe }).first();
+  // Section steps are lazy routes — give the control a moment to render.
+  await byName.waitFor({ state: "visible", timeout: 3000 }).catch(() => {});
   if (await byName.count()) return byName;
   const label = page.locator("label").filter({ hasText: labelRe }).first();
   if (await label.count()) {
@@ -201,7 +204,9 @@ async function signIn(page) {
     warn("No TEST_EMAIL/TEST_PASSWORD — the journey is auth-gated, so happy/blocked paths will be skipped.");
     return false;
   }
-  await page.goto(`${BASE_URL}/sign-in`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE_URL}/sign-in`, { waitUntil: "domcontentloaded" });
+  // /sign-in is a lazy route — wait for the form to render before filling.
+  await page.getByLabel(/^Email/i).first().waitFor({ state: "visible", timeout: 15000 }).catch(() => {});
   const emailOk = await fillField(page, /^Email/i, TEST_EMAIL);
   const pwOk = await fillField(page, /^Password/i, TEST_PASSWORD);
   log(`sign-in: email field ${emailOk ? "filled" : "NOT FOUND"}, password field ${pwOk ? "filled" : "NOT FOUND"}`);
