@@ -616,26 +616,84 @@ async function addTertiary(page) {
 }
 
 /**
- * Click the qualifications-hub primary CTA through to /review. After a tertiary
- * record with a transcript is saved, the hub kicks off a *deferred* AI eligibility
- * check; while it runs the CTA reads "Checking eligibility..." and is disabled, so
- * we poll for the real, enabled "Save & Continue" / "Return to Review" button.
+ * Wait for the qualifications-hub primary CTA to be present and enabled. After a
+ * tertiary record with a transcript is saved, the hub kicks off a *deferred* AI
+ * eligibility check; while it runs the CTA reads "Checking eligibility..." and is
+ * disabled, so we poll for the real, enabled "Save & Continue" / "Return to Review".
  */
-async function continueFromQualifications(page) {
+async function waitForQualificationsReady(page) {
   const cta = page
     .getByRole("button", { name: /^(Save & Continue|Return to Review)$/i })
     .first();
   for (let i = 0; i < 100; i += 1) {
     if ((await cta.count()) && !(await cta.isDisabled().catch(() => true))) {
-      await cta.scrollIntoViewIfNeeded().catch(() => {});
-      await cta.click().catch(() => {});
-      return true;
+      return cta;
     }
     if (i === 0) log("waiting for qualifications hub (eligibility check) to settle…");
     await page.waitForTimeout(1000);
   }
   warn("qualifications continue CTA never became ready (eligibility still processing?)");
-  return false;
+  return null;
+}
+
+/** Click the qualifications-hub primary CTA through to /review (once it's ready). */
+async function continueFromQualifications(page) {
+  const cta = await waitForQualificationsReady(page);
+  if (!cta) return false;
+  await cta.scrollIntoViewIfNeeded().catch(() => {});
+  await cta.click().catch(() => {});
+  return true;
+}
+
+/**
+ * The deferred hub eligibility re-parses the transcript and overwrites the saved
+ * tertiary record with the AI's extraction, which can leave required fields (level,
+ * end date) blank — blocking submit. Once the hub has settled, edit the record to
+ * restore complete, valid values. Editing without re-selecting the transcript does
+ * NOT re-trigger the hub (eligibility is already cached), so these corrections stick.
+ */
+async function correctTertiaryRecord(page) {
+  const t = persona.tertiary;
+  if (!t) return false;
+  await waitForQualificationsReady(page); // let the hub finish overwriting first
+  const fileName = (persona.documents?.transcript ?? "").split("/").pop() ?? "";
+  // The tertiary row is the rounded list card showing the transcript filename; its
+  // first button is the (icon-only) Edit action.
+  const row = fileName
+    ? page.locator("div.rounded.border").filter({ hasText: fileName }).first()
+    : page.locator("div.rounded.border").first();
+  const editBtn = row.getByRole("button").first();
+  await editBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  if (!(await editBtn.count())) {
+    warn("tertiary Edit button not found — skipping record correction.");
+    return false;
+  }
+  await editBtn.scrollIntoViewIfNeeded().catch(() => {});
+  await editBtn.click().catch(() => {});
+  await page.waitForURL(/edit-tertiary/, { timeout: 12000 }).catch(() => {});
+  if (!page.url().includes("edit-tertiary")) {
+    warn(`tertiary edit did not open — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  await page.waitForTimeout(800); // let the edit form render
+  await fillByPlaceholder(page, /start typing institution/i, t.institution, { dismiss: true });
+  await selectField(page, /Qualification level/i, optionOrPick(t.level));
+  await fillByPlaceholder(page, /Bachelor of Science/i, t.course);
+  await setStudyDate(page, /Start date/i, 1, 2015);
+  await setStudyDate(page, /End date/i, 10, 2018);
+  const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
+  await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  for (let i = 0; i < 20 && (await save.isDisabled().catch(() => false)); i += 1) {
+    await page.waitForTimeout(1000);
+  }
+  if (await save.isDisabled().catch(() => false)) {
+    warn("tertiary edit Save stayed disabled (a required field is still invalid).");
+  }
+  await save.click().catch(() => {});
+  await page.waitForURL(/section2\/qualifications/, { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(1000);
+  log(`tertiary corrected — at ${new URL(page.url()).pathname}`);
+  return true;
 }
 
 /** Submit and verify we reach /submitted. */
@@ -687,8 +745,12 @@ async function runHappy(page) {
     log("↩︎ persona abandons at qualifications (expected drop-off).");
     return;
   }
-  if (persona.tertiary) await addTertiary(page);
-  else await continueStep(page);
+  if (persona.tertiary) {
+    await addTertiary(page);
+    await correctTertiaryRecord(page); // restore fields the hub re-parse may have blanked
+  } else {
+    await continueStep(page);
+  }
   const cv = persona.documents?.cv ?? process.env.CV_PATH;
   if (cv) {
     await page.goto(`${BASE_URL}/section2/add-cv`, { waitUntil: "networkidle" }).catch(() => {});
