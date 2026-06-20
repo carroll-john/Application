@@ -127,6 +127,9 @@ describe("requirement reason codes", () => {
     expect(
       evaluateRequirements([instance], {}, { languageTestsCount: 1 })[0].reasonCode,
     ).toBe("ENGLISH_TEST_UNVERIFIED");
+    expect(
+      evaluateRequirements([instance], {}, { hasAhpraRegistration: true })[0].reasonCode,
+    ).toBe("ENGLISH_OK_AHPRA");
   });
 
   it("work_experience and field_of_study", () => {

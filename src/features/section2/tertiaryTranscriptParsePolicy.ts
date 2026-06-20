@@ -1,6 +1,7 @@
 import type { ApplicationData, TertiaryQualification } from "../../lib/applicationData";
 import { getCourseByCode } from "../../lib/courseCatalog";
 import { parseEntryRequirementThresholds } from "../../lib/courseCatalog/normalize";
+import { hasAhpraRegistration } from "../../lib/eligibility/englishProficiencyEvidence";
 import {
   evaluateTranscriptEligibility,
   TranscriptEligibilityRequestError,
@@ -76,6 +77,9 @@ export function buildTranscriptEligibilityContext(
     courseCode: selectedCourse?.code,
     courseTitle: selectedCourse?.title,
     entryRequirementsText: selectedCourseCatalogEntry?.entryRequirements,
+    hasAhpraRegistration: hasAhpraRegistration(
+      applicationData.professionalAccreditations,
+    ),
     institution: formData.institution,
     languageTestsCount: applicationData.languageTests.length,
     level: formData.level,
