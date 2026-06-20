@@ -95,7 +95,11 @@ export const personas = {
       level: /Bachelor/i,
       course: "Bachelor of Science",
     },
-    documents: { transcript: null, cv: null },
+    documents: {
+      // Required to submit; a different fixture than the career-changer for variety.
+      transcript: "tests/fixtures/transcript-v3/pdfs/AU-TX-V3-001_the_university_of_melbourne.pdf",
+      cv: null,
+    },
     behavior: { dropOffAt: null },
   },
 };
