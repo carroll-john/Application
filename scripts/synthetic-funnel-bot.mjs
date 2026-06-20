@@ -342,27 +342,35 @@ async function startApplication(page) {
   await start.click().catch(() => {});
   await page.waitForURL(/\/(overview|section1)/, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(500);
+  log(`application started — at ${new URL(page.url()).pathname}`);
   return true;
 }
 
 /** A fresh draft lands on /overview; click its CTA through to Section 1. */
 async function enterSections(page) {
   await page.waitForURL(/\/(overview|section1)/, { timeout: 20000 }).catch(() => {});
-  for (let i = 0; i < 2 && page.url().includes("/overview"); i += 1) {
+  log(`enterSections — at ${new URL(page.url()).pathname}`);
+  for (let i = 0; i < 3 && page.url().includes("/overview"); i += 1) {
     const cta = page
       .getByRole("button", {
         name: /^(Start application|Continue to next step|Go to review & submit)$/i,
       })
       .first();
-    if (!(await cta.count())) break;
+    if (!(await cta.count())) {
+      warn("overview continue CTA not found");
+      break;
+    }
     await cta.click().catch(() => {});
     await page.waitForURL((u) => !u.toString().includes("/overview"), { timeout: 15000 }).catch(() => {});
+    log(`after overview CTA — at ${new URL(page.url()).pathname}`);
   }
 }
 
 /** Fill the six Section 1 steps from the persona's profile. */
 async function fillSection1(page) {
   const p = persona.profile;
+  await page.waitForURL(/\/section1\/basic-info/, { timeout: 12000 }).catch(() => {});
+  log(`Section 1 — at ${new URL(page.url()).pathname}`);
   // basic-info
   await selectField(page, /^Title/, optionOrPick(p.title));
   await fillField(page, /^First name/, p.firstName);
