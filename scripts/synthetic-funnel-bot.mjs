@@ -355,12 +355,13 @@ async function enterSections(page) {
   for (let i = 0; i < 3 && page.url().includes("/overview"); i += 1) {
     const cta = page
       .getByRole("button", {
-        name: /^(Start application|Continue to next step|Go to review & submit)$/i,
+        name: /start application|continue to next step|go to review|^continue$|resume|begin/i,
       })
       .first();
     await cta.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
     if (!(await cta.count())) {
-      warn("overview continue CTA not found");
+      const names = await page.getByRole("button").allInnerTexts().catch(() => []);
+      warn(`overview continue CTA not found. buttons=${JSON.stringify(names.filter(Boolean)).slice(0, 400)}`);
       break;
     }
     await cta.click().catch(() => {});
