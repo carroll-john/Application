@@ -100,6 +100,74 @@ function optionOrPick(value) {
   return value == null ? {} : { option: value };
 }
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/**
+ * Fill a react-datepicker DOB field (custom button trigger + calendar). Open it,
+ * set month + year via the header NativeSelect comboboxes, then click the day.
+ * `iso` is YYYY-MM-DD.
+ */
+async function fillDateOfBirth(page, iso, triggerSelector = "#dateOfBirth") {
+  if (!iso) return false;
+  const [yy, mm, dd] = iso.split("-");
+  const trigger = page.locator(triggerSelector).first();
+  if (!(await trigger.count())) {
+    warn(`date picker not found: ${triggerSelector}`);
+    return false;
+  }
+  await trigger.click().catch(() => {});
+  const cal = page.locator(".react-datepicker").first();
+  const opened = await cal.waitFor({ state: "visible", timeout: 6000 }).then(() => true).catch(() => false);
+  if (!opened) {
+    warn("date picker calendar did not open");
+    return false;
+  }
+  const combos = cal.getByRole("combobox");
+  await combos.nth(0).click().catch(() => {}); // month
+  await page.getByRole("option", { name: new RegExp(`^${MONTHS[Number(mm) - 1]}$`, "i") }).first().click().catch(() => {});
+  await combos.nth(1).click().catch(() => {}); // year
+  await page.getByRole("option", { name: new RegExp(`^${Number(yy)}$`) }).first().click().catch(() => {});
+  await cal
+    .locator(`.react-datepicker__day--0${dd}:not(.react-datepicker__day--outside-month)`)
+    .first()
+    .click()
+    .catch(() => {});
+  await page.waitForTimeout(300);
+  log(`date set to ${iso} (${triggerSelector})`);
+  return true;
+}
+
+/**
+ * Fill a MonthYearPickerField (react-datepicker month grid). `index` selects which
+ * "Select month and year" trigger on the page (0-based). `monthIdx` is 0-11.
+ */
+async function fillMonthYear(page, index, monthIdx, year) {
+  const trigger = page.getByRole("button", { name: /Select month and year/i }).nth(index);
+  if (!(await trigger.count())) {
+    warn(`month-year picker #${index} not found`);
+    return false;
+  }
+  await trigger.click().catch(() => {});
+  const cal = page.locator(".react-datepicker").first();
+  const opened = await cal.waitFor({ state: "visible", timeout: 6000 }).then(() => true).catch(() => false);
+  if (!opened) {
+    warn("month-year calendar did not open");
+    return false;
+  }
+  const yearCombo = cal.getByRole("combobox").nth(1); // header: month (0), year (1)
+  if (await yearCombo.count()) {
+    await yearCombo.click().catch(() => {});
+    await page.getByRole("option", { name: new RegExp(`^${year}$`) }).first().click().catch(() => {});
+  }
+  await cal.locator(`.react-datepicker__month-${monthIdx}`).first().click().catch(() => {});
+  await page.waitForTimeout(300);
+  log(`month/year set to ${MONTHS[monthIdx]} ${year} (#${index})`);
+  return true;
+}
+
 /** Upload a persona document (transcript/CV) into the first file input on the page. */
 async function uploadFile(page, path) {
   if (!path) return false;
@@ -302,7 +370,7 @@ async function fillSection1(page) {
   await continueStep(page);
   // personal-contact
   await selectField(page, /^Gender/, optionOrPick(p.gender));
-  await fillField(page, /Date of birth/i, p.dob);
+  await fillDateOfBirth(page, p.dob);
   await fillField(page, /^Email/i, TEST_EMAIL || "synthetic@example.com");
   await fillField(page, /^Phone/i, p.phone);
   await continueStep(page);
@@ -327,7 +395,8 @@ async function fillSection1(page) {
     if (await findCombobox(page, labelRe)) await selectField(page, labelRe);
     else break;
   }
-  await page.getByRole("radio", { name: /^no$/i }).first().check().catch(() => {});
+  // Disability question — the "No" radio's name is the full sentence, not "No".
+  await page.getByRole("radio", { name: /do not have a disability/i }).first().check().catch(() => {});
   await continueStep(page);
 }
 
@@ -337,19 +406,17 @@ async function addTertiary(page) {
   await clickButton(page, /add.*tertiary/i, { required: true });
   await page.waitForLoadState("networkidle").catch(() => {});
   await fillField(page, /^Institution/, t.institution);
-  await selectField(page, /^Country/, optionOrPick(t.country));
+  // Country defaults to Australia in the form; only override when the persona set one.
+  if (t.country) await selectField(page, /^Country/, optionOrPick(t.country));
   await selectField(page, /Qualification level/i, optionOrPick(t.level));
   await fillField(page, /Course name|Program name/i, t.course);
-  await selectField(page, /Start month/i);
-  await selectField(page, /Start year/i);
-  await selectField(page, /End month/i);
-  await selectField(page, /End year/i, { pick: "last" });
+  // Start/End are MonthYearPickerField date pickers, not selects.
+  await fillMonthYear(page, 0, 1, 2015); // start: February 2015
+  await fillMonthYear(page, 1, 10, 2018); // end: November 2018
   const transcript = persona.documents?.transcript ?? process.env.TRANSCRIPT_PATH;
   if (transcript) await uploadFile(page, transcript);
   await clickButton(page, /^Save & Continue$/i, { required: true });
-  await page.waitForLoadState("networkidle").catch(() => {});
-  await page.waitForTimeout(400);
-  await continueStep(page); // qualifications overview → /review
+  await page.waitForTimeout(2000); // navigateAfterSave is false; save persists in place
 }
 
 /** Submit and verify we reach /submitted. */
