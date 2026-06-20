@@ -547,5 +547,72 @@ describe("evaluate-transcript-eligibility api route", () => {
       "english_instruction_au_institution",
     );
   });
+
+  it("passes English proficiency via an AHPRA registration carried in the context", async () => {
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confidence: 0.85,
+          manualReviewRequired: false,
+          missingInformation: [],
+          outcome: "eligible",
+          recommendedNextStep: "Proceed",
+          academicPerformance: {},
+          applicantDetails: {
+            countryOfInstitution: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "Indonesia",
+              originalValue: "Indonesia",
+            },
+          },
+          englishLanguageEvidence: {},
+          studyDetails: {
+            completionStatus: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "completed",
+              originalValue: "completed",
+            },
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const requirements = [
+      {
+        id: "english",
+        kind: "english_proficiency",
+        params: { acceptedPathways: [{ type: "completion_in_country", countries: ["AU"] }] },
+        sourceText: "Evidence of English language proficiency.",
+        weight: "mandatory",
+      },
+    ];
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "ahpra-english.txt", { type: "text/plain" }));
+    // The AHPRA flag must survive the route's context parsing to reach the evaluator.
+    formData.append(
+      "context",
+      JSON.stringify({ hasAhpraRegistration: true, requirements }),
+    );
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+    const englishCheck = (payload.requirementsChecked as Array<Record<string, unknown>>).find(
+      (check) => check.id === "english",
+    );
+
+    expect(response.status).toBe(200);
+    expect(englishCheck?.status).toBe("pass");
+    expect(englishCheck?.reasonCode).toBe("ENGLISH_OK_AHPRA");
+  });
 });
 

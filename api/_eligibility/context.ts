@@ -8,6 +8,7 @@ export type TranscriptEligibilityRequestContext = {
   courseCode?: string;
   courseTitle?: string;
   entryRequirementsText?: string;
+  hasAhpraRegistration?: boolean;
   institution?: string;
   languageTestsCount?: number;
   level?: string;
@@ -84,6 +85,10 @@ export function parseContext(
       entryRequirementsText:
         typeof candidate.entryRequirementsText === "string"
           ? candidate.entryRequirementsText.trim()
+          : undefined,
+      hasAhpraRegistration:
+        typeof candidate.hasAhpraRegistration === "boolean"
+          ? candidate.hasAhpraRegistration
           : undefined,
       institution:
         typeof candidate.institution === "string" ? candidate.institution.trim() : undefined,
