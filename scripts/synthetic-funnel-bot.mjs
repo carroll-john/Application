@@ -762,7 +762,7 @@ async function addCv(page) {
   }
   const cvCard = page
     .locator("div.rounded-lg.border")
-    .filter({ hasText: /Curriculum Vitae/i })
+    .filter({ has: page.getByRole("heading", { name: /Curriculum Vitae/i }) })
     .first();
   const cvAdd = cvCard.getByRole("button", { name: /^(Add|Replace)$/i }).first();
   await cvAdd.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
@@ -811,9 +811,11 @@ async function addLanguageTest(page) {
     warn(`not on qualifications for language test — at ${new URL(page.url()).pathname}`);
     return false;
   }
+  // Scope by the section card's heading — "English language proficiency" also appears
+  // as an eligibility requirement row, so a plain text match grabs the wrong card.
   const card = page
     .locator("div.rounded-lg.border")
-    .filter({ hasText: /English Language Proficiency/i })
+    .filter({ has: page.getByRole("heading", { name: /English Language Proficiency/i }) })
     .first();
   const addBtn = card.getByRole("button", { name: /^(Add|Replace)$/i }).first();
   await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
