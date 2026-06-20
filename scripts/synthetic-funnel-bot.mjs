@@ -455,13 +455,21 @@ async function addTertiary(page) {
   const transcript = persona.documents?.transcript ?? process.env.TRANSCRIPT_PATH;
   if (transcript) await uploadFile(page, transcript);
   await clickButton(page, /^Save & Continue$/i, { required: true });
-  await page.waitForTimeout(4000); // navigateAfterSave is false; let the save persist
+  await page.waitForURL(/section2\/qualifications/, { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(1000); // back on the qualifications list with the saved record
 }
 
 /** Submit and verify we reach /submitted. */
 async function submitHappy(page) {
+  // Reach /review via the UI only — a full reload wipes the in-memory application
+  // context (everything entered this session), which fails review validation.
   if (!page.url().includes("/review")) {
-    await page.goto(`${BASE_URL}/review`, { waitUntil: "domcontentloaded" }).catch(() => {});
+    await clickButton(page, /^Save & Continue$/i, { required: true }); // qualifications → review
+    await page.waitForURL(/\/review/, { timeout: 15000 }).catch(() => {});
+  }
+  if (!page.url().includes("/review")) {
+    warn(`could not reach /review client-side — at ${new URL(page.url()).pathname}`);
+    return false;
   }
   const submit = page.getByRole("button", { name: /^Submit application$/i }).first();
   await submit.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
