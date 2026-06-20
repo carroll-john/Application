@@ -110,6 +110,7 @@ export type Database = {
           id: string
           intake_label: string
           personal_details: Json
+          requires_english_proficiency: boolean
           status: Database["public"]["Enums"]["application_status"]
           submitted_at: string | null
           updated_at: string
@@ -127,6 +128,7 @@ export type Database = {
           id?: string
           intake_label: string
           personal_details?: Json
+          requires_english_proficiency?: boolean
           status?: Database["public"]["Enums"]["application_status"]
           submitted_at?: string | null
           updated_at?: string
@@ -144,6 +146,7 @@ export type Database = {
           id?: string
           intake_label?: string
           personal_details?: Json
+          requires_english_proficiency?: boolean
           status?: Database["public"]["Enums"]["application_status"]
           submitted_at?: string | null
           updated_at?: string
@@ -408,6 +411,7 @@ export type Database = {
           level: string
           start_month: string
           start_year: string
+          transcript_confirms_completion: boolean
           transcript_document_id: string | null
           transcript_document_name: string | null
           updated_at: string
@@ -427,6 +431,7 @@ export type Database = {
           level: string
           start_month: string
           start_year: string
+          transcript_confirms_completion?: boolean
           transcript_document_id?: string | null
           transcript_document_name?: string | null
           updated_at?: string
@@ -446,6 +451,7 @@ export type Database = {
           level?: string
           start_month?: string
           start_year?: string
+          transcript_confirms_completion?: boolean
           transcript_document_id?: string | null
           transcript_document_name?: string | null
           updated_at?: string

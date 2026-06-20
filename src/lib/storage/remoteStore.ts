@@ -1,9 +1,10 @@
 import type { Session } from "@supabase/supabase-js";
-import { getDefaultCourse } from "../courseCatalog";
+import { getCourseByCode, getDefaultCourse } from "../courseCatalog";
 import {
   mergeStoredApplicationData,
   type ApplicationData,
 } from "../applicationData";
+import { courseRequiresEnglishProficiency } from "../eligibility/englishProficiencyEvidence";
 import {
   summarizeApplication,
   type ApplicationSummary,
@@ -185,7 +186,7 @@ export async function loadRemoteApplicationById(
     client
       .from("tertiary_qualifications")
       .select(
-        "id, institution, country, level, course_name, start_month, start_year, completed, end_month, end_year, transcript_document_id, transcript_document_name, certificate_document_id, certificate_document_name",
+        "id, institution, country, level, course_name, start_month, start_year, completed, end_month, end_year, transcript_confirms_completion, transcript_document_id, transcript_document_name, certificate_document_id, certificate_document_name",
       )
       .eq("application_id", applicationId)
       .order("created_at", { ascending: true }),
@@ -310,6 +311,12 @@ function buildApplicationPayload(
     id: ids.remoteApplicationId ?? undefined,
     intake_label: selectedCourse?.intake ?? defaultCourse.intakeLabel,
     personal_details: toJsonValue(data.personalDetails),
+    // Persist whether the selected course requires English proficiency so the
+    // submit RPC can enforce the conditional requirement (the catalog the client
+    // derives this from is not available server-side).
+    requires_english_proficiency: courseRequiresEnglishProficiency(
+      getCourseByCode(selectedCourse?.code ?? null),
+    ),
     status: data.applicationMeta.submittedAt ? "submitted" : "draft",
     submitted_at: data.applicationMeta.submittedAt ?? null,
     user_id: session.user.id,

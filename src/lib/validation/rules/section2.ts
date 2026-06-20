@@ -4,6 +4,10 @@ import type {
   TertiaryQualification,
 } from "../../applicationData";
 import { isSubmissionReadyDocument } from "../../documentAttachment";
+import {
+  needsCertificateOfCompletion,
+  needsEnglishProficiencyEvidence,
+} from "../../eligibility/englishProficiencyEvidence";
 import { isMonthYearRangeOutOfOrder } from "../../monthYearValidation";
 import {
   getSection2RequirementInput,
@@ -64,6 +68,14 @@ const tertiaryFieldRules: TertiaryFieldRule[] = [
       Boolean(qualification.courseName.trim()) &&
       !hasStoredDocument(qualification.transcriptDocument),
   },
+  {
+    // Optional hard requirement: only when the qualification is marked completed but
+    // its transcript can't evidence that completion (and no certificate is attached).
+    field: "Certificate of Completion",
+    isMissing: (qualification) =>
+      needsCertificateOfCompletion(qualification) &&
+      !hasStoredDocument(qualification.certificateDocument),
+  },
 ];
 
 export function getTertiaryQualificationSubmissionMissingFields(
@@ -107,6 +119,28 @@ export function getSection2RequirementRules(data: ApplicationData): ValidationRu
       isMissing: () => true,
     }),
   );
+}
+
+export function getEnglishProficiencyRules(data: ApplicationData): ValidationRule[] {
+  const { selectedCourse } = getSection2RequirementInput(data);
+
+  if (!needsEnglishProficiencyEvidence(data, selectedCourse)) {
+    return [];
+  }
+
+  // Optional hard requirement: the course requires English proficiency, it can't be
+  // inferred from a transcript (no English-medium-country study), and no English test
+  // or AHPRA registration has been provided.
+  return [
+    {
+      section: SECTION_2,
+      subsection: "English language proficiency",
+      field: "Proof of English proficiency (an English test or AHPRA registration)",
+      path: "/section2/qualifications?from=review",
+      targets: ["submissionReady"],
+      isMissing: () => true,
+    },
+  ];
 }
 
 export function getTertiaryQualificationRules(data: ApplicationData): ValidationRule[] {

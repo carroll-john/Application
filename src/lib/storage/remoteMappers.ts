@@ -1,4 +1,5 @@
 import { getCourseByCode, getDefaultCourse } from "../courseCatalog";
+import { transcriptConfirmsCompletion } from "../eligibility/englishProficiencyEvidence";
 import type {
   ContactDetails,
   EmploymentExperience,
@@ -63,6 +64,7 @@ type TertiaryRow = Pick<
   | "level"
   | "start_month"
   | "start_year"
+  | "transcript_confirms_completion"
   | "transcript_document_id"
   | "transcript_document_name"
 >;
@@ -255,6 +257,7 @@ export function mapTertiaryQualificationRow(
     level: qualification.level,
     startMonth: qualification.start_month,
     startYear: qualification.start_year,
+    transcriptCompletionConfirmed: qualification.transcript_confirms_completion,
     transcriptDocument: qualification.transcript_document_id
       ? documentMap.get(qualification.transcript_document_id)
       : undefined,
@@ -282,6 +285,7 @@ export function toTertiaryInsert(
     level: qualification.level,
     start_month: qualification.startMonth,
     start_year: qualification.startYear,
+    transcript_confirms_completion: transcriptConfirmsCompletion(qualification),
     transcript_document_id: getRemoteDocumentId(qualification.transcriptDocument),
     transcript_document_name: qualification.transcriptDocumentName ?? null,
   };

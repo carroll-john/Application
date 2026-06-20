@@ -20,6 +20,13 @@ export interface TertiaryQualification {
   certificateDocument?: UploadedDocument;
   certificateDocumentName?: string;
   transcriptEligibility?: TranscriptEligibilityAssessment;
+  /**
+   * Persisted snapshot of whether the parsed transcript evidenced completion.
+   * `transcriptEligibility` lives only in memory, so this carries the signal
+   * across reloads to keep the conditional Certificate-of-Completion requirement
+   * consistent between client and server.
+   */
+  transcriptCompletionConfirmed?: boolean;
 }
 
 export interface EmploymentExperience {
