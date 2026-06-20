@@ -113,7 +113,13 @@ const MONTHS = [
 async function fillDateOfBirth(page, iso, triggerSelector = "#dateOfBirth") {
   if (!iso) return false;
   const [yy, mm, dd] = iso.split("-");
-  const trigger = page.locator(triggerSelector).first();
+  let trigger = page.locator(triggerSelector).first();
+  await trigger.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
+  if (!(await trigger.count())) {
+    // fall back to the trigger button by its empty-state placeholder
+    trigger = page.getByRole("button", { name: /DD\s*\/\s*MM\s*\/\s*YYYY|select date/i }).first();
+    await trigger.waitFor({ state: "visible", timeout: 3000 }).catch(() => {});
+  }
   if (!(await trigger.count())) {
     warn(`date picker not found: ${triggerSelector}`);
     return false;
@@ -403,7 +409,7 @@ async function fillSection1(page) {
   // family-support
   await selectField(page, /parents|guardians/i, { option: String(p.parents ?? "2"), exact: true });
   for (let i = 1; i <= 5; i += 1) {
-    const labelRe = new RegExp(`Parent ${i}`, "i");
+    const labelRe = new RegExp(`Parent/Guardian ${i}`, "i");
     if (await findCombobox(page, labelRe)) await selectField(page, labelRe);
     else break;
   }
