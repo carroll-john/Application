@@ -550,8 +550,19 @@ async function addTertiary(page) {
   await fillByPlaceholder(page, /start typing institution/i, t.institution, { dismiss: true });
   await selectField(page, /Qualification level/i, optionOrPick(t.level));
   await fillByPlaceholder(page, /Bachelor of Science/i, t.course);
-  await fillMonthYear(page, 0, 1, 2015); // start: February 2015
-  await fillMonthYear(page, 0, 10, 2018); // end: November 2018
+  // The transcript parser usually fills the study dates; only enter them manually
+  // if the empty-state ("Select month and year") pickers are still showing.
+  const emptyDates = await page
+    .getByRole("button", { name: /Select month and year/i })
+    .count();
+  if (emptyDates >= 2) {
+    await fillMonthYear(page, 0, 1, 2015); // start: February 2015
+    await fillMonthYear(page, 0, 10, 2018); // end: November 2018
+  } else if (emptyDates === 1) {
+    await fillMonthYear(page, 0, 10, 2018); // fill whichever date the parser left blank
+  } else {
+    log("study dates pre-filled by transcript parser.");
+  }
   // Save & Continue — wait for it to become enabled (parse/save gating).
   const save = page.getByRole("button", { name: /^Save & Continue$/i }).first();
   await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
@@ -563,12 +574,35 @@ async function addTertiary(page) {
   await page.waitForTimeout(1000); // back on the qualifications list with the saved record
 }
 
+/**
+ * Click the qualifications-hub primary CTA through to /review. After a tertiary
+ * record with a transcript is saved, the hub kicks off a *deferred* AI eligibility
+ * check; while it runs the CTA reads "Checking eligibility..." and is disabled, so
+ * we poll for the real, enabled "Save & Continue" / "Return to Review" button.
+ */
+async function continueFromQualifications(page) {
+  const cta = page
+    .getByRole("button", { name: /^(Save & Continue|Return to Review)$/i })
+    .first();
+  for (let i = 0; i < 75; i += 1) {
+    if ((await cta.count()) && !(await cta.isDisabled().catch(() => true))) {
+      await cta.scrollIntoViewIfNeeded().catch(() => {});
+      await cta.click().catch(() => {});
+      return true;
+    }
+    if (i === 0) log("waiting for qualifications hub (eligibility check) to settle…");
+    await page.waitForTimeout(1000);
+  }
+  warn("qualifications continue CTA never became ready (eligibility still processing?)");
+  return false;
+}
+
 /** Submit and verify we reach /submitted. */
 async function submitHappy(page) {
   // Reach /review via the UI only — a full reload wipes the in-memory application
   // context (everything entered this session), which fails review validation.
   if (!page.url().includes("/review")) {
-    await clickButton(page, /^Save & Continue$/i, { required: true }); // qualifications → review
+    await continueFromQualifications(page); // qualifications → review (waits out eligibility)
     await page.waitForURL(/\/review/, { timeout: 15000 }).catch(() => {});
   }
   if (!page.url().includes("/review")) {
