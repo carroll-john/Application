@@ -95,6 +95,22 @@ async function fillField(page, labelRe, value) {
   return false;
 }
 
+/** Fill an input by placeholder (for fields whose <Label> isn't associated). */
+async function fillByPlaceholder(page, placeholderRe, value, { dismiss = false } = {}) {
+  const f = page.getByPlaceholder(placeholderRe).first();
+  await f.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
+  if (!(await f.count())) {
+    warn(`field (placeholder) not found: ${placeholderRe}`);
+    return false;
+  }
+  await f.fill(String(value)).catch(() => {});
+  if (dismiss) {
+    await page.waitForTimeout(400);
+    await page.keyboard.press("Escape").catch(() => {}); // dismiss autocomplete dropdown
+  }
+  return true;
+}
+
 /** A persona value (regex/string) picks that option; null/undefined → first valid. */
 function optionOrPick(value) {
   return value == null ? {} : { option: value };
@@ -427,14 +443,15 @@ async function addTertiary(page) {
   await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
   await addBtn.click().catch(() => {});
   await page.waitForURL(/add-tertiary/, { timeout: 12000 }).catch(() => {});
-  await fillField(page, /^Institution/, t.institution);
-  // Country defaults to Australia in the form; only override when the persona set one.
-  if (t.country) await selectField(page, /^Country/, optionOrPick(t.country));
+  // Institution + Course Name labels aren't associated — target their placeholders.
+  await fillByPlaceholder(page, /start typing institution/i, t.institution, { dismiss: true });
   await selectField(page, /Qualification level/i, optionOrPick(t.level));
-  await fillField(page, /Course name|Program name/i, t.course);
-  // Start/End are MonthYearPickerField date pickers, not selects.
+  await fillByPlaceholder(page, /Bachelor of Science/i, t.course);
+  // Country defaults to Australia. Start/End are MonthYearPickerField date pickers;
+  // once the start is set its trigger text changes, so the end is again the first
+  // remaining empty "Select month and year" (index 0).
   await fillMonthYear(page, 0, 1, 2015); // start: February 2015
-  await fillMonthYear(page, 1, 10, 2018); // end: November 2018
+  await fillMonthYear(page, 0, 10, 2018); // end: November 2018
   const transcript = persona.documents?.transcript ?? process.env.TRANSCRIPT_PATH;
   if (transcript) await uploadFile(page, transcript);
   await clickButton(page, /^Save & Continue$/i, { required: true });
