@@ -819,8 +819,18 @@ async function addLanguageTest(page) {
     .first();
   const addBtn = card.getByRole("button", { name: /^(Add|Replace)$/i }).first();
   await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  // Sections unlock in order — the language-test card (last) is locked until the
+  // intervening sections are addressed. Skip the active, empty ones to reveal its Add
+  // button (skipping unlocks the next section each time).
+  for (let i = 0; i < 5 && !(await addBtn.count()); i += 1) {
+    const skip = page.getByRole("button", { name: /^Skip$/i }).first();
+    if (!(await skip.count())) break;
+    await skip.scrollIntoViewIfNeeded().catch(() => {});
+    await skip.click().catch(() => {});
+    await page.waitForTimeout(600);
+  }
   if (!(await addBtn.count())) {
-    warn("English Language Proficiency Add button not found — skipping language test.");
+    warn("English Language Proficiency Add button not found (section still locked).");
     return false;
   }
   await addBtn.scrollIntoViewIfNeeded().catch(() => {});
