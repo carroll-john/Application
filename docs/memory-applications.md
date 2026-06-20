@@ -21,10 +21,51 @@
 - Tertiary documents are submission-gated, not save-gated.
 - Course-specific Section 2 overlay: `src/lib/section2Requirements.ts`.
 
+### Conditional ("optional hard") submission requirements
+
+Two submission requirements fire only when actually needed. The shared logic lives
+in `src/lib/eligibility/englishProficiencyEvidence.ts`; client rules in
+`src/lib/validation/rules/section2.ts` surface them at review/submit, and the
+server `submit_application` RPC enforces the same conditions (see Submission).
+
+- **Certificate of Completion** — required only when a qualification is marked
+  `completed` **and** its transcript can't evidence completion
+  (`needsCertificateOfCompletion`). The transcript signal comes from the parsed
+  `transcriptEligibility` (in-memory) and is persisted to
+  `tertiary_qualifications.transcript_confirms_completion` so it survives reloads
+  (`TertiaryQualification.transcriptCompletionConfirmed`).
+- **English proficiency** — required only when the course declares an
+  `english_proficiency` requirement, it can't be inferred from an
+  English-medium-country qualification (`DEFAULT_ENGLISH_MEDIUM_COUNTRIES`), **and**
+  no evidence is present — neither a language test **nor an AHPRA registration**
+  (`needsEnglishProficiencyEvidence`). An AHPRA registration is recognised from the
+  free-text accreditation name (`AHPRA_REGISTRATION_PATTERN` / `hasAhpraRegistration`)
+  and also satisfies the eligibility-card English check via
+  `requirementEvaluators.evaluateEnglishProficiency` (reason `ENGLISH_OK_AHPRA`).
+
 ## Submission
 
 - Server-backed submit via `submit_application` RPC (`0002_server_submit.sql`, `0004_submission_rpc_grants.sql`).
 - Do not move application-number generation back to client-only code.
+- `application_submission_missing_fields` enforces the conditional requirements
+  above (migration `20260620120000_conditional_submission_requirements.sql`). It
+  reads `applications.requires_english_proficiency` and
+  `tertiary_qualifications.transcript_confirms_completion`, both derived and
+  written at save time in `src/lib/storage/remoteMappers.ts` / `remoteStore.ts`.
+  The AHPRA regex and English-medium-country list are duplicated in SQL there —
+  **keep them in sync** with `englishProficiencyEvidence.ts`.
+- **Gotcha — editing the submit RPC:** rebuild `application_submission_missing_fields`
+  from its *current* definition (`pg_get_functiondef` or the latest migration that
+  touched it: `20260522120000_storage_quota_and_document_integrity.sql`), never from
+  `0002`. Later migrations dropped the `is_allowed_company_user()` guard and switched
+  every document check to `application_document_is_ready()`; rebuilding from `0002`
+  silently reverts both (a prod-breaking regression caught in PR #129).
+- **Gotcha — eligibility request context has two definitions** that must stay in
+  sync: the client builder `buildTranscriptEligibilityContext`
+  (`src/features/section2/tertiaryTranscriptParsePolicy.ts`) and the API whitelist
+  parser `parseContext` (`api/_eligibility/context.ts`). A field added to one but
+  not the other is silently dropped before reaching the evaluator in the real upload
+  flow (caught in PR #130).
 
 ## Course Catalog
 
@@ -43,6 +84,8 @@
 | `src/lib/applicationStorageAdapter.ts` | Storage contract |
 | `src/lib/applicationRecords.ts` | Local record helpers |
 | `src/lib/applicationRemoteStore.ts` | Supabase persistence |
+| `src/lib/eligibility/englishProficiencyEvidence.ts` | Conditional cert + English-proficiency helpers (client + server share the rules) |
+| `src/lib/validation/rules/section2.ts` | Section 2 submission rules incl. the conditional requirements |
 | `src/pages/ReviewAndSubmit.tsx` | Review + submit |
 
 ## Agent Module Boundary

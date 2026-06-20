@@ -207,6 +207,12 @@ deliberate, gated doorway:
   (varied `course_provider`, citizenship, `eligibility_outcome`, and funnel drop-off)
   rather than generic data. `TRANSCRIPT_PATH` / `CV_PATH` upload real documents to
   exercise the parsers + AI eligibility. Add personas freely.
+- A persona can also supply `languageTest` or `accreditation`, which drive the
+  `addLanguageTest` / `addAccreditation` steps. These double as end-to-end checks for
+  the conditional English-proficiency requirement: `overseas-english` (overseas,
+  non-English transcript → satisfies English with an IELTS test) and `ahpra-nurse`
+  (same, but satisfies it with an AHPRA "Registered Nurse" registration instead).
+  Both must reach `/submitted`; if the submit RPC over-blocks, they stall on `/review`.
 
 Submissions write real rows to Supabase (and can trigger eligibility AI /
 emails), so run against a preview environment and/or clean up the test
