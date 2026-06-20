@@ -86,6 +86,7 @@ function attachIngestCounter(page) {
 
 async function fillField(page, labelRe, value) {
   const f = page.getByLabel(labelRe).first();
+  await f.waitFor({ state: "visible", timeout: 3000 }).catch(() => {});
   if (await f.count()) {
     await f.fill(String(value)).catch(() => {});
     return true;
@@ -94,9 +95,99 @@ async function fillField(page, labelRe, value) {
   return false;
 }
 
+/** Fill an input by placeholder (for fields whose <Label> isn't associated). */
+async function fillByPlaceholder(page, placeholderRe, value, { dismiss = false } = {}) {
+  const f = page.getByPlaceholder(placeholderRe).first();
+  await f.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
+  if (!(await f.count())) {
+    warn(`field (placeholder) not found: ${placeholderRe}`);
+    return false;
+  }
+  await f.fill(String(value)).catch(() => {});
+  if (dismiss) {
+    await page.waitForTimeout(400);
+    await page.keyboard.press("Escape").catch(() => {}); // dismiss autocomplete dropdown
+  }
+  return true;
+}
+
 /** A persona value (regex/string) picks that option; null/undefined → first valid. */
 function optionOrPick(value) {
   return value == null ? {} : { option: value };
+}
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/**
+ * Fill a react-datepicker DOB field (custom button trigger + calendar). Open it,
+ * set month + year via the header NativeSelect comboboxes, then click the day.
+ * `iso` is YYYY-MM-DD.
+ */
+async function fillDateOfBirth(page, iso, triggerSelector = "#dateOfBirth") {
+  if (!iso) return false;
+  const [yy, mm, dd] = iso.split("-");
+  let trigger = page.locator(triggerSelector).first();
+  await trigger.waitFor({ state: "visible", timeout: 5000 }).catch(() => {});
+  if (!(await trigger.count())) {
+    // fall back to the trigger button by its empty-state placeholder
+    trigger = page.getByRole("button", { name: /DD\s*\/\s*MM\s*\/\s*YYYY|select date/i }).first();
+    await trigger.waitFor({ state: "visible", timeout: 3000 }).catch(() => {});
+  }
+  if (!(await trigger.count())) {
+    warn(`date picker not found: ${triggerSelector}`);
+    return false;
+  }
+  await trigger.click().catch(() => {});
+  const cal = page.locator(".react-datepicker").first();
+  const opened = await cal.waitFor({ state: "visible", timeout: 6000 }).then(() => true).catch(() => false);
+  if (!opened) {
+    warn("date picker calendar did not open");
+    return false;
+  }
+  const combos = cal.getByRole("combobox");
+  await combos.nth(0).click().catch(() => {}); // month
+  await page.getByRole("option", { name: new RegExp(`^${MONTHS[Number(mm) - 1]}$`, "i") }).first().click().catch(() => {});
+  await combos.nth(1).click().catch(() => {}); // year
+  await page.getByRole("option", { name: new RegExp(`^${Number(yy)}$`) }).first().click().catch(() => {});
+  await cal
+    .locator(`.react-datepicker__day--0${dd}:not(.react-datepicker__day--outside-month)`)
+    .first()
+    .click()
+    .catch(() => {});
+  await page.waitForTimeout(300);
+  log(`date set to ${iso} (${triggerSelector})`);
+  return true;
+}
+
+/**
+ * Fill a MonthYearPickerField (react-datepicker month grid). `index` selects which
+ * "Select month and year" trigger on the page (0-based). `monthIdx` is 0-11.
+ */
+async function fillMonthYear(page, index, monthIdx, year) {
+  const trigger = page.getByRole("button", { name: /Select month and year/i }).nth(index);
+  if (!(await trigger.count())) {
+    warn(`month-year picker #${index} not found`);
+    return false;
+  }
+  await trigger.click().catch(() => {});
+  const cal = page.locator(".react-datepicker").first();
+  const opened = await cal.waitFor({ state: "visible", timeout: 6000 }).then(() => true).catch(() => false);
+  if (!opened) {
+    warn("month-year calendar did not open");
+    return false;
+  }
+  const yearCombo = cal.getByRole("combobox").nth(1); // header: month (0), year (1)
+  if (await yearCombo.count()) {
+    await yearCombo.click().catch(() => {});
+    await page.getByRole("option", { name: new RegExp(`^${year}$`) }).first().click().catch(() => {});
+  }
+  await cal.locator(`.react-datepicker__month-${monthIdx}`).first().click().catch(() => {});
+  await page.waitForTimeout(300);
+  log(`month/year set to ${MONTHS[monthIdx]} ${year} (#${index})`);
+  return true;
 }
 
 /** Upload a persona document (transcript/CV) into the first file input on the page. */
@@ -120,6 +211,8 @@ async function uploadFile(page, path) {
 /** Locate a NativeSelect's combobox button by accessible name, else by label text. */
 async function findCombobox(page, labelRe) {
   const byName = page.getByRole("combobox", { name: labelRe }).first();
+  // Section steps are lazy routes — give the control a moment to render.
+  await byName.waitFor({ state: "visible", timeout: 3000 }).catch(() => {});
   if (await byName.count()) return byName;
   const label = page.locator("label").filter({ hasText: labelRe }).first();
   if (await label.count()) {
@@ -165,6 +258,8 @@ async function selectField(page, labelRe, opts = {}) {
 
 async function clickButton(page, nameRe, { required = false } = {}) {
   const b = page.getByRole("button", { name: nameRe }).first();
+  // Buttons live on lazy routes too — wait for render before giving up.
+  await b.waitFor({ state: "visible", timeout: required ? 8000 : 2500 }).catch(() => {});
   if (await b.count()) {
     await b.click().catch(() => {});
     return true;
@@ -175,9 +270,10 @@ async function clickButton(page, nameRe, { required = false } = {}) {
 
 async function continueStep(page) {
   const before = page.url();
-  await clickButton(page, /^(Continue|Save & Continue|Next)$/i, { required: true });
-  await page.waitForLoadState("networkidle").catch(() => {});
-  await page.waitForTimeout(400);
+  if (!(await clickButton(page, /^(Continue|Save & Continue|Next)$/i, { required: true }))) return;
+  // SPA route changes fire after the save resolves — wait for the URL, not networkidle.
+  await page.waitForURL((u) => u.toString() !== before, { timeout: 12000 }).catch(() => {});
+  await page.waitForTimeout(300);
   if (page.url() === before) {
     warn(`did not advance from ${new URL(before).pathname} (validation may have blocked it)`);
   }
@@ -200,28 +296,47 @@ async function signIn(page) {
     warn("No TEST_EMAIL/TEST_PASSWORD — the journey is auth-gated, so happy/blocked paths will be skipped.");
     return false;
   }
-  await page.goto(`${BASE_URL}/sign-in`, { waitUntil: "networkidle" });
-  await fillField(page, /^Email/i, TEST_EMAIL);
-  await fillField(page, /^Password/i, TEST_PASSWORD);
-  await clickButton(page, /sign in|log in/i, { required: true });
-  await page.waitForLoadState("networkidle").catch(() => {});
+  await page.goto(`${BASE_URL}/sign-in`, { waitUntil: "domcontentloaded" });
+  // /sign-in is a lazy route — wait for the form to render before filling.
+  await page.getByLabel(/^Email/i).first().waitFor({ state: "visible", timeout: 15000 }).catch(() => {});
+  const emailOk = await fillField(page, /^Email/i, TEST_EMAIL);
+  const pwOk = await fillField(page, /^Password/i, TEST_PASSWORD);
+  log(`sign-in: email field ${emailOk ? "filled" : "NOT FOUND"}, password field ${pwOk ? "filled" : "NOT FOUND"}`);
+  // Submit the form's own submit button (falling back to Enter) so we can't
+  // accidentally click a same-named nav/tab control instead of submitting.
+  const submit = page.locator('button[type="submit"]').first();
+  if (await submit.count()) await submit.click().catch(() => {});
+  else await page.getByLabel(/^Password/i).press("Enter").catch(() => {});
+  await page.waitForTimeout(4000); // auth round-trip + redirect (networkidle never settles here)
   const authed = !page.url().includes("/sign-in");
-  if (authed) log("✓ Signed in.");
-  else warn("Sign-in did not complete (still on /sign-in).");
+  if (authed) {
+    log("✓ Signed in.");
+  } else {
+    const msg = await page
+      .evaluate(() => document.body.innerText.replace(/\s+/g, " ").trim().slice(0, 300))
+      .catch(() => "");
+    warn(`Sign-in did not complete (still on /sign-in). Page text: "${msg}"`);
+  }
   return authed;
 }
 
 /** Catalog → course details. */
 async function openCourse(page) {
-  await page.goto(`${BASE_URL}/`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
   const viewCourse = page.getByRole("button", { name: /view course/i }).first();
+  // Cards render from bundled data after hydration, which can land after the
+  // network goes idle — wait for the button rather than checking immediately.
+  await viewCourse.waitFor({ state: "visible", timeout: 12000 }).catch(() => {});
   if (await viewCourse.count()) {
     await viewCourse.click().catch(() => {});
     await page.waitForLoadState("networkidle").catch(() => {});
   } else if (process.env.COURSE_PATH) {
     await page.goto(`${BASE_URL}${process.env.COURSE_PATH}`, { waitUntil: "networkidle" });
   } else {
-    warn("No 'View course' button and no COURSE_PATH — staying on catalog.");
+    const snippet = await page
+      .evaluate(() => document.body.innerText.replace(/\s+/g, " ").trim().slice(0, 200))
+      .catch(() => "");
+    warn(`No 'View course' button. At ${page.url()} — page text: "${snippet}"`);
   }
 }
 
@@ -249,24 +364,39 @@ async function startApplication(page) {
     return false;
   }
   await start.click().catch(() => {});
-  await page.waitForLoadState("networkidle").catch(() => {});
+  await page.waitForURL(/\/(overview|section1)/, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(500);
+  log(`application started — at ${new URL(page.url()).pathname}`);
   return true;
 }
 
 /** A fresh draft lands on /overview; click its CTA through to Section 1. */
 async function enterSections(page) {
-  if (!page.url().includes("/overview")) return;
-  await clickButton(page, /start|continue|resume|begin/i);
-  await page.waitForLoadState("networkidle").catch(() => {});
-  if (page.url().includes("/overview")) {
-    await page.goto(`${BASE_URL}/section1/basic-info`, { waitUntil: "networkidle" }).catch(() => {});
+  await page.waitForURL(/\/(overview|section1)/, { timeout: 20000 }).catch(() => {});
+  log(`enterSections — at ${new URL(page.url()).pathname}`);
+  for (let i = 0; i < 3 && page.url().includes("/overview"); i += 1) {
+    const cta = page
+      .getByRole("button", {
+        name: /start application|continue to next step|go to review|^continue$|resume|begin/i,
+      })
+      .first();
+    await cta.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+    if (!(await cta.count())) {
+      const names = await page.getByRole("button").allInnerTexts().catch(() => []);
+      warn(`overview continue CTA not found. buttons=${JSON.stringify(names.filter(Boolean)).slice(0, 400)}`);
+      break;
+    }
+    await cta.click().catch(() => {});
+    await page.waitForURL((u) => !u.toString().includes("/overview"), { timeout: 15000 }).catch(() => {});
+    log(`after overview CTA — at ${new URL(page.url()).pathname}`);
   }
 }
 
 /** Fill the six Section 1 steps from the persona's profile. */
 async function fillSection1(page) {
   const p = persona.profile;
+  await page.waitForURL(/\/section1\/basic-info/, { timeout: 12000 }).catch(() => {});
+  log(`Section 1 — at ${new URL(page.url()).pathname}`);
   // basic-info
   await selectField(page, /^Title/, optionOrPick(p.title));
   await fillField(page, /^First name/, p.firstName);
@@ -274,7 +404,7 @@ async function fillSection1(page) {
   await continueStep(page);
   // personal-contact
   await selectField(page, /^Gender/, optionOrPick(p.gender));
-  await fillField(page, /Date of birth/i, p.dob);
+  await fillDateOfBirth(page, p.dob);
   await fillField(page, /^Email/i, TEST_EMAIL || "synthetic@example.com");
   await fillField(page, /^Phone/i, p.phone);
   await continueStep(page);
@@ -295,47 +425,68 @@ async function fillSection1(page) {
   // family-support
   await selectField(page, /parents|guardians/i, { option: String(p.parents ?? "2"), exact: true });
   for (let i = 1; i <= 5; i += 1) {
-    const labelRe = new RegExp(`Parent ${i}`, "i");
+    const labelRe = new RegExp(`Parent/Guardian ${i}`, "i");
     if (await findCombobox(page, labelRe)) await selectField(page, labelRe);
     else break;
   }
-  await page.getByRole("radio", { name: /^no$/i }).first().check().catch(() => {});
+  // Disability question — the "No" radio's name is the full sentence, not "No".
+  await page.getByRole("radio", { name: /do not have a disability/i }).first().check().catch(() => {});
   await continueStep(page);
 }
 
 /** Section 2: add the persona's tertiary qualification (satisfies submit validation). */
 async function addTertiary(page) {
   const t = persona.tertiary;
-  await clickButton(page, /add.*tertiary/i, { required: true });
-  await page.waitForLoadState("networkidle").catch(() => {});
-  await fillField(page, /^Institution/, t.institution);
-  await selectField(page, /^Country/, optionOrPick(t.country));
+  // The Tertiary card's CTA is a generic "Add" (+) button; it's the first card,
+  // so the first "Add" on the qualifications page → /section2/add-tertiary.
+  const addBtn = page.getByRole("button", { name: /^Add$/i }).first();
+  await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  await addBtn.click().catch(() => {});
+  await page.waitForURL(/add-tertiary/, { timeout: 12000 }).catch(() => {});
+  // Institution + Course Name labels aren't associated — target their placeholders.
+  await fillByPlaceholder(page, /start typing institution/i, t.institution, { dismiss: true });
   await selectField(page, /Qualification level/i, optionOrPick(t.level));
-  await fillField(page, /Course name|Program name/i, t.course);
-  await selectField(page, /Start month/i);
-  await selectField(page, /Start year/i);
-  await selectField(page, /End month/i);
-  await selectField(page, /End year/i, { pick: "last" });
+  await fillByPlaceholder(page, /Bachelor of Science/i, t.course);
+  // Country defaults to Australia. Start/End are MonthYearPickerField date pickers;
+  // once the start is set its trigger text changes, so the end is again the first
+  // remaining empty "Select month and year" (index 0).
+  await fillMonthYear(page, 0, 1, 2015); // start: February 2015
+  await fillMonthYear(page, 0, 10, 2018); // end: November 2018
   const transcript = persona.documents?.transcript ?? process.env.TRANSCRIPT_PATH;
   if (transcript) await uploadFile(page, transcript);
   await clickButton(page, /^Save & Continue$/i, { required: true });
-  await page.waitForLoadState("networkidle").catch(() => {});
-  await page.waitForTimeout(400);
-  await continueStep(page); // qualifications overview → /review
+  await page.waitForURL(/section2\/qualifications/, { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(1000); // back on the qualifications list with the saved record
 }
 
 /** Submit and verify we reach /submitted. */
 async function submitHappy(page) {
+  // Reach /review via the UI only — a full reload wipes the in-memory application
+  // context (everything entered this session), which fails review validation.
   if (!page.url().includes("/review")) {
-    await page.goto(`${BASE_URL}/review`, { waitUntil: "networkidle" }).catch(() => {});
+    await clickButton(page, /^Save & Continue$/i, { required: true }); // qualifications → review
+    await page.waitForURL(/\/review/, { timeout: 15000 }).catch(() => {});
   }
-  await clickButton(page, /^Submit application$/i, { required: true });
-  await page.waitForTimeout(3000);
+  if (!page.url().includes("/review")) {
+    warn(`could not reach /review client-side — at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  const submit = page.getByRole("button", { name: /^Submit application$/i }).first();
+  await submit.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
+  if (!(await submit.count())) {
+    warn(`Submit button not found at ${new URL(page.url()).pathname}`);
+    return false;
+  }
+  await submit.click().catch(() => {});
+  await page.waitForURL(/\/submitted/, { timeout: 10000 }).catch(() => {});
   if (page.url().includes("/submitted")) {
-    log("✅ Reached /submitted — application_submitted should have fired.");
+    log("✅ Reached /submitted — application_submitted fired.");
     return true;
   }
-  warn("Did not reach /submitted — likely a validation block; check the field warnings above.");
+  const txt = await page
+    .evaluate(() => document.body.innerText.replace(/\s+/g, " ").trim().slice(0, 400))
+    .catch(() => "");
+  warn(`Did not reach /submitted. At ${new URL(page.url()).pathname} — page says: "${txt}"`);
   return false;
 }
 
