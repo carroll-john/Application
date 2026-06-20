@@ -148,6 +148,7 @@ describe("row -> domain mappers", () => {
         level: "Bachelor degree",
         start_month: "January",
         start_year: "2016",
+        transcript_confirms_completion: true,
         transcript_document_id: "doc-9",
         transcript_document_name: "transcript.pdf",
       },
@@ -155,6 +156,7 @@ describe("row -> domain mappers", () => {
     );
     expect(tertiary.transcriptDocument?.id).toBe("doc-9");
     expect(tertiary.certificateDocument).toBeUndefined();
+    expect(tertiary.transcriptCompletionConfirmed).toBe(true);
 
     const language = mapLanguageTestRow(
       {
@@ -234,6 +236,57 @@ describe("domain -> insert builders", () => {
     expect(insert.id).toBe(VALID_UUID);
     expect(insert.certificate_document_id).toBe("cert-doc");
     expect(insert.transcript_document_id).toBeNull();
+    expect(insert.transcript_confirms_completion).toBe(false);
+  });
+
+  it("persists the transcript completion signal for the submit RPC", () => {
+    const base = {
+      certificateDocument: undefined,
+      certificateDocumentName: undefined,
+      completed: true,
+      country: "Indonesia",
+      courseName: "BEng",
+      endMonth: "December",
+      endYear: "2017",
+      id: VALID_UUID,
+      institution: "Universitas Indonesia",
+      level: "Bachelor degree",
+      startMonth: "January",
+      startYear: "2014",
+      transcriptDocument: undefined,
+      transcriptDocumentName: undefined,
+    };
+
+    // Carried across reloads via the persisted snapshot.
+    expect(
+      toTertiaryInsert("app-4", { ...base, transcriptCompletionConfirmed: true })
+        .transcript_confirms_completion,
+    ).toBe(true);
+
+    // Derived from a fresh in-memory transcript assessment.
+    expect(
+      toTertiaryInsert("app-4", {
+        ...base,
+        transcriptEligibility: {
+          checkedAt: new Date().toISOString(),
+          confidence: 0.9,
+          extractedData: {
+            studyDetails: {
+              completionStatus: { confidence: 0.9, normalizedValue: "Completed" },
+            },
+          },
+          manualReviewRequired: false,
+          missingInformation: [],
+          outcome: "eligible",
+          recommendedNextStep: "",
+          requirementsChecked: [],
+        },
+      }).transcript_confirms_completion,
+    ).toBe(true);
+
+    expect(
+      toTertiaryInsert("app-4", base).transcript_confirms_completion,
+    ).toBe(false);
   });
 
   it("nulls empty employment end dates in the insert payload", () => {

@@ -115,6 +115,21 @@ describe("transcriptConfirmsCompletion", () => {
     expect(transcriptConfirmsCompletion(tertiary({ transcriptEligibility: completionAssessment("In progress") }))).toBe(false);
     expect(transcriptConfirmsCompletion(tertiary())).toBe(false);
   });
+
+  it("falls back to the persisted snapshot when no in-memory assessment exists", () => {
+    // A reloaded draft loses transcriptEligibility but keeps the persisted boolean.
+    expect(transcriptConfirmsCompletion(tertiary({ transcriptCompletionConfirmed: true }))).toBe(true);
+    expect(transcriptConfirmsCompletion(tertiary({ transcriptCompletionConfirmed: false }))).toBe(false);
+    // A fresh in-memory assessment takes precedence over a stale persisted snapshot.
+    expect(
+      transcriptConfirmsCompletion(
+        tertiary({
+          transcriptCompletionConfirmed: true,
+          transcriptEligibility: completionAssessment("Discontinued"),
+        }),
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("needsCertificateOfCompletion", () => {

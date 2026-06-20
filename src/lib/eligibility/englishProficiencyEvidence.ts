@@ -48,8 +48,13 @@ export function transcriptConfirmsCompletion(
 ): boolean {
   const status =
     qualification.transcriptEligibility?.extractedData.studyDetails?.completionStatus;
-  const value = status?.normalizedValue ?? status?.originalValue ?? "";
-  return COMPLETION_PATTERN.test(value);
+  if (status) {
+    const value = status.normalizedValue ?? status.originalValue ?? "";
+    return COMPLETION_PATTERN.test(value);
+  }
+  // No in-memory assessment (e.g. a draft reloaded from the store) — fall back to
+  // the persisted snapshot of the transcript's completion signal.
+  return Boolean(qualification.transcriptCompletionConfirmed);
 }
 
 /** True when a qualification was studied at an English-medium-country institution. */
