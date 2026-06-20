@@ -849,7 +849,15 @@ async function addLanguageTest(page) {
   await save.waitFor({ state: "visible", timeout: 10000 }).catch(() => {});
   await save.click().catch(() => {});
   await page.waitForURL(/section2\/qualifications/, { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(1000);
+  // Wait for the saved test to show in the qualifications list. This confirms it
+  // landed in the in-memory data before submit — the submit writes the whole record
+  // and would otherwise race (and drop) the language-test persist.
+  await page
+    .getByText(new RegExp(escapeRe(lt.name), "i"))
+    .first()
+    .waitFor({ state: "visible", timeout: 12000 })
+    .catch(() => {});
+  await page.waitForTimeout(1500);
   log(`language test added — at ${new URL(page.url()).pathname}`);
   return true;
 }
