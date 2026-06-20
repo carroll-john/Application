@@ -14,6 +14,13 @@
 --      institution) AND no English test or AHPRA registration has been provided.
 --      Whether the course requires it is persisted on
 --      applications.requires_english_proficiency.
+--
+-- The function below is rebuilt from the current definition in
+-- 20260522120000_storage_quota_and_document_integrity.sql (security-invoker, no
+-- is_allowed_company_user guard — that function was dropped in
+-- 20260520054255_applicant_email_otp_auth.sql — and document checks via
+-- public.application_document_is_ready). Only the two conditional rules are added.
+-- search_path is set inline because CREATE OR REPLACE resets configuration params.
 
 -- New persisted signals -------------------------------------------------------
 
@@ -72,10 +79,6 @@ begin
 
   if not found then
     raise exception 'Application not found.';
-  end if;
-
-  if not public.is_allowed_company_user() then
-    raise exception 'Your account is not allowed to submit this application.';
   end if;
 
   if coalesce(trim(application_row.personal_details ->> 'title'), '') = '' then
@@ -151,8 +154,10 @@ begin
   from public.employment_experiences
   where application_id = target_application_id;
 
-  cv_uploaded := application_row.cv_document_id is not null
-    or coalesce(trim(application_row.cv_file_name), '') <> '';
+  cv_uploaded := public.application_document_is_ready(
+    application_row.cv_document_id,
+    target_application_id
+  );
 
   if tertiary_count = 0 and not (cv_uploaded and employment_count > 0) then
     if not cv_uploaded then
@@ -175,15 +180,15 @@ begin
       completed,
       transcript_confirms_completion,
       transcript_document_id,
-      transcript_document_name,
-      certificate_document_id,
-      certificate_document_name
+      certificate_document_id
     from public.tertiary_qualifications
     where application_id = target_application_id
     order by created_at asc
   loop
-    if tertiary_row.transcript_document_id is null
-      and coalesce(trim(tertiary_row.transcript_document_name), '') = '' then
+    if not public.application_document_is_ready(
+      tertiary_row.transcript_document_id,
+      target_application_id
+    ) then
       missing_fields := array_append(
         missing_fields,
         format('Qualification "%s": Academic Transcript', tertiary_row.course_name)
@@ -191,11 +196,13 @@ begin
     end if;
 
     -- Optional hard requirement: only when completed but the transcript can't
-    -- evidence completion (and no certificate is attached).
+    -- evidence completion (and no certificate document is ready).
     if tertiary_row.completed
       and not coalesce(tertiary_row.transcript_confirms_completion, false)
-      and tertiary_row.certificate_document_id is null
-      and coalesce(trim(tertiary_row.certificate_document_name), '') = '' then
+      and not public.application_document_is_ready(
+        tertiary_row.certificate_document_id,
+        target_application_id
+      ) then
       missing_fields := array_append(
         missing_fields,
         format('Qualification "%s": Certificate of Completion', tertiary_row.course_name)
