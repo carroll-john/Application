@@ -34,6 +34,23 @@ export function resolveAuthRedirectPath(options: {
   return sanitizeRedirectPath(`${options.pathname}${options.search ?? ""}`);
 }
 
+/**
+ * Where the email verification link should land the applicant after sign-up.
+ * The eligibility check flow signs the applicant up to progress toward an
+ * application, so verification should send them to the application overview
+ * rather than back to the course details page they started from.
+ */
+export function resolveSignUpRedirectPath(
+  context: string | undefined,
+  fallbackRedirectPath: string,
+) {
+  if (context === "eligibility") {
+    return "/overview";
+  }
+
+  return fallbackRedirectPath;
+}
+
 export function buildAuthCallbackUrl(origin: string, redirectPath: string) {
   const sanitized = sanitizeRedirectPath(redirectPath);
   const base = origin.replace(/\/$/, "");

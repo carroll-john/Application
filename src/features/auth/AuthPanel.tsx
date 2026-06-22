@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { resolveAuthRedirectPath } from "../../lib/authCallback";
+import {
+  resolveAuthRedirectPath,
+  resolveSignUpRedirectPath,
+} from "../../lib/authCallback";
 import {
   isValidEmailAddress,
   normalizeAuthEmail,
@@ -31,6 +34,7 @@ export function AuthPanel({
     pathname: location.pathname,
     search: location.search,
   });
+  const signUpRedirectPath = resolveSignUpRedirectPath(context, redirectPath);
   const {
     isAuthenticated,
     isConfigured,
@@ -149,7 +153,7 @@ export function AuthPanel({
     const { error: signUpError, outcome } = await signUpWithPassword(
       normalizedEmail,
       password,
-      { redirectPath },
+      { redirectPath: signUpRedirectPath },
     );
     setIsSubmitting(false);
 
