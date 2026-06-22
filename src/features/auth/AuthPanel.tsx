@@ -20,11 +20,18 @@ import type { AuthPanelContext, AuthScreen, AuthTab } from "./types";
 interface AuthPanelProps {
   context?: AuthPanelContext;
   onAuthenticated?: () => void;
+  /**
+   * Overrides where the email verification link sends the applicant after
+   * sign-up. The eligibility/apply flow uses this to resume an eligible
+   * applicant into their course application instead of the page they were on.
+   */
+  signUpRedirectPath?: string;
 }
 
 export function AuthPanel({
   context = "route",
   onAuthenticated,
+  signUpRedirectPath,
 }: AuthPanelProps) {
   const location = useLocation();
   const redirectPath = resolveAuthRedirectPath({
@@ -149,7 +156,7 @@ export function AuthPanel({
     const { error: signUpError, outcome } = await signUpWithPassword(
       normalizedEmail,
       password,
-      { redirectPath },
+      { redirectPath: signUpRedirectPath ?? redirectPath },
     );
     setIsSubmitting(false);
 

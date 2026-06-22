@@ -8,6 +8,7 @@ import {
   CourseDetailsPresentation,
   EligibilityCheckModal,
   EligibilityResultModal,
+  hasAutoApplyIntent,
   useCourseEligibilityFlow,
 } from "../features/course";
 import { getCourseByCode, getDefaultCourse } from "../lib/courseCatalog";
@@ -27,8 +28,7 @@ export default function CourseDetails() {
     () => getCourseByCode(courseCode) ?? getDefaultCourse(),
     [courseCode],
   );
-  const shouldAutoApply =
-    searchParams.get("apply") === "1" && searchParams.get("eligible") === "1";
+  const shouldAutoApply = hasAutoApplyIntent(searchParams);
   const selectedCourse = useMemo(
     () => ({
       code: course.code,
@@ -108,6 +108,7 @@ export default function CourseDetails() {
       {eligibility.authGateContext ? (
         <AuthModal
           context={eligibility.authGateContext}
+          signUpRedirectPath={eligibility.signUpRedirectPath ?? undefined}
           onAuthenticated={() => {
             eligibility.setAuthGateContext(null);
           }}
