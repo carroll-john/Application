@@ -5,7 +5,6 @@ import {
   hasPasswordRecoveryTokenInUrl,
   isPasswordRecoveryCallback,
   resolveAuthRedirectPath,
-  resolveSignUpRedirectPath,
   sanitizeRedirectPath,
   withoutPasswordRecoveryQuery,
 } from "./authCallback";
@@ -60,24 +59,6 @@ describe("resolveAuthRedirectPath", () => {
         search: "",
       }),
     ).toBe("/");
-  });
-});
-
-describe("resolveSignUpRedirectPath", () => {
-  it("sends the eligibility check flow to the application overview", () => {
-    expect(resolveSignUpRedirectPath("eligibility", "/courses/MBA")).toBe(
-      "/overview",
-    );
-  });
-
-  it("keeps the resolved redirect path for other contexts", () => {
-    expect(resolveSignUpRedirectPath("apply", "/courses/MBA")).toBe(
-      "/courses/MBA",
-    );
-    expect(resolveSignUpRedirectPath("route", "/courses/MBA")).toBe(
-      "/courses/MBA",
-    );
-    expect(resolveSignUpRedirectPath(undefined, "/")).toBe("/");
   });
 });
 

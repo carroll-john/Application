@@ -18,6 +18,10 @@ export {
   type StartApplicationOptions,
 } from "./EligibilityResultModal";
 export {
+  buildCourseApplyRedirectPath,
+  hasAutoApplyIntent,
+} from "./lib/courseApplyIntent";
+export {
   clearPendingEligibilityCheck,
   loadPendingEligibilityCheck,
   savePendingEligibilityCheck,

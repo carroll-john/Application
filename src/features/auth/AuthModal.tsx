@@ -5,12 +5,14 @@ interface AuthModalProps {
   context?: "apply" | "eligibility" | "header" | "route";
   onAuthenticated: () => void;
   onClose: () => void;
+  signUpRedirectPath?: string;
 }
 
 export function AuthModal({
   context,
   onAuthenticated,
   onClose,
+  signUpRedirectPath,
 }: AuthModalProps) {
   return (
     <ModalShell
@@ -18,7 +20,11 @@ export function AuthModal({
       onClose={onClose}
       title="Sign in to continue"
     >
-      <AuthPanel context={context} onAuthenticated={onAuthenticated} />
+      <AuthPanel
+        context={context}
+        onAuthenticated={onAuthenticated}
+        signUpRedirectPath={signUpRedirectPath}
+      />
     </ModalShell>
   );
 }

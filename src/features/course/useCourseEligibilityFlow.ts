@@ -12,6 +12,7 @@ import {
   capturePostHogEvent,
   getCourseAnalyticsProperties,
 } from "../../lib/posthog";
+import { buildCourseApplyRedirectPath } from "./lib/courseApplyIntent";
 import {
   clearPendingEligibilityCheck,
   loadPendingEligibilityCheck,
@@ -59,6 +60,9 @@ export function useCourseEligibilityFlow({
     useState<AuthGateContext | null>(null);
   const [pendingAuthAction, setPendingAuthAction] =
     useState<AuthGateContext | null>(null);
+  const [signUpRedirectPath, setSignUpRedirectPath] = useState<string | null>(
+    null,
+  );
   const courseDetailsSectionRef = useRef<HTMLElement | null>(null);
   const entryRequirementsRef = useRef<HTMLDivElement | null>(null);
   const requiresExperienceInput = hasCourseExperienceAlternative(course.eligibility);
@@ -67,6 +71,7 @@ export function useCourseEligibilityFlow({
     setEligibilityOutcome(null);
     setEligibilityReason("");
     setShowEligibility(false);
+    setSignUpRedirectPath(null);
   }, []);
 
   const showEligibleResult = useCallback((reason: string) => {
@@ -78,6 +83,12 @@ export function useCourseEligibilityFlow({
     (context: AuthGateContext) => {
       setPendingAuthAction(context);
       setAuthGateContext(context);
+      if (context === "apply") {
+        // The apply gate only opens for an already-eligible applicant, so the
+        // verification link should resume them straight into their course
+        // application via the course page's auto-apply flow.
+        setSignUpRedirectPath(buildCourseApplyRedirectPath(course.code));
+      }
       capturePostHogEvent("auth_gate_opened", {
         ...getCourseAnalyticsProperties(course),
         auth_context: context,
@@ -141,7 +152,27 @@ export function useCourseEligibilityFlow({
     setApplyError(null);
 
     if (!isAuthenticated) {
-      savePendingEligibilityCheck(course.code, eligibilityForm);
+      const { eligible } = evaluateCourseEligibility(
+        course.eligibility,
+        eligibilityForm,
+      );
+
+      if (eligible) {
+        // Resume an eligible applicant into their application after they verify
+        // their email by routing the link through the course page's auto-apply
+        // flow, which creates the course application and lands them on the
+        // overview. Clear any stale pending check so it can't surface a result
+        // modal mid-redirect.
+        clearPendingEligibilityCheck();
+        setSignUpRedirectPath(buildCourseApplyRedirectPath(course.code));
+      } else {
+        // Ineligible applicants keep the default redirect back to the course
+        // page, where the saved pending check surfaces their result after they
+        // confirm their email.
+        savePendingEligibilityCheck(course.code, eligibilityForm);
+        setSignUpRedirectPath(null);
+      }
+
       openAuthGate("eligibility");
       return;
     }
@@ -149,6 +180,7 @@ export function useCourseEligibilityFlow({
     resolveEligibilityResult(eligibilityForm);
   }, [
     course.code,
+    course.eligibility,
     eligibilityForm,
     isAuthenticated,
     openAuthGate,
@@ -208,7 +240,12 @@ export function useCourseEligibilityFlow({
   ]);
 
   useEffect(() => {
-    if (isAuthenticated && !eligibilityOutcome && !pendingAuthAction) {
+    if (
+      isAuthenticated &&
+      !eligibilityOutcome &&
+      !pendingAuthAction &&
+      !shouldAutoApply
+    ) {
       const pendingAnswers = loadPendingEligibilityCheck(course.code);
 
       if (pendingAnswers) {
@@ -222,6 +259,7 @@ export function useCourseEligibilityFlow({
     isAuthenticated,
     pendingAuthAction,
     resolveEligibilityResult,
+    shouldAutoApply,
   ]);
 
   return {
@@ -253,6 +291,7 @@ export function useCourseEligibilityFlow({
     setShowEligibility,
     showApplicationStartPicker,
     showEligibility,
+    signUpRedirectPath,
     startApplication,
   };
 }
