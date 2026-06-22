@@ -8,7 +8,6 @@ import {
 import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageAdapter";
 import { beginCourseApplication as runBeginCourseApplication } from "./beginCourseApplication";
 import type { BeginCourseApplicationOptions } from "./applicationOrchestrationTypes";
-import { useApplicationDraftImport, type LocalDraftImportState } from "./useApplicationDraftImport";
 import { hydrateApplicationState } from "./useApplicationHydration";
 import { useApplicationLifecycle } from "./useApplicationLifecycle";
 import { useApplicationPersistence } from "./useApplicationPersistence";
@@ -18,18 +17,13 @@ export type {
   BeginCourseApplicationOptions,
   PersistApplicationOptions,
 } from "./applicationOrchestrationTypes";
-export type { LocalDraftImportState };
 
 interface UseApplicationStorageOrchestrationOptions {
   applicantProfileId: string | null;
   ensureApplicantProfile: () => Promise<StoredApplicantProfile | null>;
   setApplicantProfile: (profile: StoredApplicantProfile | null) => void;
   storageAdapter: ApplicationStorageAdapter;
-  importOwnerId?: string | null;
-  trackApplicationSubmitted: (
-    submittedApplication: ApplicationData,
-    submissionMode: "local" | "remote",
-  ) => void;
+  trackApplicationSubmitted: (submittedApplication: ApplicationData) => void;
   trackDraftCreated: (
     course: SelectedCourse,
     applicantProfileId: string | null,
@@ -43,7 +37,6 @@ export function useApplicationStorageOrchestration({
   ensureApplicantProfile,
   setApplicantProfile,
   storageAdapter,
-  importOwnerId,
   trackApplicationSubmitted,
   trackDraftCreated,
   trackDraftResumed,
@@ -115,18 +108,6 @@ export function useApplicationStorageOrchestration({
     await loadApplicationState();
   }, [loadApplicationState]);
 
-  const { dismissLocalDraftImport, importLocalDrafts, localDraftImport } =
-    useApplicationDraftImport({
-      applicantProfileId,
-      applications,
-      importOwnerId,
-      isHydrating,
-      persistApplication,
-      refreshApplications,
-      storageAdapter,
-      upsertSummary,
-    });
-
   const beginCourseApplication = useCallback(
     async (
       course: SelectedCourse,
@@ -160,12 +141,9 @@ export function useApplicationStorageOrchestration({
       applications,
       beginCourseApplication,
       data,
-      dismissLocalDraftImport,
       ensureApplicationRow,
       ensureRemoteRecordId,
-      importLocalDrafts,
       isHydrating,
-      localDraftImport,
       markApplicationSubmitted,
       openApplication,
       persistApplication,
@@ -177,12 +155,9 @@ export function useApplicationStorageOrchestration({
       applications,
       beginCourseApplication,
       data,
-      dismissLocalDraftImport,
       ensureApplicationRow,
       ensureRemoteRecordId,
-      importLocalDrafts,
       isHydrating,
-      localDraftImport,
       markApplicationSubmitted,
       openApplication,
       persistApplication,

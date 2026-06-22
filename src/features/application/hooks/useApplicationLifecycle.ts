@@ -1,14 +1,9 @@
 import { useCallback } from "react";
 import {
-  clearLocalApplications,
   saveLocalActiveApplicationId,
-  upsertLocalApplication,
   type ApplicationSummary,
 } from "../../../lib/applicationRecords";
-import {
-  clearLocalApplicantProfile,
-  type StoredApplicantProfile,
-} from "../../../lib/applicantProfileStore";
+import type { StoredApplicantProfile } from "../../../lib/applicantProfileStore";
 import {
   initialApplicationData,
   type ApplicationData,
@@ -24,10 +19,7 @@ interface UseApplicationLifecycleOptions {
   setApplications: (applications: ApplicationSummary[]) => void;
   setData: (application: ApplicationData) => void;
   storageAdapter: ApplicationStorageAdapter;
-  trackApplicationSubmitted: (
-    submittedApplication: ApplicationData,
-    submissionMode: "local" | "remote",
-  ) => void;
+  trackApplicationSubmitted: (submittedApplication: ApplicationData) => void;
   upsertSummary: (application: ApplicationData) => void;
 }
 
@@ -54,7 +46,6 @@ export function useApplicationLifecycle({
       setData(application);
       setActiveApplicationId(applicationId);
       saveLocalActiveApplicationId(applicationId);
-      storageAdapter.syncLoadedApplication(application);
       upsertSummary(application);
     },
     [setActiveApplicationId, setData, storageAdapter, upsertSummary],
@@ -63,7 +54,6 @@ export function useApplicationLifecycle({
   const markApplicationSubmitted = useCallback(async () => {
     const submittedApplication = await storageAdapter.submitApplication(data);
 
-    upsertLocalApplication(submittedApplication);
     upsertSummary(submittedApplication);
     setData(submittedApplication);
 
@@ -75,7 +65,7 @@ export function useApplicationLifecycle({
       saveLocalActiveApplicationId(nextActiveId);
     }
 
-    trackApplicationSubmitted(submittedApplication, storageAdapter.mode);
+    trackApplicationSubmitted(submittedApplication);
   }, [
     activeApplicationId,
     data,
@@ -93,8 +83,7 @@ export function useApplicationLifecycle({
       ),
     );
 
-    clearLocalApplications();
-    clearLocalApplicantProfile();
+    saveLocalActiveApplicationId(null);
     setApplications([]);
     setActiveApplicationId(null);
     setData(initialApplicationData);

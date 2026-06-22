@@ -7,27 +7,21 @@ import {
   getCourseAnalyticsProperties,
 } from "../../../lib/posthog";
 
-interface UseApplicationAnalyticsOptions {
-  storageMode: "local" | "remote";
-}
-
 type DataEventProperties =
   | Record<string, unknown>
   | ((application: ApplicationData) => Record<string, unknown>);
 
-export function useApplicationAnalytics({
-  storageMode,
-}: UseApplicationAnalyticsOptions) {
+export function useApplicationAnalytics() {
   const trackDraftResumed = useCallback(
     (course: SelectedCourse, applicationId: string) => {
       associateCourseProviderGroup(course.provider);
       capturePostHogEvent("application_draft_resumed", {
         ...getCourseAnalyticsProperties(course),
         application_id: applicationId,
-        storage_mode: storageMode,
+        storage_mode: "remote",
       });
     },
-    [storageMode],
+    [],
   );
 
   const trackDraftCreated = useCallback(
@@ -41,10 +35,10 @@ export function useApplicationAnalytics({
         ...getCourseAnalyticsProperties(course),
         applicant_profile_id: applicantProfileId,
         application_id: applicationId,
-        storage_mode: storageMode,
+        storage_mode: "remote",
       });
     },
-    [storageMode],
+    [],
   );
 
   const trackApplicationDataEvent = useCallback(
@@ -67,7 +61,7 @@ export function useApplicationAnalytics({
   );
 
   const trackApplicationSubmitted = useCallback(
-    (submittedApplication: ApplicationData, submissionMode: "local" | "remote") => {
+    (submittedApplication: ApplicationData) => {
       capturePostHogEvent("application_submitted", {
         ...getCourseAnalyticsProperties(
           submittedApplication.applicationMeta.selectedCourse,
@@ -75,7 +69,7 @@ export function useApplicationAnalytics({
         application_id: submittedApplication.applicationMeta.recordId ?? null,
         application_number:
           submittedApplication.applicationMeta.applicationNumber ?? null,
-        submission_mode: submissionMode,
+        submission_mode: "remote",
       });
     },
     [],

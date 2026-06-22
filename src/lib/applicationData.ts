@@ -2,8 +2,6 @@ import { createEmptyStructuredAddress, type StructuredAddress } from "./address"
 import type { UploadedDocument } from "./documentStorage";
 import type { TranscriptEligibilityAssessment } from "./eligibility/types";
 
-export const APPLICATION_STORAGE_KEY = "application-prototype:data";
-
 export interface TertiaryQualification {
   id: string;
   institution: string;
@@ -260,24 +258,6 @@ export function mergeStoredApplicationData(
   };
 }
 
-export function loadLocalApplicationData(): ApplicationData {
-  if (typeof window === "undefined") {
-    return initialApplicationData;
-  }
-
-  try {
-    const storedData = window.localStorage.getItem(APPLICATION_STORAGE_KEY);
-
-    if (!storedData) {
-      return initialApplicationData;
-    }
-
-    return mergeStoredApplicationData(JSON.parse(storedData) as Partial<ApplicationData>);
-  } catch {
-    return initialApplicationData;
-  }
-}
-
 const conditionalParentFields = [
   "parent1Details",
   "parent2Details",
@@ -306,30 +286,6 @@ export function normalizeConditionalContactDetails(
   }
 
   return nextDetails;
-}
-
-export function saveLocalApplicationData(data: ApplicationData) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(APPLICATION_STORAGE_KEY, JSON.stringify(data));
-  } catch {
-    // Ignore storage failures and continue using in-memory state.
-  }
-}
-
-export function clearLocalApplicationData() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.removeItem(APPLICATION_STORAGE_KEY);
-  } catch {
-    // Ignore storage cleanup failures.
-  }
 }
 
 export function mergeRemoteApplicationWithLocalDocuments(
