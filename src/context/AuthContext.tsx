@@ -30,12 +30,9 @@ import { isPasswordLeaked } from "../lib/leakedPassword";
 import { syncPostHogUser } from "../lib/posthog";
 import { syncSentryUser } from "../lib/sentry";
 
-export type StorageMode = "local" | "remote";
-
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  storageMode: StorageMode;
   isLoading: boolean;
   isConfigured: boolean;
   isAuthenticated: boolean;
@@ -159,7 +156,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user: session?.user ?? null,
       session,
-      storageMode: session ? "remote" : "local",
       isLoading,
       isConfigured: isSupabaseConfigured,
       isAuthenticated,

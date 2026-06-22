@@ -12,15 +12,6 @@ const deleteRemoteApplication = vi.fn();
 const ensureApplicantProfile = vi.fn();
 const loadApplicantProfile = vi.fn();
 
-const findLocalApplicationById = vi.fn();
-const findLocalOpenApplicationForCourse = vi.fn();
-const loadLocalApplications = vi.fn();
-const loadLocalActiveApplicationId = vi.fn();
-const saveLocalActiveApplicationId = vi.fn();
-const saveLocalApplications = vi.fn();
-const upsertLocalApplication = vi.fn();
-const summarizeApplication = vi.fn();
-
 vi.mock("./applicationRemoteStore", () => ({
   listRemoteApplications,
   loadRemoteApplicationById,
@@ -33,24 +24,6 @@ vi.mock("./applicantProfileStore", () => ({
   ensureApplicantProfile,
   loadApplicantProfile,
 }));
-
-vi.mock("./applicationRecords", async () => {
-  const actual =
-    await vi.importActual<typeof import("./applicationRecords")>(
-      "./applicationRecords",
-    );
-  return {
-    ...actual,
-    findLocalApplicationById,
-    findLocalOpenApplicationForCourse,
-    loadLocalApplications,
-    loadLocalActiveApplicationId,
-    saveLocalActiveApplicationId,
-    saveLocalApplications,
-    upsertLocalApplication,
-    summarizeApplication,
-  };
-});
 
 const { createApplicationStorageAdapter } = await import(
   "./applicationStorageAdapter"
@@ -100,14 +73,6 @@ beforeEach(() => {
     deleteRemoteApplication,
     ensureApplicantProfile,
     loadApplicantProfile,
-    findLocalApplicationById,
-    findLocalOpenApplicationForCourse,
-    loadLocalApplications,
-    loadLocalActiveApplicationId,
-    saveLocalActiveApplicationId,
-    saveLocalApplications,
-    upsertLocalApplication,
-    summarizeApplication,
   ]) {
     fn.mockReset();
   }
@@ -118,38 +83,49 @@ afterEach(() => {
 });
 
 describe("createApplicationStorageAdapter", () => {
-  it("returns a local adapter when mode is 'local'", () => {
-    const adapter = createApplicationStorageAdapter({
-      mode: "local",
-      session: null,
-    });
-    expect(adapter.mode).toBe("local");
-  });
-
-  it("returns a local adapter even when a session is supplied with mode 'local'", () => {
-    const adapter = createApplicationStorageAdapter({
-      mode: "local",
-      session,
-    });
-    expect(adapter.mode).toBe("local");
-  });
-
-  it("returns a remote adapter when mode is 'remote' and a session is supplied", () => {
-    const adapter = createApplicationStorageAdapter({ mode: "remote", session });
+  it("returns a remote adapter when a session is supplied", () => {
+    const adapter = createApplicationStorageAdapter({ session });
     expect(adapter.mode).toBe("remote");
   });
 
-  it("throws when remote mode is requested without a session", () => {
-    expect(() =>
-      createApplicationStorageAdapter({ mode: "remote", session: null }),
-    ).toThrow("Remote storage mode requires an authenticated session.");
+  it("returns a guest adapter when no session is supplied", () => {
+    const adapter = createApplicationStorageAdapter({ session: null });
+    expect(adapter.mode).toBe("guest");
+  });
+});
+
+describe("guest adapter", () => {
+  it("reports no applications or profile and never touches remote storage", async () => {
+    const adapter = createApplicationStorageAdapter({ session: null });
+
+    expect(await adapter.listApplications()).toEqual([]);
+    expect(await adapter.loadApplicationById("app-1")).toBeNull();
+    expect(await adapter.ensureApplicantProfile()).toBeNull();
+    expect(await adapter.loadApplicantProfile()).toBeNull();
+    expect(await adapter.findOpenDraftForCourse("MBA-101", [baseSummary])).toBeNull();
+
+    expect(listRemoteApplications).not.toHaveBeenCalled();
+    expect(loadRemoteApplicationById).not.toHaveBeenCalled();
+  });
+
+  it("rejects writes because applications require authentication", async () => {
+    const adapter = createApplicationStorageAdapter({ session: null });
+
+    await expect(adapter.saveApplication(minimalApplicationData)).rejects.toThrow(
+      "Applications require an authenticated session.",
+    );
+    await expect(
+      adapter.submitApplication(minimalApplicationData),
+    ).rejects.toThrow("Applications require an authenticated session.");
+    expect(saveRemoteApplication).not.toHaveBeenCalled();
+    expect(submitRemoteApplication).not.toHaveBeenCalled();
   });
 });
 
 describe("remote adapter delegation", () => {
   it("listApplications delegates to listRemoteApplications with the session", async () => {
     listRemoteApplications.mockResolvedValueOnce([baseSummary]);
-    const adapter = createApplicationStorageAdapter({ mode: "remote", session });
+    const adapter = createApplicationStorageAdapter({ session });
 
     const result = await adapter.listApplications();
 
@@ -159,7 +135,7 @@ describe("remote adapter delegation", () => {
 
   it("loadApplicationById forwards the application id and the session", async () => {
     loadRemoteApplicationById.mockResolvedValueOnce(null);
-    const adapter = createApplicationStorageAdapter({ mode: "remote", session });
+    const adapter = createApplicationStorageAdapter({ session });
 
     const result = await adapter.loadApplicationById("missing");
 
@@ -169,7 +145,7 @@ describe("remote adapter delegation", () => {
 
   it("deleteApplication delegates to deleteRemoteApplication", async () => {
     deleteRemoteApplication.mockResolvedValueOnce(undefined);
-    const adapter = createApplicationStorageAdapter({ mode: "remote", session });
+    const adapter = createApplicationStorageAdapter({ session });
 
     await adapter.deleteApplication("app-9");
 
@@ -182,7 +158,7 @@ describe("remote adapter delegation", () => {
       applicationNumber: "APP-0001",
       submittedAt: "2026-04-10T01:00:00Z",
     });
-    const adapter = createApplicationStorageAdapter({ mode: "remote", session });
+    const adapter = createApplicationStorageAdapter({ session });
 
     const result = await adapter.submitApplication(minimalApplicationData);
 
@@ -199,7 +175,7 @@ describe("remote adapter delegation", () => {
   });
 
   it("findOpenDraftForCourse picks the draft matching the course code", async () => {
-    const adapter = createApplicationStorageAdapter({ mode: "remote", session });
+    const adapter = createApplicationStorageAdapter({ session });
 
     const submitted: ApplicationSummary = {
       ...baseSummary,
@@ -222,7 +198,7 @@ describe("remote adapter delegation", () => {
   });
 
   it("findOpenDraftForCourse returns null when no draft matches", async () => {
-    const adapter = createApplicationStorageAdapter({ mode: "remote", session });
+    const adapter = createApplicationStorageAdapter({ session });
     const submitted: ApplicationSummary = {
       ...baseSummary,
       status: "submitted",
@@ -231,56 +207,5 @@ describe("remote adapter delegation", () => {
     const found = await adapter.findOpenDraftForCourse("MBA-101", [submitted]);
 
     expect(found).toBeNull();
-  });
-
-  it("syncLoadedApplication writes through to upsertLocalApplication", () => {
-    const adapter = createApplicationStorageAdapter({ mode: "remote", session });
-
-    adapter.syncLoadedApplication(minimalApplicationData);
-
-    expect(upsertLocalApplication).toHaveBeenCalledWith(minimalApplicationData);
-  });
-});
-
-describe("local adapter delegation", () => {
-  it("listApplications maps loadLocalApplications through summarizeApplication", async () => {
-    loadLocalApplications.mockReturnValueOnce([
-      minimalApplicationData,
-      minimalApplicationData,
-    ]);
-    summarizeApplication.mockReturnValueOnce({
-      ...baseSummary,
-      updatedAt: "2026-04-02T00:00:00Z",
-    });
-    summarizeApplication.mockReturnValueOnce({
-      ...baseSummary,
-      id: "app-newer",
-      updatedAt: "2026-04-03T00:00:00Z",
-    });
-
-    const adapter = createApplicationStorageAdapter({
-      mode: "local",
-      session: null,
-    });
-
-    const result = await adapter.listApplications();
-
-    expect(loadLocalApplications).toHaveBeenCalled();
-    expect(result.map((summary) => summary.id)).toEqual(["app-newer", "app-1"]);
-  });
-
-  it("deleteApplication clears the active id when it matches the deletion target", async () => {
-    loadLocalApplications.mockReturnValueOnce([minimalApplicationData]);
-    loadLocalActiveApplicationId.mockReturnValueOnce("app-1");
-
-    const adapter = createApplicationStorageAdapter({
-      mode: "local",
-      session: null,
-    });
-
-    await adapter.deleteApplication("app-1");
-
-    expect(saveLocalApplications).toHaveBeenCalledWith([]);
-    expect(saveLocalActiveApplicationId).toHaveBeenCalledWith(null);
   });
 });

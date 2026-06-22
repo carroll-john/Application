@@ -1,31 +1,22 @@
 // Storage layer (top-down):
 //
-//   applicationStorageAdapter — this file. Picks local vs remote per call
-//     based on the auth session, and is the only thing UI code talks to.
-//   applicationRemoteStore    — Supabase CRUD + the submit RPC. Used when
-//                               an authenticated session is present.
-//   applicationRecords        — localStorage CRUD over the multi-app list
-//                               and the single "active" application id.
-//   applicationData           — canonical ApplicationData shape, the
-//                               initial data, and the merge helper used by
-//                               both local and remote loaders.
+//   applicationStorageAdapter — this file. The only thing UI code talks to.
+//     Routes to the remote store when an authenticated session is present,
+//     and to a no-op "guest" adapter otherwise.
+//   applicationRemoteStore    — Supabase CRUD + the submit RPC. The single
+//                               source of truth for application data.
+//   applicationRecords        — pure helpers (summaries, prefill sorting) plus
+//                               the one browser-persisted value: the active
+//                               application id, used to reopen the last draft.
+//   applicationData           — canonical ApplicationData shape, the initial
+//                               data, and the merge helper.
 //
-// In dev or before sign-in the adapter routes to applicationRecords. After
-// sign-in it routes to applicationRemoteStore; the local copy is kept as a
-// best-effort cache so the form survives offline blips.
+// Applications only ever exist in a signed-in account. Signed-out visitors can
+// browse courses but cannot own a draft, so the guest adapter holds no data and
+// rejects every write.
 
 import type { Session } from "@supabase/supabase-js";
-import {
-  findLocalApplicationById,
-  findLocalOpenApplicationForCourse,
-  loadLocalApplications,
-  loadLocalActiveApplicationId,
-  saveLocalActiveApplicationId,
-  saveLocalApplications,
-  summarizeApplication,
-  upsertLocalApplication,
-  type ApplicationSummary,
-} from "./applicationRecords";
+import type { ApplicationSummary } from "./applicationRecords";
 import {
   deleteRemoteApplication,
   listRemoteApplications,
@@ -50,7 +41,7 @@ export interface SaveApplicationOptions {
 }
 
 export interface ApplicationStorageAdapter {
-  mode: "local" | "remote";
+  mode: "remote" | "guest";
   ensureApplicantProfile: (
     fallbackEmail?: string,
   ) => Promise<StoredApplicantProfile | null>;
@@ -69,77 +60,31 @@ export interface ApplicationStorageAdapter {
   ) => Promise<ApplicationData>;
   submitApplication: (data: ApplicationData) => Promise<ApplicationData>;
   deleteApplication: (applicationId: string) => Promise<void>;
-  syncLoadedApplication: (application: ApplicationData) => void;
 }
 
 interface CreateStorageAdapterOptions {
-  mode: "local" | "remote";
   session: Session | null;
 }
 
-function listLocalApplicationSummaries() {
-  return loadLocalApplications()
-    .map((application) => summarizeApplication(application))
-    .filter((summary): summary is ApplicationSummary => Boolean(summary))
-    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
-}
+function createGuestStorageAdapter(): ApplicationStorageAdapter {
+  // Every application write path is gated behind authentication (route guards
+  // plus the apply/eligibility flows), so these writes should never run. They
+  // fail loudly if they ever do; the reads simply report "nothing here".
+  const requireAuth = (): never => {
+    throw new Error("Applications require an authenticated session.");
+  };
 
-function createLocalStorageAdapter(): ApplicationStorageAdapter {
   return {
-    mode: "local",
-    ensureApplicantProfile: async (fallbackEmail) =>
-      ensureApplicantProfile(null, fallbackEmail),
-    loadApplicantProfile: async (fallbackEmail) =>
-      ensureApplicantProfile(null, fallbackEmail),
-    listApplications: async () => listLocalApplicationSummaries(),
-    loadApplicationById: async (applicationId) =>
-      findLocalApplicationById(applicationId) ?? null,
-    findOpenDraftForCourse: async (courseCode) => {
-      const existingDraft = findLocalOpenApplicationForCourse(courseCode);
-      return existingDraft ? summarizeApplication(existingDraft) : null;
-    },
-    saveApplication: async (data, options) =>
-      mergeStoredApplicationData({
-        ...data,
-        applicationMeta: {
-          ...data.applicationMeta,
-          applicantProfileId:
-            options?.applicantProfileId ??
-            data.applicationMeta.applicantProfileId ??
-            undefined,
-        },
-      }),
-    submitApplication: async (data) => {
-      const nextSubmittedAt = new Date().toISOString();
-
-      return mergeStoredApplicationData({
-        ...data,
-        applicationMeta: {
-          ...data.applicationMeta,
-          applicationNumber:
-            data.applicationMeta.applicationNumber ??
-            `QX-${Math.floor(1000000 + Math.random() * 9000000)}`,
-          status: "submitted",
-          submittedAt: nextSubmittedAt,
-          updatedAt: nextSubmittedAt,
-        },
-      });
-    },
-    deleteApplication: async (applicationId) => {
-      const remainingApplications = loadLocalApplications().filter(
-        (application) => application.applicationMeta.recordId !== applicationId,
-      );
-
-      saveLocalApplications(remainingApplications);
-
-      if (loadLocalActiveApplicationId() === applicationId) {
-        saveLocalActiveApplicationId(
-          remainingApplications[0]?.applicationMeta.recordId ?? null,
-        );
-      }
-    },
-    syncLoadedApplication: () => {
-      // Local mode already reads from local storage; no sync needed.
+    mode: "guest",
+    ensureApplicantProfile: async () => null,
+    loadApplicantProfile: async () => null,
+    listApplications: async () => [],
+    loadApplicationById: async () => null,
+    findOpenDraftForCourse: async () => null,
+    saveApplication: async () => requireAuth(),
+    submitApplication: async () => requireAuth(),
+    deleteApplication: async () => {
+      // Nothing is stored for signed-out visitors.
     },
   };
 }
@@ -212,23 +157,13 @@ function createRemoteStorageAdapter(
     },
     deleteApplication: async (applicationId) =>
       deleteRemoteApplication(session, applicationId),
-    syncLoadedApplication: (application) => {
-      upsertLocalApplication(application);
-    },
   };
 }
 
 export function createApplicationStorageAdapter({
-  mode,
   session,
 }: CreateStorageAdapterOptions): ApplicationStorageAdapter {
-  if (mode !== "remote") {
-    return createLocalStorageAdapter();
-  }
-
-  if (!session) {
-    throw new Error("Remote storage mode requires an authenticated session.");
-  }
-
-  return createRemoteStorageAdapter(session);
+  return session
+    ? createRemoteStorageAdapter(session)
+    : createGuestStorageAdapter();
 }

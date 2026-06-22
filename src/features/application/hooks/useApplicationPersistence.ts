@@ -1,8 +1,5 @@
 import { useCallback } from "react";
-import {
-  saveLocalActiveApplicationId,
-  upsertLocalApplication,
-} from "../../../lib/applicationRecords";
+import { saveLocalActiveApplicationId } from "../../../lib/applicationRecords";
 import type { ApplicationData } from "../../../lib/applicationData";
 import {
   isRemoteRecordId,
@@ -45,7 +42,6 @@ export function useApplicationPersistence({
         shellOnly: options?.shellOnly,
       });
 
-      upsertLocalApplication(persistedData);
       upsertSummary(persistedData);
       setData(persistedData);
 

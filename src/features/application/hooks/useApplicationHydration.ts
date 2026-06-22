@@ -86,5 +86,4 @@ export async function hydrateApplicationState({
   setActiveApplicationId(resolvedPreferredId);
   saveLocalActiveApplicationId(resolvedPreferredId);
   setData(application);
-  storageAdapter.syncLoadedApplication(application);
 }

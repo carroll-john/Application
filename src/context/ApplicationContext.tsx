@@ -4,7 +4,6 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import { LocalDraftImportPrompt } from "../components/LocalDraftImportPrompt";
 import type { ApplicationSummary } from "../lib/applicationRecords";
 import type { StoredApplicantProfile } from "../lib/applicantProfileStore";
 import type {
@@ -26,7 +25,6 @@ import { useApplicationProfile } from "../features/application/hooks/useApplicat
 import {
   useApplicationStorageOrchestration,
   type BeginCourseApplicationOptions,
-  type LocalDraftImportState,
 } from "../features/application/hooks/useApplicationStorageOrchestration";
 import { useAuth } from "./AuthContext";
 
@@ -45,9 +43,6 @@ interface ApplicationContextType {
     application?: ApplicationData,
   ) => StepCompletionLabel | null;
   isHydrating: boolean;
-  localDraftImport: LocalDraftImportState;
-  dismissLocalDraftImport: () => void;
-  importLocalDrafts: () => Promise<void>;
   markApplicationSubmitted: () => Promise<void>;
   openApplication: (applicationId: string) => Promise<void>;
   refreshApplicantProfile: () => Promise<void>;
@@ -99,13 +94,13 @@ const ApplicationContext = createContext<ApplicationContextType | undefined>(
 );
 
 export function ApplicationProvider({ children }: { children: ReactNode }) {
-  const { session, storageMode, userEmail } = useAuth();
+  const { session, userEmail } = useAuth();
   const storageAdapter = useMemo(
-    () => createApplicationStorageAdapter({ mode: storageMode, session }),
-    [session, storageMode],
+    () => createApplicationStorageAdapter({ session }),
+    [session],
   );
 
-  const analytics = useApplicationAnalytics({ storageMode });
+  const analytics = useApplicationAnalytics();
   const {
     applicantProfile,
     applicantProfileId,
@@ -122,12 +117,9 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     applications,
     beginCourseApplication,
     data,
-    dismissLocalDraftImport,
     ensureApplicationRow,
     ensureRemoteRecordId,
-    importLocalDrafts,
     isHydrating,
-    localDraftImport,
     markApplicationSubmitted,
     openApplication,
     persistApplication,
@@ -136,7 +128,6 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   } = useApplicationStorageOrchestration({
     applicantProfileId,
     ensureApplicantProfile,
-    importOwnerId: session?.user.id ?? null,
     setApplicantProfile,
     storageAdapter,
     trackApplicationSubmitted: analytics.trackApplicationSubmitted,
@@ -159,11 +150,8 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       beginCourseApplication,
       ensureApplicationRow,
       ensureRemoteRecordId,
-      dismissLocalDraftImport,
       getNextIncompleteSection: dataActions.getNextIncompleteSection,
-      importLocalDrafts,
       isHydrating,
-      localDraftImport,
       markApplicationSubmitted,
       openApplication,
       refreshApplicantProfile,
@@ -199,12 +187,9 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       beginCourseApplication,
       data,
       dataActions,
-      dismissLocalDraftImport,
       ensureApplicationRow,
       ensureRemoteRecordId,
-      importLocalDrafts,
       isHydrating,
-      localDraftImport,
       markApplicationSubmitted,
       openApplication,
       refreshApplicantProfile,
@@ -216,13 +201,6 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   return (
     <ApplicationContext.Provider value={value}>
       {children}
-      <LocalDraftImportPrompt
-        state={localDraftImport}
-        onDismiss={dismissLocalDraftImport}
-        onImport={() => {
-          void importLocalDrafts();
-        }}
-      />
     </ApplicationContext.Provider>
   );
 }
