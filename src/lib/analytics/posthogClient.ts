@@ -216,6 +216,14 @@ export function initPostHog() {
     autocapture: false,
     capture_pageview: false,
     capture_pageleave: true,
+    // Disable posthog-js's built-in user-agent bot filter so OUR synthetic-aware
+    // gate (canCapturePostHog / beforeSendPostHog / the loaded opt-out below) is
+    // the single source of truth. The SDK's own filter is not synthetic-aware:
+    // it drops every capture from a headless/webdriver session (navigator.webdriver
+    // === true), which silently discarded all authorised synthetic-test traffic —
+    // the events were captured client-side but never reached PostHog. Real bots are
+    // still blocked here because canCapturePostHog() returns false for them.
+    opt_out_useragent_filter: true,
     persistence: "localStorage+cookie",
     person_profiles: "identified_only",
     // Replay is default-disabled and started per route via syncReplayRoutePrivacy
