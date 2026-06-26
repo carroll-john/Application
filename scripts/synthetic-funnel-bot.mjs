@@ -99,6 +99,71 @@ function attachIngestCounter(page) {
   return counter;
 }
 
+// Ground-truth diagnostics: log the response status of every capture/flags POST to
+// the /ingest proxy, so we can see whether captures are actually being sent and
+// whether the proxy forwards them (200) or drops them (3xx/4xx/HTML SPA fallback).
+function attachIngestResponseLogger(page) {
+  page.on("response", (res) => {
+    const req = res.request();
+    if (req.method() !== "POST") return;
+    const url = res.url();
+    if (
+      !url.includes("/ingest/") ||
+      url.includes("/ingest/static/") ||
+      url.includes("/ingest/array/")
+    ) {
+      return;
+    }
+    let path = url;
+    try {
+      path = new URL(url).pathname;
+    } catch {
+      // keep the full url if it can't be parsed
+    }
+    const kind = /flags|decide/.test(path)
+      ? "flags"
+      : /\/(batch|capture)\b|\/e\/?$|\/i\/v0\/e/.test(path)
+        ? "capture"
+        : "other";
+    console.log(`  [ingest:${kind}] ${res.status()} ${path}`);
+  });
+}
+
+// Dump the live posthog-js runtime config from the page, so we can confirm which
+// project token the deployed bundle actually uses, the api_host (proxy), whether
+// capturing got opted out, and that the SDK initialised at all.
+async function logPostHogRuntimeConfig(page, label) {
+  const cfg = await page
+    .evaluate(() => {
+      const ph = window.posthog;
+      if (!ph || typeof ph !== "object") return { present: false };
+      const read = (key) => {
+        try {
+          if (ph.config && key in ph.config) return ph.config[key];
+          if (typeof ph.get_config === "function") return ph.get_config(key);
+        } catch {
+          // ignore and fall through
+        }
+        return undefined;
+      };
+      return {
+        present: true,
+        token: read("token") ?? null,
+        api_host: read("api_host") ?? null,
+        opted_out:
+          typeof ph.has_opted_out_capturing === "function"
+            ? ph.has_opted_out_capturing()
+            : null,
+        distinct_id:
+          typeof ph.get_distinct_id === "function" ? ph.get_distinct_id() : null,
+      };
+    })
+    .catch((err) => ({ present: false, error: String(err) }));
+  console.log(
+    `  [posthog config${label ? ` · ${label}` : ""}] ${JSON.stringify(cfg)}`,
+  );
+}
+
 async function fillField(page, labelRe, value) {
   const f = page.getByLabel(labelRe).first();
   await f.waitFor({ state: "visible", timeout: 3000 }).catch(() => {});
@@ -1050,10 +1115,12 @@ async function run() {
   );
   const page = await context.newPage();
   const ingest = attachIngestCounter(page);
+  attachIngestResponseLogger(page);
 
   console.log(`Persona: ${persona.label} (MODE=${MODE})`);
   await activateSynthetic(page);
   const authed = await signIn(page);
+  await logPostHogRuntimeConfig(page, "after sign-in");
 
   for (let i = 0; i < ITERATIONS; i += 1) {
     console.log(`\n— iteration ${i + 1}/${ITERATIONS} —`);
@@ -1066,6 +1133,7 @@ async function run() {
   }
 
   await page.waitForTimeout(2500); // flush the final batch
+  await logPostHogRuntimeConfig(page, "end");
   console.log(`\n✓ Done. Ingestion POSTs observed: ${ingest.count}`);
   console.log("View the funnel with the test-account filter OFF to see synthetic_test data.");
   await browser.close();
