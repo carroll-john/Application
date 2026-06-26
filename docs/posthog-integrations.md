@@ -62,17 +62,38 @@ in `docs/analytics-events.md`:
 - **[Auth & quality](https://eu.posthog.com/project/133929/dashboard/761612)** —
   sign-in / sign-up / OTP outcomes and `$exception` volume.
 
-### Status / caveats (as of first build)
+### Status / caveats (re-verified 2026-06-26, DIS-196)
 
-- **Live data present:** funnel through `application_step_completed`,
-  `$ai_generation` (~40/30d), `eligibility_check_override`, both parsers, auth,
-  and `$exception` all populate.
-- **Empty but ready:** `application_submit_started` / `application_submitted` /
-  `application_submit_blocked` have never fired (no real submission has reached
-  `/review` yet), so the funnel's last two steps and the submit-blocker tile show
-  zero until a real submission occurs.
-- The Phase 0–8 production deploy landed 2026-06-19; legacy `funnel_step_N_*`
-  duplicate events all predate it and should stop — re-check after real traffic.
+Per-stage event volume (all-time, EU project `133929`):
+
+| Funnel stage | Events |
+| --- | --- |
+| `application_start_requested` | 47 |
+| `application_draft_created` | 56 |
+| `application_step_viewed` | 982 |
+| `application_step_completed` | 681 |
+| `application_submit_started` | 23 |
+| `application_submitted` | 23 |
+
+- **Top of funnel populates** (start → draft → step viewed → step completed).
+- **Submit steps are still effectively empty.** The only `application_submit_started` /
+  `application_submitted` events (23 each) are stale — they all fired in a single
+  week in **early March 2026**, predate the Phase 0–8 overhaul, and carry **no**
+  `synthetic_test` tag. **Zero** submissions have reached `/review` since the
+  2026-06-19 deploy. So the funnel's last two steps and the submit-blocker tile
+  read as empty for the current app until a real submission occurs.
+- **The synthetic QA bot has never run against this project.** There are **no
+  `synthetic_test`-tagged events of any kind** in `133929`, so the bot
+  (`scripts/synthetic-funnel-bot.mjs`, merged in #125–128) has not yet driven an
+  end-to-end submission here. Its logic correctly handles both conditional
+  submission requirements (it unchecks "completed" to avoid the certificate-of-
+  completion rule; the `overseas-english` / `ahpra-nurse` personas evidence
+  English proficiency), so populating the submit steps is a matter of *running*
+  it — `npm run funnel:bot` with `BASE_URL`, `SYNTHETIC_TOKEN`,
+  `TEST_EMAIL`/`TEST_PASSWORD` set against a deploy whose
+  `VITE_ANALYTICS_SYNTHETIC_TOKEN` matches — or of real submission traffic.
+- **Legacy `funnel_step_N_*` duplicates have stopped.** Confirmed 0 since the week
+  of 2026-06-21 (last fired the week of 2026-06-14, pre-deploy).
 
 Re-run / extend with the PostHog MCP (`query-funnel`, `query-trends`,
 `insight-create`, `dashboard-create`, …).
