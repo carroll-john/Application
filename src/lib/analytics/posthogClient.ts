@@ -5,6 +5,7 @@ import {
   APP_ENVIRONMENT,
   AUTOMATION_USER_AGENT_PATTERN,
   BOT_USER_AGENT_PATTERN,
+  POSTHOG_HOST,
   POSTHOG_KEY,
   POSTHOG_UI_HOST,
   SYNTHETIC_TEST_QUERY_PARAM,
@@ -12,12 +13,6 @@ import {
   SYNTHETIC_TEST_TOKEN,
   type PostHogUserContext,
 } from "./posthogTypes";
-
-// Same-origin reverse-proxy path (configured in vercel.json) so analytics
-// requests are first-party and are not dropped by ad-blockers. It proxies to
-// the EU ingestion host, with /ingest/static/* and /ingest/array/* (the SDK's
-// static assets and remote config) going to the EU assets host.
-const POSTHOG_INGEST_PROXY_PATH = "/ingest";
 
 let postHogStarted = false;
 let postHogBlockReason: string | null = null;
@@ -211,11 +206,30 @@ export function initPostHog() {
   }
 
   posthog.init(POSTHOG_KEY, {
-    api_host: POSTHOG_INGEST_PROXY_PATH,
+    // Send analytics directly to the PostHog EU ingestion host. We previously
+    // routed through a same-origin `/ingest` reverse proxy (vercel.json) for
+    // ad-blocker resilience, but that proxy returns 404 on the deployment, so
+    // EVERY capture/flags/session POST was silently dropped and nothing reached
+    // PostHog. Direct ingestion is how analytics worked before the proxy and is
+    // the proven path; posthog-js loads its static assets from the matching EU
+    // assets host automatically. Re-introduce the proxy only once it's verified
+    // to return 200 end-to-end (see scripts/synthetic-funnel-bot.mjs diagnostics).
+    api_host: POSTHOG_HOST,
     ui_host: POSTHOG_UI_HOST,
     autocapture: false,
     capture_pageview: false,
     capture_pageleave: true,
+    // Disable posthog-js's built-in user-agent bot filter so OUR synthetic-aware
+    // gate (canCapturePostHog / beforeSendPostHog / the loaded opt-out below) is
+    // the single source of truth. The SDK's own filter is not synthetic-aware:
+    // it drops every capture from a headless/webdriver session (navigator.webdriver
+    // === true), which silently discarded all authorised synthetic-test traffic —
+    // the events were captured client-side but never reached PostHog. Real bots are
+    // still blocked here because canCapturePostHog() returns false for them — and
+    // BOT_USER_AGENT_PATTERN mirrors the SDK's DEFAULT_BLOCKED_UA_STRS coverage so
+    // opting out doesn't let previously-filtered crawlers (Lighthouse, prerender,
+    // vercel-screenshot, …) through.
+    opt_out_useragent_filter: true,
     persistence: "localStorage+cookie",
     person_profiles: "identified_only",
     // Replay is default-disabled and started per route via syncReplayRoutePrivacy
