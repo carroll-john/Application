@@ -36,7 +36,17 @@ Keep credentials in PostHog's source config only — never in this repo.
 
 ## 3. Vercel ↔ PostHog
 
-- The **reverse proxy** is already in `vercel.json` (Phase 2: `/ingest/*`).
+- ⚠️ **The `/ingest/*` reverse proxy is currently broken** — on the deployment it
+  returns **404** for every analytics path (`/ingest/i/v0/e/`, `/ingest/flags/`,
+  `/ingest/s/`), so all capture/flags/session POSTs were silently dropped and
+  **no events reached PostHog** since the proxy shipped (DIS-196). As a result
+  `src/lib/analytics/posthogClient.ts` now sends analytics **directly** to
+  `VITE_POSTHOG_HOST` (`https://eu.i.posthog.com`) — the proven pre-proxy path —
+  instead of `/ingest`. Re-enable the proxy (set `api_host` back to `/ingest`)
+  only once `https://<deploy>/ingest/flags/` returns 200 end-to-end; the
+  `vercel.json` rewrite matches PostHog's canonical pattern, so the fault is in
+  how the rewrite is applied on the deployment, not the rule itself.
+- The **reverse proxy** is still defined in `vercel.json` (Phase 2: `/ingest/*`).
 - Optionally install the **PostHog Vercel integration** to auto-inject
   `VITE_POSTHOG_KEY` / host into the project's env (instead of setting them by
   hand). It does not replace the proxy.

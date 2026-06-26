@@ -82,17 +82,25 @@ if ((!TEST_EMAIL || !TEST_PASSWORD) && !ALLOW_CATALOG_ONLY) {
 const log = (msg) => console.log(`  ${msg}`);
 const warn = (msg) => console.warn(`  ⚠️  ${msg}`);
 
+/**
+ * A capture/flags/session POST to PostHog — whether routed through the same-origin
+ * `/ingest` reverse proxy OR sent straight to the PostHog ingestion host
+ * (eu.i.posthog.com). Excludes the SDK's static assets / remote config.
+ */
+function isIngestionPost(url) {
+  const isAssets =
+    url.includes("/ingest/static/") ||
+    url.includes("/ingest/array/") ||
+    url.includes("-assets.i.posthog.com");
+  if (isAssets) return false;
+  return url.includes("/ingest/") || url.includes(".i.posthog.com/");
+}
+
 /** Count ingestion POSTs so we can prove capture is happening (not assets/config). */
 function attachIngestCounter(page) {
   const counter = { count: 0 };
   page.on("request", (req) => {
-    const url = req.url();
-    if (
-      req.method() === "POST" &&
-      url.includes("/ingest/") &&
-      !url.includes("/ingest/static/") &&
-      !url.includes("/ingest/array/")
-    ) {
+    if (req.method() === "POST" && isIngestionPost(req.url())) {
       counter.count += 1;
     }
   });
@@ -107,11 +115,7 @@ function attachIngestResponseLogger(page) {
     const req = res.request();
     if (req.method() !== "POST") return;
     const url = res.url();
-    if (
-      !url.includes("/ingest/") ||
-      url.includes("/ingest/static/") ||
-      url.includes("/ingest/array/")
-    ) {
+    if (!isIngestionPost(url)) {
       return;
     }
     let path = url;
