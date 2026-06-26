@@ -64,6 +64,21 @@ if (!BASE_URL || !SYNTHETIC_TOKEN) {
   process.exit(1);
 }
 
+// The whole applicant journey is auth-gated (remote-only storage), so without
+// credentials the bot only fires catalog events and silently skips the submit
+// funnel steps it exists to populate — a run would report success while leaving
+// `application_submit_started` / `application_submitted` empty. Fail fast unless
+// the caller explicitly opts into a catalog-only smoke run.
+const ALLOW_CATALOG_ONLY = process.env.ALLOW_CATALOG_ONLY === "1";
+if ((!TEST_EMAIL || !TEST_PASSWORD) && !ALLOW_CATALOG_ONLY) {
+  console.error(
+    "Set TEST_EMAIL and TEST_PASSWORD — the applicant journey is auth-gated, so " +
+      "without them the funnel's submit steps are never reached. To intentionally " +
+      "run only the (pre-auth) catalog events, set ALLOW_CATALOG_ONLY=1.",
+  );
+  process.exit(1);
+}
+
 const log = (msg) => console.log(`  ${msg}`);
 const warn = (msg) => console.warn(`  ⚠️  ${msg}`);
 
