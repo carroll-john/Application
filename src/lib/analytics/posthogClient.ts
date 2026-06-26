@@ -222,7 +222,10 @@ export function initPostHog() {
     // it drops every capture from a headless/webdriver session (navigator.webdriver
     // === true), which silently discarded all authorised synthetic-test traffic —
     // the events were captured client-side but never reached PostHog. Real bots are
-    // still blocked here because canCapturePostHog() returns false for them.
+    // still blocked here because canCapturePostHog() returns false for them — and
+    // BOT_USER_AGENT_PATTERN mirrors the SDK's DEFAULT_BLOCKED_UA_STRS coverage so
+    // opting out doesn't let previously-filtered crawlers (Lighthouse, prerender,
+    // vercel-screenshot, …) through.
     opt_out_useragent_filter: true,
     persistence: "localStorage+cookie",
     person_profiles: "identified_only",

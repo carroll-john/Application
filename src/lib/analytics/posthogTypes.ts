@@ -25,7 +25,15 @@ export const SYNTHETIC_TEST_TOKEN =
 export const SYNTHETIC_TEST_QUERY_PARAM = "kp_synthetic";
 export const SYNTHETIC_TEST_STORAGE_KEY = "keypath.analytics.synthetic_test";
 
+// Because we set `opt_out_useragent_filter: true` on posthog-js (so it can't drop
+// authorised synthetic-test traffic — see posthogClient.initPostHog), this app
+// filter is now the ONLY user-agent gate. It therefore mirrors the crawler/bot
+// coverage posthog-js would otherwise provide via its DEFAULT_BLOCKED_UA_STRS:
+// the generic `bot|spider|crawl` terms catch most (e.g. bingbot, msnbot,
+// linkedinbot, twitterbot, petalbot, vercelbot, googlebot, screaming frog), and
+// the explicit tail covers the SDK-blocked UAs that contain none of those tokens
+// (Chrome-Lighthouse, vercel-screenshot, prerender, Google-Read-Aloud, etc.).
 export const BOT_USER_AGENT_PATTERN =
-  /(bot|spider|crawl|slurp|bingpreview|headless|phantomjs|ahrefsbot|semrushbot|mj12bot|dotbot|facebookexternalhit|gptbot|chatgpt-user|claudebot|anthropic-ai|perplexitybot|bytespider|duckduckbot|baiduspider|yandexbot|applebot)/i;
+  /(bot|spider|crawl|slurp|bingpreview|headless|phantomjs|ahrefsbot|semrushbot|mj12bot|dotbot|facebookexternalhit|gptbot|chatgpt-user|claudebot|anthropic-ai|perplexitybot|bytespider|duckduckbot|baiduspider|yandexbot|applebot|lighthouse|google page speed|pagespeed|vercel-screenshot|prerender|google-read-aloud|googleweblight|hubspot|ia_archiver|sitebulb|nessus|deepscan)/i;
 export const AUTOMATION_USER_AGENT_PATTERN =
   /(playwright|puppeteer|cypress|selenium|webdriver|postmanruntime|insomnia|curl|wget|python-requests)/i;
