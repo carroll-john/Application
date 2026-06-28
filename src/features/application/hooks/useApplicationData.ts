@@ -51,7 +51,10 @@ export function useApplicationData({
   // than racing on a stale `data` snapshot (which dropped the earlier edit when the
   // next step was reached before the async persist + re-render cycle completed).
   // Refs keep the queue stable while always reading the latest committed data and
-  // persist function.
+  // persist function. The queue also remembers the result `persist` resolves with, so
+  // when it re-seeds while idle it can use that result (which carries the freshly
+  // assigned recordId) before this ref's `data` has caught up — otherwise the next
+  // write would INSERT a duplicate row and lose the edit.
   const committedDataRef = useRef(data);
   committedDataRef.current = data;
   const persistApplicationRef = useRef(persistApplication);

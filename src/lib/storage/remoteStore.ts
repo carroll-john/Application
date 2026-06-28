@@ -369,88 +369,175 @@ async function upsertApplicationRow(
   return applicationRow;
 }
 
+interface ChildUpsertResponse {
+  data: Array<{ id: string }> | null;
+  error: { message: string } | null;
+}
+
+interface ChildPruneResponse {
+  error: { message: string } | null;
+}
+
 /**
- * Replaces every child-table collection for the application.
+ * Replaces a single child-table collection for the application.
  *
- * DIS-140: Previously used bare .insert() after delete-all. If two saves
- * raced (e.g. double-click or retry), both DELETEs would succeed and then
- * both INSERTs would attempt to write the same client-side UUIDs, causing a
- * duplicate key error on the primary key constraint. Switching to .upsert()
- * with onConflict: 'id' makes the write idempotent — a concurrent second
- * save simply overwrites the row that the first write just inserted.
+ * The desired rows are upserted first (via `upsertRows`), then any rows for the
+ * application that are no longer in the new set are pruned (via `pruneExcept`).
+ * This is deliberately *not* a delete-all-then-insert: if the process failed
+ * partway through that pattern (network blip, the tab closing, a rejected
+ * insert) the DELETE could already have committed while the re-INSERT never
+ * ran, permanently losing the applicant's data. Upserting first means a partial
+ * failure leaves the prior rows intact, and the trailing prune only ever
+ * removes rows the user actually deleted.
+ *
+ * DIS-140: the callers upsert with onConflict 'id' so the write stays
+ * idempotent — if two saves race (double-click or retry), the second simply
+ * overwrites the rows the first inserted instead of erroring on the
+ * primary-key constraint.
+ *
+ * The per-table queries are passed as thunks so each call site keeps its
+ * concrete (fully typed) Supabase table binding.
  */
+async function rewriteChildTable(
+  rowCount: number,
+  upsertRows: () => PromiseLike<ChildUpsertResponse>,
+  pruneExcept: (keptIds: string[]) => PromiseLike<ChildPruneResponse>,
+): Promise<void> {
+  const keptIds: string[] = [];
+
+  if (rowCount > 0) {
+    const { data, error } = await upsertRows();
+    if (error) {
+      throw error;
+    }
+
+    for (const row of data ?? []) {
+      keptIds.push(row.id);
+    }
+  }
+
+  const { error } = await pruneExcept(keptIds);
+  if (error) {
+    throw error;
+  }
+}
+
+/** Replaces every child-table collection for the application. */
 async function rewriteChildTables(
   client: SupabaseClient,
   applicationId: string,
   data: ApplicationData,
 ): Promise<void> {
-  const deleteResponses = await Promise.all([
-    client.from("tertiary_qualifications").delete().eq("application_id", applicationId),
-    client.from("employment_experiences").delete().eq("application_id", applicationId),
-    client.from("professional_accreditations").delete().eq("application_id", applicationId),
-    client.from("secondary_qualifications").delete().eq("application_id", applicationId),
-    client.from("language_tests").delete().eq("application_id", applicationId),
+  // Narrow the prior `delete().eq(...)` query to "id not in (kept)" so we only
+  // remove rows the user actually deleted. Generic over the concrete filter
+  // builder so each table keeps its own typing.
+  const prune = <Query extends { not(column: "id", operator: "in", value: string): Query }>(
+    query: Query,
+    keptIds: string[],
+  ): Query =>
+    keptIds.length > 0 ? query.not("id", "in", `(${keptIds.join(",")})`) : query;
+
+  await Promise.all([
+    rewriteChildTable(
+      data.tertiaryQualifications.length,
+      () =>
+        client
+          .from("tertiary_qualifications")
+          .upsert(
+            data.tertiaryQualifications.map((q) => toTertiaryInsert(applicationId, q)),
+            { onConflict: "id" },
+          )
+          .select("id"),
+      (keptIds) =>
+        prune(
+          client
+            .from("tertiary_qualifications")
+            .delete()
+            .eq("application_id", applicationId),
+          keptIds,
+        ),
+    ),
+    rewriteChildTable(
+      data.employmentExperiences.length,
+      () =>
+        client
+          .from("employment_experiences")
+          .upsert(
+            data.employmentExperiences.map((e) => toEmploymentInsert(applicationId, e)),
+            { onConflict: "id" },
+          )
+          .select("id"),
+      (keptIds) =>
+        prune(
+          client
+            .from("employment_experiences")
+            .delete()
+            .eq("application_id", applicationId),
+          keptIds,
+        ),
+    ),
+    rewriteChildTable(
+      data.professionalAccreditations.length,
+      () =>
+        client
+          .from("professional_accreditations")
+          .upsert(
+            data.professionalAccreditations.map((a) =>
+              toProfessionalAccreditationInsert(applicationId, a),
+            ),
+            { onConflict: "id" },
+          )
+          .select("id"),
+      (keptIds) =>
+        prune(
+          client
+            .from("professional_accreditations")
+            .delete()
+            .eq("application_id", applicationId),
+          keptIds,
+        ),
+    ),
+    rewriteChildTable(
+      data.secondaryQualifications.length,
+      () =>
+        client
+          .from("secondary_qualifications")
+          .upsert(
+            data.secondaryQualifications.map((q) =>
+              toSecondaryQualificationInsert(applicationId, q),
+            ),
+            { onConflict: "id" },
+          )
+          .select("id"),
+      (keptIds) =>
+        prune(
+          client
+            .from("secondary_qualifications")
+            .delete()
+            .eq("application_id", applicationId),
+          keptIds,
+        ),
+    ),
+    rewriteChildTable(
+      data.languageTests.length,
+      () =>
+        client
+          .from("language_tests")
+          .upsert(
+            data.languageTests.map((t) => toLanguageTestInsert(applicationId, t)),
+            { onConflict: "id" },
+          )
+          .select("id"),
+      (keptIds) =>
+        prune(
+          client
+            .from("language_tests")
+            .delete()
+            .eq("application_id", applicationId),
+          keptIds,
+        ),
+    ),
   ]);
-
-  for (const response of deleteResponses) {
-    if (response.error) {
-      throw response.error;
-    }
-  }
-
-  if (data.tertiaryQualifications.length > 0) {
-    const { error } = await client
-      .from("tertiary_qualifications")
-      .upsert(
-        data.tertiaryQualifications.map((q) => toTertiaryInsert(applicationId, q)),
-        { onConflict: "id" },
-      );
-    if (error) throw error;
-  }
-
-  if (data.employmentExperiences.length > 0) {
-    const { error } = await client
-      .from("employment_experiences")
-      .upsert(
-        data.employmentExperiences.map((e) => toEmploymentInsert(applicationId, e)),
-        { onConflict: "id" },
-      );
-    if (error) throw error;
-  }
-
-  if (data.professionalAccreditations.length > 0) {
-    const { error } = await client
-      .from("professional_accreditations")
-      .upsert(
-        data.professionalAccreditations.map((a) =>
-          toProfessionalAccreditationInsert(applicationId, a),
-        ),
-        { onConflict: "id" },
-      );
-    if (error) throw error;
-  }
-
-  if (data.secondaryQualifications.length > 0) {
-    const { error } = await client
-      .from("secondary_qualifications")
-      .upsert(
-        data.secondaryQualifications.map((q) =>
-          toSecondaryQualificationInsert(applicationId, q),
-        ),
-        { onConflict: "id" },
-      );
-    if (error) throw error;
-  }
-
-  if (data.languageTests.length > 0) {
-    const { error } = await client
-      .from("language_tests")
-      .upsert(
-        data.languageTests.map((t) => toLanguageTestInsert(applicationId, t)),
-        { onConflict: "id" },
-      );
-    if (error) throw error;
-  }
 }
 
 function toSaveResult(row: SavedApplicationRow): RemoteSaveResult {
