@@ -62,6 +62,35 @@ describe("createApplicationUpdateQueue", () => {
     expect(committed).toEqual({ a: 1, b: 9, c: 3 });
   });
 
+  it("re-seeds from the last persisted result while committed is still stale", async () => {
+    // Models the orchestration: `persist` returns enriched data (e.g. a freshly
+    // assigned recordId) but the committed snapshot only catches up on the next
+    // render. A follow-up edit firing in that window must build on the persisted
+    // result, otherwise the recordId is dropped (forcing a duplicate INSERT) and the
+    // earlier edit is lost.
+    type Record = Snapshot & { id?: string };
+    const committed: Record = { a: 0, b: 0, c: 0 };
+    const persisted: Record[] = [];
+
+    const queue = createApplicationUpdateQueue<Record>({
+      // Committed never advances here, mimicking React state that has not re-rendered.
+      getCommitted: () => committed,
+      persist: async (next) => {
+        const result: Record = { ...next, id: next.id ?? "record-1" };
+        persisted.push(result);
+        return result;
+      },
+    });
+
+    await queue.enqueue((current) => ({ ...current, a: 1 }));
+    await queue.enqueue((current) => ({ ...current, b: 2 }));
+
+    expect(persisted).toEqual([
+      { a: 1, b: 0, c: 0, id: "record-1" },
+      { a: 1, b: 2, c: 0, id: "record-1" },
+    ]);
+  });
+
   it("keeps processing after a failed write", async () => {
     let committed: Snapshot = { a: 0, b: 0, c: 0 };
     let shouldFail = true;

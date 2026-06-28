@@ -64,9 +64,10 @@ async function handleWebRequest(request: Request) {
     );
   }
 
-  // Fire-and-forget: feedback capture must not block the response. Observability errors are
-  // swallowed inside `captureEligibilityFeedback`.
-  await captureEligibilityFeedback({
+  // Fire-and-forget: feedback capture must not block the response, so we intentionally
+  // do not await it. `captureEligibilityFeedback` dispatches immediately and swallows
+  // its own observability errors, so the floating promise can never reject.
+  void captureEligibilityFeedback({
     requirementId,
     originalStatus,
     overrideStatus,
