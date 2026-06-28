@@ -10,6 +10,14 @@ export {
   trackCvParserSaveContinueClicked,
 } from "./analytics/cvParserAnalytics";
 export {
+  APPLICATION_SUBMIT_BLOCKED_EVENT,
+  getSubmitBlockedValidationProperties,
+  getValidationIssueCode,
+  resolveBlockedStepKey,
+  resolveBlockedStepLabel,
+  trackApplicationSubmitBlocked,
+} from "./analytics/submitBlockedAnalytics";
+export {
   type FeatureFlagKey,
   getFeatureFlagPayload,
   isFeatureFlagEnabled,

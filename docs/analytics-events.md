@@ -83,6 +83,10 @@ Important submit-path rules:
 
 - `application_submit_started` fires only when the user clicks `Submit application` on `/review` and there are no validation errors.
 - `application_submit_blocked` fires instead when required fields are still missing.
+  Includes `validation_error_count`, `field_names`, `primary_field`, `blocked_step_keys`,
+  `blocked_step_labels`, `application_step_key` / `application_step_label` (first blocked
+  step in funnel order), `submit_page_key`, and stable `validation_issue_codes`
+  (`application_step_key:field_slug`) for breakdowns.
 - `application_submitted` fires only after the final submit succeeds.
 - `application_submit_failed` fires when the submit attempt starts but the backend/local submit path throws.
 
