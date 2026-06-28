@@ -1,9 +1,9 @@
-import type { InstitutionSuggestion } from "@keypath/suggest-react";
+import type { InstitutionSuggestion } from "@johncarroll/suggest-react";
 
-export type { InstitutionSuggestion } from "@keypath/suggest-react";
+export type { InstitutionSuggestion } from "@johncarroll/suggest-react";
 
 // Static fallback list of common tertiary institutions used by the deterministic
-// eligibility rules. Held locally (copied from @keypath/suggest-core's
+// eligibility rules. Held locally (copied from @johncarroll/suggest-core's
 // fallbackInstitutionSuggestions) so the transcript-eligibility API does not
 // pull the suggest package — which ships raw .ts source — into Vercel's Node
 // ESM runtime. Keep roughly in sync with the suggest-core copy; this list only

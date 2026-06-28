@@ -4,7 +4,7 @@ import {
   createSuggestClient,
   type AddressSuggestion,
   type InstitutionSuggestion,
-} from "@keypath/suggest-core";
+} from "@johncarroll/suggest-core";
 
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");

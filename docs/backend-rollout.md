@@ -97,6 +97,8 @@ VITE_REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION=30
 VITE_REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION=104857600
 VITE_REMOTE_UPLOAD_RATE_LIMIT_WINDOW_MINUTES=10
 VITE_REMOTE_UPLOAD_RATE_LIMIT_MAX_UPLOADS=20
+SUGGEST_SERVICE_URL=https://suggest-service-sm3b.onrender.com
+SUGGEST_SERVICE_TOKEN=your_suggest_service_token
 SENTRY_ENABLED=true
 SENTRY_DSN=your_sentry_dsn
 SENTRY_ENVIRONMENT=preview
@@ -123,6 +125,7 @@ Current workspace values:
   - `VITE_REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION=104857600` (100 MB)
   - `VITE_REMOTE_UPLOAD_RATE_LIMIT_WINDOW_MINUTES=10`
   - `VITE_REMOTE_UPLOAD_RATE_LIMIT_MAX_UPLOADS=20`
+- `SUGGEST_SERVICE_URL` and optional `SUGGEST_SERVICE_TOKEN` power the Vercel `/api/suggest/*` proxies (`api/_suggest/proxy.ts`); when the URL is unset, institution and address suggest return `404 SUGGEST_SERVICE_NOT_CONFIGURED` and the UI falls back to local fuzzy matching. Set both on Production and Preview in Vercel (server-side only — no `VITE_` prefix). See [docs/contracts/suggest.v1.md](contracts/suggest.v1.md).
 - server-side Sentry capture for `/api/parse-cv` uses `SENTRY_DSN` (or falls back to `VITE_SENTRY_DSN` if omitted)
 - server-side document delivery proxy (`/api/document-delivery`) reads `SUPABASE_URL`/`SUPABASE_ANON_KEY` when present, and falls back to `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`
 - server-side parser tracing uses `SENTRY_TRACES_SAMPLE_RATE` and emits Agent Insights spans (`gen_ai.invoke_agent` and `gen_ai.response`)
