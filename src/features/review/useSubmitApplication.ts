@@ -5,10 +5,11 @@ import {
   getSubmissionValidationIssues,
   type ValidationIssue,
 } from "../../lib/applicationValidationSchema";
+import { trackApplicationSubmitBlocked } from "../../lib/analytics/submitBlockedAnalytics";
 import {
   captureApplicationStepEvent,
   capturePostHogEvent,
-  getCourseAnalyticsProperties,
+  getApplicationAnalyticsProperties,
 } from "../../lib/posthog";
 import { captureSentryException } from "../../lib/sentry";
 import { sleep } from "../../lib/utils";
@@ -41,10 +42,9 @@ export function useSubmitApplication() {
     setSubmitError(null);
 
     if (validationErrors.length > 0) {
-      capturePostHogEvent("application_submit_blocked", {
-        ...getCourseAnalyticsProperties(data.applicationMeta.selectedCourse),
-        application_id: data.applicationMeta.recordId ?? null,
-        validation_error_count: validationErrors.length,
+      trackApplicationSubmitBlocked({
+        application: data,
+        validationIssues: validationErrors,
       });
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
@@ -68,8 +68,7 @@ export function useSubmitApplication() {
           ? error.message
           : "We couldn't submit the application right now. Please try again.";
       capturePostHogEvent("application_submit_failed", {
-        ...getCourseAnalyticsProperties(data.applicationMeta.selectedCourse),
-        application_id: data.applicationMeta.recordId ?? null,
+        ...getApplicationAnalyticsProperties(data),
         error_message: message,
       });
       captureSentryException(error, {
