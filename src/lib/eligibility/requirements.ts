@@ -161,6 +161,26 @@ export function requirementKindLabel(kind: RequirementKind): string {
 }
 
 /**
+ * Short, human-readable summary of an academic threshold (e.g. "60% WAM", "4/7 GPA"), used
+ * wherever the UI needs a compact form instead of the full published requirement sentence.
+ */
+export function formatAcademicThreshold(params: AcademicThresholdParams): string {
+  if (params.metric === "gpa") {
+    return params.scale != null ? `${params.min}/${params.scale} GPA` : `${params.min} GPA`;
+  }
+
+  return params.scale === 100 ? `${params.min}% WAM` : `${params.min} WAM`;
+}
+
+/**
+ * Comma-joined accepted study areas (e.g. "Business, Commerce, Management"), used wherever the
+ * UI needs a compact form instead of the full published requirement sentence.
+ */
+export function formatFieldOfStudyAreas(params: FieldOfStudyParams): string {
+  return params.acceptedAreas.join(", ");
+}
+
+/**
  * Convenience constructor for an `EligibilityRequirementCheck` that ties back to the
  * source `RequirementInstance`. The matcher returns these in the same order as the input instances.
  */

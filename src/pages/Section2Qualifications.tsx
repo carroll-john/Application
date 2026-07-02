@@ -154,15 +154,15 @@ function buildAssessmentEvidenceRows(assessment: TranscriptEligibilityAssessment
 function EvidenceReviewRow({
   action,
   explanation,
+  heading,
   kindLabel,
-  sourceText,
   statusClassName = "text-[var(--success-text)]",
   statusLabel,
 }: {
   action?: ReactNode;
   explanation: string;
+  heading: string;
   kindLabel?: string;
-  sourceText: string;
   statusClassName?: string;
   statusLabel: string;
 }) {
@@ -170,7 +170,7 @@ function EvidenceReviewRow({
     <li className="rounded-md border border-gray-200 p-3">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
         <p className="text-xs font-semibold text-gray-900 sm:text-sm">
-          {sourceText}
+          {heading}
         </p>
         <p className={`text-xs font-semibold sm:text-sm ${statusClassName}`}>
           {statusLabel}
@@ -344,8 +344,8 @@ export default function Section2Qualifications() {
                 <EvidenceReviewRow
                   key={row.id}
                   explanation={row.explanation}
+                  heading={row.sourceText}
                   kindLabel={row.kindLabel}
-                  sourceText={row.sourceText}
                   statusLabel={row.statusLabel}
                 />
               ))}
@@ -368,8 +368,8 @@ export default function Section2Qualifications() {
                     ) : null
                   }
                   explanation={row.explanation}
+                  heading={row.heading}
                   kindLabel={row.kindLabel}
-                  sourceText={row.sourceText}
                   statusClassName={getProgramEvidenceTone(row.status)}
                   statusLabel={row.statusLabel}
                 />

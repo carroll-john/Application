@@ -20,7 +20,7 @@ export const eligibilityAdvisoryCopy =
   "Automated eligibility checks are advisory only. Final admissions decisions are made by the admissions team after official transcript verification.";
 
 export const programEvidenceAdvisoryCopy =
-  "This evidence review highlights program requirements that need documents or details. Admissions will make the final decision after official verification.";
+  "These requirements still need documents or details. Admissions makes the final decision after verification.";
 
 export const eligibilityFeedbackCopy = {
   trigger: "Doesn't match your transcript?",
