@@ -81,12 +81,12 @@ jobs:
 
       - name: Console error smoke check
         run: |
-          npx vite preview --port 4173 --strictPort > /tmp/vite-preview.log 2>&1 &
+          npx vite preview --host 127.0.0.1 --port 4173 --strictPort > /tmp/vite-preview.log 2>&1 &
           preview_pid=$!
           trap 'kill "$preview_pid" 2>/dev/null || true; cat /tmp/vite-preview.log || true' EXIT
 
           ready=false
-          for attempt in $(seq 1 30); do
+          for attempt in $(seq 1 45); do
             if curl -fsS http://127.0.0.1:4173 > /dev/null; then
               ready=true
               break
