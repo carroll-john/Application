@@ -8,6 +8,7 @@ import {
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { StatusMessage } from "../components/StatusMessage";
+import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
 import {
   QualificationsAttachment,
@@ -146,7 +147,7 @@ function EvidenceReviewRow({
     <li className="rounded-md border border-gray-200 p-3">
       <p className="text-xs font-semibold text-gray-900 sm:text-sm">{heading}</p>
       <p className="mt-1 text-xs text-gray-700 sm:text-sm">{explanation}</p>
-      {action}
+      {action ? <div className="mt-3 flex justify-end">{action}</div> : null}
     </li>
   );
 }
@@ -320,13 +321,13 @@ export default function Section2Qualifications() {
                   key={row.id}
                   action={
                     row.actionPath && row.actionLabel ? (
-                      <button
-                        className="mt-2 text-xs font-semibold text-[var(--cta-secondary)] underline-offset-2 hover:underline sm:text-sm"
+                      <Button
                         type="button"
+                        variant="soft"
                         onClick={() => navigate(row.actionPath!)}
                       >
                         {row.actionLabel}
-                      </button>
+                      </Button>
                     ) : null
                   }
                   explanation={row.explanation}
