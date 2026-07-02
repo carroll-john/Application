@@ -25,7 +25,12 @@ export default function AuthCallback() {
 
   if (isAuthenticated) {
     if (isPasswordRecovery) {
-      return <Navigate replace to="/sign-in?recovery=1" />;
+      const params = new URLSearchParams({
+        recovery: "1",
+        redirect: redirectPath,
+      });
+
+      return <Navigate replace to={`/sign-in?${params.toString()}`} />;
     }
 
     return <Navigate replace to={redirectPath} />;
