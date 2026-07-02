@@ -31,6 +31,7 @@ export function useEditableRecord<T extends Identifiable>(
 
   return {
     existing,
+    id,
     isEditing,
     initialRecord,
   };

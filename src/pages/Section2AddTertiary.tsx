@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StatusMessage } from "../components/StatusMessage";
 import { useApplication } from "../context/ApplicationContext";
 import {
@@ -68,7 +68,7 @@ export default function Section2AddTertiary() {
     }),
     [],
   );
-  const { existing, isEditing, initialRecord } = useEditableRecord(
+  const { existing, id, isEditing, initialRecord } = useEditableRecord(
     data.tertiaryQualifications,
     createDefaultRecord,
   );
@@ -83,12 +83,19 @@ export default function Section2AddTertiary() {
     useState<File | null>(null);
   const [showValidation, setShowValidation] = useState(false);
 
+  const syncedRecordIdRef = useRef(id);
+
   useEffect(() => {
+    if (syncedRecordIdRef.current === id) {
+      return;
+    }
+
+    syncedRecordIdRef.current = id;
     setFormData(initialRecord);
     setSelectedTranscriptFile(null);
     setSelectedCertificateFile(null);
     setShowValidation(false);
-  }, [initialRecord]);
+  }, [id, initialRecord]);
 
   const {
     clearParseStatusMessage,
