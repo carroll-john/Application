@@ -200,6 +200,7 @@ export default function Section2AddTertiary() {
       isEditing={isEditing}
       navigateAfterSave={false}
       onContinue={handleSaveAndContinue}
+      previousDisabled={isSaving || isParsingTranscript}
     >
       <div className="space-y-6">
         {activeStatusMessage ? (
