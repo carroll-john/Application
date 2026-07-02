@@ -42,6 +42,7 @@ interface ApplicationContextType {
   getNextIncompleteSection: (
     application?: ApplicationData,
   ) => StepCompletionLabel | null;
+  hydrationError: string | null;
   isHydrating: boolean;
   markApplicationSubmitted: () => Promise<void>;
   openApplication: (applicationId: string) => Promise<void>;
@@ -119,6 +120,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     data,
     ensureApplicationRow,
     ensureRemoteRecordId,
+    hydrationError,
     isHydrating,
     markApplicationSubmitted,
     openApplication,
@@ -151,6 +153,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       ensureApplicationRow,
       ensureRemoteRecordId,
       getNextIncompleteSection: dataActions.getNextIncompleteSection,
+      hydrationError,
       isHydrating,
       markApplicationSubmitted,
       openApplication,
@@ -189,6 +192,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       dataActions,
       ensureApplicationRow,
       ensureRemoteRecordId,
+      hydrationError,
       isHydrating,
       markApplicationSubmitted,
       openApplication,

@@ -6,6 +6,7 @@ import {
   type SelectedCourse,
 } from "../../../lib/applicationData";
 import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageAdapter";
+import { captureSentryException } from "../../../lib/sentry";
 import { beginCourseApplication as runBeginCourseApplication } from "./beginCourseApplication";
 import type { BeginCourseApplicationOptions } from "./applicationOrchestrationTypes";
 import { hydrateApplicationState } from "./useApplicationHydration";
@@ -46,6 +47,7 @@ export function useApplicationStorageOrchestration({
     null,
   );
   const [isHydrating, setIsHydrating] = useState(true);
+  const [hydrationError, setHydrationError] = useState<string | null>(null);
   const isMountedRef = useRef(true);
   const { applications, setApplications, upsertSummary } = useApplicationSummaries();
 
@@ -93,6 +95,20 @@ export function useApplicationStorageOrchestration({
         setData,
         storageAdapter,
       });
+
+      if (isMountedRef.current) {
+        setHydrationError(null);
+      }
+    } catch (error) {
+      captureSentryException(error, {
+        tags: { flow: "application_hydration" },
+      });
+
+      if (isMountedRef.current) {
+        setHydrationError(
+          "We couldn't load your application data. Try refreshing the page.",
+        );
+      }
     } finally {
       if (isMountedRef.current) {
         setIsHydrating(false);
@@ -143,6 +159,7 @@ export function useApplicationStorageOrchestration({
       data,
       ensureApplicationRow,
       ensureRemoteRecordId,
+      hydrationError,
       isHydrating,
       markApplicationSubmitted,
       openApplication,
@@ -157,6 +174,7 @@ export function useApplicationStorageOrchestration({
       data,
       ensureApplicationRow,
       ensureRemoteRecordId,
+      hydrationError,
       isHydrating,
       markApplicationSubmitted,
       openApplication,
