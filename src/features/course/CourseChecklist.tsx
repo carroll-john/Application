@@ -1,5 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
 import { NativeSelect } from "../../components/ui/native-select";
+import type { EligibilityQuestionOption } from "../../lib/courseEligibility";
 
 export function CourseChecklist({ items }: { items: readonly string[] }) {
   return (
@@ -22,7 +23,7 @@ export function EligibilitySelectField({
 }: {
   label: string;
   value: string;
-  options: readonly string[];
+  options: readonly EligibilityQuestionOption[];
   onChange: (value: string) => void;
 }) {
   return (
@@ -38,8 +39,8 @@ export function EligibilitySelectField({
       >
         <option value="">Select...</option>
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </NativeSelect>
