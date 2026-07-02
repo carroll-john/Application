@@ -7,7 +7,12 @@ import {
   isEnglishMediumQualification,
   languageTestSatisfiesEnglishRequirement,
 } from "./englishProficiencyEvidence";
-import { requirementKindLabel, type RequirementInstance } from "./requirements";
+import {
+  formatAcademicThreshold,
+  formatFieldOfStudyAreas,
+  requirementKindLabel,
+  type RequirementInstance,
+} from "./requirements";
 import type {
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
@@ -25,11 +30,14 @@ export interface ProgramEvidenceRow {
   actionLabel?: string;
   actionPath?: string;
   explanation: string;
+  /** Short, non-duplicated display title for the card. Falls back to `sourceText` verbatim. */
+  heading: string;
   id: string;
   isBlocking: boolean;
   kindLabel: string;
   requirementId: string;
   requirementStatus?: EligibilityRequirementStatus;
+  /** Verbatim published requirement sentence — kept for feedback/validation traceability. */
   sourceText: string;
   status: ProgramEvidenceStatus;
   statusLabel: string;
@@ -79,6 +87,30 @@ function shouldSkipPairedQualificationLevel(
   );
 }
 
+/**
+ * Short, non-duplicated card title. `academic_threshold`, `field_of_study`, and `work_experience`
+ * sourceText is often a compound sentence that restates another requirement's clause (e.g. a GPA
+ * requirement repeating the qualification-level sentence just to append the GPA figure, or all
+ * three sharing one un-split published sentence) — for those kinds, build a heading from the
+ * structured params instead of the verbatim sentence. Other kinds don't have this duplication
+ * problem, so they keep the verbatim sourceText as their heading.
+ */
+function formatRequirementHeading(instance: RequirementInstance): string {
+  if (instance.kind === "academic_threshold") {
+    return `Minimum ${formatAcademicThreshold(instance.params)}`;
+  }
+
+  if (instance.kind === "field_of_study") {
+    return `Accepted fields: ${formatFieldOfStudyAreas(instance.params)}`;
+  }
+
+  if (instance.kind === "work_experience") {
+    return `${instance.params.minYears}+ years' relevant experience`;
+  }
+
+  return instance.sourceText;
+}
+
 function statusFromCheck(
   instance: RequirementInstance,
   check: EligibilityRequirementCheck | undefined,
@@ -91,7 +123,7 @@ function statusFromCheck(
     return {
       actionLabel: "Add transcript",
       actionPath: tertiaryPath,
-      explanation: "Add transcript evidence so this program requirement can be reviewed.",
+      explanation: "Add your transcript to verify this requirement.",
       isBlocking: true,
       status: hasTranscriptEvidence ? "needs_review" : "needs_evidence",
     };
@@ -122,7 +154,7 @@ function statusFromCheck(
       actionLabel: "Add work evidence",
       actionPath: employmentPath,
       explanation:
-        "The extracted academic result is below this program threshold. Add relevant work evidence if you want admissions to review an alternate pathway.",
+        "Your result is below this requirement. Add work experience for admissions to consider an alternate pathway.",
       isBlocking: false,
       requirementStatus: check.status,
       status: "possible_alternative",
@@ -183,8 +215,8 @@ function englishRequirementRow(
       actionLabel: "Update English test",
       actionPath: `/section2/edit-language-test/${firstLanguageTest.id}?from=review`,
       explanation: hasDocument && hasOverallScore
-        ? "The supplied English test evidence does not meet this program's accepted score pathway. Add another approved test or current AHPRA registration."
-        : "Add the official score report and required scores so this program's English requirement can be checked.",
+        ? "Your English test doesn't meet this program's required scores. Add another approved test or AHPRA registration."
+        : "Add your official score report so this requirement can be checked.",
       isBlocking: true,
       status: hasDocument && hasOverallScore ? "needs_evidence" : "needs_details",
     };
@@ -198,7 +230,7 @@ function englishRequirementRow(
       actionLabel: "Update registration",
       actionPath: `/section2/edit-accreditation/${firstAhpraLikeAccreditation.id}?from=review`,
       explanation:
-        "AHPRA evidence must be marked active and include the supporting document before it can satisfy English proficiency.",
+        "Mark your AHPRA registration active and attach the supporting document.",
       isBlocking: true,
       status: "needs_details",
     };
@@ -208,7 +240,7 @@ function englishRequirementRow(
   return {
     actionLabel: "Add English evidence",
     actionPath: languagePath,
-    explanation: `Add an approved English test, current AHPRA registration, or qualification from an accepted English-speaking country (${acceptedCountries}).`,
+    explanation: `Add an approved English test, AHPRA registration, or a qualification from an accepted English-speaking country (${acceptedCountries}).`,
     isBlocking: true,
     status: "needs_evidence",
   };
@@ -225,8 +257,8 @@ function workExperienceRow(
     return {
       explanation:
         data.cvUploaded
-          ? "Work experience evidence has been added with a CV for admissions review."
-          : "Work experience has been added. A CV can strengthen evidence for manual review.",
+          ? "Work experience and CV added for admissions review."
+          : "Work experience added. A CV can strengthen your case.",
       isBlocking: false,
       status: "met",
     };
@@ -235,7 +267,7 @@ function workExperienceRow(
   return {
     actionLabel: "Add work experience",
     actionPath: employmentPath,
-    explanation: `Add evidence for ${instance.params.minYears}+ years of relevant work experience.`,
+    explanation: `Add evidence of ${instance.params.minYears}+ years' relevant experience.`,
     isBlocking: true,
     status: "needs_evidence",
   };
@@ -273,6 +305,7 @@ export function buildProgramEvidenceRows(options: {
     }
 
     const base = {
+      heading: formatRequirementHeading(instance),
       id: instance.alternativeGroupId ?? instance.id,
       kindLabel: requirementKindLabel(instance.kind),
       requirementId: instance.id,

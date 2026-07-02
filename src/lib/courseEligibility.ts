@@ -1,7 +1,7 @@
 import type { CourseCatalogEntry } from "./courseCatalog";
-import type {
-  AcademicThresholdParams,
-  RequirementInstance,
+import {
+  formatAcademicThreshold,
+  type RequirementInstance,
 } from "./eligibility/requirements";
 
 export type CourseEducationLevel =
@@ -168,16 +168,6 @@ function hasRequirement(
   kind: RequirementInstance["kind"],
 ) {
   return requirements.some((requirement) => requirement.kind === kind);
-}
-
-function formatAcademicThreshold(params: AcademicThresholdParams): string {
-  if (params.metric === "gpa") {
-    return params.scale != null
-      ? `${params.min}/${params.scale} GPA`
-      : `${params.min} GPA`;
-  }
-
-  return params.scale === 100 ? `${params.min}% WAM` : `${params.min} WAM`;
 }
 
 function buildAcademicThresholdOptions(
