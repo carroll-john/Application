@@ -26,28 +26,22 @@ export function TertiaryTranscriptUploadCard({
       icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
       title="Academic Transcript"
     >
-      <div className="space-y-3">
-        <DocumentUploadField
-          attachedDescription="Your transcript is the academic record that shows the subjects you studied and the results you achieved."
-          attachedStatus="Transcript attached"
-          description="PDF, DOC, DOCX or TXT, up to 5 MB. One transcript drafts one qualification — we'll fill in the details below automatically."
-          document={formData.transcriptDocument}
-          documentName={formData.transcriptDocumentName}
-          label="Upload transcript"
-          missingStatus="Transcript required before submit"
-          missingTone="warning"
-          onClearDocument={onClearTranscriptDocument}
-          onClearSelectedFile={onClearTranscriptFile}
-          onFileSelect={onSelectTranscriptFile}
-          required={!hasTranscript}
-          selectedFile={selectedTranscriptFile}
-          showStatusIcon
-        />
-        <p className="text-xs text-slate-500">
-          Each transcript maps to one qualification. After you choose a file, we&apos;ll draft
-          that qualification here for you to review, then save when ready.
-        </p>
-      </div>
+      <DocumentUploadField
+        attachedDescription="Your transcript is the academic record that shows the subjects you studied and the results you achieved."
+        attachedStatus="Transcript attached"
+        description="PDF, DOC, DOCX or TXT, up to 5 MB."
+        document={formData.transcriptDocument}
+        documentName={formData.transcriptDocumentName}
+        label="Upload transcript"
+        missingStatus="Transcript required before submit"
+        missingTone="warning"
+        onClearDocument={onClearTranscriptDocument}
+        onClearSelectedFile={onClearTranscriptFile}
+        onFileSelect={onSelectTranscriptFile}
+        required={!hasTranscript}
+        selectedFile={selectedTranscriptFile}
+        showStatusIcon
+      />
     </Section2FormCard>
   );
 }
