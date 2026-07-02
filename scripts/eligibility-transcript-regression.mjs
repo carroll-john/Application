@@ -227,6 +227,19 @@ function institutionKeyword(university) {
   return words.length > 0 ? words[words.length - 1].toLowerCase() : normalized;
 }
 
+function resolveEvidenceSource(payload) {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    payload.extractedData &&
+    typeof payload.extractedData === "object" &&
+    !Array.isArray(payload.extractedData)
+  ) {
+    return payload.extractedData;
+  }
+  return payload;
+}
+
 function readFieldValue(extractedGroup, fieldName) {
   const field = extractedGroup?.[fieldName];
   if (!field || typeof field !== "object") {
@@ -350,7 +363,7 @@ async function runFixtureCase({ baseUrl, context, fixture, timeoutMs, strict, ve
   }
 
   const institutionValue = readFieldValue(
-    payload?.extractedData?.applicantDetails,
+    resolveEvidenceSource(payload)?.applicantDetails,
     "institutionName",
   );
   const keyword = institutionKeyword(fixture.university);
