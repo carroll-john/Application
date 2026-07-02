@@ -48,18 +48,6 @@ function getEligibilityOutcomeTone(outcome: EligibilityOutcome) {
   return "text-[var(--info-text)]";
 }
 
-function getProgramEvidenceTone(status: string) {
-  if (status === "met") {
-    return "text-[var(--success-text)]";
-  }
-
-  if (status === "needs_review" || status === "possible_alternative") {
-    return "text-[var(--info-text)]";
-  }
-
-  return "text-[var(--warning-text)]";
-}
-
 function getLatestTranscriptAssessment(
   assessments: Array<TranscriptEligibilityAssessment | undefined>,
 ) {
@@ -118,18 +106,14 @@ function buildAssessmentEvidenceRows(assessment: TranscriptEligibilityAssessment
   const rows: Array<{
     explanation: string;
     id: string;
-    kindLabel: string;
     sourceText: string;
-    statusLabel: string;
   }> = [];
 
   if (completion) {
     rows.push({
       explanation: `Completion status: ${completion}.`,
       id: "completion-status",
-      kindLabel: "Completion evidence",
       sourceText: "Qualification completion from transcript",
-      statusLabel: "Captured",
     });
   }
 
@@ -142,9 +126,7 @@ function buildAssessmentEvidenceRows(assessment: TranscriptEligibilityAssessment
     rows.push({
       explanation: academicResults.join(" · "),
       id: "academic-result",
-      kindLabel: "WAM/GPA evidence",
       sourceText: "Academic result from transcript",
-      statusLabel: "Captured",
     });
   }
 
@@ -155,32 +137,14 @@ function EvidenceReviewRow({
   action,
   explanation,
   heading,
-  kindLabel,
-  statusClassName = "text-[var(--success-text)]",
-  statusLabel,
 }: {
   action?: ReactNode;
   explanation: string;
   heading: string;
-  kindLabel?: string;
-  statusClassName?: string;
-  statusLabel: string;
 }) {
   return (
     <li className="rounded-md border border-gray-200 p-3">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-        <p className="text-xs font-semibold text-gray-900 sm:text-sm">
-          {heading}
-        </p>
-        <p className={`text-xs font-semibold sm:text-sm ${statusClassName}`}>
-          {statusLabel}
-        </p>
-      </div>
-      {kindLabel ? (
-        <p className="mt-1 text-[11px] uppercase tracking-wide text-gray-500 sm:text-xs">
-          {kindLabel}
-        </p>
-      ) : null}
+      <p className="text-xs font-semibold text-gray-900 sm:text-sm">{heading}</p>
       <p className="mt-1 text-xs text-gray-700 sm:text-sm">{explanation}</p>
       {action}
     </li>
@@ -345,8 +309,6 @@ export default function Section2Qualifications() {
                   key={row.id}
                   explanation={row.explanation}
                   heading={row.sourceText}
-                  kindLabel={row.kindLabel}
-                  statusLabel={row.statusLabel}
                 />
               ))}
             </ul>
@@ -369,9 +331,6 @@ export default function Section2Qualifications() {
                   }
                   explanation={row.explanation}
                   heading={row.heading}
-                  kindLabel={row.kindLabel}
-                  statusClassName={getProgramEvidenceTone(row.status)}
-                  statusLabel={row.statusLabel}
                 />
               ))}
             </ul>
