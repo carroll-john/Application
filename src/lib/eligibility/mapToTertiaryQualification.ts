@@ -187,9 +187,14 @@ export function mapExtractedDataToQualification(
     readFieldValue(extractedData.applicantDetails?.countryOfInstitution),
   );
   const courseName = readFieldValue(extractedData.studyDetails?.programName);
-  const level = normalizeQualificationLevel(
-    readFieldValue(extractedData.studyDetails?.highestEducationLevel),
-  );
+  const level =
+    normalizeQualificationLevel(
+      readFieldValue(extractedData.studyDetails?.highestEducationLevel),
+    ) ||
+    normalizeQualificationLevel(
+      extractedData.studyDetails?.highestEducationLevel?.originalValue ?? "",
+    ) ||
+    normalizeQualificationLevel(courseName);
 
   const start = parseMonthYear(readFieldValue(extractedData.studyDetails?.startDate));
   const completionStatus = readFieldValue(extractedData.studyDetails?.completionStatus);
