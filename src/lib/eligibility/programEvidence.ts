@@ -10,7 +10,9 @@ import {
 import {
   formatAcademicThreshold,
   formatFieldOfStudyAreas,
+  formatQualificationLevel,
   requirementKindLabel,
+  type QualificationLevel,
   type RequirementInstance,
 } from "./requirements";
 import type {
@@ -88,14 +90,39 @@ function shouldSkipPairedQualificationLevel(
 }
 
 /**
- * Short, non-duplicated card title. `academic_threshold`, `field_of_study`, and `work_experience`
- * sourceText is often a compound sentence that restates another requirement's clause (e.g. a GPA
- * requirement repeating the qualification-level sentence just to append the GPA figure, or all
- * three sharing one un-split published sentence) — for those kinds, build a heading from the
- * structured params instead of the verbatim sentence. Other kinds don't have this duplication
- * problem, so they keep the verbatim sourceText as their heading.
+ * The qualification level to summarize for a `qualification_completed`/`qualification_level`
+ * card. `qualification_completed` params never carry a level (see `QualificationCompletedParams`),
+ * so when the rendered instance is the "completed" side of a deduped pair
+ * (`shouldSkipPairedQualificationLevel`), look up the level from its sibling
+ * `qualification_level` instance in the same course's requirement list.
  */
-function formatRequirementHeading(instance: RequirementInstance): string {
+function findQualificationLevel(
+  instance: RequirementInstance,
+  requirements: readonly RequirementInstance[],
+): QualificationLevel | undefined {
+  if (instance.kind === "qualification_level") {
+    return instance.params.level;
+  }
+
+  if (instance.kind === "qualification_completed") {
+    return requirements.find((candidate) => candidate.kind === "qualification_level")?.params
+      .level;
+  }
+
+  return undefined;
+}
+
+/**
+ * Short, non-duplicated card title. Requirement sourceText is the verbatim published sentence,
+ * which is often a compound clause that restates another requirement's wording (e.g. a GPA
+ * requirement repeating the qualification-level sentence just to append the GPA figure, or
+ * several requirements sharing one un-split published sentence) — build a heading from each
+ * requirement's structured params instead.
+ */
+function formatRequirementHeading(
+  instance: RequirementInstance,
+  requirements: readonly RequirementInstance[],
+): string {
   if (instance.kind === "academic_threshold") {
     return `Minimum ${formatAcademicThreshold(instance.params)}`;
   }
@@ -105,10 +132,15 @@ function formatRequirementHeading(instance: RequirementInstance): string {
   }
 
   if (instance.kind === "work_experience") {
-    return `${instance.params.minYears}+ years' relevant experience`;
+    return "Relevant Work Experience";
   }
 
-  return instance.sourceText;
+  if (instance.kind === "english_proficiency") {
+    return requirementKindLabel("english_proficiency");
+  }
+
+  const level = findQualificationLevel(instance, requirements);
+  return level ? formatQualificationLevel(level) : instance.sourceText;
 }
 
 function statusFromCheck(
@@ -305,7 +337,7 @@ export function buildProgramEvidenceRows(options: {
     }
 
     const base = {
-      heading: formatRequirementHeading(instance),
+      heading: formatRequirementHeading(instance, requirements),
       id: instance.alternativeGroupId ?? instance.id,
       kindLabel: requirementKindLabel(instance.kind),
       requirementId: instance.id,
