@@ -20,9 +20,7 @@ interface Section2RecordPageProps {
   navigateAfterSave?: boolean;
   onContinue?: () => void | Promise<void>;
   onDismissStatus?: () => void;
-  onPrevious?: () => void;
   onSave?: () => void | Promise<void>;
-  previousDisabled?: boolean;
   statusMessage?: Section2RecordStatusMessage | null;
 }
 
@@ -39,9 +37,7 @@ export function Section2RecordPage({
   navigateAfterSave = true,
   onContinue,
   onDismissStatus,
-  onPrevious,
   onSave,
-  previousDisabled,
   statusMessage,
 }: Section2RecordPageProps) {
   const { returnToQualifications } = useSection2Navigation();
@@ -70,9 +66,6 @@ export function Section2RecordPage({
       continueLabel={continueLabel}
       description={description}
       onContinue={handleContinue}
-      onPrevious={onPrevious ?? returnToQualifications}
-      previousDisabled={previousDisabled}
-      previousLabel="Cancel"
       progress={SECTION2_PROGRESS}
       sectionLabel={SECTION2_SECTION_LABEL}
       title={isEditing ? editTitle : addTitle}

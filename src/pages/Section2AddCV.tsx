@@ -105,7 +105,6 @@ export default function Section2AddCV() {
       editTitle="Upload your CV"
       isEditing={false}
       onContinue={handleSaveAndContinue}
-      previousDisabled={isSaving || isParsingCv}
     >
       <div className="space-y-6">
         {activeStatusMessage ? (

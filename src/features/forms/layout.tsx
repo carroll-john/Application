@@ -7,7 +7,7 @@ interface ApplicationShellProps {
   progress: number;
   title: string;
   description: string;
-  onPrevious: () => void;
+  onPrevious?: () => void;
   onContinue: () => void;
   onSaveAndExit?: () => void;
   previousLabel?: string;
