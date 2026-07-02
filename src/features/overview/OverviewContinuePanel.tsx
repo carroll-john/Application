@@ -31,12 +31,11 @@ export function OverviewContinuePanel({
               {nextAction.description}
             </p>
           </div>
-          <Button
-            className="hidden w-full shrink-0 sm:inline-flex sm:w-auto"
-            onClick={onContinue}
-          >
-            {nextAction.primaryLabel}
-          </Button>
+          <div className="hidden shrink-0 sm:block">
+            <Button className="w-full sm:w-auto" onClick={onContinue}>
+              {nextAction.primaryLabel}
+            </Button>
+          </div>
         </div>
       </SurfaceCard>
 
