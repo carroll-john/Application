@@ -25,15 +25,6 @@ interface DocumentUploadFieldProps {
   showStatusIcon?: boolean;
 }
 
-const attachedClassName =
-  "border-[var(--success-border)] bg-[linear-gradient(180deg,#ffffff_0%,#f7fcf9_100%)] shadow-[0_18px_40px_rgba(31,106,59,0.08)]";
-
-const missingClassNames: Record<MissingTone, string> = {
-  info: "border-[var(--info-border)] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbfd_100%)]",
-  warning:
-    "border-[var(--warning-border)] bg-[linear-gradient(180deg,#ffffff_0%,#fffaf0_100%)] shadow-[0_18px_40px_rgba(122,90,0,0.08)]",
-};
-
 const missingTextClassNames: Record<MissingTone, string> = {
   info: "text-[var(--info-text)]",
   warning: "text-[var(--warning-text)]",
@@ -65,9 +56,6 @@ export function DocumentUploadField({
     <div>
       <FileUpload
         attachedDescription={attachedDescription}
-        className={
-          hasDocument ? attachedClassName : missingClassNames[missingTone]
-        }
         description={description}
         fileName={selectedFile?.name || document?.name || documentName}
         fileSize={selectedFile?.size || document?.size}
