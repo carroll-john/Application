@@ -19,6 +19,7 @@
     "dev:transcript-eligibility-api": "tsx ./scripts/dev-transcript-eligibility-server.mjs",
     "dev:suggest-api": "tsx ./scripts/dev-suggest-server.mjs",
     "smoke:eligibility-ui": "node ./scripts/smoke-eligibility-ui.mjs",
+    "smoke:console": "node ./scripts/console-smoke.mjs",
     "funnel:bot": "node ./scripts/synthetic-funnel-bot.mjs",
     "eligibility:parse-requirements": "tsx ./scripts/parse-course-requirements.ts",
     "eligibility:eval": "tsx ./scripts/eligibility-eval.ts",
