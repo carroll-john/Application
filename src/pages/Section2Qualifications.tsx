@@ -25,6 +25,7 @@ import { getCourseByCode } from "../lib/courseCatalog";
 import {
   buildProgramEvidenceRows,
   filterResolvedTranscriptMissingInformation,
+  groupTranscriptVerifiableEvidenceRows,
   shouldShowTranscriptRecommendedNextStep,
 } from "../lib/eligibility/programEvidence";
 import type {
@@ -197,7 +198,10 @@ export default function Section2Qualifications() {
   const assessmentEvidenceRows = latestTranscriptAssessment
     ? buildAssessmentEvidenceRows(latestTranscriptAssessment)
     : [];
-  const blockingProgramEvidenceRows = programEvidenceRows.filter((row) => row.isBlocking);
+  const displayProgramEvidenceRows = groupTranscriptVerifiableEvidenceRows(programEvidenceRows);
+  const blockingProgramEvidenceRows = displayProgramEvidenceRows.filter(
+    (row) => row.isBlocking,
+  );
   const transcriptFeedbackRows = latestTranscriptAssessment
     ? programEvidenceRows.filter((row) => row.requirementStatus)
     : [];
@@ -314,9 +318,9 @@ export default function Section2Qualifications() {
               ))}
             </ul>
           ) : null}
-          {programEvidenceRows.length > 0 ? (
+          {displayProgramEvidenceRows.length > 0 ? (
             <ul className="mt-3 space-y-2" aria-label="Program evidence requirements">
-              {programEvidenceRows.map((row) => (
+              {displayProgramEvidenceRows.map((row) => (
                 <EvidenceReviewRow
                   key={row.id}
                   action={

@@ -59,6 +59,7 @@ const ENGLISH_MISSING_INFORMATION_PATTERN =
 const tertiaryPath = "/section2/add-tertiary?from=review";
 const employmentPath = "/section2/add-employment?from=review";
 const languagePath = "/section2/add-language-test?from=review";
+const cvPath = "/section2/add-cv?from=review";
 
 function getCheckMap(checks: readonly EligibilityRequirementCheck[]) {
   const out = new Map<string, EligibilityRequirementCheck>();
@@ -297,8 +298,8 @@ function workExperienceRow(
   }
 
   return {
-    actionLabel: "Add work experience",
-    actionPath: employmentPath,
+    actionLabel: "Add CV",
+    actionPath: cvPath,
     explanation: `Add evidence of ${instance.params.minYears}+ years' relevant experience.`,
     isBlocking: true,
     status: "needs_evidence",
@@ -359,6 +360,77 @@ export function buildProgramEvidenceRows(options: {
   }
 
   return rows;
+}
+
+const TRANSCRIPT_VERIFIABLE_KIND_LABELS = new Set([
+  requirementKindLabel("qualification_completed"),
+  requirementKindLabel("qualification_level"),
+  requirementKindLabel("academic_threshold"),
+  requirementKindLabel("english_proficiency"),
+]);
+
+const transcriptGroupPhrases: Record<string, string> = {
+  [requirementKindLabel("qualification_completed")]: "your qualification",
+  [requirementKindLabel("qualification_level")]: "your qualification",
+  [requirementKindLabel("academic_threshold")]: "your academic result",
+  [requirementKindLabel("english_proficiency")]: "your English language proficiency",
+};
+
+/**
+ * Qualification, academic threshold, and English proficiency can all be verified from the same
+ * uploaded transcript, so when two or more of them still need evidence, collapse them into a
+ * single "Add transcript" card instead of one card per requirement. Rows that are already met, or
+ * that aren't transcript-verifiable (work experience, field of study), pass through unchanged.
+ *
+ * This only changes what's rendered as cards -- callers that need the true per-requirement
+ * breakdown (transcript feedback, Review & Submit's missing-field list) should keep using
+ * `buildProgramEvidenceRows`'s ungrouped output directly.
+ */
+export function groupTranscriptVerifiableEvidenceRows(
+  rows: readonly ProgramEvidenceRow[],
+): ProgramEvidenceRow[] {
+  const groupable = rows.filter(
+    (row) => row.isBlocking && TRANSCRIPT_VERIFIABLE_KIND_LABELS.has(row.kindLabel),
+  );
+
+  if (groupable.length < 2) {
+    return [...rows];
+  }
+
+  const groupableIds = new Set(groupable.map((row) => row.id));
+  const phrases = groupable
+    .map((row) => transcriptGroupPhrases[row.kindLabel])
+    .filter((phrase): phrase is string => Boolean(phrase));
+  const mergedRow: ProgramEvidenceRow = {
+    actionLabel: "Add transcript",
+    actionPath: groupable.find((row) => row.actionPath)?.actionPath ?? tertiaryPath,
+    explanation: `Add your transcript to verify ${new Intl.ListFormat("en", {
+      style: "long",
+      type: "conjunction",
+    }).format(phrases)}.`,
+    heading: "Academic transcript",
+    id: "transcript-group",
+    isBlocking: true,
+    kindLabel: "",
+    requirementId: "transcript-group",
+    sourceText: "Academic transcript",
+    status: "needs_evidence",
+    statusLabel: programEvidenceStatusCopy.needs_evidence,
+  };
+
+  const result: ProgramEvidenceRow[] = [];
+  let mergedInserted = false;
+  for (const row of rows) {
+    if (!groupableIds.has(row.id)) {
+      result.push(row);
+      continue;
+    }
+    if (!mergedInserted) {
+      result.push(mergedRow);
+      mergedInserted = true;
+    }
+  }
+  return result;
 }
 
 export function getBlockingProgramEvidenceRows(options: {
