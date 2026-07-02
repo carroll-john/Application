@@ -76,6 +76,31 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Console error smoke check
+        run: |
+          npx vite preview --host 127.0.0.1 --port 4173 --strictPort > /tmp/vite-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true; cat /tmp/vite-preview.log || true' EXIT
+
+          ready=false
+          for attempt in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:4173 > /dev/null; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" != true ]; then
+            echo "Preview server did not become ready."
+            exit 1
+          fi
+
+          npm run smoke:console -- --base-url http://127.0.0.1:4173
+
   check-secrets:
     runs-on: ubuntu-latest
     timeout-minutes: 5

@@ -129,6 +129,7 @@ function AuthRequiredLayout() {
     isLoading,
     isPasswordRecovery,
   } = useAuth();
+  const { hydrationError, refreshApplications } = useApplication();
   const location = useLocation();
 
   if (isLoading) {
@@ -165,7 +166,23 @@ function AuthRequiredLayout() {
     );
   }
 
-  return <Outlet />;
+  return (
+    <>
+      {hydrationError ? (
+        <div className="border-b border-[var(--warning-border)] bg-white px-4 py-3 text-center text-sm text-slate-700">
+          {hydrationError}{" "}
+          <button
+            type="button"
+            onClick={() => void refreshApplications()}
+            className="font-medium underline underline-offset-2"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+      <Outlet />
+    </>
+  );
 }
 
 const createAppRouter = isSentryEnabled
