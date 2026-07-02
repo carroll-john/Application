@@ -74,7 +74,7 @@ export function CourseDetailsHero({
           </h2>
           <CourseChecklist
             items={[
-              "Start with a course-specific eligibility check",
+              "Start with a course-specific evidence check",
               "Create or reuse your profile after sign in",
               "Save and resume applications across courses",
             ]}
@@ -121,7 +121,7 @@ export function CourseDetailsHero({
               onOpenEligibilityCheck();
             }}
           >
-            Eligibility Check
+            Check Required Evidence
           </Button>
         </SurfaceCard>
       </div>

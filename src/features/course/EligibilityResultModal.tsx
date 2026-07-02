@@ -107,7 +107,7 @@ function getEligibilityResultTitle(
     return "Choose How To Start";
   }
 
-  return isEligible ? "Eligible to apply" : "Not eligible yet";
+  return isEligible ? "Evidence looks ready" : "More evidence needed";
 }
 
 function getEligibleApplyLabel({
@@ -197,8 +197,8 @@ export function EligibilityResultModal({
             }`}
           >
             {isEligible
-              ? "You meet the entry criteria"
-              : "You do not meet the entry criteria yet"}
+              ? "Your answers match the program evidence requirements"
+              : "Some program evidence needs attention"}
           </p>
           <p className="text-sm leading-6 text-slate-600">
             {eligibilityReason}

@@ -107,6 +107,7 @@ export type Database = {
           created_at: string
           cv_document_id: string | null
           cv_file_name: string | null
+          english_proficiency_policy: Json | null
           id: string
           intake_label: string
           personal_details: Json
@@ -125,6 +126,7 @@ export type Database = {
           created_at?: string
           cv_document_id?: string | null
           cv_file_name?: string | null
+          english_proficiency_policy?: Json | null
           id?: string
           intake_label: string
           personal_details?: Json
@@ -143,6 +145,7 @@ export type Database = {
           created_at?: string
           cv_document_id?: string | null
           cv_file_name?: string | null
+          english_proficiency_policy?: Json | null
           id?: string
           intake_label?: string
           personal_details?: Json
@@ -257,9 +260,14 @@ export type Database = {
           document_id: string | null
           document_name: string | null
           id: string
+          listening_score: number | null
+          overall_score: number | null
+          reading_score: number | null
+          speaking_score: number | null
           test_name: string
           test_type: string
           updated_at: string
+          writing_score: number | null
         }
         Insert: {
           application_id: string
@@ -268,9 +276,14 @@ export type Database = {
           document_id?: string | null
           document_name?: string | null
           id?: string
+          listening_score?: number | null
+          overall_score?: number | null
+          reading_score?: number | null
+          speaking_score?: number | null
           test_name: string
           test_type: string
           updated_at?: string
+          writing_score?: number | null
         }
         Update: {
           application_id?: string
@@ -279,9 +292,14 @@ export type Database = {
           document_id?: string | null
           document_name?: string | null
           id?: string
+          listening_score?: number | null
+          overall_score?: number | null
+          reading_score?: number | null
+          speaking_score?: number | null
           test_name?: string
           test_type?: string
           updated_at?: string
+          writing_score?: number | null
         }
         Relationships: [
           {

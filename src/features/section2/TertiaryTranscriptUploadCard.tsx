@@ -22,7 +22,7 @@ export function TertiaryTranscriptUploadCard({
 }: TertiaryTranscriptUploadCardProps) {
   return (
     <Section2FormCard
-      description="Upload your academic transcript and we'll draft one qualification from it, then run a course eligibility check."
+      description="Upload your academic transcript and we'll draft one qualification from it, then review program evidence."
       icon={<FileText className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]" />}
       title="Academic Transcript"
     >

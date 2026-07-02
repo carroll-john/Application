@@ -65,6 +65,7 @@ export interface EligibilityStudyDetails {
   languageOfInstruction?: EligibilityExtractedField;
   programName?: EligibilityExtractedField;
   startDate?: EligibilityExtractedField;
+  studyEndDate?: EligibilityExtractedField;
 }
 
 export interface EligibilityAcademicPerformance {
@@ -137,4 +138,3 @@ export interface TranscriptEligibilityRequestContext {
    */
   requirements?: RequirementInstance[];
 }
-

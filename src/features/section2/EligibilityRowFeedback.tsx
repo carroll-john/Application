@@ -20,7 +20,7 @@ interface EligibilityRowFeedbackProps {
 }
 
 /**
- * Per-requirement-row affordance that lets the applicant suggest a correction when the automated
+ * Per-requirement affordance that lets the applicant suggest a correction when the automated
  * status does not match their transcript. Feedback is posted to PostHog for admissions review.
  */
 export function EligibilityRowFeedback({

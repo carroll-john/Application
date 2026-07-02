@@ -4,7 +4,10 @@ import {
   mergeStoredApplicationData,
   type ApplicationData,
 } from "../applicationData";
-import { courseRequiresEnglishProficiency } from "../eligibility/englishProficiencyEvidence";
+import {
+  courseRequiresEnglishProficiency,
+  getEnglishProficiencyRequirements,
+} from "../eligibility/englishProficiencyEvidence";
 import {
   summarizeApplication,
   type ApplicationSummary,
@@ -211,7 +214,9 @@ export async function loadRemoteApplicationById(
       .order("created_at", { ascending: true }),
     client
       .from("language_tests")
-      .select("id, test_type, test_name, completion_year, document_id, document_name")
+      .select(
+        "id, test_type, test_name, completion_year, overall_score, listening_score, reading_score, writing_score, speaking_score, document_id, document_name",
+      )
       .eq("application_id", applicationId)
       .order("created_at", { ascending: true }),
   ]);
@@ -299,6 +304,7 @@ function buildApplicationPayload(
 ): TablesInsert<"applications"> {
   const defaultCourse = getDefaultCourse();
   const selectedCourse = data.applicationMeta.selectedCourse;
+  const selectedCourseEntry = getCourseByCode(selectedCourse?.code ?? null);
 
   return {
     applicant_profile_id: ids.remoteApplicantProfileId,
@@ -314,9 +320,10 @@ function buildApplicationPayload(
     // Persist whether the selected course requires English proficiency so the
     // submit RPC can enforce the conditional requirement (the catalog the client
     // derives this from is not available server-side).
-    requires_english_proficiency: courseRequiresEnglishProficiency(
-      getCourseByCode(selectedCourse?.code ?? null),
+    english_proficiency_policy: toJsonValue(
+      getEnglishProficiencyRequirements(selectedCourseEntry),
     ),
+    requires_english_proficiency: courseRequiresEnglishProficiency(selectedCourseEntry),
     status: data.applicationMeta.submittedAt ? "submitted" : "draft",
     submitted_at: data.applicationMeta.submittedAt ?? null,
     user_id: session.user.id,

@@ -164,13 +164,19 @@ describe("row -> domain mappers", () => {
         document_id: "missing",
         document_name: "ielts.pdf",
         id: "lang-1",
+        listening_score: 6,
+        overall_score: 6.5,
+        reading_score: 6,
+        speaking_score: 6,
         test_name: "IELTS",
         test_type: "English",
+        writing_score: 6,
       },
       documentMap,
     );
     expect(language.document).toBeUndefined();
     expect(language.documentName).toBe("ielts.pdf");
+    expect(language.overallScore).toBe("6.5");
 
     const accreditation = mapProfessionalAccreditationRow(
       {
@@ -289,17 +295,24 @@ describe("domain -> insert builders", () => {
     ).toBe(false);
   });
 
-  it("nulls empty employment end dates in the insert payload", () => {
+  it("maps language-test scores in the insert payload", () => {
     const insert = toLanguageTestInsert("app-3", {
       document: undefined,
       documentName: undefined,
       id: "local",
+      listeningScore: "6",
       name: "TOEFL",
+      overallScore: "7.5",
+      readingScore: "6.5",
+      speakingScore: "",
       type: "English",
+      writingScore: "6",
       year: "2021",
     });
     expect(insert.application_id).toBe("app-3");
     expect(insert.document_id).toBeNull();
     expect(insert.document_name).toBeNull();
+    expect(insert.overall_score).toBe(7.5);
+    expect(insert.speaking_score).toBeNull();
   });
 });

@@ -70,7 +70,6 @@ export default function CourseDetails() {
           course={course}
           eligibilityForm={eligibility.eligibilityForm}
           isComplete={eligibility.isEligibilityFormComplete}
-          requiresExperienceInput={eligibility.requiresExperienceInput}
           onAnswerChange={(updates) =>
             eligibility.setEligibilityForm((previous) => ({
               ...previous,

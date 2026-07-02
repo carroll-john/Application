@@ -66,7 +66,7 @@ export function usePendingTranscriptEligibility({
       if (!qualification) {
         setStatusMessage({
           message:
-            "We saved your qualification, but couldn't find it to run the eligibility check. Try editing the qualification again.",
+            "We saved your qualification, but couldn't find it to review program evidence. Try editing the qualification again.",
           type: "warning",
         });
         return;
@@ -109,7 +109,7 @@ export function usePendingTranscriptEligibility({
               : null);
 
           if (!transcriptFile) {
-            throw new Error("Unable to load the saved transcript for eligibility processing.");
+            throw new Error("Unable to load the saved transcript for evidence review.");
           }
 
           try {
@@ -178,7 +178,7 @@ export function usePendingTranscriptEligibility({
           message:
             error instanceof Error
               ? error.message
-              : "We couldn't complete the transcript eligibility check right now.",
+              : "We couldn't complete the transcript evidence review right now.",
           type: "warning",
         });
       } finally {

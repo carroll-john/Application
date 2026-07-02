@@ -2,6 +2,12 @@
 
 import { createServer } from "node:http";
 
+try {
+  process.loadEnvFile(".env.local");
+} catch {
+  // Local env file is optional; explicit shell env still works.
+}
+
 const host = process.env.TRANSCRIPT_ELIGIBILITY_HOST?.trim() || "127.0.0.1";
 const port = Number(process.env.TRANSCRIPT_ELIGIBILITY_PORT || 4191);
 

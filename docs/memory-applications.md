@@ -35,23 +35,25 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   `tertiary_qualifications.transcript_confirms_completion` so it survives reloads
   (`TertiaryQualification.transcriptCompletionConfirmed`).
 - **English proficiency** — required only when the course declares an
-  `english_proficiency` requirement, it can't be inferred from an
-  English-medium-country qualification (`DEFAULT_ENGLISH_MEDIUM_COUNTRIES`), **and**
-  no evidence is present — neither a language test **nor an AHPRA registration**
-  (`needsEnglishProficiencyEvidence`). An AHPRA registration is recognised from the
-  free-text accreditation name (`AHPRA_REGISTRATION_PATTERN` / `hasAhpraRegistration`)
-  and also satisfies the eligibility-card English check via
-  `requirementEvaluators.evaluateEnglishProficiency` (reason `ENGLISH_OK_AHPRA`).
+  `english_proficiency` requirement, it can't be inferred from an accepted
+  English-medium-country qualification, **and** no approved evidence is present
+  (`needsEnglishProficiencyEvidence`). Approved evidence is now program-specific:
+  an English test must have a ready score-report document and scores meeting the
+  selected program's generated requirement; AHPRA evidence must be recognised by
+  name, marked `Active`, and have a ready supporting document.
 
 ## Submission
 
 - Server-backed submit via `submit_application` RPC (`0002_server_submit.sql`, `0004_submission_rpc_grants.sql`).
 - Do not move application-number generation back to client-only code.
 - `application_submission_missing_fields` enforces the conditional requirements
-  above (migration `20260620120000_conditional_submission_requirements.sql`). It
-  reads `applications.requires_english_proficiency` and
-  `tertiary_qualifications.transcript_confirms_completion`, both derived and
-  written at save time in `src/lib/storage/remoteMappers.ts` / `remoteStore.ts`.
+  above (migrations `20260620120000_conditional_submission_requirements.sql` and
+  `20260701090000_program_evidence_validation.sql`). It reads
+  `applications.requires_english_proficiency`,
+  `applications.english_proficiency_policy`, language-test scores/documents, and
+  `tertiary_qualifications.transcript_confirms_completion`; the app writes the
+  course-derived signals at save time in `src/lib/storage/remoteMappers.ts` /
+  `remoteStore.ts`.
   The AHPRA regex and English-medium-country list are duplicated in SQL there —
   **keep them in sync** with `englishProficiencyEvidence.ts`.
 - **Gotcha — editing the submit RPC:** rebuild `application_submission_missing_fields`

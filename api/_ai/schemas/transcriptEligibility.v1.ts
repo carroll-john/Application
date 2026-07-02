@@ -36,6 +36,7 @@ const studyDetailsSchema = {
     "languageOfInstruction",
     "programName",
     "startDate",
+    "studyEndDate",
   ],
   properties: {
     completionDate: { anyOf: [extractedFieldSchema, { type: "null" }] },
@@ -45,6 +46,7 @@ const studyDetailsSchema = {
     languageOfInstruction: { anyOf: [extractedFieldSchema, { type: "null" }] },
     programName: { anyOf: [extractedFieldSchema, { type: "null" }] },
     startDate: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    studyEndDate: { anyOf: [extractedFieldSchema, { type: "null" }] },
   },
 } as const;
 
@@ -139,4 +141,3 @@ export const transcriptEligibilitySchemaV1 = {
 } as const;
 
 export type TranscriptEligibilitySchema = typeof transcriptEligibilitySchemaV1;
-

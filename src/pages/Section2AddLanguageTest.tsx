@@ -9,7 +9,21 @@ import { Section2FormCard, Section2RecordPage } from "../features/section2";
 import { useEditableRecord } from "../hooks/useEditableRecord";
 import { useSection2RecordSave } from "../hooks/useSection2RecordSave";
 import { saveSection2DocumentRecord } from "../features/section2/section2DocumentSave";
+import type { LanguageTest } from "../lib/applicationData";
 import { years } from "../lib/formOptions";
+
+const componentScoreFields: Array<{
+  field: keyof Pick<
+    LanguageTest,
+    "listeningScore" | "readingScore" | "writingScore" | "speakingScore"
+  >;
+  label: string;
+}> = [
+  { field: "listeningScore", label: "Listening" },
+  { field: "readingScore", label: "Reading" },
+  { field: "writingScore", label: "Writing" },
+  { field: "speakingScore", label: "Speaking" },
+];
 
 export default function Section2AddLanguageTest() {
   const { data, ensureApplicationRow, addLanguageTest, updateLanguageTest } =
@@ -21,6 +35,11 @@ export default function Section2AddLanguageTest() {
       type: "",
       name: "",
       year: "",
+      overallScore: "",
+      listeningScore: "",
+      readingScore: "",
+      writingScore: "",
+      speakingScore: "",
       document: undefined,
       documentName: undefined,
     }),
@@ -122,6 +141,43 @@ export default function Section2AddLanguageTest() {
             />
           </div>
 
+          <div className="space-y-4">
+            <div>
+              <Label>Overall Score</Label>
+              <Input
+                inputMode="decimal"
+                placeholder="e.g. 6.5"
+                type="number"
+                value={formData.overallScore ?? ""}
+                onChange={(event) =>
+                  setFormData((previous) => ({
+                    ...previous,
+                    overallScore: event.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {componentScoreFields.map(({ field, label }) => (
+                <div key={field}>
+                  <Label>{label} Score</Label>
+                  <Input
+                    inputMode="decimal"
+                    placeholder="e.g. 6.0"
+                    type="number"
+                    value={formData[field] ?? ""}
+                    onChange={(event) =>
+                      setFormData((previous) => ({
+                        ...previous,
+                        [field]: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
           <DocumentUploadField
             attachedDescription="Your test results document is attached. You can view or remove it below."
             attachedStatus="Results document attached"
@@ -144,7 +200,8 @@ export default function Section2AddLanguageTest() {
 
           <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
             <p className="text-sm text-[var(--info-text)]">
-              <strong>Note:</strong> Check that your score meets the course requirement.
+              <strong>Note:</strong> Add the scores shown on your official result so
+              we can compare them with this program&apos;s English requirement.
             </p>
           </div>
         </div>

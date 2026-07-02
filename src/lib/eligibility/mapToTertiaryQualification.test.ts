@@ -72,6 +72,58 @@ describe("mapExtractedDataToQualification", () => {
     expect(draft.endYear).toBe("2024");
     expect(draft.courseName).toBe("Bachelor of Science");
   });
+
+  it("does not treat not-completed wording as a completed qualification", () => {
+    const draft = mapExtractedDataToQualification({
+      studyDetails: {
+        completionStatus: {
+          confidence: 0.9,
+          normalizedValue: "Course requirements not completed",
+        },
+        expectedCompletionDate: { confidence: 0.8, normalizedValue: "December 2025" },
+      },
+    });
+
+    expect(draft.completed).toBe(false);
+    expect(draft.endMonth).toBe("December");
+    expect(draft.endYear).toBe("2025");
+  });
+
+  it("uses the status date as the end date for excluded qualifications", () => {
+    const draft = mapExtractedDataToQualification({
+      studyDetails: {
+        startDate: { confidence: 0.9, normalizedValue: "21 Feb 2022" },
+        completionStatus: {
+          confidence: 0.9,
+          normalizedValue: "Excluded from course; no qualification achieved",
+        },
+        expectedCompletionDate: { confidence: 0.7, normalizedValue: "November 2026" },
+        studyEndDate: { confidence: 0.9, normalizedValue: "9 Dec 2025" },
+      },
+    });
+
+    expect(draft.completed).toBe(false);
+    expect(draft.startMonth).toBe("February");
+    expect(draft.startYear).toBe("2022");
+    expect(draft.endMonth).toBe("December");
+    expect(draft.endYear).toBe("2025");
+  });
+
+  it("uses expected completion only for in-progress qualifications", () => {
+    const draft = mapExtractedDataToQualification({
+      studyDetails: {
+        completionStatus: {
+          confidence: 0.9,
+          normalizedValue: "In progress",
+        },
+        expectedCompletionDate: { confidence: 0.8, normalizedValue: "December 2026" },
+      },
+    });
+
+    expect(draft.completed).toBe(false);
+    expect(draft.endMonth).toBe("December");
+    expect(draft.endYear).toBe("2026");
+  });
 });
 
 describe("mergeQualificationDraft", () => {

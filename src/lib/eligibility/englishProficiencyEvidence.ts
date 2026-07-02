@@ -1,13 +1,16 @@
 import type {
   ApplicationData,
+  LanguageTest,
   ProfessionalAccreditation,
   TertiaryQualification,
 } from "../applicationData";
 import type { CourseCatalogEntry } from "../courseCatalog";
+import { isSubmissionReadyDocument } from "../documentAttachment";
 import {
   DEFAULT_ENGLISH_MEDIUM_COUNTRIES,
   isCountryInAcceptedList,
 } from "./englishMediumCountries";
+import type { EnglishPathway, RequirementInstance } from "./requirements";
 
 /**
  * Helpers for the two conditional ("optional hard") submission requirements:
@@ -38,6 +41,17 @@ export function hasAhpraRegistration(
   return accreditations.some((accreditation) => isAhpraRegistration(accreditation.name));
 }
 
+export function hasCurrentAhpraRegistrationEvidence(
+  accreditations: ProfessionalAccreditation[],
+): boolean {
+  return accreditations.some(
+    (accreditation) =>
+      isAhpraRegistration(accreditation.name) &&
+      accreditation.status.toLowerCase() === "active" &&
+      isSubmissionReadyDocument(accreditation.document),
+  );
+}
+
 /** Transcript wording that indicates the qualification was completed / conferred. */
 const COMPLETION_PATTERN =
   /complet|graduat|conferred|award(ed)?|finished|passed|degree (awarded|granted)/i;
@@ -57,26 +71,146 @@ export function transcriptConfirmsCompletion(
   return Boolean(qualification.transcriptCompletionConfirmed);
 }
 
-/** True when a qualification was studied at an English-medium-country institution. */
+export function getEnglishProficiencyRequirements(
+  course: CourseCatalogEntry | null | undefined,
+): Array<Extract<RequirementInstance, { kind: "english_proficiency" }>> {
+  return (
+    course?.requirements?.filter(
+      (
+        requirement,
+      ): requirement is Extract<RequirementInstance, { kind: "english_proficiency" }> =>
+        requirement.kind === "english_proficiency",
+    ) ?? []
+  );
+}
+
+export function getAcceptedEnglishCompletionCountries(
+  course: CourseCatalogEntry | null | undefined,
+) {
+  const countrySets = getEnglishProficiencyRequirements(course).flatMap((requirement) =>
+    requirement.params.acceptedPathways.flatMap((pathway) =>
+      pathway.type === "completion_in_country" ? pathway.countries : [],
+    ),
+  );
+
+  return countrySets.length > 0 ? countrySets : DEFAULT_ENGLISH_MEDIUM_COUNTRIES;
+}
+
+/** True when a qualification was studied at an accepted English-medium-country institution. */
 export function isEnglishMediumQualification(
   qualification: TertiaryQualification,
+  course?: CourseCatalogEntry | null,
 ): boolean {
   return isCountryInAcceptedList(
     qualification.country,
-    DEFAULT_ENGLISH_MEDIUM_COUNTRIES,
+    getAcceptedEnglishCompletionCountries(course),
   );
 }
 
 /** English can be inferred when any qualification was studied in an English-medium country. */
-export function isEnglishInferableFromTranscripts(data: ApplicationData): boolean {
-  return data.tertiaryQualifications.some(isEnglishMediumQualification);
+export function isEnglishInferableFromTranscripts(
+  data: ApplicationData,
+  course?: CourseCatalogEntry | null,
+): boolean {
+  return data.tertiaryQualifications.some((qualification) =>
+    isEnglishMediumQualification(qualification, course),
+  );
+}
+
+type EnglishTestPathway = Extract<EnglishPathway, { type: "english_test" }>;
+
+function parseScore(value: string | undefined) {
+  if (!value?.trim()) {
+    return undefined;
+  }
+
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function normalizeTestType(value: string | undefined) {
+  return value?.toLowerCase().replace(/[^a-z0-9]+/g, "") ?? "";
+}
+
+function languageTestMatchesPathway(test: LanguageTest, pathway: EnglishTestPathway) {
+  const type = normalizeTestType(test.type);
+  const name = normalizeTestType(test.name);
+  const accepted =
+    pathway.test === "TOEFL_iBT"
+      ? ["toefl", "toeflibt"]
+      : pathway.test === "PTE"
+        ? ["pte", "pteacademic"]
+        : pathway.test === "CAE"
+          ? ["cambridge", "cambridgeenglish", "cae", "c1advanced"]
+          : [normalizeTestType(pathway.test)];
+
+  return accepted.some((candidate) => type.includes(candidate) || name.includes(candidate));
+}
+
+export function languageTestSatisfiesPathway(
+  test: LanguageTest,
+  pathway: EnglishTestPathway,
+): boolean {
+  if (!languageTestMatchesPathway(test, pathway)) {
+    return false;
+  }
+
+  if (!isSubmissionReadyDocument(test.document)) {
+    return false;
+  }
+
+  const overall = parseScore(test.overallScore);
+  if (overall === undefined || overall < pathway.minOverall) {
+    return false;
+  }
+
+  const minBand = pathway.minBand;
+  if (typeof minBand !== "number") {
+    return true;
+  }
+
+  const componentScores = [
+    parseScore(test.listeningScore),
+    parseScore(test.readingScore),
+    parseScore(test.writingScore),
+    parseScore(test.speakingScore),
+  ];
+
+  return componentScores.every((score) => score !== undefined && score >= minBand);
+}
+
+export function languageTestSatisfiesEnglishRequirement(
+  test: LanguageTest,
+  requirement: Extract<RequirementInstance, { kind: "english_proficiency" }>,
+): boolean {
+  return requirement.params.acceptedPathways.some(
+    (pathway) =>
+      pathway.type === "english_test" && languageTestSatisfiesPathway(test, pathway),
+  );
+}
+
+export function hasApprovedEnglishTestEvidence(
+  tests: LanguageTest[],
+  course: CourseCatalogEntry | null | undefined,
+): boolean {
+  const requirements = getEnglishProficiencyRequirements(course);
+  if (requirements.length === 0) {
+    return tests.some((test) => isSubmissionReadyDocument(test.document));
+  }
+
+  return requirements.some((requirement) =>
+    tests.some((test) => languageTestSatisfiesEnglishRequirement(test, requirement)),
+  );
 }
 
 /** Whether English proficiency has been evidenced by a language test or an AHPRA registration. */
-export function hasEnglishProficiencyEvidence(data: ApplicationData): boolean {
+export function hasEnglishProficiencyEvidence(
+  data: ApplicationData,
+  course?: CourseCatalogEntry | null,
+): boolean {
   return (
-    data.languageTests.length > 0 ||
-    hasAhpraRegistration(data.professionalAccreditations)
+    hasApprovedEnglishTestEvidence(data.languageTests, course) ||
+    hasCurrentAhpraRegistrationEvidence(data.professionalAccreditations)
   );
 }
 
@@ -110,8 +244,8 @@ export function needsEnglishProficiencyEvidence(
   if (!courseRequiresEnglishProficiency(course)) {
     return false;
   }
-  if (isEnglishInferableFromTranscripts(data)) {
+  if (isEnglishInferableFromTranscripts(data, course)) {
     return false;
   }
-  return !hasEnglishProficiencyEvidence(data);
+  return !hasEnglishProficiencyEvidence(data, course);
 }

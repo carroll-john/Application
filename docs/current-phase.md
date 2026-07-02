@@ -8,6 +8,12 @@ Run two active tracks in parallel:
 ## Status Update (2026-05-24)
 - Shipped parse-first tertiary transcript auto-fill in Section 2 (Track B), reusing the eligibility extraction API for form drafting and course eligibility in one save flow.
 
+## Status Update (2026-07-01)
+- In progress on Track B: replace applicant-facing transcript eligibility verdicts
+  with program evidence review, including program-specific English proof scores,
+  current documented AHPRA evidence, and generated requirement-driven course
+  pre-check questions.
+
 ## Status Update (2026-03-06)
 - Tuesday demo scope is complete.
 - Delivery is now dual-track: integration platform buildout plus ongoing UX improvements.

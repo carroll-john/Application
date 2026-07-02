@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { StatusMessage } from "../components/StatusMessage";
 import { useApplication } from "../context/ApplicationContext";
 import {
@@ -49,9 +49,8 @@ export default function Section2AddTertiary() {
     addTertiaryQualification,
     updateTertiaryQualification,
   } = useApplication();
-  const { existing, isEditing, initialRecord } = useEditableRecord(
-    data.tertiaryQualifications,
-    () => ({
+  const createDefaultRecord = useCallback(
+    (): TertiaryQualification => ({
       id: crypto.randomUUID(),
       institution: "",
       country: "Australia",
@@ -67,6 +66,11 @@ export default function Section2AddTertiary() {
       certificateDocument: undefined,
       certificateDocumentName: undefined,
     }),
+    [],
+  );
+  const { existing, isEditing, initialRecord } = useEditableRecord(
+    data.tertiaryQualifications,
+    createDefaultRecord,
   );
   const originalTranscriptDocument = existing?.transcriptDocument;
   const originalCertificateDocument = existing?.certificateDocument;
@@ -78,6 +82,13 @@ export default function Section2AddTertiary() {
   const [selectedCertificateFile, setSelectedCertificateFile] =
     useState<File | null>(null);
   const [showValidation, setShowValidation] = useState(false);
+
+  useEffect(() => {
+    setFormData(initialRecord);
+    setSelectedTranscriptFile(null);
+    setSelectedCertificateFile(null);
+    setShowValidation(false);
+  }, [initialRecord]);
 
   const {
     clearParseStatusMessage,

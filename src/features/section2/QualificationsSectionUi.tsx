@@ -174,8 +174,11 @@ export function QualificationsListItem({
           <p className="text-sm font-medium text-gray-900 sm:text-base">{title}</p>
           <p className="text-xs text-gray-600 sm:text-sm">{subtitle}</p>
           {attachmentList.length
-            ? attachmentList.map((attachmentName) => (
-                <QualificationsAttachment key={attachmentName} fileName={attachmentName} />
+            ? attachmentList.map((attachmentName, index) => (
+                <QualificationsAttachment
+                  key={`${attachmentName}-${index}`}
+                  fileName={attachmentName}
+                />
               ))
             : null}
         </div>

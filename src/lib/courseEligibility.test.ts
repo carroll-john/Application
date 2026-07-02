@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { evaluateCourseEligibility, type CourseEligibilityConfig } from "./courseEligibility";
+import {
+  evaluateCourseEligibility,
+  evaluateCourseRequirementAnswers,
+  getCourseEligibilityQuestions,
+  isCourseEligibilityFormComplete,
+  type CourseEligibilityConfig,
+} from "./courseEligibility";
+import type { CourseCatalogEntry } from "./courseCatalog";
 
 const mbaStyleEligibility: CourseEligibilityConfig = {
   educationOptions: [
@@ -83,5 +90,69 @@ describe("evaluateCourseEligibility", () => {
       eligible: false,
       reason: "This course expects a bachelor degree or higher qualification.",
     });
+  });
+});
+
+describe("program requirement questions", () => {
+  const course = {
+    title: "Master of Evidence",
+    eligibility: mbaStyleEligibility,
+    requirements: [
+      {
+        id: "level",
+        kind: "qualification_level",
+        params: { level: "bachelor" },
+        sourceText: "Bachelor degree.",
+        weight: "mandatory",
+      },
+      {
+        id: "wam",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 60 },
+        sourceText: "WAM 60.",
+        weight: "mandatory",
+      },
+      {
+        id: "english",
+        kind: "english_proficiency",
+        params: { acceptedPathways: [] },
+        sourceText: "English evidence.",
+        weight: "mandatory",
+      },
+    ],
+  } as CourseCatalogEntry;
+
+  it("builds questions from structured program requirements", () => {
+    expect(getCourseEligibilityQuestions(course).map((question) => question.id)).toEqual([
+      "educationLevel",
+      "academicThreshold",
+      "englishEvidence",
+    ]);
+  });
+
+  it("requires all structured questions to be answered", () => {
+    expect(
+      isCourseEligibilityFormComplete(course, {
+        educationLevel: "Bachelor degree",
+        academicThreshold: "Meets or exceeds the required WAM/GPA",
+      }),
+    ).toBe(false);
+    expect(
+      isCourseEligibilityFormComplete(course, {
+        educationLevel: "Bachelor degree",
+        academicThreshold: "Meets or exceeds the required WAM/GPA",
+        englishEvidence: "Approved English test result",
+      }),
+    ).toBe(true);
+  });
+
+  it("flags answers needing evidence or review", () => {
+    expect(
+      evaluateCourseRequirementAnswers(course, {
+        educationLevel: "Bachelor degree",
+        academicThreshold: "Below the required WAM/GPA",
+        englishEvidence: "Approved English test result",
+      }).eligible,
+    ).toBe(false);
   });
 });
