@@ -73,6 +73,32 @@ describe("mapExtractedDataToQualification", () => {
     expect(draft.courseName).toBe("Bachelor of Science");
   });
 
+  it("falls back to the education level's original value when normalizedValue is too generic", () => {
+    const draft = mapExtractedDataToQualification({
+      studyDetails: {
+        highestEducationLevel: {
+          confidence: 0.4,
+          normalizedValue: "Postgraduate",
+          originalValue: "Master of Cyber Security",
+        },
+        programName: { confidence: 0.9, normalizedValue: "Master of Cyber Security" },
+      },
+    });
+
+    expect(draft.level).toBe("Masters");
+  });
+
+  it("falls back to the program name when the education level field is missing", () => {
+    const draft = mapExtractedDataToQualification({
+      studyDetails: {
+        highestEducationLevel: { confidence: 0, normalizedValue: null, originalValue: null },
+        programName: { confidence: 0.95, normalizedValue: "Master of Cyber Security" },
+      },
+    });
+
+    expect(draft.level).toBe("Masters");
+  });
+
   it("does not treat not-completed wording as a completed qualification", () => {
     const draft = mapExtractedDataToQualification({
       studyDetails: {
