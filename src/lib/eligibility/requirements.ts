@@ -180,6 +180,24 @@ export function formatFieldOfStudyAreas(params: FieldOfStudyParams): string {
   return params.acceptedAreas.join(", ");
 }
 
+const qualificationLevelLabels: Record<QualificationLevel, string> = {
+  high_school: "High school",
+  diploma: "Diploma",
+  bachelor: "Bachelor degree",
+  honours: "Honours degree",
+  masters: "Masters degree",
+  doctorate: "Doctorate",
+};
+
+/**
+ * Short, human-readable "X or higher" summary of a minimum qualification level (e.g.
+ * "Bachelor degree or higher"), used wherever the UI needs a compact form instead of the full
+ * published requirement sentence.
+ */
+export function formatQualificationLevel(level: QualificationLevel): string {
+  return `${qualificationLevelLabels[level]} or higher`;
+}
+
 /**
  * Convenience constructor for an `EligibilityRequirementCheck` that ties back to the
  * source `RequirementInstance`. The matcher returns these in the same order as the input instances.
