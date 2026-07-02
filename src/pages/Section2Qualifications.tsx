@@ -204,8 +204,6 @@ export default function Section2Qualifications() {
     handleSaveAndExit,
     handleSkipSection,
     isSaving,
-    meetsSection2MinimumRequirement,
-    section2WarningCopy,
     sectionStates,
     setStatusMessage,
     statusMessage,
@@ -285,18 +283,6 @@ export default function Section2Qualifications() {
       secondaryDisabled={isSaving || isProcessingEligibility}
       secondaryLabel={fromReview ? undefined : isSaving ? "Saving..." : "Save & Exit"}
     >
-      <div className="mb-6 rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3 sm:mb-8">
-        <p className="text-xs text-[var(--info-text)] sm:text-sm">
-          <strong>Tip:</strong> Complete as much as you can now. Skip any section that
-          doesn&apos;t apply and come back later if needed.
-        </p>
-        {!meetsSection2MinimumRequirement ? (
-          <p className="mt-2 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] px-3 py-2 text-xs text-[var(--warning-text)] sm:text-sm">
-            <strong>Before submit:</strong> {section2WarningCopy}
-          </p>
-        ) : null}
-      </div>
-
       {statusMessage ? (
         <div className="mb-6 sm:mb-8">
           <StatusMessage

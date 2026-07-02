@@ -8,8 +8,6 @@ import {
 import {
   getSection2RequirementInput,
   getSection2RequirementProfile,
-  getSection2SubmissionMissingFields,
-  meetsSection2SubmissionRequirement,
 } from "../../lib/section2Requirements";
 import { readSection2NavigationState } from "./section2NavigationState";
 import {
@@ -47,17 +45,10 @@ export function useSection2QualificationsFlow({ data }: UseSection2Qualification
   const section2RequirementProfile = getSection2RequirementProfile(
     section2RequirementInput.selectedCourse,
   );
-  const section2MissingFields = getSection2SubmissionMissingFields(section2RequirementInput);
   const supportsExperienceAlternative =
     section2RequirementProfile?.supportsExperienceAlternative ?? false;
   const supportsSecondaryQualification =
     section2RequirementProfile?.supportsSecondaryQualification ?? false;
-  const meetsSection2MinimumRequirement =
-    meetsSection2SubmissionRequirement(section2RequirementInput);
-  const section2WarningCopy =
-    section2MissingFields.length === 1
-      ? section2MissingFields[0]
-      : "Add either one tertiary qualification, or both a CV and employment experience.";
 
   useEffect(() => {
     const navigationState = readSection2NavigationState(location.state);
@@ -186,8 +177,6 @@ export function useSection2QualificationsFlow({ data }: UseSection2Qualification
     handleSaveAndExit,
     handleSkipSection,
     isSaving,
-    meetsSection2MinimumRequirement,
-    section2WarningCopy,
     sectionStates,
     setStatusMessage,
     statusMessage,
