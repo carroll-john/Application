@@ -1,5 +1,8 @@
 import type { CourseCatalogEntry } from "./courseCatalog";
-import type { RequirementInstance } from "./eligibility/requirements";
+import type {
+  AcademicThresholdParams,
+  RequirementInstance,
+} from "./eligibility/requirements";
 
 export type CourseEducationLevel =
   | "High school"
@@ -26,10 +29,15 @@ export interface EligibilityResult {
   reason?: string;
 }
 
+export interface EligibilityQuestionOption {
+  label: string;
+  value: string;
+}
+
 export interface EligibilityQuestion {
   id: keyof EligibilityAnswers;
   label: string;
-  options: string[];
+  options: EligibilityQuestionOption[];
 }
 
 export type EligibilityRule =
@@ -136,7 +144,7 @@ export function hasCourseExperienceAlternative(
   );
 }
 
-const academicThresholdOptions = [
+const academicThresholdValues = [
   "Meets or exceeds the required WAM/GPA",
   "Below the required WAM/GPA",
   "Not sure",
@@ -151,11 +159,49 @@ const englishEvidenceOptions = [
 
 const fieldOfStudyOptions = ["Related field", "Different field", "Not sure"] as const;
 
+function toOptions(values: readonly string[]): EligibilityQuestionOption[] {
+  return values.map((value) => ({ label: value, value }));
+}
+
 function hasRequirement(
   requirements: readonly RequirementInstance[],
   kind: RequirementInstance["kind"],
 ) {
   return requirements.some((requirement) => requirement.kind === kind);
+}
+
+function formatAcademicThreshold(params: AcademicThresholdParams): string {
+  if (params.metric === "gpa") {
+    return params.scale != null
+      ? `${params.min}/${params.scale} GPA`
+      : `${params.min} GPA`;
+  }
+
+  return params.scale === 100 ? `${params.min}% WAM` : `${params.min} WAM`;
+}
+
+function buildAcademicThresholdOptions(
+  requirements: readonly RequirementInstance[],
+): EligibilityQuestionOption[] {
+  const requirement = requirements.find(
+    (candidate): candidate is Extract<RequirementInstance, { kind: "academic_threshold" }> =>
+      candidate.kind === "academic_threshold",
+  );
+
+  if (!requirement) {
+    return toOptions(academicThresholdValues);
+  }
+
+  const threshold = formatAcademicThreshold(requirement.params);
+
+  return [
+    {
+      label: `Meets or exceeds the required ${threshold}`,
+      value: academicThresholdValues[0],
+    },
+    { label: `Below the required ${threshold}`, value: academicThresholdValues[1] },
+    { label: "Not sure", value: academicThresholdValues[2] },
+  ];
 }
 
 export function getCourseEligibilityQuestions(
@@ -167,14 +213,14 @@ export function getCourseEligibilityQuestions(
       {
         id: "educationLevel",
         label: "Select: Education level",
-        options: course.eligibility.educationOptions,
+        options: toOptions(course.eligibility.educationOptions),
       },
       ...(hasCourseExperienceAlternative(course.eligibility)
         ? [
             {
               id: "experienceRange" as const,
               label: "Select: Experience",
-              options: course.eligibility.experienceOptions,
+              options: toOptions(course.eligibility.experienceOptions),
             },
           ]
         : []),
@@ -189,35 +235,35 @@ export function getCourseEligibilityQuestions(
     questions.push({
       id: "educationLevel",
       label: "Highest completed qualification",
-      options: course.eligibility.educationOptions,
+      options: toOptions(course.eligibility.educationOptions),
     });
   }
   if (hasRequirement(requirements, "academic_threshold")) {
     questions.push({
       id: "academicThreshold",
       label: "Academic result",
-      options: [...academicThresholdOptions],
+      options: buildAcademicThresholdOptions(requirements),
     });
   }
   if (hasRequirement(requirements, "work_experience")) {
     questions.push({
       id: "experienceRange",
       label: "Relevant work experience",
-      options: course.eligibility.experienceOptions,
+      options: toOptions(course.eligibility.experienceOptions),
     });
   }
   if (hasRequirement(requirements, "field_of_study")) {
     questions.push({
       id: "fieldOfStudy",
       label: "Prior field of study",
-      options: [...fieldOfStudyOptions],
+      options: toOptions(fieldOfStudyOptions),
     });
   }
   if (hasRequirement(requirements, "english_proficiency")) {
     questions.push({
       id: "englishEvidence",
       label: "English evidence",
-      options: [...englishEvidenceOptions],
+      options: toOptions(englishEvidenceOptions),
     });
   }
 
