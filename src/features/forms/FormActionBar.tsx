@@ -79,46 +79,41 @@ export function FormActionBar({
   }
 
   return (
-    <div
-      className="mb-10 mt-6 rounded-[28px] border border-slate-200 bg-white p-4 shadow-sm"
-      data-form-action-bar=""
-    >
-      <div className={gridClassName}>
-        {hasPrevious ? (
-          <Button
-            className={hasSecondary ? "order-3 w-full sm:order-1" : "order-2 w-full sm:order-1"}
-            disabled={previousDisabled}
-            onClick={onPrevious}
-            variant="outline"
-          >
-            {previousLabel}
-          </Button>
-        ) : null}
-        {hasSecondary ? (
-          <Button
-            className="order-2 w-full"
-            disabled={secondaryDisabled}
-            onClick={handleSecondaryClick}
-            variant={secondaryVariant}
-          >
-            {secondaryLabel}
-          </Button>
-        ) : null}
+    <div className={`mb-10 mt-6 ${gridClassName}`} data-form-action-bar="">
+      {hasPrevious ? (
         <Button
-          className={
-            hasPrevious
-              ? hasSecondary
-                ? "order-1 w-full sm:order-3"
-                : "order-1 w-full sm:order-2"
-              : "order-1 w-full"
-          }
-          disabled={primaryDisabled}
-          onClick={handlePrimaryClick}
-          variant={primaryVariant}
+          className={hasSecondary ? "order-3 w-full sm:order-1" : "order-2 w-full sm:order-1"}
+          disabled={previousDisabled}
+          onClick={onPrevious}
+          variant="outline"
         >
-          {primaryLabel}
+          {previousLabel}
         </Button>
-      </div>
+      ) : null}
+      {hasSecondary ? (
+        <Button
+          className="order-2 w-full"
+          disabled={secondaryDisabled}
+          onClick={handleSecondaryClick}
+          variant={secondaryVariant}
+        >
+          {secondaryLabel}
+        </Button>
+      ) : null}
+      <Button
+        className={
+          hasPrevious
+            ? hasSecondary
+              ? "order-1 w-full sm:order-3"
+              : "order-1 w-full sm:order-2"
+            : "order-1 w-full"
+        }
+        disabled={primaryDisabled}
+        onClick={handlePrimaryClick}
+        variant={primaryVariant}
+      >
+        {primaryLabel}
+      </Button>
     </div>
   );
 }
