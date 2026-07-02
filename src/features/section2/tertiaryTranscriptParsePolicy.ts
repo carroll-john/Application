@@ -1,7 +1,7 @@
 import type { ApplicationData, TertiaryQualification } from "../../lib/applicationData";
 import { getCourseByCode } from "../../lib/courseCatalog";
 import { parseEntryRequirementThresholds } from "../../lib/courseCatalog/normalize";
-import { hasAhpraRegistration } from "../../lib/eligibility/englishProficiencyEvidence";
+import { hasCurrentAhpraRegistrationEvidence } from "../../lib/eligibility/englishProficiencyEvidence";
 import {
   evaluateTranscriptEligibility,
   TranscriptEligibilityRequestError,
@@ -46,16 +46,16 @@ export const tertiaryTranscriptParseCopy = {
   draftEmpty:
     "We couldn't draft a qualification from this transcript. Enter the details manually or try a clearer file.",
   draftHubEmpty:
-    "We saved your transcript and ran an eligibility check, but couldn't draft a qualification from it. Complete the details manually.",
+    "We saved your transcript and reviewed program evidence, but couldn't draft a qualification from it. Complete the details manually.",
   draftHubSuccess:
-    "We saved a qualification drafted from your transcript. Review the details below and check your eligibility results.",
-  eligibilityTitle: "Checking course eligibility from your transcript...",
+    "We saved a qualification drafted from your transcript. Review the details below and add any missing program evidence.",
+  eligibilityTitle: "Reviewing program evidence from your transcript...",
   eligibilityDetail: "This can take a little longer for larger files.",
   parsingTitle: "Reading your transcript and drafting your qualification...",
   savingQualificationTitle: "Saving your qualification...",
   savingQualificationDetail: "Please keep this tab open while we save your documents.",
   preservedExistingFields:
-    "Transcript attached. Save to run an eligibility check on the qualifications page.",
+    "Transcript attached. Save to review program evidence on the qualifications page.",
 } as const;
 
 export function buildTranscriptEligibilityContext(
@@ -77,7 +77,7 @@ export function buildTranscriptEligibilityContext(
     courseCode: selectedCourse?.code,
     courseTitle: selectedCourse?.title,
     entryRequirementsText: selectedCourseCatalogEntry?.entryRequirements,
-    hasAhpraRegistration: hasAhpraRegistration(
+    hasAhpraRegistration: hasCurrentAhpraRegistrationEvidence(
       applicationData.professionalAccreditations,
     ),
     institution: formData.institution,
@@ -199,7 +199,7 @@ export function buildTertiaryTranscriptFlashMessage(options: {
       message:
         parseError instanceof TranscriptEligibilityRequestError
           ? parseError.message
-          : "We saved your transcript, but couldn't complete the automatic eligibility check.",
+          : "We saved your transcript, but couldn't complete the automatic evidence review.",
       type: "warning" as const,
     };
   }
@@ -213,7 +213,7 @@ export function buildTertiaryTranscriptFlashMessage(options: {
 
   if (draftedFieldCount > 0) {
     const eligibilityNote = assessment
-      ? ` Eligibility check: ${assessment.outcome.replace(/_/g, " ")}.`
+      ? ` Evidence review: ${assessment.outcome.replace(/_/g, " ")}.`
       : "";
     return {
       message: `${tertiaryTranscriptParseCopy.draftHubSuccess}${eligibilityNote}`,
@@ -224,7 +224,7 @@ export function buildTertiaryTranscriptFlashMessage(options: {
   if (preservedExistingFields) {
     return {
       message:
-        "We saved your transcript and ran an eligibility check. Existing qualification details were left unchanged.",
+        "We saved your transcript and reviewed program evidence. Existing qualification details were left unchanged.",
       type: "status" as const,
     };
   }
@@ -237,7 +237,7 @@ export function buildTertiaryTranscriptFlashMessage(options: {
       };
     }
 
-    const eligibilityNote = ` Eligibility check: ${assessment.outcome.replace(/_/g, " ")}.`;
+    const eligibilityNote = ` Evidence review: ${assessment.outcome.replace(/_/g, " ")}.`;
     return {
       message: `${tertiaryTranscriptParseCopy.draftHubSuccess}${eligibilityNote}`,
       type: "success" as const,

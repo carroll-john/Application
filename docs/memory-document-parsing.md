@@ -36,9 +36,9 @@ When gating passes, parse starts in parallel with document save. Upload failure 
 
 CV persist exception: after document save, call `uploadCV` / `removeCV` (app-scoped FK on `applications.cv_document_id`).
 
-## Tertiary transcript kind (parse + eligibility combined)
+## Tertiary transcript kind (parse + program evidence review)
 
-Reuses `/api/evaluate-transcript-eligibility` as a single LLM call for both field extraction and course eligibility — not a separate `documentParserRegistry` entry.
+Reuses `/api/evaluate-transcript-eligibility` as a single LLM call for field extraction plus app-side program requirement review — not a separate `documentParserRegistry` entry. Keep applicant-facing copy framed as **program evidence review**, not a final eligibility decision.
 
 | Concern | Location |
 |---------|----------|
@@ -47,10 +47,10 @@ Reuses `/api/evaluate-transcript-eligibility` as a single LLM call for both fiel
 | Save orchestration | `src/features/section2/useSection2TertiarySaveWithParse.ts` |
 | Field mapper | `src/lib/eligibility/mapToTertiaryQualification.ts` |
 | Apply draft | merge into `TertiaryQualification` via `mergeQualificationDraft` (fill-empty-only) |
-| Eligibility API | `api/evaluate-transcript-eligibility.ts` |
+| Evidence API | `api/evaluate-transcript-eligibility.ts` |
 | Analytics | `tertiaryTranscriptParserAnalytics.ts` |
 
-Gating: new transcript selected **and** qualification core fields empty → auto-fill; new transcript always runs eligibility. Upload failure is **blocking**; parse/eligibility failure is **warning** (save succeeds, `insufficient_data` fallback).
+Gating: new transcript selected **and** qualification core fields empty → auto-fill; new transcript always runs evidence review. Upload failure is **blocking**; parse/review failure is **warning** (save succeeds, `insufficient_data` fallback).
 
 ## Adding kind #3+ via registry (future)
 

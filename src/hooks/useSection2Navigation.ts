@@ -8,6 +8,7 @@ export function createSection2NavigationPaths(
   const qualificationsPath = returnPath(SECTION2_QUALIFICATIONS_PATH);
 
   return {
+    qualificationsHubPath: SECTION2_QUALIFICATIONS_PATH,
     qualificationsPath,
     returnToQualificationsPath: qualificationsPath,
   };
@@ -16,10 +17,11 @@ export function createSection2NavigationPaths(
 export function useSection2Navigation() {
   const navigate = useNavigate();
   const { returnPath } = useReviewReturn();
-  const { qualificationsPath, returnToQualificationsPath } =
+  const { qualificationsHubPath, qualificationsPath, returnToQualificationsPath } =
     createSection2NavigationPaths(returnPath);
 
   return {
+    qualificationsHubPath,
     returnToQualifications: () => navigate(returnToQualificationsPath),
     qualificationsPath,
   };

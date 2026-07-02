@@ -66,7 +66,7 @@ export function useSection2TertiarySaveWithParse({
   validateRecord,
 }: UseSection2TertiarySaveWithParseOptions) {
   const navigate = useNavigate();
-  const { qualificationsPath } = useSection2Navigation();
+  const { qualificationsHubPath } = useSection2Navigation();
   const [isSaving, setIsSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState<{
     detail: string;
@@ -224,7 +224,7 @@ export function useSection2TertiarySaveWithParse({
         }
       }
 
-      navigate(qualificationsPath, {
+      navigate(qualificationsHubPath, {
         state: Object.keys(navigationState).length > 0 ? navigationState : undefined,
       });
     } catch (error) {
@@ -249,7 +249,7 @@ export function useSection2TertiarySaveWithParse({
     navigate,
     originalCertificateDocument,
     originalTranscriptDocument,
-    qualificationsPath,
+    qualificationsHubPath,
     selectedCertificateFile,
     selectedTranscriptFile,
     setShowValidation,

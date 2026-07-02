@@ -4,8 +4,8 @@ import type { ApplicationSummary } from "../../lib/applicationRecords";
 import type { SelectedCourse } from "../../lib/applicationData";
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
 import {
-  evaluateCourseEligibility,
-  hasCourseExperienceAlternative,
+  evaluateCourseRequirementAnswers,
+  isCourseEligibilityFormComplete,
   type EligibilityAnswers,
 } from "../../lib/courseEligibility";
 import {
@@ -65,7 +65,6 @@ export function useCourseEligibilityFlow({
   );
   const courseDetailsSectionRef = useRef<HTMLElement | null>(null);
   const entryRequirementsRef = useRef<HTMLDivElement | null>(null);
-  const requiresExperienceInput = hasCourseExperienceAlternative(course.eligibility);
 
   const resetEligibilityView = useCallback(() => {
     setEligibilityOutcome(null);
@@ -127,19 +126,23 @@ export function useCourseEligibilityFlow({
     resetEligibilityView();
   }, [resetApplicationStartState, resetEligibilityView]);
 
-  const isEligibilityFormComplete =
-    Boolean(eligibilityForm.educationLevel) &&
-    (!requiresExperienceInput || Boolean(eligibilityForm.experienceRange));
+  const isEligibilityFormComplete = isCourseEligibilityFormComplete(
+    course,
+    eligibilityForm,
+  );
 
   const resolveEligibilityResult = useCallback(
     (answers: EligibilityAnswers) => {
-      const result = evaluateCourseEligibility(course.eligibility, answers);
+      const result = evaluateCourseRequirementAnswers(course, answers);
 
       capturePostHogEvent("eligibility_check_completed", {
         ...getCourseAnalyticsProperties(course),
+        academic_threshold: answers.academicThreshold,
         education_level: answers.educationLevel,
+        english_evidence: answers.englishEvidence,
         eligible: result.eligible,
         experience_range: answers.experienceRange,
+        field_of_study: answers.fieldOfStudy,
       });
       clearPendingEligibilityCheck();
       setEligibilityOutcome(result.eligible ? "success" : "fail");
@@ -152,10 +155,7 @@ export function useCourseEligibilityFlow({
     setApplyError(null);
 
     if (!isAuthenticated) {
-      const { eligible } = evaluateCourseEligibility(
-        course.eligibility,
-        eligibilityForm,
-      );
+      const { eligible } = evaluateCourseRequirementAnswers(course, eligibilityForm);
 
       if (eligible) {
         // Resume an eligible applicant into their application after they verify
@@ -179,8 +179,7 @@ export function useCourseEligibilityFlow({
 
     resolveEligibilityResult(eligibilityForm);
   }, [
-    course.code,
-    course.eligibility,
+    course,
     eligibilityForm,
     isAuthenticated,
     openAuthGate,
@@ -281,7 +280,6 @@ export function useCourseEligibilityFlow({
     isAuthenticated,
     isEligibilityFormComplete,
     pendingAuthAction,
-    requiresExperienceInput,
     resetEligibilityState,
     reusableSourceApplications,
     setApplyError,

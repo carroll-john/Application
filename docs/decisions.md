@@ -221,3 +221,23 @@
   card (`ENGLISH_OK_AHPRA`). No new UI field; inferred from the accreditation name.
 - Shared rule source: `src/lib/eligibility/englishProficiencyEvidence.ts`. The SQL
   RPC duplicates the AHPRA regex + English-medium-country list — keep them in sync.
+
+## 2026-07-01
+
+### Program evidence review replaces applicant-facing eligibility verdicts
+- Transcript parsing remains backed by `/api/evaluate-transcript-eligibility`, but
+  applicant-facing UI frames the result as **program evidence review**. The service
+  extracts evidence; the app maps generated course requirements to required fields,
+  documents, and manual-review nudges.
+- Course pre-check questions are generated from `CourseCatalogEntry.requirements`
+  when present, with the legacy education/experience config only as fallback.
+- English evidence is program-specific: language-test records capture overall and
+  component scores, and a test satisfies English only when scores and document meet
+  the selected program's accepted pathway. AHPRA satisfies English only when the
+  registration is current (`Active`) and documented.
+- The app persists `applications.english_proficiency_policy` so the submit RPC can
+  enforce the selected program's English score/document/AHPRA rules without loading
+  the frontend catalog.
+- Fuzzy matching is advisory only in v1. Academic-threshold shortfalls can surface
+  possible alternate evidence for manual review, but do not automatically pass the
+  requirement.

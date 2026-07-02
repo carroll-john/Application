@@ -1,7 +1,7 @@
 import type { ApplicationData } from "../applicationData";
 import {
   getEmploymentChronologyRules,
-  getEnglishProficiencyRules,
+  getProgramEvidenceRules,
   getSection2RequirementRules,
   getTertiaryQualificationRules,
 } from "./rules/section2";
@@ -24,7 +24,7 @@ function getValidationRules(data: ApplicationData): ValidationRule[] {
     ...getSection2RequirementRules(data),
     ...getTertiaryQualificationRules(data),
     ...getEmploymentChronologyRules(data),
-    ...getEnglishProficiencyRules(data),
+    ...getProgramEvidenceRules(data),
   ];
 }
 

@@ -5,6 +5,7 @@ import {
   GraduationCap,
   Languages,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { StatusMessage } from "../components/StatusMessage";
 import { useApplication } from "../context/ApplicationContext";
@@ -20,15 +21,18 @@ import { usePendingTranscriptEligibility } from "../features/section2/usePending
 import { EligibilityRowFeedback } from "../features/section2/EligibilityRowFeedback";
 import { useReviewReturn } from "../hooks/useReviewReturn";
 import { getCourseByCode } from "../lib/courseCatalog";
-import { buildEligibilityDisplayRows } from "../lib/eligibility/displayRows";
+import {
+  buildProgramEvidenceRows,
+  filterResolvedTranscriptMissingInformation,
+  shouldShowTranscriptRecommendedNextStep,
+} from "../lib/eligibility/programEvidence";
 import type {
   EligibilityOutcome,
   TranscriptEligibilityAssessment,
 } from "../lib/eligibility/types";
 import {
   eligibilityOutcomeCopy,
-  eligibilityAdvisoryCopy,
-  eligibilityRequirementStatusCopy,
+  programEvidenceAdvisoryCopy,
 } from "../lib/eligibility/uiCopy";
 import { getSection2EditPath, getSection2Step } from "../lib/section2Steps";
 
@@ -42,6 +46,18 @@ function getEligibilityOutcomeTone(outcome: EligibilityOutcome) {
   }
 
   return "text-[var(--info-text)]";
+}
+
+function getProgramEvidenceTone(status: string) {
+  if (status === "met") {
+    return "text-[var(--success-text)]";
+  }
+
+  if (status === "needs_review" || status === "possible_alternative") {
+    return "text-[var(--info-text)]";
+  }
+
+  return "text-[var(--warning-text)]";
 }
 
 function getLatestTranscriptAssessment(
@@ -94,6 +110,83 @@ function buildAssessmentEvidenceSummary(assessment: TranscriptEligibilityAssessm
   return parts.join(" · ");
 }
 
+function buildAssessmentEvidenceRows(assessment: TranscriptEligibilityAssessment) {
+  const wam = readEvidenceValue(assessment, "academicPerformance", "gradeAverageOrWam");
+  const gpa = readEvidenceValue(assessment, "academicPerformance", "gpa");
+  const gpaScale = readEvidenceValue(assessment, "academicPerformance", "gpaScale");
+  const completion = readEvidenceValue(assessment, "studyDetails", "completionStatus");
+  const rows: Array<{
+    explanation: string;
+    id: string;
+    kindLabel: string;
+    sourceText: string;
+    statusLabel: string;
+  }> = [];
+
+  if (completion) {
+    rows.push({
+      explanation: `Completion status: ${completion}.`,
+      id: "completion-status",
+      kindLabel: "Completion evidence",
+      sourceText: "Qualification completion from transcript",
+      statusLabel: "Captured",
+    });
+  }
+
+  const academicResults = [
+    wam ? `WAM: ${wam}` : null,
+    gpa ? `GPA: ${gpa}${gpaScale ? `/${gpaScale}` : ""}` : null,
+  ].filter(Boolean);
+
+  if (academicResults.length > 0) {
+    rows.push({
+      explanation: academicResults.join(" · "),
+      id: "academic-result",
+      kindLabel: "WAM/GPA evidence",
+      sourceText: "Academic result from transcript",
+      statusLabel: "Captured",
+    });
+  }
+
+  return rows;
+}
+
+function EvidenceReviewRow({
+  action,
+  explanation,
+  kindLabel,
+  sourceText,
+  statusClassName = "text-[var(--success-text)]",
+  statusLabel,
+}: {
+  action?: ReactNode;
+  explanation: string;
+  kindLabel?: string;
+  sourceText: string;
+  statusClassName?: string;
+  statusLabel: string;
+}) {
+  return (
+    <li className="rounded-md border border-gray-200 p-3">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+        <p className="text-xs font-semibold text-gray-900 sm:text-sm">
+          {sourceText}
+        </p>
+        <p className={`text-xs font-semibold sm:text-sm ${statusClassName}`}>
+          {statusLabel}
+        </p>
+      </div>
+      {kindLabel ? (
+        <p className="mt-1 text-[11px] uppercase tracking-wide text-gray-500 sm:text-xs">
+          {kindLabel}
+        </p>
+      ) : null}
+      <p className="mt-1 text-xs text-gray-700 sm:text-sm">{explanation}</p>
+      {action}
+    </li>
+  );
+}
+
 export default function Section2Qualifications() {
   const navigate = useNavigate();
   const { fromReview, previousLabel, returnPath, reviewSuffix } = useReviewReturn();
@@ -133,12 +226,37 @@ export default function Section2Qualifications() {
     statusMessage?.type === "success" &&
     statusMessage.message.toLowerCase().includes("qualification") &&
     statusMessage.message.toLowerCase().includes("transcript");
-  const eligibilityDisplayRows = latestTranscriptAssessment
-    ? buildEligibilityDisplayRows(
-        selectedCourseEntry?.requirements,
-        latestTranscriptAssessment.requirementsChecked,
+  const programEvidenceRows = buildProgramEvidenceRows({
+    applicationData: data,
+    course: selectedCourseEntry,
+    transcriptAssessment: latestTranscriptAssessment,
+  });
+  const assessmentEvidenceRows = latestTranscriptAssessment
+    ? buildAssessmentEvidenceRows(latestTranscriptAssessment)
+    : [];
+  const blockingProgramEvidenceRows = programEvidenceRows.filter((row) => row.isBlocking);
+  const transcriptFeedbackRows = latestTranscriptAssessment
+    ? programEvidenceRows.filter((row) => row.requirementStatus)
+    : [];
+  const visibleMissingInformation = latestTranscriptAssessment
+    ? filterResolvedTranscriptMissingInformation(
+        latestTranscriptAssessment.missingInformation,
+        programEvidenceRows,
       )
     : [];
+  const showRecommendedNextStep = latestTranscriptAssessment
+    ? shouldShowTranscriptRecommendedNextStep(
+        latestTranscriptAssessment.recommendedNextStep,
+        visibleMissingInformation,
+        programEvidenceRows,
+      )
+    : false;
+  const programEvidenceSummary =
+    blockingProgramEvidenceRows.length === 0
+      ? "Evidence ready"
+      : `${blockingProgramEvidenceRows.length} item${
+          blockingProgramEvidenceRows.length === 1 ? "" : "s"
+        } to add`;
 
   function section2AddPath(key: Parameters<typeof getSection2Step>[0]) {
     const step = getSection2Step(key);
@@ -154,7 +272,7 @@ export default function Section2Qualifications() {
             ? "Opening Review..."
             : "Saving & Continuing..."
           : isProcessingEligibility
-            ? "Checking eligibility..."
+            ? "Reviewing evidence..."
             : fromReview
               ? "Return to Review"
               : "Save & Continue"
@@ -198,93 +316,118 @@ export default function Section2Qualifications() {
         </div>
       ) : null}
 
-      {latestTranscriptAssessment ? (
+      {programEvidenceRows.length > 0 ? (
         <div className="mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-sm font-semibold text-gray-900 sm:text-base">
-              Transcript eligibility check
+              Program evidence review
             </h2>
             <p
-              className={`text-xs font-semibold sm:text-sm ${getEligibilityOutcomeTone(
+              className={`text-xs font-semibold sm:text-sm ${
+                blockingProgramEvidenceRows.length === 0
+                  ? "text-[var(--success-text)]"
+                  : "text-[var(--warning-text)]"
+              }`}
+            >
+              {programEvidenceSummary}
+            </p>
+          </div>
+          {latestTranscriptAssessment ? (
+            <p
+              className={`mt-1 text-xs font-medium sm:text-sm ${getEligibilityOutcomeTone(
                 latestTranscriptAssessment.outcome,
               )}`}
             >
-              {eligibilityOutcomeCopy[latestTranscriptAssessment.outcome]}
+              Transcript extraction: {eligibilityOutcomeCopy[latestTranscriptAssessment.outcome]} ·
+              Confidence: {Math.round(latestTranscriptAssessment.confidence * 100)}%
             </p>
-          </div>
-          <p className="mt-1 text-xs text-gray-600 sm:text-sm">
-            Confidence: {Math.round(latestTranscriptAssessment.confidence * 100)}%
-          </p>
+          ) : null}
           {showParsedTranscriptIntro ? (
             <p className="mt-2 text-xs text-gray-700 sm:text-sm">
               Based on your uploaded transcript
               {selectedCourseTitle ? ` for ${selectedCourseTitle}` : ""}. Review the
-              qualification we drafted and check your eligibility results below.
+              qualification we drafted and add any missing program evidence below.
             </p>
           ) : null}
-          {buildAssessmentEvidenceSummary(latestTranscriptAssessment) ? (
-            <p className="mt-1 text-xs text-gray-700 sm:text-sm">
-              Evidence: {buildAssessmentEvidenceSummary(latestTranscriptAssessment)}
-            </p>
+          <p className="mt-2 text-xs text-gray-600 sm:text-sm">
+            {programEvidenceAdvisoryCopy}
+          </p>
+          {assessmentEvidenceRows.length > 0 ? (
+            <ul className="mt-3 space-y-2" aria-label="Transcript evidence extracted">
+              {assessmentEvidenceRows.map((row) => (
+                <EvidenceReviewRow
+                  key={row.id}
+                  explanation={row.explanation}
+                  kindLabel={row.kindLabel}
+                  sourceText={row.sourceText}
+                  statusLabel={row.statusLabel}
+                />
+              ))}
+            </ul>
           ) : null}
-          <p className="mt-2 text-xs text-gray-600 sm:text-sm">{eligibilityAdvisoryCopy}</p>
-          {eligibilityDisplayRows.length > 0 ? (
-            <ul className="mt-3 space-y-2" aria-label="Eligibility requirements">
-              {eligibilityDisplayRows.map((row) => (
-                <li key={row.id} className="rounded-md border border-gray-200 p-3">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-                    <p className="text-xs font-semibold text-gray-900 sm:text-sm">
-                      {row.sourceText}
-                    </p>
-                    <p
-                      className={`text-xs font-semibold sm:text-sm ${
-                        row.status === "pass"
-                          ? "text-[var(--success-text)]"
-                          : row.status === "fail"
-                            ? "text-[var(--warning-text)]"
-                            : "text-[var(--info-text)]"
-                      }`}
-                    >
-                      {eligibilityRequirementStatusCopy[row.status]}
-                    </p>
-                  </div>
-                  {row.kindLabel ? (
-                    <p className="mt-1 text-[11px] uppercase tracking-wide text-gray-500 sm:text-xs">
-                      {row.kindLabel}
-                    </p>
-                  ) : null}
-                  <p className="mt-1 text-xs text-gray-700 sm:text-sm">{row.explanation}</p>
+          {programEvidenceRows.length > 0 ? (
+            <ul className="mt-3 space-y-2" aria-label="Program evidence requirements">
+              {programEvidenceRows.map((row) => (
+                <EvidenceReviewRow
+                  key={row.id}
+                  action={
+                    row.actionPath && row.actionLabel ? (
+                      <button
+                        className="mt-2 text-xs font-semibold text-[var(--cta-secondary)] underline-offset-2 hover:underline sm:text-sm"
+                        type="button"
+                        onClick={() => navigate(row.actionPath!)}
+                      >
+                        {row.actionLabel}
+                      </button>
+                    ) : null
+                  }
+                  explanation={row.explanation}
+                  kindLabel={row.kindLabel}
+                  sourceText={row.sourceText}
+                  statusClassName={getProgramEvidenceTone(row.status)}
+                  statusLabel={row.statusLabel}
+                />
+              ))}
+            </ul>
+          ) : null}
+          {latestTranscriptAssessment && transcriptFeedbackRows.length > 0 ? (
+            <div className="mt-3 space-y-2" aria-label="Transcript feedback">
+              {transcriptFeedbackRows.map((row) =>
+                row.requirementStatus ? (
                   <EligibilityRowFeedback
-                    requirementId={row.id}
+                    key={row.requirementId}
+                    requirementId={row.requirementId}
                     requirementSourceText={row.sourceText}
-                    originalStatus={row.status}
+                    originalStatus={row.requirementStatus}
                     courseCode={data.applicationMeta?.selectedCourse?.code}
                     courseTitle={data.applicationMeta?.selectedCourse?.title}
                     rulesVersion={latestTranscriptAssessment.rulesVersion}
                     serviceVersion={latestTranscriptAssessment.serviceVersion}
                   />
-                </li>
-              ))}
-            </ul>
+                ) : null,
+              )}
+            </div>
           ) : null}
-          {latestTranscriptAssessment.missingInformation.length > 0 ? (
+          {visibleMissingInformation.length > 0 ? (
             <div className="mt-3 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3">
               <p className="text-xs font-semibold text-[var(--warning-text)] sm:text-sm">
                 Missing or unclear information
               </p>
               <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-[var(--warning-text)] sm:text-sm">
-                {latestTranscriptAssessment.missingInformation.map((item) => (
+                {visibleMissingInformation.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>
           ) : null}
-          <p className="mt-3 text-xs text-gray-700 sm:text-sm">
-            Recommended next step: {latestTranscriptAssessment.recommendedNextStep}
-          </p>
-          {latestTranscriptAssessment.manualReviewRequired ? (
+          {latestTranscriptAssessment && showRecommendedNextStep ? (
+            <p className="mt-3 text-xs text-gray-700 sm:text-sm">
+              Recommended next step: {latestTranscriptAssessment.recommendedNextStep}
+            </p>
+          ) : null}
+          {latestTranscriptAssessment?.manualReviewRequired ? (
             <p className="mt-2 text-xs font-medium text-[var(--warning-text)] sm:text-sm">
-              Manual admissions review is required for one or more checks.
+              Manual admissions review is required for one or more evidence checks.
             </p>
           ) : null}
         </div>

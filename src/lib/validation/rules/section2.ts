@@ -4,10 +4,9 @@ import type {
   TertiaryQualification,
 } from "../../applicationData";
 import { isSubmissionReadyDocument } from "../../documentAttachment";
-import {
-  needsCertificateOfCompletion,
-  needsEnglishProficiencyEvidence,
-} from "../../eligibility/englishProficiencyEvidence";
+import { needsCertificateOfCompletion } from "../../eligibility/englishProficiencyEvidence";
+import { getBlockingProgramEvidenceRows } from "../../eligibility/programEvidence";
+import type { TranscriptEligibilityAssessment } from "../../eligibility/types";
 import { isMonthYearRangeOutOfOrder } from "../../monthYearValidation";
 import {
   getSection2RequirementInput,
@@ -121,26 +120,36 @@ export function getSection2RequirementRules(data: ApplicationData): ValidationRu
   );
 }
 
-export function getEnglishProficiencyRules(data: ApplicationData): ValidationRule[] {
-  const { selectedCourse } = getSection2RequirementInput(data);
-
-  if (!needsEnglishProficiencyEvidence(data, selectedCourse)) {
-    return [];
+function getLatestTranscriptAssessment(
+  assessments: Array<TranscriptEligibilityAssessment | undefined>,
+) {
+  const available = assessments.filter(Boolean) as TranscriptEligibilityAssessment[];
+  if (available.length === 0) {
+    return undefined;
   }
 
-  // Optional hard requirement: the course requires English proficiency, it can't be
-  // inferred from a transcript (no English-medium-country study), and no English test
-  // or AHPRA registration has been provided.
-  return [
-    {
+  return [...available].sort((a, b) => b.checkedAt.localeCompare(a.checkedAt))[0];
+}
+
+export function getProgramEvidenceRules(data: ApplicationData): ValidationRule[] {
+  const { selectedCourse } = getSection2RequirementInput(data);
+  const latestTranscriptAssessment = getLatestTranscriptAssessment(
+    data.tertiaryQualifications.map((qualification) => qualification.transcriptEligibility),
+  );
+  const blockingRows = getBlockingProgramEvidenceRows({
+    applicationData: data,
+    course: selectedCourse,
+    transcriptAssessment: latestTranscriptAssessment,
+  });
+
+  return blockingRows.map((row) => ({
       section: SECTION_2,
-      subsection: "English language proficiency",
-      field: "Proof of English proficiency (an English test or AHPRA registration)",
-      path: "/section2/qualifications?from=review",
+      subsection: "Program evidence",
+      field: row.sourceText,
+      path: row.actionPath ?? "/section2/qualifications?from=review",
       targets: ["submissionReady"],
       isMissing: () => true,
-    },
-  ];
+    }));
 }
 
 export function getTertiaryQualificationRules(data: ApplicationData): ValidationRule[] {

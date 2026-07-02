@@ -45,6 +45,10 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        "/api/evaluate-transcript-eligibility": {
+          target: `http://127.0.0.1:${env.TRANSCRIPT_ELIGIBILITY_PORT || "4191"}`,
+          changeOrigin: true,
+        },
         "/api/suggest": {
           target: "http://127.0.0.1:4193",
           changeOrigin: true,

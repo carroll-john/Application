@@ -1,3 +1,6 @@
+import type { CourseCatalogEntry } from "./courseCatalog";
+import type { RequirementInstance } from "./eligibility/requirements";
+
 export type CourseEducationLevel =
   | "High school"
   | "Diploma"
@@ -11,13 +14,22 @@ export type CourseExperienceLevel =
   | "5 years plus";
 
 export interface EligibilityAnswers {
+  academicThreshold?: string;
   educationLevel?: string;
+  englishEvidence?: string;
   experienceRange?: string;
+  fieldOfStudy?: string;
 }
 
 export interface EligibilityResult {
   eligible: boolean;
   reason?: string;
+}
+
+export interface EligibilityQuestion {
+  id: keyof EligibilityAnswers;
+  label: string;
+  options: string[];
 }
 
 export type EligibilityRule =
@@ -122,4 +134,131 @@ export function hasCourseExperienceAlternative(
       rule.type === "min_education_or_experience" &&
       rule.minExperienceYears > 0,
   );
+}
+
+const academicThresholdOptions = [
+  "Meets or exceeds the required WAM/GPA",
+  "Below the required WAM/GPA",
+  "Not sure",
+] as const;
+
+const englishEvidenceOptions = [
+  "Completed qualification in an accepted English-speaking country",
+  "Approved English test result",
+  "Current AHPRA registration",
+  "Need to provide evidence",
+] as const;
+
+const fieldOfStudyOptions = ["Related field", "Different field", "Not sure"] as const;
+
+function hasRequirement(
+  requirements: readonly RequirementInstance[],
+  kind: RequirementInstance["kind"],
+) {
+  return requirements.some((requirement) => requirement.kind === kind);
+}
+
+export function getCourseEligibilityQuestions(
+  course: CourseCatalogEntry,
+): EligibilityQuestion[] {
+  const requirements = course.requirements ?? [];
+  if (requirements.length === 0) {
+    return [
+      {
+        id: "educationLevel",
+        label: "Select: Education level",
+        options: course.eligibility.educationOptions,
+      },
+      ...(hasCourseExperienceAlternative(course.eligibility)
+        ? [
+            {
+              id: "experienceRange" as const,
+              label: "Select: Experience",
+              options: course.eligibility.experienceOptions,
+            },
+          ]
+        : []),
+    ];
+  }
+
+  const questions: EligibilityQuestion[] = [];
+  if (
+    hasRequirement(requirements, "qualification_completed") ||
+    hasRequirement(requirements, "qualification_level")
+  ) {
+    questions.push({
+      id: "educationLevel",
+      label: "Highest completed qualification",
+      options: course.eligibility.educationOptions,
+    });
+  }
+  if (hasRequirement(requirements, "academic_threshold")) {
+    questions.push({
+      id: "academicThreshold",
+      label: "Academic result",
+      options: [...academicThresholdOptions],
+    });
+  }
+  if (hasRequirement(requirements, "work_experience")) {
+    questions.push({
+      id: "experienceRange",
+      label: "Relevant work experience",
+      options: course.eligibility.experienceOptions,
+    });
+  }
+  if (hasRequirement(requirements, "field_of_study")) {
+    questions.push({
+      id: "fieldOfStudy",
+      label: "Prior field of study",
+      options: [...fieldOfStudyOptions],
+    });
+  }
+  if (hasRequirement(requirements, "english_proficiency")) {
+    questions.push({
+      id: "englishEvidence",
+      label: "English evidence",
+      options: [...englishEvidenceOptions],
+    });
+  }
+
+  return questions;
+}
+
+export function isCourseEligibilityFormComplete(
+  course: CourseCatalogEntry,
+  answers: EligibilityAnswers,
+) {
+  return getCourseEligibilityQuestions(course).every((question) =>
+    Boolean(answers[question.id]),
+  );
+}
+
+export function evaluateCourseRequirementAnswers(
+  course: CourseCatalogEntry,
+  answers: EligibilityAnswers,
+): EligibilityResult {
+  const requirements = course.requirements ?? [];
+  if (requirements.length === 0) {
+    return evaluateCourseEligibility(course.eligibility, answers);
+  }
+
+  const doesNotMeetAcademic =
+    answers.academicThreshold === "Below the required WAM/GPA" ||
+    answers.academicThreshold === "Not sure";
+  const doesNotMeetField =
+    answers.fieldOfStudy === "Different field" || answers.fieldOfStudy === "Not sure";
+  const needsEnglishEvidence = answers.englishEvidence === "Need to provide evidence";
+
+  if (doesNotMeetAcademic || doesNotMeetField || needsEnglishEvidence) {
+    return {
+      eligible: false,
+      reason:
+        "This program has evidence requirements that need more detail or admissions review before you can rely on the automated check.",
+    };
+  }
+
+  return {
+    eligible: true,
+    reason: `Your answers indicate you may have the evidence needed for ${course.title}. You can add documents and details in the application.`,
+  };
 }

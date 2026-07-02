@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   initialApplicationData,
   type ApplicationData,
+  type LanguageTest,
   type TertiaryQualification,
 } from "./applicationData";
 import type { UploadedDocument } from "./documentStorage";
@@ -122,6 +123,58 @@ function makeValidApplication(
       ...overrides.applicationMeta,
     },
   };
+}
+
+function makeIeltsTest(overrides: Partial<LanguageTest> = {}): LanguageTest {
+  return {
+    id: "ielts-1",
+    type: "IELTS",
+    name: "IELTS Academic",
+    year: "2025",
+    overallScore: "6.5",
+    listeningScore: "6",
+    readingScore: "6",
+    writingScore: "6",
+    speakingScore: "6",
+    document: makeRemoteDocument({
+      id: "doc-ielts",
+      name: "ielts.pdf",
+      storagePath: "user-1/app-1/language/doc-ielts.pdf",
+    }),
+    documentName: "ielts.pdf",
+    ...overrides,
+  };
+}
+
+function makeMbaOnlineApplication(overrides: Partial<ApplicationData> = {}) {
+  const transcriptEligibility = makeCompletionAssessment();
+  transcriptEligibility.requirementsChecked = [
+    {
+      id: "completed-bachelor",
+      requirement: "Completed bachelor",
+      status: "pass",
+      explanation: "Completed.",
+    },
+  ];
+
+  return makeValidApplication({
+    applicationMeta: {
+      selectedCourse: {
+        code: "mba-online",
+        title: "Master of Business Administration (Online)",
+        provider: "Southern Cross University",
+        intake: "Upcoming intake",
+      },
+      ...overrides.applicationMeta,
+    },
+    tertiaryQualifications: [
+      makeValidTertiaryQualification({
+        country: "Indonesia",
+        transcriptEligibility,
+      }),
+    ],
+    ...overrides,
+  });
 }
 
 describe("getSubmissionValidationIssues", () => {
@@ -336,6 +389,34 @@ describe("getSubmissionValidationIssues", () => {
         expect.objectContaining({
           subsection: "Submission requirements",
           field: "Employment experience or a tertiary qualification",
+        }),
+      ]),
+    );
+  });
+
+  it("requires program-specific English evidence when the transcript is not from an accepted English-speaking country", () => {
+    const errors = getSubmissionValidationIssues(makeMbaOnlineApplication());
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          subsection: "Program evidence",
+          path: "/section2/add-language-test?from=review",
+        }),
+      ]),
+    );
+  });
+
+  it("accepts program-specific English evidence when an IELTS score meets the course threshold", () => {
+    const errors = getSubmissionValidationIssues(
+      makeMbaOnlineApplication({ languageTests: [makeIeltsTest()] }),
+    );
+
+    expect(errors).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          subsection: "Program evidence",
+          path: expect.stringContaining("language-test"),
         }),
       ]),
     );

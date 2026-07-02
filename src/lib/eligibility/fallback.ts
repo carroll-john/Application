@@ -22,7 +22,7 @@ export function createInsufficientDataAssessment({
     programCode: context.courseCode,
     programTitle: context.courseTitle,
     recommendedNextStep:
-      "Review transcript evidence manually or retry the eligibility check once more evidence is available.",
+      "Review transcript evidence manually or retry the evidence review once more evidence is available.",
     requirementsChecked: [
       {
         explanation: reason,
@@ -35,4 +35,3 @@ export function createInsufficientDataAssessment({
     serviceVersion: "client-fallback",
   };
 }
-

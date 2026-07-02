@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   initialApplicationData,
   type ApplicationData,
+  type LanguageTest,
   type ProfessionalAccreditation,
   type TertiaryQualification,
 } from "../applicationData";
 import type { CourseCatalogEntry } from "../courseCatalog";
+import type { UploadedDocument } from "../documentStorage";
 import type { TranscriptEligibilityAssessment } from "./types";
 import {
   courseRequiresEnglishProficiency,
@@ -59,6 +61,37 @@ function accreditation(name: string): ProfessionalAccreditation {
   return { id: "a1", name, status: "Active" };
 }
 
+function remoteDoc(id = "doc-1"): UploadedDocument {
+  return {
+    id,
+    name: `${id}.pdf`,
+    size: 1234,
+    type: "application/pdf",
+    lastModified: 0,
+    uploadedAt: "2026-01-01T00:00:00Z",
+    source: "remote",
+    storageBucket: "application-documents",
+    storagePath: `path/${id}.pdf`,
+  };
+}
+
+function languageTest(overrides: Partial<LanguageTest> = {}): LanguageTest {
+  return {
+    id: "l1",
+    type: "IELTS",
+    name: "IELTS Academic",
+    year: "2023",
+    overallScore: "6.5",
+    listeningScore: "6",
+    readingScore: "6",
+    writingScore: "6",
+    speakingScore: "6",
+    document: remoteDoc("ielts"),
+    documentName: "ielts.pdf",
+    ...overrides,
+  };
+}
+
 function application(overrides: Partial<ApplicationData> = {}): ApplicationData {
   return { ...initialApplicationData, ...overrides };
 }
@@ -70,7 +103,12 @@ const englishCourse = {
       sourceText: "English language requirements: IELTS 6.5.",
       weight: "mandatory",
       kind: "english_proficiency",
-      params: { acceptedPathways: [] },
+      params: {
+        acceptedPathways: [
+          { type: "english_test", test: "IELTS", minOverall: 6.5, minBand: 6 },
+          { type: "completion_in_country", countries: ["AU", "NZ"] },
+        ],
+      },
     },
   ],
 } as unknown as CourseCatalogEntry;
@@ -150,10 +188,38 @@ describe("English inference and evidence", () => {
     expect(isEnglishInferableFromTranscripts(application({ tertiaryQualifications: [tertiary({ country: "Indonesia" })] }))).toBe(false);
   });
 
-  it("accepts a language test or an AHPRA registration as evidence", () => {
-    expect(hasEnglishProficiencyEvidence(application({ languageTests: [{ id: "l1", type: "IELTS", name: "IELTS Academic", year: "2023" }] }))).toBe(true);
-    expect(hasEnglishProficiencyEvidence(application({ professionalAccreditations: [accreditation("Registered Nurse")] }))).toBe(true);
-    expect(hasEnglishProficiencyEvidence(application())).toBe(false);
+  it("accepts approved language-test scores or current documented AHPRA registration as evidence", () => {
+    expect(
+      hasEnglishProficiencyEvidence(
+        application({ languageTests: [languageTest()] }),
+        englishCourse,
+      ),
+    ).toBe(true);
+    expect(
+      hasEnglishProficiencyEvidence(
+        application({
+          languageTests: [languageTest({ overallScore: "6", listeningScore: "5.5" })],
+        }),
+        englishCourse,
+      ),
+    ).toBe(false);
+    expect(
+      hasEnglishProficiencyEvidence(
+        application({
+          professionalAccreditations: [
+            { ...accreditation("Registered Nurse"), document: remoteDoc("ahpra") },
+          ],
+        }),
+        englishCourse,
+      ),
+    ).toBe(true);
+    expect(
+      hasEnglishProficiencyEvidence(
+        application({ professionalAccreditations: [accreditation("Registered Nurse")] }),
+        englishCourse,
+      ),
+    ).toBe(false);
+    expect(hasEnglishProficiencyEvidence(application(), englishCourse)).toBe(false);
   });
 });
 
@@ -165,7 +231,12 @@ describe("needsEnglishProficiencyEvidence", () => {
     // Satisfied by an AHPRA registration.
     expect(
       needsEnglishProficiencyEvidence(
-        application({ tertiaryQualifications: [tertiary({ country: "Indonesia" })], professionalAccreditations: [accreditation("AHPRA registration")] }),
+        application({
+          tertiaryQualifications: [tertiary({ country: "Indonesia" })],
+          professionalAccreditations: [
+            { ...accreditation("AHPRA registration"), document: remoteDoc("ahpra") },
+          ],
+        }),
         englishCourse,
       ),
     ).toBe(false);

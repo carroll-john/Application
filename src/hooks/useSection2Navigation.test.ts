@@ -6,6 +6,7 @@ describe("createSection2NavigationPaths", () => {
   it("returns the qualifications path during normal wizard flow", () => {
     const paths = createSection2NavigationPaths((path) => path);
 
+    expect(paths.qualificationsHubPath).toBe(SECTION2_QUALIFICATIONS_PATH);
     expect(paths.qualificationsPath).toBe(SECTION2_QUALIFICATIONS_PATH);
     expect(paths.returnToQualificationsPath).toBe(SECTION2_QUALIFICATIONS_PATH);
   });
@@ -15,6 +16,7 @@ describe("createSection2NavigationPaths", () => {
       path === SECTION2_QUALIFICATIONS_PATH ? "/review" : path,
     );
 
+    expect(paths.qualificationsHubPath).toBe(SECTION2_QUALIFICATIONS_PATH);
     expect(paths.qualificationsPath).toBe("/review");
     expect(paths.returnToQualificationsPath).toBe("/review");
   });

@@ -101,7 +101,17 @@ type SecondaryRow = Pick<
 
 type LanguageRow = Pick<
   Tables<"language_tests">,
-  "completion_year" | "document_id" | "document_name" | "id" | "test_name" | "test_type"
+  | "completion_year"
+  | "document_id"
+  | "document_name"
+  | "id"
+  | "listening_score"
+  | "overall_score"
+  | "reading_score"
+  | "speaking_score"
+  | "test_name"
+  | "test_type"
+  | "writing_score"
 >;
 
 export interface RemoteSelectedCourse {
@@ -115,6 +125,19 @@ export interface RemoteSelectedCourse {
 
 function isJsonObject(value: Json): value is { [key: string]: Json | undefined } {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function numberToInputValue(value: number | null | undefined) {
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : "";
+}
+
+function inputValueToNumber(value: string | undefined) {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 export function toContactDetails(value: Json): ContactDetails | undefined {
@@ -203,8 +226,13 @@ export function mapLanguageTestRow(
     document: test.document_id ? documentMap.get(test.document_id) : undefined,
     documentName: test.document_name ?? undefined,
     id: test.id,
+    listeningScore: numberToInputValue(test.listening_score),
     name: test.test_name,
+    overallScore: numberToInputValue(test.overall_score),
+    readingScore: numberToInputValue(test.reading_score),
+    speakingScore: numberToInputValue(test.speaking_score),
     type: test.test_type,
+    writingScore: numberToInputValue(test.writing_score),
     year: test.completion_year,
   };
 }
@@ -350,7 +378,12 @@ export function toLanguageTestInsert(
     document_id: getRemoteDocumentId(test.document),
     document_name: test.documentName ?? null,
     id: getRemoteUuid(test.id),
+    listening_score: inputValueToNumber(test.listeningScore),
+    overall_score: inputValueToNumber(test.overallScore),
+    reading_score: inputValueToNumber(test.readingScore),
+    speaking_score: inputValueToNumber(test.speakingScore),
     test_name: test.name,
     test_type: test.type,
+    writing_score: inputValueToNumber(test.writingScore),
   };
 }

@@ -63,6 +63,11 @@ export interface LanguageTest {
   type: string;
   name: string;
   year: string;
+  overallScore?: string;
+  listeningScore?: string;
+  readingScore?: string;
+  writingScore?: string;
+  speakingScore?: string;
   document?: UploadedDocument;
   documentName?: string;
 }

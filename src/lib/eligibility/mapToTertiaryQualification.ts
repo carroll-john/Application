@@ -121,42 +121,59 @@ function parseMonthYear(value: string) {
   }
 
   const monthYearMatch = trimmed.match(
-    /^([A-Za-z]+)\s+(19|20)\d{2}$/,
+    /\b(?:\d{1,2}\s+)?([A-Za-z]{3,9})\s+((?:19|20)\d{2})\b/,
   );
   if (monthYearMatch) {
     return {
       month: normalizeMonth(monthYearMatch[1]) || month,
-      year: normalizeYear(monthYearMatch[0]) || year,
+      year: monthYearMatch[2] || year,
     };
   }
 
   return { month, year };
 }
 
-function inferCompleted(completionStatus: string) {
+type CompletionState = "completed" | "in_progress" | "terminal_incomplete";
+
+function classifyCompletionStatus(completionStatus: string): CompletionState | undefined {
   const normalized = completionStatus.toLowerCase();
   if (!normalized) {
     return undefined;
   }
 
   if (
-    normalized.includes("completed") ||
-    normalized.includes("graduated") ||
-    normalized.includes("awarded") ||
-    normalized.includes("conferred")
+    normalized.includes("excluded") ||
+    normalized.includes("requirements incomplete") ||
+    normalized.includes("requirements not completed") ||
+    normalized.includes("no qualification achieved") ||
+    normalized.includes("not completed") ||
+    normalized.includes("not awarded") ||
+    normalized.includes("not conferred") ||
+    normalized.includes("discontinued") ||
+    normalized.includes("withdrawn") ||
+    normalized.includes("incomplete")
   ) {
-    return true;
+    return "terminal_incomplete";
   }
 
   if (
     normalized.includes("in progress") ||
     normalized.includes("in_progress") ||
-    normalized.includes("not completed") ||
-    normalized.includes("discontinued") ||
-    normalized.includes("withdrawn") ||
-    normalized.includes("incomplete")
+    normalized.includes("currently enrolled") ||
+    normalized.includes("current enrolment") ||
+    normalized.includes("active enrolment")
   ) {
-    return false;
+    return "in_progress";
+  }
+
+  if (
+    normalized.includes("completed") ||
+    normalized.includes("graduated") ||
+    normalized.includes("awarded") ||
+    normalized.includes("conferred") ||
+    normalized.includes("qualification achieved")
+  ) {
+    return "completed";
   }
 
   return undefined;
@@ -176,15 +193,32 @@ export function mapExtractedDataToQualification(
 
   const start = parseMonthYear(readFieldValue(extractedData.studyDetails?.startDate));
   const completionStatus = readFieldValue(extractedData.studyDetails?.completionStatus);
-  const completed = inferCompleted(completionStatus);
+  const completionState = classifyCompletionStatus(completionStatus);
+  const completed = completionState === "completed"
+    ? true
+    : completionState
+      ? false
+      : undefined;
   const completionDate = readFieldValue(extractedData.studyDetails?.completionDate);
+  const studyEndDate = readFieldValue(extractedData.studyDetails?.studyEndDate);
   const expectedCompletionDate = readFieldValue(
     extractedData.studyDetails?.expectedCompletionDate,
   );
-  const endSource =
-    completionDate ||
-    (completed === false ? expectedCompletionDate : "") ||
-    completionDate;
+  const endSource = (() => {
+    if (completionState === "completed") {
+      return completionDate || studyEndDate;
+    }
+
+    if (completionState === "terminal_incomplete") {
+      return studyEndDate || completionDate || expectedCompletionDate;
+    }
+
+    if (completionState === "in_progress") {
+      return expectedCompletionDate || studyEndDate;
+    }
+
+    return completionDate || studyEndDate || expectedCompletionDate;
+  })();
   const end = parseMonthYear(endSource);
 
   return {

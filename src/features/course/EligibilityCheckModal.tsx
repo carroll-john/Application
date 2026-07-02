@@ -1,14 +1,16 @@
 import { ModalShell } from "../../components/ModalShell";
 import { Button } from "../../components/ui/button";
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
-import type { EligibilityAnswers } from "../../lib/courseEligibility";
+import {
+  getCourseEligibilityQuestions,
+  type EligibilityAnswers,
+} from "../../lib/courseEligibility";
 import { EligibilitySelectField } from "./CourseChecklist";
 
 export function EligibilityCheckModal({
   course,
   eligibilityForm,
   isComplete,
-  requiresExperienceInput,
   onAnswerChange,
   onClose,
   onComplete,
@@ -16,32 +18,30 @@ export function EligibilityCheckModal({
   course: CourseCatalogEntry;
   eligibilityForm: EligibilityAnswers;
   isComplete: boolean;
-  requiresExperienceInput: boolean;
   onAnswerChange: (updates: Partial<EligibilityAnswers>) => void;
   onClose: () => void;
   onComplete: () => void;
 }) {
+  const questions = getCourseEligibilityQuestions(course);
+
   return (
-    <ModalShell onClose={onClose} title="Eligibility Check">
+    <ModalShell onClose={onClose} title="Entry Requirements Check">
       <p className="mb-6 text-sm leading-6 text-slate-600">
-        Answer a few questions so we can check this course&apos;s entry criteria
-        before you start an application.
+        Answer the program-specific questions so we can guide which evidence you
+        will need in the application.
       </p>
       <div className="space-y-4">
-        <EligibilitySelectField
-          label="Select: Education level"
-          options={course.eligibility.educationOptions}
-          value={eligibilityForm.educationLevel ?? ""}
-          onChange={(value) => onAnswerChange({ educationLevel: value })}
-        />
-        {requiresExperienceInput ? (
+        {questions.map((question) => (
           <EligibilitySelectField
-            label="Select: Experience"
-            options={course.eligibility.experienceOptions}
-            value={eligibilityForm.experienceRange ?? ""}
-            onChange={(value) => onAnswerChange({ experienceRange: value })}
+            key={question.id}
+            label={question.label}
+            options={question.options}
+            value={eligibilityForm[question.id] ?? ""}
+            onChange={(value) =>
+              onAnswerChange({ [question.id]: value } as Partial<EligibilityAnswers>)
+            }
           />
-        ) : null}
+        ))}
       </div>
       <Button className="mt-6 w-full" disabled={!isComplete} onClick={onComplete}>
         Next
