@@ -7,6 +7,20 @@ export { Section2FormCard } from "./Section2FormCard";
 export { Section2QualificationsPage } from "./Section2QualificationsPage";
 export { Section2RecordPage } from "./Section2RecordPage";
 export { Section2SaveProgressPanel } from "./Section2SaveProgressPanel";
+export {
+  buildSection2EvidencePlan,
+  getEvidenceSectionKeyForPath,
+  sectionHasData,
+  type Section2EvidencePlan,
+  type Section2EvidencePrompt,
+  type Section2EvidenceSectionKey,
+} from "./section2EvidencePlan";
+export {
+  buildAssessmentEvidenceSummary,
+  EvidenceReviewRow,
+  getLatestTranscriptAssessment,
+  SupportingEvidencePanel,
+} from "./SupportingEvidencePanel";
 export { TertiaryDocumentFields } from "./TertiaryDocumentFields";
 export { TertiaryInstitutionFields } from "./TertiaryInstitutionFields";
 export { TertiaryQualificationFields } from "./TertiaryQualificationFields";

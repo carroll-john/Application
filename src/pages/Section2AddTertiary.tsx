@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { StatusMessage } from "../components/StatusMessage";
 import { useApplication } from "../context/ApplicationContext";
 import {
@@ -17,7 +17,7 @@ import {
   useSection2TertiarySaveWithParse,
 } from "../features/section2/useSection2TertiarySaveWithParse";
 import { useTertiaryTranscriptAutoFill } from "../features/section2/useTertiaryTranscriptAutoFill";
-import { useEditableRecord } from "../hooks/useEditableRecord";
+import { useEditableRecord, useSyncRecordOnHydrate } from "../hooks/useEditableRecord";
 import type { TertiaryQualification } from "../lib/applicationData";
 import { isQualificationCoreEmpty } from "../lib/eligibility/mapToTertiaryQualification";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
@@ -83,19 +83,17 @@ export default function Section2AddTertiary() {
     useState<File | null>(null);
   const [showValidation, setShowValidation] = useState(false);
 
-  const syncedRecordIdRef = useRef(id);
-
-  useEffect(() => {
-    if (syncedRecordIdRef.current === id) {
-      return;
-    }
-
-    syncedRecordIdRef.current = id;
-    setFormData(initialRecord);
-    setSelectedTranscriptFile(null);
-    setSelectedCertificateFile(null);
-    setShowValidation(false);
-  }, [id, initialRecord]);
+  useSyncRecordOnHydrate(
+    id,
+    existing,
+    initialRecord,
+    useCallback((record) => {
+      setFormData(record);
+      setSelectedTranscriptFile(null);
+      setSelectedCertificateFile(null);
+      setShowValidation(false);
+    }, []),
+  );
 
   const {
     clearParseStatusMessage,

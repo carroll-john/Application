@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { DocumentUploadField } from "../components/DocumentUploadField";
 import { YearPickerField } from "../components/ui/date-controls";
 import { Input } from "../components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { Section2FormCard, Section2RecordPage } from "../features/section2";
-import { useEditableRecord } from "../hooks/useEditableRecord";
+import { useEditableRecord, useSyncRecordOnHydrate } from "../hooks/useEditableRecord";
 import { useSection2RecordSave } from "../hooks/useSection2RecordSave";
 import { saveSection2DocumentRecord } from "../features/section2/section2DocumentSave";
 import type { LanguageTest } from "../lib/applicationData";
@@ -28,7 +28,7 @@ const componentScoreFields: Array<{
 export default function Section2AddLanguageTest() {
   const { data, ensureApplicationRow, addLanguageTest, updateLanguageTest } =
     useApplication();
-  const { existing, isEditing, initialRecord } = useEditableRecord(
+  const { existing, id, isEditing, initialRecord } = useEditableRecord(
     data.languageTests,
     () => ({
       id: crypto.randomUUID(),
@@ -48,6 +48,16 @@ export default function Section2AddLanguageTest() {
   const [formData, setFormData] = useState(initialRecord);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const originalDocument = existing?.document;
+
+  useSyncRecordOnHydrate(
+    id,
+    existing,
+    initialRecord,
+    useCallback((record) => {
+      setFormData(record);
+      setSelectedFile(null);
+    }, []),
+  );
 
   const saveRecord = async () => {
     const { document, documentName } = await saveSection2DocumentRecord({

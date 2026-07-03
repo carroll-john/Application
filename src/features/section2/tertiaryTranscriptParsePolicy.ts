@@ -191,10 +191,18 @@ export function buildTertiaryTranscriptFlashMessage(options: {
   draftedFieldCount: number;
   parseError?: unknown;
   preservedExistingFields: boolean;
+  /** Whether the saved record already has drafted qualification fields (institution, course, dates, ...). */
+  qualificationHasCoreData?: boolean;
   validationFailed: boolean;
 }) {
-  const { assessment, draftedFieldCount, parseError, preservedExistingFields, validationFailed } =
-    options;
+  const {
+    assessment,
+    draftedFieldCount,
+    parseError,
+    preservedExistingFields,
+    qualificationHasCoreData = false,
+    validationFailed,
+  } = options;
 
   if (parseError) {
     return {
@@ -232,7 +240,11 @@ export function buildTertiaryTranscriptFlashMessage(options: {
   }
 
   if (assessment) {
-    if (assessment.outcome === "insufficient_data") {
+    // An "insufficient_data" outcome describes the overall eligibility verdict, not whether
+    // qualification fields were drafted -- e.g. institution/course/dates can extract cleanly
+    // while a WAM or English evidence field is missing. Only report "couldn't draft" when the
+    // record genuinely has no drafted fields to review.
+    if (assessment.outcome === "insufficient_data" && !qualificationHasCoreData) {
       return {
         message: tertiaryTranscriptParseCopy.draftHubEmpty,
         type: "warning" as const,
