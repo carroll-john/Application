@@ -356,6 +356,24 @@ additive and idempotent (`add column if not exists`, `create or replace function
 > and re-applying the file is a no-op. A fresh environment (or the Supabase preview
 > branch) applies the single canonical file. Don't be alarmed by the extra rows.
 
+## Persist transcript eligibility (migration `20260703090000`)
+
+`20260703090000_persist_transcript_eligibility.sql` adds
+`tertiary_qualifications.transcript_eligibility` (jsonb) so the latest transcript
+scan assessment survives reloads. It is additive and idempotent
+(`add column if not exists`).
+
+> **Production incident note (2026-07-03).** The client change that reads/writes
+> this column shipped (PR #172/#173) before the migration reached project
+> **Application** (`weyxnhykyyetquqprfnu`). Every tertiary-qualification save and
+> load then failed with PostgREST 400 (`transcript_eligibility` unknown), surfacing
+> as "We couldn't save this qualification right now. Please try again." on the
+> Add-tertiary screen. Fixed by applying the migration **manually via the MCP**
+> (hosted history shows an ad-hoc `…_persist_transcript_eligibility` row) and
+> reloading the PostgREST schema cache. Re-applying the repo file is a no-op.
+> Reminder: `supabase db push` is blocked from this workspace (see above), so a
+> schema-dependent client change must not merge before its migration is applied.
+
 ## Clean Test Reset
 To reset hosted test data before a fresh run, execute:
 - [supabase/reset_test_data.sql](/Users/jc/Documents/Applications/supabase/reset_test_data.sql)
