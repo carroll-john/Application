@@ -2,7 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { ApplicationData, TertiaryQualification } from "../../lib/applicationData";
 import { loadStoredDocumentFile } from "../../lib/documentStorage";
-import { mapExtractedDataToQualification, mergeQualificationFromTranscriptParse } from "../../lib/eligibility/mapToTertiaryQualification";
+import {
+  isQualificationCoreEmpty,
+  mapExtractedDataToQualification,
+  mergeQualificationFromTranscriptParse,
+} from "../../lib/eligibility/mapToTertiaryQualification";
 import {
   getTertiaryTranscriptParserErrorCode,
   trackTertiaryTranscriptParserDraftEmpty,
@@ -167,6 +171,7 @@ export function usePendingTranscriptEligibility({
               !parseResult.shouldAutoFill &&
               job.transcriptFile,
           ),
+          qualificationHasCoreData: !isQualificationCoreEmpty(workingRecord),
           validationFailed: false,
         });
 

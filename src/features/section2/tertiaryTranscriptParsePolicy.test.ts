@@ -160,4 +160,52 @@ describe("tertiaryTranscriptParsePolicy", () => {
     expect(message?.type).toBe("warning");
     expect(message?.message).toContain("some details still need your input");
   });
+
+  it("builds a success flash for an insufficient_data outcome when fields were already drafted", () => {
+    // Regression: the hub's cached-assessment path always reports draftedFieldCount as 0
+    // (fields were drafted earlier, on the add-tertiary page), so an "insufficient_data"
+    // eligibility outcome (e.g. WAM wasn't found) must not be read as "no qualification could
+    // be drafted" when the record actually has institution/course/date fields filled in.
+    const message = buildTertiaryTranscriptFlashMessage({
+      assessment: {
+        checkedAt: new Date().toISOString(),
+        confidence: 0.4,
+        extractedData: {},
+        manualReviewRequired: false,
+        missingInformation: ["Academic result (WAM/GPA) was not found."],
+        outcome: "insufficient_data",
+        recommendedNextStep: "Add a transcript with the academic result visible.",
+        requirementsChecked: [],
+      },
+      draftedFieldCount: 0,
+      preservedExistingFields: false,
+      qualificationHasCoreData: true,
+      validationFailed: false,
+    });
+
+    expect(message?.type).toBe("success");
+    expect(message?.message).toContain("saved a qualification drafted from your transcript");
+  });
+
+  it("builds a warning flash for an insufficient_data outcome when no fields were drafted", () => {
+    const message = buildTertiaryTranscriptFlashMessage({
+      assessment: {
+        checkedAt: new Date().toISOString(),
+        confidence: 0.2,
+        extractedData: {},
+        manualReviewRequired: false,
+        missingInformation: ["Could not read the transcript."],
+        outcome: "insufficient_data",
+        recommendedNextStep: "Try a clearer file.",
+        requirementsChecked: [],
+      },
+      draftedFieldCount: 0,
+      preservedExistingFields: false,
+      qualificationHasCoreData: false,
+      validationFailed: false,
+    });
+
+    expect(message?.type).toBe("warning");
+    expect(message?.message).toContain("couldn't draft a qualification");
+  });
 });
