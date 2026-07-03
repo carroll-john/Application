@@ -381,6 +381,7 @@ const transcriptGroupPhrases: Record<string, string> = {
 };
 
 const FIELD_OF_STUDY_KIND_LABEL = requirementKindLabel("field_of_study");
+const ENGLISH_PROFICIENCY_KIND_LABEL = requirementKindLabel("english_proficiency");
 
 /**
  * Qualification, academic threshold, English proficiency, and field of study can all be verified
@@ -415,6 +416,16 @@ export function groupTranscriptVerifiableEvidenceRows(
   const explanationItems = phrases.map(
     (phrase) => phrase.charAt(0).toUpperCase() + phrase.slice(1),
   );
+
+  // Fold an already-satisfied English proficiency row into the transcript card as an extra
+  // bullet instead of rendering it as its own separate "met" card below.
+  const satisfiedEnglishRow = rows.find(
+    (row) => row.kindLabel === ENGLISH_PROFICIENCY_KIND_LABEL && row.status === "met",
+  );
+  if (satisfiedEnglishRow) {
+    explanationItems.push(satisfiedEnglishRow.explanation);
+    groupableIds.add(satisfiedEnglishRow.id);
+  }
   const explanation = `Add your transcript to verify ${new Intl.ListFormat("en", {
     style: "long",
     type: "conjunction",
