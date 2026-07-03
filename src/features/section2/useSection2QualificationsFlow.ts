@@ -1,21 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { ApplicationData } from "../../lib/applicationData";
 import {
   isEmploymentExperienceChronologyValid,
   isTertiaryQualificationSubmissionReady,
 } from "../../lib/applicationValidationSchema";
-import {
-  getSection2RequirementInput,
-  getSection2RequirementProfile,
-} from "../../lib/section2Requirements";
+import type { ProgramEvidenceRow } from "../../lib/eligibility/programEvidence";
 import { readSection2NavigationState } from "./section2NavigationState";
 import {
-  initialSectionState,
-  sectionStateOrder,
-  type SectionState,
-  type SectionStatus,
-} from "./types";
+  buildSection2EvidencePlan,
+  readSkippedSections,
+  sectionHasData,
+  writeSkippedSections,
+  type Section2EvidenceSectionKey,
+} from "./section2EvidencePlan";
+import { sectionStateOrder, type SectionState } from "./types";
 
 type StatusMessage = {
   type: "success" | "warning" | "error" | "status";
@@ -24,31 +23,29 @@ type StatusMessage = {
 
 interface UseSection2QualificationsFlowOptions {
   data: ApplicationData;
+  groupedEvidenceRows: readonly ProgramEvidenceRow[];
+  hasPublishedRequirements: boolean;
 }
 
-export function useSection2QualificationsFlow({ data }: UseSection2QualificationsFlowOptions) {
+export function useSection2QualificationsFlow({
+  data,
+  groupedEvidenceRows,
+  hasPublishedRequirements,
+}: UseSection2QualificationsFlowOptions) {
   const location = useLocation();
   const navigate = useNavigate();
-  const [sectionStates, setSectionStates] = useState<SectionState>(initialSectionState);
+  const [skippedSections, setSkippedSections] = useState<
+    ReadonlySet<Section2EvidenceSectionKey>
+  >(() => readSkippedSections());
   const [statusMessage, setStatusMessage] = useState<StatusMessage | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const hasTertiaryQualification = data.tertiaryQualifications.length > 0;
-  const tertiaryRequirementsMet =
-    hasTertiaryQualification &&
-    data.tertiaryQualifications.every(isTertiaryQualificationSubmissionReady);
-  const hasEmploymentExperience = data.employmentExperiences.length > 0;
-  const employmentRequirementsMet =
-    hasEmploymentExperience &&
-    data.employmentExperiences.every(isEmploymentExperienceChronologyValid);
-  const section2RequirementInput = getSection2RequirementInput(data);
-  const section2RequirementProfile = getSection2RequirementProfile(
-    section2RequirementInput.selectedCourse,
+  const tertiaryRequirementsMet = data.tertiaryQualifications.every(
+    isTertiaryQualificationSubmissionReady,
   );
-  const supportsExperienceAlternative =
-    section2RequirementProfile?.supportsExperienceAlternative ?? false;
-  const supportsSecondaryQualification =
-    section2RequirementProfile?.supportsSecondaryQualification ?? false;
+  const employmentRequirementsMet = data.employmentExperiences.every(
+    isEmploymentExperienceChronologyValid,
+  );
 
   useEffect(() => {
     const navigationState = readSection2NavigationState(location.state);
@@ -73,90 +70,62 @@ export function useSection2QualificationsFlow({ data }: UseSection2Qualification
     });
   }, [location.pathname, location.search, location.state, navigate]);
 
-  useEffect(() => {
-    const next: SectionState = { ...initialSectionState };
+  const evidencePlan = useMemo(
+    () =>
+      buildSection2EvidencePlan({
+        data,
+        groupedRows: groupedEvidenceRows,
+        hasPublishedRequirements,
+        skippedSections,
+      }),
+    [data, groupedEvidenceRows, hasPublishedRequirements, skippedSections],
+  );
 
-    if (supportsExperienceAlternative) {
-      next.cv = "active";
-      next.employment = "active";
+  const sectionStates = useMemo(() => {
+    const states = {} as SectionState;
+    for (const key of sectionStateOrder) {
+      if (sectionHasData(data, key)) {
+        const needsAttention =
+          (key === "tertiary" && !tertiaryRequirementsMet) ||
+          (key === "employment" && !employmentRequirementsMet);
+        states[key] = needsAttention ? "needsAttention" : "completed";
+      } else if (evidencePlan.nextPrompt?.sectionKey === key) {
+        states[key] = "active";
+      } else if (skippedSections.has(key)) {
+        states[key] = "skipped";
+      } else {
+        states[key] = "locked";
+      }
     }
-
-    if (supportsSecondaryQualification) {
-      next.secondary = "active";
-    }
-
-    if (data.tertiaryQualifications.length > 0) {
-      next.tertiary = tertiaryRequirementsMet ? "completed" : "needsAttention";
-      next.cv = "active";
-    }
-    if (data.cvUploaded) {
-      next.cv = "completed";
-      next.employment = "active";
-    }
-    if (data.employmentExperiences.length > 0) {
-      next.employment = employmentRequirementsMet ? "completed" : "needsAttention";
-      next.accreditation = "active";
-    }
-    if (data.professionalAccreditations.length > 0) {
-      next.accreditation = "completed";
-      next.secondary = "active";
-    }
-    if (data.secondaryQualifications.length > 0) {
-      next.secondary = "completed";
-      next.languageTest = "active";
-    }
-    if (data.languageTests.length > 0) {
-      next.languageTest = "completed";
-    }
-
-    setSectionStates((previous) => ({
-      ...next,
-      tertiary:
-        previous.tertiary === "skipped" && next.tertiary === "active"
-          ? "skipped"
-          : next.tertiary,
-      cv: previous.cv === "skipped" && next.cv === "active" ? "skipped" : next.cv,
-      employment:
-        previous.employment === "skipped" && next.employment === "active"
-          ? "skipped"
-          : next.employment,
-      accreditation:
-        previous.accreditation === "skipped" && next.accreditation === "active"
-          ? "skipped"
-          : next.accreditation,
-      secondary:
-        previous.secondary === "skipped" && next.secondary === "active"
-          ? "skipped"
-          : next.secondary,
-      languageTest:
-        previous.languageTest === "skipped" && next.languageTest === "active"
-          ? "skipped"
-          : next.languageTest,
-    }));
+    return states;
   }, [
     data,
     employmentRequirementsMet,
-    supportsExperienceAlternative,
-    supportsSecondaryQualification,
+    evidencePlan.nextPrompt?.sectionKey,
+    skippedSections,
     tertiaryRequirementsMet,
   ]);
 
   function handleSkipSection(section: keyof SectionState) {
-    setSectionStates((previous) => {
-      const next = { ...previous, [section]: "skipped" as SectionStatus };
-      const currentIndex = sectionStateOrder.indexOf(section);
-      if (currentIndex < sectionStateOrder.length - 1) {
-        const nextSection = sectionStateOrder[currentIndex + 1];
-        if (next[nextSection] === "locked") {
-          next[nextSection] = "active";
-        }
-      }
+    setSkippedSections((previous) => {
+      const next = new Set(previous);
+      next.add(section);
+      writeSkippedSections(next);
       return next;
     });
 
     setStatusMessage({
       type: "status",
       message: "Section skipped. You can always come back to add information later.",
+    });
+  }
+
+  function handleUnskipSection(section: keyof SectionState) {
+    setSkippedSections((previous) => {
+      const next = new Set(previous);
+      next.delete(section);
+      writeSkippedSections(next);
+      return next;
     });
   }
 
@@ -173,9 +142,11 @@ export function useSection2QualificationsFlow({ data }: UseSection2Qualification
   }
 
   return {
+    evidencePlan,
     handleSaveAndContinue,
     handleSaveAndExit,
     handleSkipSection,
+    handleUnskipSection,
     isSaving,
     sectionStates,
     setStatusMessage,
