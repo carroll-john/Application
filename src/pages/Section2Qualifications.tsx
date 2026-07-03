@@ -138,16 +138,26 @@ function buildAssessmentEvidenceRows(assessment: TranscriptEligibilityAssessment
 function EvidenceReviewRow({
   action,
   explanation,
+  explanationItems,
   heading,
 }: {
   action?: ReactNode;
   explanation: string;
+  explanationItems?: string[];
   heading: string;
 }) {
   return (
     <li className="rounded-md border border-gray-200 p-3">
       <p className="text-xs font-semibold text-gray-900 sm:text-sm">{heading}</p>
-      <p className="mt-1 text-xs text-gray-700 sm:text-sm">{explanation}</p>
+      {explanationItems && explanationItems.length > 0 ? (
+        <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-gray-700 sm:text-sm">
+          {explanationItems.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-1 text-xs text-gray-700 sm:text-sm">{explanation}</p>
+      )}
       {action ? <div className="mt-3 flex justify-end">{action}</div> : null}
     </li>
   );
@@ -335,6 +345,7 @@ export default function Section2Qualifications() {
                     ) : null
                   }
                   explanation={row.explanation}
+                  explanationItems={row.explanationItems}
                   heading={row.heading}
                 />
               ))}

@@ -32,6 +32,8 @@ export interface ProgramEvidenceRow {
   actionLabel?: string;
   actionPath?: string;
   explanation: string;
+  /** Bullet points to render instead of `explanation` when set (e.g. the merged transcript card). */
+  explanationItems?: string[];
   /** Short, non-duplicated display title for the card. Falls back to `sourceText` verbatim. */
   heading: string;
   id: string;
@@ -410,6 +412,13 @@ export function groupTranscriptVerifiableEvidenceRows(
     ),
   ];
   const acceptedFieldsRow = groupable.find((row) => row.kindLabel === FIELD_OF_STUDY_KIND_LABEL);
+  const acceptedFieldsSuffix = acceptedFieldsRow
+    ? ` (${acceptedFieldsRow.heading.replace(/^Accepted fields:\s*/, "Accepted: ")})`
+    : "";
+  const explanationItems = phrases.map((phrase) => {
+    const capitalized = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+    return phrase === "your field of study" ? `${capitalized}${acceptedFieldsSuffix}` : capitalized;
+  });
   const explanation = `Add your transcript to verify ${new Intl.ListFormat("en", {
     style: "long",
     type: "conjunction",
@@ -418,6 +427,7 @@ export function groupTranscriptVerifiableEvidenceRows(
     actionLabel: "Add transcript",
     actionPath: groupable.find((row) => row.actionPath)?.actionPath ?? tertiaryPath,
     explanation,
+    explanationItems,
     heading: "Academic transcript",
     id: "transcript-group",
     isBlocking: true,
