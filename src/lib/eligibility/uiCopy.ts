@@ -38,6 +38,14 @@ export const eligibilityFeedbackCopy = {
   submitted: "Thanks — we've noted your feedback for admissions review.",
 } as const;
 
+/**
+ * Accessible, per-requirement variant of the feedback trigger so two visible triggers are never
+ * indistinguishable (used as the button's aria-label; the visible text stays short).
+ */
+export function feedbackTriggerLabel(requirementHeading: string) {
+  return `${eligibilityFeedbackCopy.trigger} — ${requirementHeading}`;
+}
+
 export const eligibilityFeedbackStatusLabels: Record<
   EligibilityRequirementStatus,
   string

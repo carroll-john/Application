@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:eligibility-contract": "vitest run api/evaluate-transcript-eligibility.test.ts src/lib/eligibility/transcriptFixtures.test.ts src/lib/eligibility/transcriptV3Fixtures.test.ts src/lib/eligibility/client.test.ts src/lib/eligibility/normalize.test.ts src/lib/eligibility/deterministicRules.test.ts src/lib/eligibility/uiCopy.test.ts",
+    "test:eligibility-contract": "vitest run api/evaluate-transcript-eligibility.test.ts src/lib/eligibility/transcriptFixtures.test.ts src/lib/eligibility/transcriptV3Fixtures.test.ts src/lib/eligibility/client.test.ts src/lib/eligibility/normalize.test.ts src/lib/eligibility/deterministicRules.test.ts src/lib/eligibility/uiCopy.test.ts src/lib/eligibility/checkCopy.test.ts src/lib/eligibility/programEvidence.test.ts",
     "test:cv-parser": "node ./scripts/cv-parser-regression.mjs",
     "test:eligibility-transcripts": "node ./scripts/eligibility-transcript-regression.mjs",
     "dev:cv-parser-api": "tsx ./scripts/dev-cv-parser-server.mjs",

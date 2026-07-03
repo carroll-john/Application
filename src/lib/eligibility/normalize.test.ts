@@ -55,6 +55,62 @@ describe("normalizeTranscriptEligibilityAssessment", () => {
     });
   });
 
+  it("preserves reasonCode, details, pendingEvidence, notes, and version stamps", () => {
+    const normalized = normalizeTranscriptEligibilityAssessment({
+      confidence: 0.85,
+      outcome: "eligible",
+      extractionNotes: ["Grading key partially unreadable."],
+      modelId: "gpt-4.1-mini",
+      pendingEvidence: [
+        {
+          evidenceSource: "cv",
+          kind: "work_experience",
+          reasonCode: "WORK_EXPERIENCE_UNVERIFIED",
+          requirementId: "work",
+        },
+        { evidenceSource: "not-a-source", kind: "x", requirementId: "bad" },
+      ],
+      promptVersion: "transcript-eligibility@v2",
+      requirementsChecked: [
+        {
+          details: { metric: "gpa", observed: "5.25/7", required: "4/7" },
+          explanation: "GPA 5.25/7 meets minimum GPA 4/7.",
+          id: "gpa",
+          reasonCode: "GPA_MET",
+          requirement: "Minimum GPA 4/7",
+          status: "pass",
+        },
+        {
+          explanation: "Something",
+          id: "other",
+          reasonCode: "NOT_A_REAL_CODE",
+          requirement: "Other",
+          status: "pass",
+        },
+      ],
+      schemaVersion: "transcript_eligibility_extraction@v2",
+    });
+
+    expect(normalized.requirementsChecked[0]).toMatchObject({
+      details: { metric: "gpa", observed: "5.25/7", required: "4/7" },
+      reasonCode: "GPA_MET",
+    });
+    // Unknown reason codes are dropped rather than passed through unvalidated.
+    expect(normalized.requirementsChecked[1].reasonCode).toBeUndefined();
+    expect(normalized.pendingEvidence).toEqual([
+      {
+        evidenceSource: "cv",
+        kind: "work_experience",
+        reasonCode: "WORK_EXPERIENCE_UNVERIFIED",
+        requirementId: "work",
+      },
+    ]);
+    expect(normalized.extractionNotes).toEqual(["Grading key partially unreadable."]);
+    expect(normalized.modelId).toBe("gpt-4.1-mini");
+    expect(normalized.promptVersion).toBe("transcript-eligibility@v2");
+    expect(normalized.schemaVersion).toBe("transcript_eligibility_extraction@v2");
+  });
+
   it("falls back to insufficient_data for unknown payloads", () => {
     const normalized = normalizeTranscriptEligibilityAssessment({
       confidence: 9,

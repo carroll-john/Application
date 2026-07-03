@@ -189,7 +189,7 @@ export async function loadRemoteApplicationById(
     client
       .from("tertiary_qualifications")
       .select(
-        "id, institution, country, level, course_name, start_month, start_year, completed, end_month, end_year, transcript_confirms_completion, transcript_document_id, transcript_document_name, certificate_document_id, certificate_document_name",
+        "id, institution, country, level, course_name, start_month, start_year, completed, end_month, end_year, transcript_confirms_completion, transcript_document_id, transcript_document_name, transcript_eligibility, certificate_document_id, certificate_document_name",
       )
       .eq("application_id", applicationId)
       .order("created_at", { ascending: true }),

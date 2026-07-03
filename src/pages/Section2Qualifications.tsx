@@ -24,33 +24,17 @@ import { useReviewReturn } from "../hooks/useReviewReturn";
 import { getCourseByCode } from "../lib/courseCatalog";
 import {
   buildProgramEvidenceRows,
+  buildTranscriptReviewSummary,
   dedupeProgramEvidenceRowsByHeading,
-  filterResolvedTranscriptMissingInformation,
   groupTranscriptVerifiableEvidenceRows,
-  shouldShowTranscriptRecommendedNextStep,
 } from "../lib/eligibility/programEvidence";
 import { requirementKindLabel } from "../lib/eligibility/requirements";
-import type {
-  EligibilityOutcome,
-  TranscriptEligibilityAssessment,
-} from "../lib/eligibility/types";
+import type { TranscriptEligibilityAssessment } from "../lib/eligibility/types";
 import {
   eligibilityOutcomeCopy,
   programEvidenceAdvisoryCopy,
 } from "../lib/eligibility/uiCopy";
 import { getSection2EditPath, getSection2Step } from "../lib/section2Steps";
-
-function getEligibilityOutcomeTone(outcome: EligibilityOutcome) {
-  if (outcome === "eligible") {
-    return "text-[var(--success-text)]";
-  }
-
-  if (outcome === "ineligible") {
-    return "text-[var(--warning-text)]";
-  }
-
-  return "text-[var(--info-text)]";
-}
 
 function getLatestTranscriptAssessment(
   assessments: Array<TranscriptEligibilityAssessment | undefined>,
@@ -141,11 +125,14 @@ function EvidenceReviewRow({
   action,
   explanation,
   explanationItems,
+  feedback,
   heading,
 }: {
   action?: ReactNode;
   explanation: string;
   explanationItems?: string[];
+  /** Per-requirement "doesn't match your transcript?" affordance, rendered inside the card so it is visually bound to the requirement it disputes. */
+  feedback?: ReactNode;
   heading: string;
 }) {
   return (
@@ -160,6 +147,7 @@ function EvidenceReviewRow({
       ) : (
         <p className="mt-1 text-xs text-gray-700 sm:text-sm">{explanation}</p>
       )}
+      {feedback}
       {action ? <div className="mt-3 flex justify-end">{action}</div> : null}
     </li>
   );
@@ -198,10 +186,7 @@ export default function Section2Qualifications() {
   const selectedCourseEntry = getCourseByCode(data.applicationMeta?.selectedCourse?.code);
   const selectedCourseTitle =
     data.applicationMeta?.selectedCourse?.title ?? selectedCourseEntry?.title;
-  const showParsedTranscriptIntro =
-    statusMessage?.type === "success" &&
-    statusMessage.message.toLowerCase().includes("qualification") &&
-    statusMessage.message.toLowerCase().includes("transcript");
+  const showParsedTranscriptIntro = Boolean(latestTranscriptAssessment);
   const programEvidenceRows = buildProgramEvidenceRows({
     applicationData: data,
     course: selectedCourseEntry,
@@ -221,24 +206,9 @@ export default function Section2Qualifications() {
   const blockingProgramEvidenceRows = displayProgramEvidenceRows.filter(
     (row) => row.isBlocking,
   );
-  const transcriptFeedbackRows = latestTranscriptAssessment
-    ? dedupeProgramEvidenceRowsByHeading(programEvidenceRows).filter(
-        (row) => row.requirementStatus,
-      )
-    : [];
-  const visibleMissingInformation = latestTranscriptAssessment
-    ? filterResolvedTranscriptMissingInformation(
-        latestTranscriptAssessment.missingInformation,
-        programEvidenceRows,
-      )
-    : [];
-  const showRecommendedNextStep = latestTranscriptAssessment
-    ? shouldShowTranscriptRecommendedNextStep(
-        latestTranscriptAssessment.recommendedNextStep,
-        visibleMissingInformation,
-        programEvidenceRows,
-      )
-    : false;
+  const transcriptReviewSummary = latestTranscriptAssessment
+    ? buildTranscriptReviewSummary(displayProgramEvidenceRows)
+    : undefined;
   const programEvidenceSummary =
     blockingProgramEvidenceRows.length === 0
       ? "Evidence ready"
@@ -308,14 +278,15 @@ export default function Section2Qualifications() {
               {programEvidenceSummary}
             </p>
           </div>
-          {latestTranscriptAssessment ? (
+          {transcriptReviewSummary ? (
             <p
-              className={`mt-1 text-xs font-medium sm:text-sm ${getEligibilityOutcomeTone(
-                latestTranscriptAssessment.outcome,
-              )}`}
+              className={`mt-1 text-xs font-medium sm:text-sm ${
+                transcriptReviewSummary.headerTone === "success"
+                  ? "text-[var(--success-text)]"
+                  : "text-[var(--warning-text)]"
+              }`}
             >
-              Transcript extraction: {eligibilityOutcomeCopy[latestTranscriptAssessment.outcome]} ·
-              Confidence: {Math.round(latestTranscriptAssessment.confidence * 100)}%
+              {transcriptReviewSummary.headerLine}
             </p>
           ) : null}
           {showParsedTranscriptIntro ? (
@@ -357,47 +328,47 @@ export default function Section2Qualifications() {
                   }
                   explanation={row.explanation}
                   explanationItems={row.explanationItems}
+                  feedback={
+                    latestTranscriptAssessment && row.requirementStatus ? (
+                      <EligibilityRowFeedback
+                        requirementId={row.requirementId}
+                        requirementHeading={row.heading}
+                        requirementSourceText={row.sourceText}
+                        originalStatus={row.requirementStatus}
+                        courseCode={data.applicationMeta?.selectedCourse?.code}
+                        courseTitle={data.applicationMeta?.selectedCourse?.title}
+                        modelId={latestTranscriptAssessment.modelId}
+                        promptVersion={latestTranscriptAssessment.promptVersion}
+                        reasonCode={row.reasonCode}
+                        rulesVersion={latestTranscriptAssessment.rulesVersion}
+                        schemaVersion={latestTranscriptAssessment.schemaVersion}
+                        serviceVersion={latestTranscriptAssessment.serviceVersion}
+                      />
+                    ) : null
+                  }
                   heading={row.heading}
                 />
               ))}
             </ul>
           ) : null}
-          {latestTranscriptAssessment && transcriptFeedbackRows.length > 0 ? (
-            <div className="mt-3 space-y-2" aria-label="Transcript feedback">
-              {transcriptFeedbackRows.map((row) =>
-                row.requirementStatus ? (
-                  <EligibilityRowFeedback
-                    key={row.requirementId}
-                    requirementId={row.requirementId}
-                    requirementSourceText={row.sourceText}
-                    originalStatus={row.requirementStatus}
-                    courseCode={data.applicationMeta?.selectedCourse?.code}
-                    courseTitle={data.applicationMeta?.selectedCourse?.title}
-                    rulesVersion={latestTranscriptAssessment.rulesVersion}
-                    serviceVersion={latestTranscriptAssessment.serviceVersion}
-                  />
-                ) : null,
-              )}
-            </div>
-          ) : null}
-          {visibleMissingInformation.length > 0 ? (
+          {transcriptReviewSummary && transcriptReviewSummary.missingItems.length > 0 ? (
             <div className="mt-3 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3">
               <p className="text-xs font-semibold text-[var(--warning-text)] sm:text-sm">
                 Missing or unclear information
               </p>
               <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-[var(--warning-text)] sm:text-sm">
-                {visibleMissingInformation.map((item) => (
+                {transcriptReviewSummary.missingItems.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>
           ) : null}
-          {latestTranscriptAssessment && showRecommendedNextStep ? (
+          {transcriptReviewSummary?.nextStep ? (
             <p className="mt-3 text-xs text-gray-700 sm:text-sm">
-              Recommended next step: {latestTranscriptAssessment.recommendedNextStep}
+              Recommended next step: {transcriptReviewSummary.nextStep}
             </p>
           ) : null}
-          {latestTranscriptAssessment?.manualReviewRequired ? (
+          {transcriptReviewSummary?.manualReviewNeeded ? (
             <p className="mt-2 text-xs font-medium text-[var(--warning-text)] sm:text-sm">
               Manual admissions review is required for one or more evidence checks.
             </p>

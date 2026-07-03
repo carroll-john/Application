@@ -7,15 +7,22 @@ import {
   eligibilityFeedbackCopy,
   eligibilityFeedbackStatusLabels,
   eligibilityRequirementStatusCopy,
+  feedbackTriggerLabel,
 } from "../../lib/eligibility/uiCopy";
 
 interface EligibilityRowFeedbackProps {
   requirementId: string;
+  /** Short display heading of the requirement, used to disambiguate the trigger for a11y. */
+  requirementHeading?: string;
   requirementSourceText: string;
   originalStatus: EligibilityRequirementStatus;
   courseCode?: string;
   courseTitle?: string;
+  modelId?: string;
+  promptVersion?: string;
+  reasonCode?: string;
   rulesVersion?: string;
+  schemaVersion?: string;
   serviceVersion?: string;
 }
 
@@ -25,11 +32,16 @@ interface EligibilityRowFeedbackProps {
  */
 export function EligibilityRowFeedback({
   requirementId,
+  requirementHeading,
   requirementSourceText,
   originalStatus,
   courseCode,
   courseTitle,
+  modelId,
+  promptVersion,
+  reasonCode,
   rulesVersion,
+  schemaVersion,
   serviceVersion,
 }: EligibilityRowFeedbackProps) {
   const [expanded, setExpanded] = useState(false);
@@ -49,6 +61,11 @@ export function EligibilityRowFeedback({
   if (!expanded) {
     return (
       <Button
+        aria-label={
+          requirementHeading
+            ? feedbackTriggerLabel(requirementHeading)
+            : eligibilityFeedbackCopy.trigger
+        }
         className="mt-3 h-auto min-h-9 rounded-full px-3 py-1.5 text-[11px] sm:text-xs"
         size="sm"
         type="button"
@@ -143,7 +160,11 @@ export function EligibilityRowFeedback({
               reason: reason.trim() || undefined,
               courseCode,
               courseTitle,
+              modelId,
+              promptVersion,
+              reasonCode,
               rulesVersion,
+              schemaVersion,
               serviceVersion,
             }).then(() => {
               setSubmitting(false);
