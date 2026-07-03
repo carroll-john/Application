@@ -275,7 +275,7 @@ export default function Section2Qualifications() {
         <div className="mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-sm font-semibold text-gray-900 sm:text-base">
-              Eligibility Supporting Documentation
+              Supporting Eligibility Documentation
             </h2>
             <p
               className={`text-xs font-semibold sm:text-sm ${
