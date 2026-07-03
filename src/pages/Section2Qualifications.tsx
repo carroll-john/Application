@@ -29,6 +29,7 @@ import {
   groupTranscriptVerifiableEvidenceRows,
   shouldShowTranscriptRecommendedNextStep,
 } from "../lib/eligibility/programEvidence";
+import { requirementKindLabel } from "../lib/eligibility/requirements";
 import type {
   EligibilityOutcome,
   TranscriptEligibilityAssessment,
@@ -206,8 +207,13 @@ export default function Section2Qualifications() {
     course: selectedCourseEntry,
     transcriptAssessment: latestTranscriptAssessment,
   });
+  const hasAcademicThresholdRequirement = programEvidenceRows.some(
+    (row) => row.kindLabel === requirementKindLabel("academic_threshold"),
+  );
   const assessmentEvidenceRows = latestTranscriptAssessment
-    ? buildAssessmentEvidenceRows(latestTranscriptAssessment)
+    ? buildAssessmentEvidenceRows(latestTranscriptAssessment).filter(
+        (row) => !(hasAcademicThresholdRequirement && row.id === "academic-result"),
+      )
     : [];
   const displayProgramEvidenceRows = dedupeProgramEvidenceRowsByHeading(
     groupTranscriptVerifiableEvidenceRows(programEvidenceRows),
