@@ -449,6 +449,27 @@ export function groupTranscriptVerifiableEvidenceRows(
   return result;
 }
 
+/**
+ * Alternative entry pathways (e.g. two different bachelor-level routes into a program) each
+ * produce their own `qualification_level` requirement instance, so the same heading (e.g.
+ * "Bachelor degree or higher") can appear more than once in `buildProgramEvidenceRows`'s output.
+ * Collapse those to a single row/button per heading, keeping the first occurrence.
+ */
+export function dedupeProgramEvidenceRowsByHeading(
+  rows: readonly ProgramEvidenceRow[],
+): ProgramEvidenceRow[] {
+  const seenHeadings = new Set<string>();
+  const result: ProgramEvidenceRow[] = [];
+  for (const row of rows) {
+    if (seenHeadings.has(row.heading)) {
+      continue;
+    }
+    seenHeadings.add(row.heading);
+    result.push(row);
+  }
+  return result;
+}
+
 export function getBlockingProgramEvidenceRows(options: {
   applicationData: ApplicationData;
   course: CourseCatalogEntry | null | undefined;
