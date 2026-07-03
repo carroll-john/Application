@@ -17,6 +17,7 @@ import type { Section2RecordStatusMessage } from "../../hooks/useSection2RecordS
 import {
   buildTertiaryTranscriptFlashMessage,
   getDraftedFieldCountFromParseResult,
+  needsHubTranscriptEligibilityProcessing,
   parseTranscriptForQualification,
   shouldUseCachedTranscriptAssessment,
   tertiaryTranscriptParseCopy,
@@ -52,6 +53,8 @@ export function usePendingTranscriptEligibility({
   } | null>(null);
   const [isProcessingEligibility, setIsProcessingEligibility] = useState(false);
   const activeJobRef = useRef<string | null>(null);
+  /** Qualification ids already (re-)queued for eligibility processing this session. */
+  const queuedQualificationIdsRef = useRef<Set<string>>(new Set());
 
   const clearNavigationState = useCallback(() => {
     navigate(`${location.pathname}${location.search}`, {
@@ -207,19 +210,51 @@ export function usePendingTranscriptEligibility({
       setStatusMessage(navigationState.section2StatusMessage);
     }
 
-    if (!pendingJob) {
+    if (pendingJob) {
+      if (activeJobRef.current === pendingJob.qualificationId) {
+        return;
+      }
+
+      activeJobRef.current = pendingJob.qualificationId;
+      queuedQualificationIdsRef.current.add(pendingJob.qualificationId);
+      clearNavigationState();
+      void runPendingJob(pendingJob);
       return;
     }
 
-    if (activeJobRef.current === pendingJob.qualificationId) {
+    // `transcriptEligibility` lives only in memory (see applicationData.ts), so a qualification
+    // that already has a transcript document attached loses its assessment on every reload or
+    // return visit to this page -- not just right after saving. Without this, the evidence panel
+    // gets stuck asking for a transcript that's already there. Re-run the same reprocessing job
+    // used right after save, once per qualification per session.
+    if (isProcessingEligibility) {
       return;
     }
 
-    activeJobRef.current = pendingJob.qualificationId;
-    clearNavigationState();
-    void runPendingJob(pendingJob);
+    const staleQualification = applicationData.tertiaryQualifications.find(
+      (qualification) =>
+        !queuedQualificationIdsRef.current.has(qualification.id) &&
+        needsHubTranscriptEligibilityProcessing({
+          selectedTranscriptFile: null,
+          transcriptDocument: qualification.transcriptDocument,
+          transcriptEligibility: qualification.transcriptEligibility,
+          transcriptRemoved: false,
+        }),
+    );
+
+    if (!staleQualification) {
+      return;
+    }
+
+    queuedQualificationIdsRef.current.add(staleQualification.id);
+    void runPendingJob({
+      qualificationId: staleQualification.id,
+      savedQualification: staleQualification,
+    });
   }, [
+    applicationData.tertiaryQualifications,
     clearNavigationState,
+    isProcessingEligibility,
     location.state,
     runPendingJob,
     setStatusMessage,
