@@ -12,6 +12,7 @@ import {
   buildProgramEvidenceRows,
   dedupeProgramEvidenceRowsByHeading,
   filterResolvedTranscriptMissingInformation,
+  groupTranscriptVerifiableEvidenceRows,
   shouldShowTranscriptRecommendedNextStep,
 } from "./programEvidence";
 
@@ -229,6 +230,53 @@ describe("buildProgramEvidenceRows", () => {
       "Bachelor degree or higher",
       "Bachelor degree or higher",
     ]);
+  });
+});
+
+describe("groupTranscriptVerifiableEvidenceRows", () => {
+  it("folds a satisfied English proficiency row into the Academic transcript card", () => {
+    const course = {
+      code: "course-4",
+      title: "Master of Business Administration (Digital)",
+      requirements: [
+        {
+          id: "level",
+          kind: "qualification_level",
+          params: { level: "bachelor" },
+          sourceText: "A bachelor degree or higher.",
+          weight: "mandatory",
+        },
+        {
+          id: "wam",
+          kind: "academic_threshold",
+          params: { metric: "wam", min: 65 },
+          sourceText: "Minimum WAM of 65%.",
+          weight: "mandatory",
+        },
+        {
+          id: "english",
+          kind: "english_proficiency",
+          params: {
+            acceptedPathways: [{ type: "completion_in_country", countries: ["AU", "NZ"] }],
+          },
+          sourceText: "English instruction confirmation or an approved English test.",
+          weight: "mandatory",
+        },
+      ],
+    } as CourseCatalogEntry;
+
+    const rows = buildProgramEvidenceRows({
+      applicationData: application({ tertiaryQualifications: [tertiaryQualification()] }),
+      course,
+    });
+    const englishRow = rows.find((row) => row.id === "english");
+    expect(englishRow).toMatchObject({ status: "met" });
+
+    const grouped = groupTranscriptVerifiableEvidenceRows(rows);
+
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0]).toMatchObject({ heading: "Academic transcript" });
+    expect(grouped[0].explanationItems).toContain(englishRow!.explanation);
   });
 });
 
