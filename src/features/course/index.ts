@@ -12,7 +12,6 @@ export {
   type CourseCategoryFilter,
 } from "./courseBrowseTypes";
 export {
-  ApplicationStartPicker,
   EligibilityResultModal,
   type EligibilityOutcome,
   type StartApplicationOptions,

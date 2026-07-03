@@ -17,7 +17,6 @@ export {
 } from "./section2EvidencePlan";
 export {
   buildAssessmentEvidenceSummary,
-  EvidenceReviewRow,
   getLatestTranscriptAssessment,
   SupportingEvidencePanel,
 } from "./SupportingEvidencePanel";
