@@ -24,6 +24,7 @@ import { useReviewReturn } from "../hooks/useReviewReturn";
 import { getCourseByCode } from "../lib/courseCatalog";
 import {
   buildProgramEvidenceRows,
+  dedupeProgramEvidenceRowsByHeading,
   filterResolvedTranscriptMissingInformation,
   groupTranscriptVerifiableEvidenceRows,
   shouldShowTranscriptRecommendedNextStep,
@@ -208,12 +209,16 @@ export default function Section2Qualifications() {
   const assessmentEvidenceRows = latestTranscriptAssessment
     ? buildAssessmentEvidenceRows(latestTranscriptAssessment)
     : [];
-  const displayProgramEvidenceRows = groupTranscriptVerifiableEvidenceRows(programEvidenceRows);
+  const displayProgramEvidenceRows = dedupeProgramEvidenceRowsByHeading(
+    groupTranscriptVerifiableEvidenceRows(programEvidenceRows),
+  );
   const blockingProgramEvidenceRows = displayProgramEvidenceRows.filter(
     (row) => row.isBlocking,
   );
   const transcriptFeedbackRows = latestTranscriptAssessment
-    ? programEvidenceRows.filter((row) => row.requirementStatus)
+    ? dedupeProgramEvidenceRowsByHeading(programEvidenceRows).filter(
+        (row) => row.requirementStatus,
+      )
     : [];
   const visibleMissingInformation = latestTranscriptAssessment
     ? filterResolvedTranscriptMissingInformation(
@@ -309,7 +314,7 @@ export default function Section2Qualifications() {
           ) : null}
           {showParsedTranscriptIntro ? (
             <p className="mt-2 text-xs text-gray-700 sm:text-sm">
-              Based on your uploaded transcript
+              Based on your uploaded transcript, we've reviewed your eligibility
               {selectedCourseTitle ? ` for ${selectedCourseTitle}` : ""}. Review the
               qualification we drafted and add any missing program evidence below.
             </p>

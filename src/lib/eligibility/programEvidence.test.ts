@@ -10,6 +10,7 @@ import type { CourseCatalogEntry } from "../courseCatalog";
 import type { UploadedDocument } from "../documentStorage";
 import {
   buildProgramEvidenceRows,
+  dedupeProgramEvidenceRowsByHeading,
   filterResolvedTranscriptMissingInformation,
   shouldShowTranscriptRecommendedNextStep,
 } from "./programEvidence";
@@ -192,5 +193,88 @@ describe("buildProgramEvidenceRows", () => {
         rows,
       ),
     ).toBe(true);
+  });
+
+  it("emits one row per alternative entry pathway even when their headings match", () => {
+    const course = {
+      code: "course-2",
+      title: "Master of Business Administration (Digital)",
+      requirements: [
+        {
+          id: "level-entry-1",
+          kind: "qualification_level",
+          alternativeGroupId: "entry-1",
+          params: { level: "bachelor" },
+          sourceText: "A bachelor degree or higher.",
+          weight: "alternative",
+        },
+        {
+          id: "level-entry-2",
+          kind: "qualification_level",
+          alternativeGroupId: "entry-2",
+          params: { level: "bachelor" },
+          sourceText: "A bachelor degree or higher in a related field.",
+          weight: "alternative",
+        },
+      ],
+    } as CourseCatalogEntry;
+
+    const rows = buildProgramEvidenceRows({
+      applicationData: application({ tertiaryQualifications: [tertiaryQualification()] }),
+      course,
+    });
+
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.heading)).toEqual([
+      "Bachelor degree or higher",
+      "Bachelor degree or higher",
+    ]);
+  });
+});
+
+describe("dedupeProgramEvidenceRowsByHeading", () => {
+  it("keeps the first row per unique heading", () => {
+    const course = {
+      code: "course-3",
+      title: "Master of Business Administration (Digital)",
+      requirements: [
+        {
+          id: "level-entry-1",
+          kind: "qualification_level",
+          alternativeGroupId: "entry-1",
+          params: { level: "bachelor" },
+          sourceText: "A bachelor degree or higher.",
+          weight: "alternative",
+        },
+        {
+          id: "level-entry-2",
+          kind: "qualification_level",
+          alternativeGroupId: "entry-2",
+          params: { level: "bachelor" },
+          sourceText: "A bachelor degree or higher in a related field.",
+          weight: "alternative",
+        },
+        {
+          id: "wam",
+          kind: "academic_threshold",
+          params: { metric: "wam", min: 65 },
+          sourceText: "Minimum WAM of 65%.",
+          weight: "mandatory",
+        },
+      ],
+    } as CourseCatalogEntry;
+
+    const rows = buildProgramEvidenceRows({
+      applicationData: application({ tertiaryQualifications: [tertiaryQualification()] }),
+      course,
+    });
+
+    const deduped = dedupeProgramEvidenceRowsByHeading(rows);
+
+    expect(deduped.map((row) => row.heading)).toEqual([
+      "Bachelor degree or higher",
+      "Minimum 65 WAM",
+    ]);
+    expect(deduped[0].requirementId).toBe("level-entry-1");
   });
 });
