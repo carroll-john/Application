@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { eligibilityOutcomeCopy, eligibilityRequirementStatusCopy } from "./uiCopy";
+import {
+  eligibilityOutcomeCopy,
+  eligibilityRequirementStatusCopy,
+  programEvidenceAdvisoryCopy,
+} from "./uiCopy";
 
 describe("eligibility ui copy", () => {
   it("maps all outcome labels used in review surfaces", () => {
@@ -17,6 +21,12 @@ describe("eligibility ui copy", () => {
       fail: "Fail",
       unknown: "Unknown",
     });
+  });
+
+  it("keeps supporting eligibility advisory copy split into paragraphs", () => {
+    expect(programEvidenceAdvisoryCopy).toEqual([
+      "Admissions makes the final decision after verification.",
+    ]);
   });
 });
 

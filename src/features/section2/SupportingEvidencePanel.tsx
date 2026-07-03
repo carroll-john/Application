@@ -178,7 +178,11 @@ export function SupportingEvidencePanel({
           Upload a document and we&apos;ll read it, draft the details for you, and only ask
           for anything further the program requires.
         </p>
-        <p className="mt-2 text-xs text-gray-600 sm:text-sm">{programEvidenceAdvisoryCopy}</p>
+        {programEvidenceAdvisoryCopy.map((paragraph) => (
+          <p key={paragraph} className="mt-2 text-xs text-gray-600 sm:text-sm">
+            {paragraph}
+          </p>
+        ))}
         {plan.mode === "requirements" && heroBullets.length > 0 ? (
           <>
             <p className="mt-3 text-xs font-medium text-gray-900 sm:text-sm">
@@ -279,13 +283,22 @@ export function SupportingEvidencePanel({
         </p>
       ) : null}
       {showParsedTranscriptIntro ? (
-        <p className="mt-2 text-xs text-gray-700 sm:text-sm">
-          Based on your uploaded transcript, we&apos;ve reviewed your eligibility
-          {courseTitle ? ` for ${courseTitle}` : ""}. Review the qualification we drafted and
-          correct anything that doesn&apos;t look right.
-        </p>
+        <>
+          <p className="mt-2 text-xs text-gray-700 sm:text-sm">
+            Based on your uploaded transcript, we&apos;ve reviewed your eligibility
+            {courseTitle ? ` for ${courseTitle}` : ""}.
+          </p>
+          <p className="mt-2 text-xs text-gray-700 sm:text-sm">
+            Review the qualification we drafted and correct anything that doesn&apos;t
+            look right.
+          </p>
+        </>
       ) : null}
-      <p className="mt-2 text-xs text-gray-600 sm:text-sm">{programEvidenceAdvisoryCopy}</p>
+      {programEvidenceAdvisoryCopy.map((paragraph) => (
+        <p key={paragraph} className="mt-2 text-xs text-gray-600 sm:text-sm">
+          {paragraph}
+        </p>
+      ))}
       {assessmentEvidenceRows.length > 0 ? (
         <ul className="mt-3 space-y-2" aria-label="Transcript evidence extracted">
           {assessmentEvidenceRows.map((row) => (
