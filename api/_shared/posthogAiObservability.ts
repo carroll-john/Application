@@ -86,6 +86,7 @@ function summarizeRequirements(output: Record<string, unknown>) {
       const candidate = item as Record<string, unknown>;
       return {
         id: typeof candidate.id === "string" ? candidate.id : "unknown",
+        reasonCode: typeof candidate.reasonCode === "string" ? candidate.reasonCode : undefined,
         status:
           candidate.status === "pass" ||
           candidate.status === "fail" ||
@@ -94,7 +95,11 @@ function summarizeRequirements(output: Record<string, unknown>) {
             : "unknown",
       };
     })
-    .filter(Boolean) as Array<{ id: string; status: "pass" | "fail" | "unknown" }>;
+    .filter(Boolean) as Array<{
+    id: string;
+    reasonCode?: string;
+    status: "pass" | "fail" | "unknown";
+  }>;
 }
 
 function summarizeOutput(output: Record<string, unknown>) {
@@ -245,7 +250,12 @@ interface CaptureEligibilityFeedbackOptions {
    */
   overrideStatus: "pass" | "fail" | "unknown";
   reason?: string;
+  /** Durable machine reason behind the disputed automated status. */
+  reasonCode?: string;
+  modelId?: string;
+  promptVersion?: string;
   rulesVersion?: string;
+  schemaVersion?: string;
   serviceVersion?: string;
 }
 
@@ -280,6 +290,9 @@ export async function captureEligibilityFeedback(
         eligibility_pipeline: "transcript_eligibility_v1",
         eligibility_rules_version: options.rulesVersion ?? "unknown",
         eligibility_service_version: options.serviceVersion ?? "unknown",
+        eligibility_model_id: options.modelId ?? null,
+        eligibility_prompt_version: options.promptVersion ?? null,
+        eligibility_schema_version: options.schemaVersion ?? null,
         course_code: options.courseCode ?? null,
         course_title: options.courseTitle ?? null,
         requirement_id: options.requirementId,
@@ -287,6 +300,7 @@ export async function captureEligibilityFeedback(
         original_status: options.originalStatus,
         override_status: options.overrideStatus,
         reason: options.reason ?? null,
+        reason_code: options.reasonCode ?? null,
       },
     });
   } catch {
@@ -324,6 +338,13 @@ export async function captureTranscriptAiGeneration(
   const hasUnknownCheck = requirements.some((check) => check.status === "unknown");
   const outcome =
     typeof options.output.outcome === "string" ? options.output.outcome : "insufficient_data";
+  const pendingEvidence = Array.isArray(options.output.pendingEvidence)
+    ? (options.output.pendingEvidence as Array<Record<string, unknown>>)
+    : [];
+  const unknownReasonCodes = requirements
+    .filter((check) => check.status === "unknown")
+    .map((check) => check.reasonCode)
+    .filter((code): code is string => typeof code === "string");
 
   const eventProperties = stripUndefinedProperties({
     $ai_trace_id: traceId,
@@ -348,6 +369,19 @@ export async function captureTranscriptAiGeneration(
       typeof options.output.serviceVersion === "string"
         ? options.output.serviceVersion
         : "unknown",
+    eligibility_model_id:
+      typeof options.output.modelId === "string" ? options.output.modelId : options.model,
+    eligibility_prompt_version:
+      typeof options.output.promptVersion === "string" ? options.output.promptVersion : null,
+    eligibility_schema_version:
+      typeof options.output.schemaVersion === "string" ? options.output.schemaVersion : null,
+    eligibility_confidence:
+      typeof options.output.confidence === "number" ? options.output.confidence : null,
+    eligibility_pending_evidence_count: pendingEvidence.length,
+    eligibility_pending_evidence_sources: pendingEvidence
+      .map((entry) => (typeof entry.evidenceSource === "string" ? entry.evidenceSource : "unknown"))
+      .join(","),
+    eligibility_unknown_reason_codes: unknownReasonCodes.join(","),
     eligibility_pipeline: "transcript_eligibility_v1",
     eligibility_source: options.evaluationSource,
   });

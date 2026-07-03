@@ -1,4 +1,5 @@
 import type {
+  EligibilityCheckDetails,
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
   RequirementReasonCode,
@@ -207,6 +208,7 @@ export function buildRequirementCheck(
   status: EligibilityRequirementStatus,
   explanation: string,
   reasonCode?: RequirementReasonCode,
+  details?: EligibilityCheckDetails,
 ): EligibilityRequirementCheck {
   return {
     id: instance.id,
@@ -214,5 +216,23 @@ export function buildRequirementCheck(
     status,
     explanation,
     ...(reasonCode ? { reasonCode } : {}),
+    ...(details ? { details } : {}),
   };
 }
+
+/**
+ * Which document actually proves each requirement kind. A transcript scan can only judge
+ * transcript-provable requirements; the rest must come from other evidence (CV for work
+ * experience, test report / AHPRA registration for English) and should surface as "add this
+ * document next" prompts rather than degrading the transcript verdict.
+ */
+export type EvidenceSource = "transcript" | "cv" | "english_evidence";
+
+export const requirementEvidenceSource: Record<RequirementKind, EvidenceSource> = {
+  qualification_completed: "transcript",
+  qualification_level: "transcript",
+  academic_threshold: "transcript",
+  english_proficiency: "english_evidence",
+  work_experience: "cv",
+  field_of_study: "transcript",
+};

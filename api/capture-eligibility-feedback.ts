@@ -75,7 +75,11 @@ async function handleWebRequest(request: Request) {
     courseTitle: readString(candidate.courseTitle, 200),
     requirementSourceText: readString(candidate.requirementSourceText, 600),
     reason: readString(candidate.reason, 500),
+    reasonCode: readString(candidate.reasonCode, 100),
+    modelId: readString(candidate.modelId, 100),
+    promptVersion: readString(candidate.promptVersion, 100),
     rulesVersion: readString(candidate.rulesVersion, 100),
+    schemaVersion: readString(candidate.schemaVersion, 100),
     serviceVersion: readString(candidate.serviceVersion, 100),
   });
 

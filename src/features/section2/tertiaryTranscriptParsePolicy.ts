@@ -76,6 +76,8 @@ export function buildTranscriptEligibilityContext(
     country: formData.country,
     courseCode: selectedCourse?.code,
     courseTitle: selectedCourse?.title,
+    cvUploaded: applicationData.cvUploaded,
+    employmentCount: applicationData.employmentExperiences.length,
     entryRequirementsText: selectedCourseCatalogEntry?.entryRequirements,
     hasAhpraRegistration: hasCurrentAhpraRegistrationEvidence(
       applicationData.professionalAccreditations,

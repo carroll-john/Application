@@ -11,6 +11,8 @@ import {
 export interface EligibilityFeedbackRow {
   heading: string;
   originalStatus: EligibilityRequirementStatus;
+  /** Durable machine reason behind the automated status, attached to the feedback event. */
+  reasonCode?: string;
   requirementId: string;
   requirementSourceText: string;
 }
@@ -18,8 +20,11 @@ export interface EligibilityFeedbackRow {
 interface EligibilityFeedbackFormProps {
   courseCode?: string;
   courseTitle?: string;
+  modelId?: string;
+  promptVersion?: string;
   rows: EligibilityFeedbackRow[];
   rulesVersion?: string;
+  schemaVersion?: string;
   serviceVersion?: string;
 }
 
@@ -31,8 +36,11 @@ interface EligibilityFeedbackFormProps {
 export function EligibilityFeedbackForm({
   courseCode,
   courseTitle,
+  modelId,
+  promptVersion,
   rows,
   rulesVersion,
+  schemaVersion,
   serviceVersion,
 }: EligibilityFeedbackFormProps) {
   const [expanded, setExpanded] = useState(false);
@@ -155,7 +163,11 @@ export function EligibilityFeedbackForm({
                   reason: reason.trim() || undefined,
                   courseCode,
                   courseTitle,
+                  modelId,
+                  promptVersion,
+                  reasonCode: row.reasonCode,
                   rulesVersion,
+                  schemaVersion,
                   serviceVersion,
                 }),
               ),

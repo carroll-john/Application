@@ -27,6 +27,7 @@ export function createInsufficientDataAssessment({
       {
         explanation: reason,
         id: "automatic-evaluation",
+        reasonCode: "SERVICE_UNAVAILABLE",
         requirement: "Automatic transcript eligibility evaluation",
         status: "unknown",
       },

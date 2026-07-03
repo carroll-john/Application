@@ -95,10 +95,7 @@ export default function Section2Qualifications() {
       setStatusMessage,
       updateTertiaryQualification,
     });
-  const showParsedTranscriptIntro =
-    statusMessage?.type === "success" &&
-    statusMessage.message.toLowerCase().includes("qualification") &&
-    statusMessage.message.toLowerCase().includes("transcript");
+  const showParsedTranscriptIntro = Boolean(latestTranscriptAssessment);
   const isHeroState =
     !evidencePlan.hasAnyEvidence && !latestTranscriptAssessment && !evidencePlan.hasSkips;
   const showSection = (key: Section2EvidenceSectionKey) =>

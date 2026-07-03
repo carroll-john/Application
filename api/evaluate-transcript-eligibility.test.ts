@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import eligibilityRoute from "./evaluate-transcript-eligibility";
+import { RULES_VERSION } from "../src/lib/eligibility/version";
 
 const originalFetch = globalThis.fetch;
 const fetchMock = vi.fn();
@@ -406,7 +407,7 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(payload.manualReviewRequired).toBe(false);
     expect(checks.map((check) => check.id)).toEqual(["completion", "wam-65", "english"]);
     expect(checks.every((check) => check.status === "pass")).toBe(true);
-    expect(payload.rulesVersion).toBe("rules-v1");
+    expect(payload.rulesVersion).toBe(RULES_VERSION);
   });
 
   it("returns conditionally_eligible when only a conditional requirement fails", async () => {
@@ -469,7 +470,7 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(response.status).toBe(200);
     expect(payload.outcome).toBe("conditionally_eligible");
     expect(payload.manualReviewRequired).toBe(true);
-    expect(payload.rulesVersion).toBe("rules-v1");
+    expect(payload.rulesVersion).toBe(RULES_VERSION);
     const fieldCheck = checks.find((check) => check.id === "field");
     expect(fieldCheck?.status).toBe("fail");
     expect(fieldCheck?.reasonCode).toBe("FIELD_MISMATCH");
@@ -546,6 +547,212 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(englishInstructionEvidence.normalizedValue).toBe(
       "english_instruction_au_institution",
     );
+  });
+
+  it("does not degrade the transcript verdict for requirements another document proves (screenshot scenario)", async () => {
+    // A strong AU bachelor transcript (completed, GPA 5.25/7, English by country) applying to an
+    // MBA that also wants 3+ years work experience. The transcript can never prove work
+    // experience, so it must surface as pendingEvidence — not drag the outcome to
+    // insufficient_data or produce contradicting "missing information" bullets.
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confidence: 0.9,
+          outcome: "eligible",
+          missingInformation: [
+            "Qualification level could not be mapped from transcript evidence.",
+          ],
+          recommendedNextStep: "Provide clearer transcript evidence and route for manual review.",
+          academicPerformance: {
+            gpa: {
+              confidence: 0.95,
+              missingOrAmbiguous: false,
+              normalizedValue: "5.25",
+              originalValue: "GPA 5.25",
+            },
+            gpaScale: {
+              confidence: 0.95,
+              missingOrAmbiguous: false,
+              normalizedValue: "7",
+              originalValue: "out of 7.0",
+            },
+          },
+          applicantDetails: {
+            countryOfInstitution: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "Australia",
+              originalValue: "Australia",
+            },
+          },
+          studyDetails: {
+            completionStatus: {
+              confidence: 0.92,
+              missingOrAmbiguous: false,
+              normalizedValue: "completed",
+              originalValue: "Award conferred",
+            },
+            highestEducationLevel: {
+              confidence: 0.88,
+              missingOrAmbiguous: false,
+              normalizedValue: "bachelor",
+              originalValue: "Bachelor of Business",
+            },
+          },
+          englishLanguageEvidence: {},
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const requirements = [
+      {
+        id: "completion",
+        kind: "qualification_completed",
+        params: {},
+        sourceText: "Completed bachelor degree or higher.",
+        weight: "mandatory",
+      },
+      {
+        id: "level",
+        kind: "qualification_level",
+        params: { level: "bachelor" },
+        sourceText: "Bachelor degree or higher.",
+        weight: "mandatory",
+      },
+      {
+        id: "gpa",
+        kind: "academic_threshold",
+        params: { metric: "gpa", min: 4, scale: 7 },
+        sourceText: "Minimum GPA of 4 on a 7-point scale.",
+        weight: "mandatory",
+      },
+      {
+        id: "english",
+        kind: "english_proficiency",
+        params: { acceptedPathways: [{ type: "completion_in_country", countries: ["AU"] }] },
+        sourceText: "English language proficiency.",
+        weight: "mandatory",
+      },
+      {
+        id: "work",
+        kind: "work_experience",
+        params: { minYears: 3 },
+        sourceText: "At least 3 years of relevant work experience.",
+        weight: "mandatory",
+      },
+    ];
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "mba.txt", { type: "text/plain" }));
+    formData.append("context", JSON.stringify({ requirements }));
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+    const checks = payload.requirementsChecked as Array<Record<string, unknown>>;
+
+    expect(response.status).toBe(200);
+    // Transcript-scoped verdict: everything the transcript can prove passed.
+    expect(payload.outcome).toBe("eligible");
+    expect(payload.manualReviewRequired).toBe(false);
+    // The work-experience gap is a pending-evidence prompt, not a transcript failure.
+    expect(payload.pendingEvidence).toEqual([
+      {
+        evidenceSource: "cv",
+        kind: "work_experience",
+        reasonCode: "WORK_EXPERIENCE_UNVERIFIED",
+        requirementId: "work",
+      },
+    ]);
+    // The full check list still includes the unknown work-experience check for the UI cards.
+    expect(checks.map((check) => [check.id, check.status])).toEqual([
+      ["completion", "pass"],
+      ["level", "pass"],
+      ["gpa", "pass"],
+      ["english", "pass"],
+      ["work", "unknown"],
+    ]);
+    // Invariant: no missing-information bullet may exist for a passed requirement — the LLM's
+    // free-text observations are demoted to non-rendered extractionNotes.
+    expect(payload.missingInformation).toEqual([]);
+    expect(payload.extractionNotes).toEqual([
+      "Qualification level could not be mapped from transcript evidence.",
+    ]);
+    // Next step is derived from what is actually pending, never from LLM prose.
+    expect(payload.recommendedNextStep).toContain("CV");
+    expect(payload.recommendedNextStep).not.toContain("clearer transcript evidence");
+    // Confidence is the minimum over the fields the verdict consumed (0.88 level field).
+    expect(payload.confidence).toBe(0.88);
+  });
+
+  it("derives missing-information bullets and next step only from unknown transcript checks", async () => {
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confidence: 0.7,
+          outcome: "eligible",
+          missingInformation: ["Some LLM observation."],
+          academicPerformance: {},
+          applicantDetails: {},
+          studyDetails: {
+            completionStatus: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "completed",
+              originalValue: "completed",
+            },
+          },
+          englishLanguageEvidence: {},
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const requirements = [
+      {
+        id: "completion",
+        kind: "qualification_completed",
+        params: {},
+        sourceText: "Completed bachelor degree.",
+        weight: "mandatory",
+      },
+      {
+        id: "wam-65",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 65 },
+        sourceText: "WAM 65% or above.",
+        weight: "mandatory",
+      },
+    ];
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "no-wam.txt", { type: "text/plain" }));
+    formData.append("context", JSON.stringify({ requirements }));
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.outcome).toBe("insufficient_data");
+    expect(payload.manualReviewRequired).toBe(true);
+    // Exactly one bullet, derived from the unknown academic-threshold check's reason code.
+    expect(payload.missingInformation).toEqual([
+      "A WAM or GPA could not be found on the transcript.",
+    ]);
+    expect(payload.recommendedNextStep).toContain("WAM or GPA");
+    expect(payload.extractionNotes).toEqual(["Some LLM observation."]);
   });
 
   it("passes English proficiency via an AHPRA registration carried in the context", async () => {

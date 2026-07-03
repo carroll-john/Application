@@ -1,7 +1,12 @@
 import { commonTertiaryInstitutionSuggestions } from "../tertiaryInstitutions.js";
+import {
+  buildRecommendedNextStep,
+  missingInformationCopyByReasonCode,
+} from "./checkCopy.js";
 import type {
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
+  RequirementReasonCode,
   TranscriptEligibilityRequestContext,
 } from "./types";
 
@@ -136,7 +141,7 @@ function classifyQualification(value: string | undefined): number | undefined {
 function updateOutcomeFromChecks(
   requiredChecks: EligibilityRequirementCheck[],
   currentOutcome: unknown,
-) {
+): "eligible" | "conditionally_eligible" | "ineligible" | "insufficient_data" {
   if (requiredChecks.some((check) => check.status === "fail")) {
     return "ineligible" as const;
   }
@@ -164,11 +169,23 @@ export function applyDeterministicEligibilityRules(
   const academicPerformance = ensureGroup(assessment, "academicPerformance");
 
   const checks: EligibilityRequirementCheck[] = [];
-  const missingInformation = Array.isArray(assessment.missingInformation)
+
+  // The LLM's free-text observations are kept for admissions/analytics only. Applicant-facing
+  // missing-information bullets are derived from the deterministic checks below, so they can never
+  // contradict a check that passed.
+  const llmNotes = Array.isArray(assessment.missingInformation)
     ? assessment.missingInformation.filter((item): item is string => typeof item === "string")
     : [];
+  if (llmNotes.length > 0) {
+    const existingNotes = Array.isArray(assessment.extractionNotes)
+      ? assessment.extractionNotes.filter((item): item is string => typeof item === "string")
+      : [];
+    assessment.extractionNotes = Array.from(new Set([...existingNotes, ...llmNotes]));
+  }
 
-  const completionFromTranscript = readFieldValue(studyDetails, "completionStatus")?.toLowerCase();
+  const completionFromTranscript = readFieldValue(studyDetails, "completionStatus")
+    ?.toLowerCase()
+    .replace(/_/g, " ");
   const completionFromForm = context.completed;
   const completionIndicatesNotCompleted =
     completionFromTranscript?.includes("in progress") ||
@@ -194,6 +211,12 @@ export function applyDeterministicEligibilityRules(
     id: "deterministic-completion",
     requirement: "Completed qualification requirement",
     status: completionStatus,
+    reasonCode:
+      completionStatus === "pass"
+        ? "QUALIFICATION_COMPLETE"
+        : completionStatus === "fail"
+          ? "QUALIFICATION_INCOMPLETE"
+          : "QUALIFICATION_COMPLETION_UNKNOWN",
     explanation:
       completionStatus === "pass"
         ? "Qualification appears completed based on supplied evidence."
@@ -201,11 +224,6 @@ export function applyDeterministicEligibilityRules(
           ? "Qualification appears incomplete or withdrawn based on supplied evidence."
           : "Completion status is unclear or not confirmed in transcript evidence.",
   });
-  if (completionStatus === "unknown") {
-    missingInformation.push(
-      "Completion status could not be confidently established from transcript evidence.",
-    );
-  }
 
   const requiredLevel = context.qualificationLevelRequirement?.trim();
   if (requiredLevel) {
@@ -222,6 +240,13 @@ export function applyDeterministicEligibilityRules(
       id: "deterministic-qualification-level",
       requirement: `Minimum qualification level (${requiredLevel})`,
       status,
+      reasonCode:
+        status === "pass"
+          ? "QUALIFICATION_LEVEL_MET"
+          : status === "fail"
+            ? "QUALIFICATION_LEVEL_BELOW"
+            : "QUALIFICATION_LEVEL_UNKNOWN",
+      ...(extractedLevel ? { details: { observed: extractedLevel, required: requiredLevel } } : {}),
       explanation:
         status === "pass"
           ? `Extracted level "${extractedLevel}" satisfies the required qualification level.`
@@ -229,12 +254,6 @@ export function applyDeterministicEligibilityRules(
             ? `Extracted level "${extractedLevel}" is below the required level "${requiredLevel}".`
             : "Qualification level mapping is ambiguous and needs manual verification.",
     });
-
-    if (status === "unknown") {
-      missingInformation.push(
-        "Qualification level could not be mapped confidently to the program requirement.",
-      );
-    }
   }
 
   const minWam = context.minWam;
@@ -247,6 +266,8 @@ export function applyDeterministicEligibilityRules(
   if (typeof minWam === "number" || typeof minGpaValue === "number") {
     let thresholdStatus: EligibilityRequirementStatus = "unknown";
     let thresholdExplanation = "Academic threshold evidence is incomplete.";
+    let thresholdReasonCode: RequirementReasonCode = "ACADEMIC_EVIDENCE_MISSING";
+    let thresholdDetails: EligibilityRequirementCheck["details"];
 
     if (typeof minWam === "number") {
       let comparableWam: number | undefined = wamValue;
@@ -259,6 +280,12 @@ export function applyDeterministicEligibilityRules(
 
       if (comparableWam !== undefined) {
         thresholdStatus = comparableWam >= minWam ? "pass" : "fail";
+        thresholdReasonCode = thresholdStatus === "pass" ? "WAM_MET" : "WAM_BELOW";
+        thresholdDetails = {
+          metric: "wam",
+          observed: comparableWam.toFixed(1),
+          required: String(minWam),
+        };
         thresholdExplanation =
           thresholdStatus === "pass"
             ? `Comparable WAM ${comparableWam.toFixed(1)} meets minimum WAM ${minWam}.`
@@ -287,6 +314,12 @@ export function applyDeterministicEligibilityRules(
         const requiredScale = minGpaScale ?? comparableScale;
         const requiredNormalized = minGpaValue / requiredScale;
         thresholdStatus = normalizedGpa >= requiredNormalized ? "pass" : "fail";
+        thresholdReasonCode = thresholdStatus === "pass" ? "GPA_MET" : "GPA_BELOW";
+        thresholdDetails = {
+          metric: "gpa",
+          observed: `${comparableGpa.toFixed(2)}/${comparableScale}`,
+          required: `${minGpaValue}/${requiredScale}`,
+        };
         thresholdExplanation =
           thresholdStatus === "pass"
             ? `Comparable GPA ${comparableGpa.toFixed(2)}/${comparableScale} meets minimum GPA ${minGpaValue}/${requiredScale}.`
@@ -301,14 +334,10 @@ export function applyDeterministicEligibilityRules(
           ? `Minimum WAM threshold (${minWam})`
           : `Minimum GPA threshold (${minGpaValue}/${minGpaScale ?? "unknown scale"})`,
       status: thresholdStatus,
+      reasonCode: thresholdReasonCode,
+      ...(thresholdDetails ? { details: thresholdDetails } : {}),
       explanation: thresholdExplanation,
     });
-
-    if (thresholdStatus === "unknown") {
-      missingInformation.push(
-        "WAM/GPA evidence could not be mapped confidently to the program threshold.",
-      );
-    }
   }
 
   const englishProficiencySatisfied = evaluateAuEnglishProficiency(assessment, context);
@@ -317,6 +346,8 @@ export function applyDeterministicEligibilityRules(
       id: "deterministic-english-proficiency",
       requirement: "English language proficiency",
       status: "pass",
+      reasonCode: "ENGLISH_OK_COUNTRY",
+      details: { observed: "Australia" },
       explanation:
         "English language proficiency satisfied by completion at a recognised Australian tertiary institution.",
     });
@@ -330,6 +361,21 @@ export function applyDeterministicEligibilityRules(
     outcome = "conditionally_eligible";
   }
 
+  // Applicant-facing bullets derive purely from unknown checks (reasonCode copy), so they can
+  // never mention a requirement that passed.
+  const unknownReasonCodes = deterministicChecks
+    .filter((check) => check.status === "unknown")
+    .map((check) => check.reasonCode)
+    .filter((code): code is RequirementReasonCode => Boolean(code));
+  const missingInformation = deterministicChecks
+    .filter((check) => check.status === "unknown")
+    .map((check) =>
+      check.reasonCode
+        ? missingInformationCopyByReasonCode[check.reasonCode]?.(check.details) ??
+          check.explanation
+        : check.explanation,
+    );
+
   assessment.requirementsChecked = checks;
   assessment.outcome = outcome;
   assessment.manualReviewRequired =
@@ -340,18 +386,10 @@ export function applyDeterministicEligibilityRules(
       ? `${assessment.rulesVersion.trim()}+deterministic-v1`
       : "deterministic-v1";
 
-  if (
-    typeof assessment.recommendedNextStep !== "string" ||
-    !assessment.recommendedNextStep.trim() ||
-    outcome !== "eligible"
-  ) {
-    assessment.recommendedNextStep =
-      outcome === "ineligible"
-        ? "Applicant is below one or more mandatory thresholds. Route to admissions review for final decision."
-        : outcome === "insufficient_data"
-          ? "Provide clearer transcript evidence (completion status and WAM/GPA details) and route for manual admissions review."
-          : "Proceed with application submission and admissions verification.";
-  }
+  assessment.recommendedNextStep = buildRecommendedNextStep({
+    outcome,
+    unknownTranscriptReasonCodes: unknownReasonCodes,
+  });
 
   if (!readFieldValue(applicantDetails, "institutionName") && context.institution?.trim()) {
     upsertExtractedField(applicantDetails, "institutionName", {

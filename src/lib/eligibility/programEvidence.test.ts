@@ -10,10 +10,9 @@ import type { CourseCatalogEntry } from "../courseCatalog";
 import type { UploadedDocument } from "../documentStorage";
 import {
   buildProgramEvidenceRows,
+  buildTranscriptReviewSummary,
   dedupeProgramEvidenceRowsByHeading,
-  filterResolvedTranscriptMissingInformation,
   groupTranscriptVerifiableEvidenceRows,
-  shouldShowTranscriptRecommendedNextStep,
 } from "./programEvidence";
 
 function remoteDoc(id: string): UploadedDocument {
@@ -148,52 +147,34 @@ describe("buildProgramEvidenceRows", () => {
     ).toMatchObject({ isBlocking: true, status: "needs_details" });
   });
 
-  it("hides raw English missing-info once program evidence satisfies English", () => {
+  it("reports a satisfied summary with no bullets when nothing is blocking", () => {
     const rows = buildProgramEvidenceRows({
       applicationData: application({
         tertiaryQualifications: [tertiaryQualification()],
       }),
       course: englishCourse,
     });
-    const visibleMissingInformation = filterResolvedTranscriptMissingInformation(
-      [
-        "English instruction confirmation",
-        "English proficiency test or completion evidence",
-        "WAM evidence",
-      ],
-      rows,
-    );
+    const summary = buildTranscriptReviewSummary(rows);
 
     expect(rows[0]).toMatchObject({ status: "met" });
-    expect(visibleMissingInformation).toEqual(["WAM evidence"]);
-    expect(
-      shouldShowTranscriptRecommendedNextStep(
-        "Request confirmation or evidence of English instruction medium or valid English proficiency test.",
-        [],
-        rows,
-      ),
-    ).toBe(false);
+    expect(summary.headerTone).toBe("success");
+    expect(summary.missingItems).toEqual([]);
+    expect(summary.nextStep).toBeUndefined();
+    expect(summary.manualReviewNeeded).toBe(false);
   });
 
-  it("keeps English missing-info when English evidence is not satisfied", () => {
+  it("derives bullets and next step only from blocking rows", () => {
     const rows = buildProgramEvidenceRows({
       applicationData: application(),
       course: englishCourse,
     });
+    const summary = buildTranscriptReviewSummary(rows);
 
-    expect(
-      filterResolvedTranscriptMissingInformation(
-        ["English proficiency test or completion evidence"],
-        rows,
-      ),
-    ).toEqual(["English proficiency test or completion evidence"]);
-    expect(
-      shouldShowTranscriptRecommendedNextStep(
-        "Request valid English proficiency evidence.",
-        ["English proficiency test or completion evidence"],
-        rows,
-      ),
-    ).toBe(true);
+    expect(rows[0]).toMatchObject({ isBlocking: true });
+    expect(summary.headerTone).toBe("warning");
+    expect(summary.headerLine).toContain("1 item");
+    expect(summary.missingItems).toEqual([`${rows[0].heading} — ${rows[0].statusLabel}`]);
+    expect(summary.nextStep).toContain(rows[0].actionLabel);
   });
 
   it("emits one row per alternative entry pathway even when their headings match", () => {

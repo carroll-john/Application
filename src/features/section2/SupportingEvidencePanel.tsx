@@ -1,21 +1,16 @@
 import type { ReactNode } from "react";
 import { Button } from "../../components/ui/button";
 import {
+  buildTranscriptReviewSummary,
   dedupeProgramEvidenceRowsByHeading,
-  filterResolvedTranscriptMissingInformation,
-  shouldShowTranscriptRecommendedNextStep,
   type ProgramEvidenceRow,
 } from "../../lib/eligibility/programEvidence";
 import { requirementKindLabel } from "../../lib/eligibility/requirements";
 import type {
-  EligibilityOutcome,
   EligibilityRequirementStatus,
   TranscriptEligibilityAssessment,
 } from "../../lib/eligibility/types";
-import {
-  eligibilityOutcomeCopy,
-  programEvidenceAdvisoryCopy,
-} from "../../lib/eligibility/uiCopy";
+import { programEvidenceAdvisoryCopy } from "../../lib/eligibility/uiCopy";
 import {
   EligibilityFeedbackForm,
   type EligibilityFeedbackRow,
@@ -24,18 +19,6 @@ import type {
   Section2EvidencePlan,
   Section2EvidenceSectionKey,
 } from "./section2EvidencePlan";
-
-function getEligibilityOutcomeTone(outcome: EligibilityOutcome) {
-  if (outcome === "eligible") {
-    return "text-[var(--success-text)]";
-  }
-
-  if (outcome === "ineligible") {
-    return "text-[var(--warning-text)]";
-  }
-
-  return "text-[var(--info-text)]";
-}
 
 export function getLatestTranscriptAssessment(
   assessments: Array<TranscriptEligibilityAssessment | undefined>,
@@ -246,23 +229,16 @@ export function SupportingEvidencePanel({
         .map((row) => ({
           heading: row.heading,
           originalStatus: row.requirementStatus,
+          reasonCode: row.reasonCode,
           requirementId: row.requirementId,
           requirementSourceText: row.sourceText,
         }))
     : [];
-  const visibleMissingInformation = assessment
-    ? filterResolvedTranscriptMissingInformation(
-        assessment.missingInformation,
-        ungroupedRows,
-      )
-    : [];
-  const showRecommendedNextStep = assessment
-    ? shouldShowTranscriptRecommendedNextStep(
-        assessment.recommendedNextStep,
-        visibleMissingInformation,
-        ungroupedRows,
-      )
-    : false;
+  // All summary surfaces derive from the same rows that render the cards, so the header,
+  // missing-information bullets, next step, and manual-review line can never contradict them.
+  const transcriptReviewSummary = assessment
+    ? buildTranscriptReviewSummary(dedupedRows)
+    : undefined;
   const hasAcademicThresholdRequirement = ungroupedRows.some(
     (row) => row.kindLabel === requirementKindLabel("academic_threshold"),
   );
@@ -291,14 +267,15 @@ export function SupportingEvidencePanel({
         </h2>
         <p className={`text-xs font-semibold sm:text-sm ${summaryTone}`}>{summary}</p>
       </div>
-      {assessment ? (
+      {transcriptReviewSummary ? (
         <p
-          className={`mt-1 text-xs font-medium sm:text-sm ${getEligibilityOutcomeTone(
-            assessment.outcome,
-          )}`}
+          className={`mt-1 text-xs font-medium sm:text-sm ${
+            transcriptReviewSummary.headerTone === "success"
+              ? "text-[var(--success-text)]"
+              : "text-[var(--warning-text)]"
+          }`}
         >
-          Transcript extraction: {eligibilityOutcomeCopy[assessment.outcome]} · Confidence:{" "}
-          {Math.round(assessment.confidence * 100)}%
+          {transcriptReviewSummary.headerLine}
         </p>
       ) : null}
       {showParsedTranscriptIntro ? (
@@ -435,30 +412,33 @@ export function SupportingEvidencePanel({
           <EligibilityFeedbackForm
             courseCode={courseCode}
             courseTitle={courseTitle}
+            modelId={assessment.modelId}
+            promptVersion={assessment.promptVersion}
             rows={feedbackRows}
             rulesVersion={assessment.rulesVersion}
+            schemaVersion={assessment.schemaVersion}
             serviceVersion={assessment.serviceVersion}
           />
         </div>
       ) : null}
-      {visibleMissingInformation.length > 0 ? (
+      {transcriptReviewSummary && transcriptReviewSummary.missingItems.length > 0 ? (
         <div className="mt-3 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3">
           <p className="text-xs font-semibold text-[var(--warning-text)] sm:text-sm">
             Missing or unclear information
           </p>
           <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-[var(--warning-text)] sm:text-sm">
-            {visibleMissingInformation.map((item) => (
+            {transcriptReviewSummary.missingItems.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
         </div>
       ) : null}
-      {assessment && showRecommendedNextStep ? (
+      {transcriptReviewSummary?.nextStep ? (
         <p className="mt-3 text-xs text-gray-700 sm:text-sm">
-          Recommended next step: {assessment.recommendedNextStep}
+          Recommended next step: {transcriptReviewSummary.nextStep}
         </p>
       ) : null}
-      {assessment?.manualReviewRequired ? (
+      {transcriptReviewSummary?.manualReviewNeeded ? (
         <p className="mt-2 text-xs font-medium text-[var(--warning-text)] sm:text-sm">
           Manual admissions review is required for one or more evidence checks.
         </p>

@@ -151,12 +151,37 @@ describe("row -> domain mappers", () => {
         transcript_confirms_completion: true,
         transcript_document_id: "doc-9",
         transcript_document_name: "transcript.pdf",
+        transcript_eligibility: {
+          checkedAt: "2026-07-01T00:00:00Z",
+          confidence: 0.9,
+          outcome: "eligible",
+          manualReviewRequired: false,
+          missingInformation: [],
+          recommendedNextStep: "No further transcript evidence is needed.",
+          requirementsChecked: [
+            {
+              explanation: "Qualification appears completed based on supplied evidence.",
+              id: "completion",
+              reasonCode: "QUALIFICATION_COMPLETE",
+              requirement: "Completed qualification",
+              status: "pass",
+            },
+          ],
+          rulesVersion: "rules-v2",
+        },
       },
       documentMap,
     );
     expect(tertiary.transcriptDocument?.id).toBe("doc-9");
     expect(tertiary.certificateDocument).toBeUndefined();
     expect(tertiary.transcriptCompletionConfirmed).toBe(true);
+    expect(tertiary.transcriptEligibility).toMatchObject({
+      outcome: "eligible",
+      rulesVersion: "rules-v2",
+      requirementsChecked: [
+        { id: "completion", reasonCode: "QUALIFICATION_COMPLETE", status: "pass" },
+      ],
+    });
 
     const language = mapLanguageTestRow(
       {
@@ -293,6 +318,42 @@ describe("domain -> insert builders", () => {
     expect(
       toTertiaryInsert("app-4", base).transcript_confirms_completion,
     ).toBe(false);
+  });
+
+  it("persists the full transcript assessment as jsonb", () => {
+    const base = {
+      certificateDocument: undefined,
+      certificateDocumentName: undefined,
+      completed: true,
+      country: "Australia",
+      courseName: "BIT",
+      endMonth: "December",
+      endYear: "2024",
+      id: VALID_UUID,
+      institution: "Uni",
+      level: "Bachelor degree",
+      startMonth: "February",
+      startYear: "2022",
+      transcriptDocument: undefined,
+      transcriptDocumentName: undefined,
+    };
+    const assessment = {
+      checkedAt: "2026-07-01T00:00:00Z",
+      confidence: 0.85,
+      extractedData: {},
+      manualReviewRequired: false,
+      missingInformation: [],
+      outcome: "eligible" as const,
+      recommendedNextStep: "No further transcript evidence is needed.",
+      requirementsChecked: [],
+      rulesVersion: "rules-v2",
+    };
+
+    expect(
+      toTertiaryInsert("app-5", { ...base, transcriptEligibility: assessment })
+        .transcript_eligibility,
+    ).toMatchObject({ outcome: "eligible", rulesVersion: "rules-v2" });
+    expect(toTertiaryInsert("app-5", base).transcript_eligibility).toBeNull();
   });
 
   it("maps language-test scores in the insert payload", () => {

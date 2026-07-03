@@ -1,6 +1,7 @@
 import type { ApplicationData } from "../applicationData";
 import type { CourseCatalogEntry } from "../courseCatalog";
 import { isSubmissionReadyDocument } from "../documentAttachment";
+import { requirementCheckDisplayCopy } from "./checkCopy";
 import {
   getAcceptedEnglishCompletionCountries,
   hasCurrentAhpraRegistrationEvidence,
@@ -19,6 +20,7 @@ import {
 import type {
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
+  RequirementReasonCode,
   TranscriptEligibilityAssessment,
 } from "./types";
 
@@ -40,6 +42,8 @@ export interface ProgramEvidenceRow {
   id: string;
   isBlocking: boolean;
   kindLabel: string;
+  /** Durable machine reason behind `requirementStatus`, when a transcript check produced it. */
+  reasonCode?: RequirementReasonCode;
   requirementId: string;
   requirementStatus?: EligibilityRequirementStatus;
   /** Verbatim published requirement sentence — kept for feedback/validation traceability. */
@@ -55,9 +59,6 @@ export const programEvidenceStatusCopy: Record<ProgramEvidenceStatus, string> = 
   needs_review: "Needs review",
   possible_alternative: "Possible alternative",
 };
-
-const ENGLISH_MISSING_INFORMATION_PATTERN =
-  /\b(english|ielts|toefl|pte|proficiency|instruction|language)\b/i;
 
 const tertiaryPath = "/section2/add-tertiary?from=review";
 const employmentPath = "/section2/add-employment?from=review";
@@ -153,7 +154,13 @@ function statusFromCheck(
   hasTranscriptEvidence: boolean,
 ): Pick<
   ProgramEvidenceRow,
-  "actionLabel" | "actionPath" | "explanation" | "isBlocking" | "requirementStatus" | "status"
+  | "actionLabel"
+  | "actionPath"
+  | "explanation"
+  | "isBlocking"
+  | "reasonCode"
+  | "requirementStatus"
+  | "status"
 > {
   if (!check) {
     return {
@@ -167,8 +174,9 @@ function statusFromCheck(
 
   if (check.status === "pass") {
     return {
-      explanation: check.explanation,
+      explanation: requirementCheckDisplayCopy(check),
       isBlocking: false,
+      reasonCode: check.reasonCode,
       requirementStatus: check.status,
       status: "met",
     };
@@ -178,8 +186,9 @@ function statusFromCheck(
     return {
       actionLabel: "Review qualification",
       actionPath: tertiaryPath,
-      explanation: check.explanation,
+      explanation: requirementCheckDisplayCopy(check),
       isBlocking: true,
+      reasonCode: check.reasonCode,
       requirementStatus: check.status,
       status: hasTranscriptEvidence ? "needs_details" : "needs_evidence",
     };
@@ -192,14 +201,16 @@ function statusFromCheck(
       explanation:
         "Your result is below this requirement. Add work experience for admissions to consider an alternate pathway.",
       isBlocking: false,
+      reasonCode: check.reasonCode,
       requirementStatus: check.status,
       status: "possible_alternative",
     };
   }
 
   return {
-    explanation: check.explanation,
+    explanation: requirementCheckDisplayCopy(check),
     isBlocking: false,
+    reasonCode: check.reasonCode,
     requirementStatus: check.status,
     status: "needs_review",
   };
@@ -497,43 +508,59 @@ export function getBlockingProgramEvidenceRows(options: {
   return buildProgramEvidenceRows(options).filter((row) => row.isBlocking);
 }
 
-function hasMetEnglishRequirement(rows: readonly ProgramEvidenceRow[]) {
-  const englishKindLabel = requirementKindLabel("english_proficiency");
-  return rows.some((row) => row.kindLabel === englishKindLabel && row.status === "met");
+export interface TranscriptReviewSummary {
+  headerLine: string;
+  headerTone: "success" | "warning";
+  manualReviewNeeded: boolean;
+  /** Bullets for the "Missing or unclear information" box; one per blocking row. */
+  missingItems: string[];
+  /** Single sentence for the "Recommended next step" line; undefined when nothing is pending. */
+  nextStep?: string;
 }
 
-function isEnglishMissingInformation(item: string) {
-  return ENGLISH_MISSING_INFORMATION_PATTERN.test(item);
-}
+/**
+ * Derives the panel's summary surfaces (header line, missing-information bullets, recommended
+ * next step, manual-review flag) from the same evidence rows that render the requirement cards.
+ * Because everything is computed from one row list, the header can never disagree with the cards
+ * and a "met" card can never produce a missing-information bullet — consistency by construction.
+ *
+ * Note this intentionally ignores the assessment's own `outcome`, `confidence`,
+ * `missingInformation`, and `recommendedNextStep` fields: those describe only what the server saw,
+ * while the rows also reconcile live application data (CV, English tests, AHPRA).
+ */
+export function buildTranscriptReviewSummary(
+  displayRows: readonly ProgramEvidenceRow[],
+): TranscriptReviewSummary {
+  const blockingRows = displayRows.filter((row) => row.isBlocking);
 
-export function filterResolvedTranscriptMissingInformation(
-  missingInformation: readonly string[],
-  programEvidenceRows: readonly ProgramEvidenceRow[],
-) {
-  if (!hasMetEnglishRequirement(programEvidenceRows)) {
-    return [...missingInformation];
-  }
+  const headerLine =
+    blockingRows.length === 0
+      ? "Transcript reviewed — the program evidence requirements look satisfied."
+      : `Transcript reviewed — ${blockingRows.length} item${
+          blockingRows.length === 1 ? "" : "s"
+        } still need${blockingRows.length === 1 ? "s" : ""} evidence or details.`;
 
-  return missingInformation.filter((item) => !isEnglishMissingInformation(item));
-}
+  const missingItems = blockingRows.map((row) => `${row.heading} — ${row.statusLabel}`);
 
-export function shouldShowTranscriptRecommendedNextStep(
-  recommendedNextStep: string | undefined,
-  visibleMissingInformation: readonly string[],
-  programEvidenceRows: readonly ProgramEvidenceRow[],
-) {
-  const recommendation = recommendedNextStep?.trim();
-  if (!recommendation) {
-    return false;
-  }
+  const actionLabels = [
+    ...new Set(
+      blockingRows
+        .map((row) => row.actionLabel)
+        .filter((label): label is string => Boolean(label)),
+    ),
+  ];
+  const nextStep =
+    actionLabels.length > 0
+      ? `${new Intl.ListFormat("en", { style: "long", type: "conjunction" }).format(
+          actionLabels,
+        )}.`
+      : undefined;
 
-  if (
-    visibleMissingInformation.length === 0 &&
-    hasMetEnglishRequirement(programEvidenceRows) &&
-    isEnglishMissingInformation(recommendation)
-  ) {
-    return false;
-  }
-
-  return true;
+  return {
+    headerLine,
+    headerTone: blockingRows.length === 0 ? "success" : "warning",
+    manualReviewNeeded: displayRows.some((row) => row.status === "needs_review"),
+    missingItems,
+    nextStep,
+  };
 }
