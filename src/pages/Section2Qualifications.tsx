@@ -298,15 +298,22 @@ export default function Section2Qualifications() {
             </p>
           ) : null}
           {showParsedTranscriptIntro ? (
-            <p className="mt-2 text-xs text-gray-700 sm:text-sm">
-              Based on your uploaded transcript
-              {selectedCourseTitle ? ` for ${selectedCourseTitle}` : ""}. Review the
-              qualification we drafted and add any missing program evidence below.
-            </p>
+            <>
+              <p className="mt-2 text-xs text-gray-700 sm:text-sm">
+                Based on your uploaded transcript
+                {selectedCourseTitle ? ` for ${selectedCourseTitle}` : ""}.
+              </p>
+              <p className="mt-2 text-xs text-gray-700 sm:text-sm">
+                Review the qualification we drafted and correct anything that doesn't
+                look right.
+              </p>
+            </>
           ) : null}
-          <p className="mt-2 text-xs text-gray-600 sm:text-sm">
-            {programEvidenceAdvisoryCopy}
-          </p>
+          {programEvidenceAdvisoryCopy.map((paragraph) => (
+            <p key={paragraph} className="mt-2 text-xs text-gray-600 sm:text-sm">
+              {paragraph}
+            </p>
+          ))}
           {assessmentEvidenceRows.length > 0 ? (
             <ul className="mt-3 space-y-2" aria-label="Transcript evidence extracted">
               {assessmentEvidenceRows.map((row) => (
