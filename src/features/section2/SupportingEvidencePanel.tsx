@@ -7,13 +7,17 @@ import {
 } from "../../lib/eligibility/programEvidence";
 import type {
   EligibilityOutcome,
+  EligibilityRequirementStatus,
   TranscriptEligibilityAssessment,
 } from "../../lib/eligibility/types";
 import {
   eligibilityOutcomeCopy,
   programEvidenceAdvisoryCopy,
 } from "../../lib/eligibility/uiCopy";
-import { EligibilityRowFeedback } from "./EligibilityRowFeedback";
+import {
+  EligibilityFeedbackForm,
+  type EligibilityFeedbackRow,
+} from "./EligibilityFeedbackForm";
 import type {
   Section2EvidencePlan,
   Section2EvidenceSectionKey,
@@ -230,8 +234,18 @@ export function SupportingEvidencePanel({
   const reviewRows = ungroupedRows.filter(
     (row) => !row.isBlocking && row.status === "needs_review" && row.requirementStatus,
   );
-  const feedbackRows = assessment
-    ? ungroupedRows.filter((row) => row.requirementStatus)
+  const feedbackRows: EligibilityFeedbackRow[] = assessment
+    ? ungroupedRows
+        .filter(
+          (row): row is ProgramEvidenceRow & { requirementStatus: EligibilityRequirementStatus } =>
+            Boolean(row.requirementStatus),
+        )
+        .map((row) => ({
+          heading: row.heading,
+          originalStatus: row.requirementStatus,
+          requirementId: row.requirementId,
+          requirementSourceText: row.sourceText,
+        }))
     : [];
   const visibleMissingInformation = assessment
     ? filterResolvedTranscriptMissingInformation(
@@ -407,21 +421,14 @@ export function SupportingEvidencePanel({
         </div>
       ) : null}
       {assessment && feedbackRows.length > 0 ? (
-        <div className="mt-3 space-y-2" aria-label="Transcript feedback">
-          {feedbackRows.map((row) =>
-            row.requirementStatus ? (
-              <EligibilityRowFeedback
-                key={row.requirementId}
-                requirementId={row.requirementId}
-                requirementSourceText={row.sourceText}
-                originalStatus={row.requirementStatus}
-                courseCode={courseCode}
-                courseTitle={courseTitle}
-                rulesVersion={assessment.rulesVersion}
-                serviceVersion={assessment.serviceVersion}
-              />
-            ) : null,
-          )}
+        <div className="mt-3" aria-label="Transcript feedback">
+          <EligibilityFeedbackForm
+            courseCode={courseCode}
+            courseTitle={courseTitle}
+            rows={feedbackRows}
+            rulesVersion={assessment.rulesVersion}
+            serviceVersion={assessment.serviceVersion}
+          />
         </div>
       ) : null}
       {visibleMissingInformation.length > 0 ? (
