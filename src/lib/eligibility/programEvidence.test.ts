@@ -231,6 +231,38 @@ describe("buildProgramEvidenceRows", () => {
       "Bachelor degree or higher",
     ]);
   });
+
+  it("orders English language proficiency ahead of work experience regardless of source order", () => {
+    const course = {
+      code: "course-5",
+      title: "Master of Business Administration",
+      requirements: [
+        {
+          id: "work-experience",
+          kind: "work_experience",
+          params: { minYears: 3 },
+          sourceText: "3+ years of relevant work experience.",
+          weight: "mandatory",
+        },
+        {
+          id: "english",
+          kind: "english_proficiency",
+          params: {
+            acceptedPathways: [{ type: "completion_in_country", countries: ["AU", "NZ"] }],
+          },
+          sourceText: "English instruction confirmation or an approved English test.",
+          weight: "mandatory",
+        },
+      ],
+    } as CourseCatalogEntry;
+
+    const rows = buildProgramEvidenceRows({
+      applicationData: application({ tertiaryQualifications: [tertiaryQualification()] }),
+      course,
+    });
+
+    expect(rows.map((row) => row.requirementId)).toEqual(["english", "work-experience"]);
+  });
 });
 
 describe("groupTranscriptVerifiableEvidenceRows", () => {

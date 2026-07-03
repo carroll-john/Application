@@ -8,6 +8,7 @@ import {
   languageTestSatisfiesEnglishRequirement,
 } from "./englishProficiencyEvidence";
 import {
+  ALL_REQUIREMENT_KINDS,
   formatAcademicThreshold,
   formatFieldOfStudyAreas,
   formatQualificationLevel,
@@ -324,7 +325,7 @@ export function buildProgramEvidenceRows(options: {
     isSubmissionReadyDocument(qualification.transcriptDocument),
   );
 
-  const rows: ProgramEvidenceRow[] = [];
+  const rows: Array<{ kind: RequirementInstance["kind"]; row: ProgramEvidenceRow }> = [];
   const emittedAlternativeGroups = new Set<string>();
 
   for (const instance of requirements) {
@@ -355,13 +356,20 @@ export function buildProgramEvidenceRows(options: {
           : statusFromCheck(instance, checkMap.get(instance.alternativeGroupId ?? instance.id), hasTranscriptEvidence);
 
     rows.push({
-      ...base,
-      ...evidence,
-      statusLabel: programEvidenceStatusCopy[evidence.status],
+      kind: instance.kind,
+      row: {
+        ...base,
+        ...evidence,
+        statusLabel: programEvidenceStatusCopy[evidence.status],
+      },
     });
   }
 
-  return rows;
+  const kindOrder = new Map(ALL_REQUIREMENT_KINDS.map((kind, index) => [kind, index]));
+  return rows
+    .map((entry, index) => ({ ...entry, index }))
+    .sort((a, b) => (kindOrder.get(a.kind) ?? 0) - (kindOrder.get(b.kind) ?? 0) || a.index - b.index)
+    .map((entry) => entry.row);
 }
 
 const TRANSCRIPT_VERIFIABLE_KIND_LABELS = new Set([
