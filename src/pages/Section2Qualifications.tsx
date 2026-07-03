@@ -29,6 +29,7 @@ import { useReviewReturn } from "../hooks/useReviewReturn";
 import { getCourseByCode } from "../lib/courseCatalog";
 import {
   buildProgramEvidenceRows,
+  dedupeProgramEvidenceRowsByHeading,
   groupTranscriptVerifiableEvidenceRows,
 } from "../lib/eligibility/programEvidence";
 import { eligibilityOutcomeCopy } from "../lib/eligibility/uiCopy";
@@ -70,8 +71,9 @@ export default function Section2Qualifications() {
     course: selectedCourseEntry,
     transcriptAssessment: latestTranscriptAssessment,
   });
-  const displayProgramEvidenceRows =
-    groupTranscriptVerifiableEvidenceRows(programEvidenceRows);
+  const displayProgramEvidenceRows = dedupeProgramEvidenceRowsByHeading(
+    groupTranscriptVerifiableEvidenceRows(programEvidenceRows),
+  );
   const {
     evidencePlan,
     handleSaveAndContinue,

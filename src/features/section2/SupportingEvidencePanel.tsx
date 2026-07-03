@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import { Button } from "../../components/ui/button";
 import {
+  dedupeProgramEvidenceRowsByHeading,
   filterResolvedTranscriptMissingInformation,
   shouldShowTranscriptRecommendedNextStep,
   type ProgramEvidenceRow,
 } from "../../lib/eligibility/programEvidence";
+import { requirementKindLabel } from "../../lib/eligibility/requirements";
 import type {
   EligibilityOutcome,
   EligibilityRequirementStatus,
@@ -230,12 +232,13 @@ export function SupportingEvidencePanel({
     );
   }
 
-  const metRows = ungroupedRows.filter((row) => row.status === "met");
-  const reviewRows = ungroupedRows.filter(
+  const dedupedRows = dedupeProgramEvidenceRowsByHeading(ungroupedRows);
+  const metRows = dedupedRows.filter((row) => row.status === "met");
+  const reviewRows = dedupedRows.filter(
     (row) => !row.isBlocking && row.status === "needs_review" && row.requirementStatus,
   );
   const feedbackRows: EligibilityFeedbackRow[] = assessment
-    ? ungroupedRows
+    ? dedupedRows
         .filter(
           (row): row is ProgramEvidenceRow & { requirementStatus: EligibilityRequirementStatus } =>
             Boolean(row.requirementStatus),
@@ -260,7 +263,14 @@ export function SupportingEvidencePanel({
         ungroupedRows,
       )
     : false;
-  const assessmentEvidenceRows = assessment ? buildAssessmentEvidenceRows(assessment) : [];
+  const hasAcademicThresholdRequirement = ungroupedRows.some(
+    (row) => row.kindLabel === requirementKindLabel("academic_threshold"),
+  );
+  const assessmentEvidenceRows = assessment
+    ? buildAssessmentEvidenceRows(assessment).filter(
+        (row) => !(hasAcademicThresholdRequirement && row.id === "academic-result"),
+      )
+    : [];
 
   const summary = plan.isEvidenceReady
     ? "Evidence ready"
@@ -293,7 +303,7 @@ export function SupportingEvidencePanel({
       ) : null}
       {showParsedTranscriptIntro ? (
         <p className="mt-2 text-xs text-gray-700 sm:text-sm">
-          Based on your uploaded transcript
+          Based on your uploaded transcript, we&apos;ve reviewed your eligibility
           {courseTitle ? ` for ${courseTitle}` : ""}. Review the qualification we drafted and
           correct anything that doesn&apos;t look right.
         </p>

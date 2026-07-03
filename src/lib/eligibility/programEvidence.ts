@@ -8,6 +8,7 @@ import {
   languageTestSatisfiesEnglishRequirement,
 } from "./englishProficiencyEvidence";
 import {
+  ALL_REQUIREMENT_KINDS,
   formatAcademicThreshold,
   formatFieldOfStudyAreas,
   formatQualificationLevel,
@@ -324,7 +325,7 @@ export function buildProgramEvidenceRows(options: {
     isSubmissionReadyDocument(qualification.transcriptDocument),
   );
 
-  const rows: ProgramEvidenceRow[] = [];
+  const rows: Array<{ kind: RequirementInstance["kind"]; row: ProgramEvidenceRow }> = [];
   const emittedAlternativeGroups = new Set<string>();
 
   for (const instance of requirements) {
@@ -355,13 +356,20 @@ export function buildProgramEvidenceRows(options: {
           : statusFromCheck(instance, checkMap.get(instance.alternativeGroupId ?? instance.id), hasTranscriptEvidence);
 
     rows.push({
-      ...base,
-      ...evidence,
-      statusLabel: programEvidenceStatusCopy[evidence.status],
+      kind: instance.kind,
+      row: {
+        ...base,
+        ...evidence,
+        statusLabel: programEvidenceStatusCopy[evidence.status],
+      },
     });
   }
 
-  return rows;
+  const kindOrder = new Map(ALL_REQUIREMENT_KINDS.map((kind, index) => [kind, index]));
+  return rows
+    .map((entry, index) => ({ ...entry, index }))
+    .sort((a, b) => (kindOrder.get(a.kind) ?? 0) - (kindOrder.get(b.kind) ?? 0) || a.index - b.index)
+    .map((entry) => entry.row);
 }
 
 const TRANSCRIPT_VERIFIABLE_KIND_LABELS = new Set([
@@ -381,6 +389,7 @@ const transcriptGroupPhrases: Record<string, string> = {
 };
 
 const FIELD_OF_STUDY_KIND_LABEL = requirementKindLabel("field_of_study");
+const ENGLISH_PROFICIENCY_KIND_LABEL = requirementKindLabel("english_proficiency");
 
 /**
  * Qualification, academic threshold, English proficiency, and field of study can all be verified
@@ -415,6 +424,16 @@ export function groupTranscriptVerifiableEvidenceRows(
   const explanationItems = phrases.map(
     (phrase) => phrase.charAt(0).toUpperCase() + phrase.slice(1),
   );
+
+  // Fold an already-satisfied English proficiency row into the transcript card as an extra
+  // bullet instead of rendering it as its own separate "met" card below.
+  const satisfiedEnglishRow = rows.find(
+    (row) => row.kindLabel === ENGLISH_PROFICIENCY_KIND_LABEL && row.status === "met",
+  );
+  if (satisfiedEnglishRow) {
+    explanationItems.push("Your English language proficiency");
+    groupableIds.add(satisfiedEnglishRow.id);
+  }
   const explanation = `Add your transcript to verify ${new Intl.ListFormat("en", {
     style: "long",
     type: "conjunction",
@@ -445,6 +464,27 @@ export function groupTranscriptVerifiableEvidenceRows(
       result.push(mergedRow);
       mergedInserted = true;
     }
+  }
+  return result;
+}
+
+/**
+ * Alternative entry pathways (e.g. two different bachelor-level routes into a program) each
+ * produce their own `qualification_level` requirement instance, so the same heading (e.g.
+ * "Bachelor degree or higher") can appear more than once in `buildProgramEvidenceRows`'s output.
+ * Collapse those to a single row/button per heading, keeping the first occurrence.
+ */
+export function dedupeProgramEvidenceRowsByHeading(
+  rows: readonly ProgramEvidenceRow[],
+): ProgramEvidenceRow[] {
+  const seenHeadings = new Set<string>();
+  const result: ProgramEvidenceRow[] = [];
+  for (const row of rows) {
+    if (seenHeadings.has(row.heading)) {
+      continue;
+    }
+    seenHeadings.add(row.heading);
+    result.push(row);
   }
   return result;
 }
