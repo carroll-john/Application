@@ -1,19 +1,19 @@
 import { Briefcase, Building, Calendar, FileText } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { MonthYearPickerField } from "../components/ui/date-controls";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { Section2FormCard, Section2RecordPage } from "../features/section2";
-import { useEditableRecord } from "../hooks/useEditableRecord";
+import { useEditableRecord, useSyncRecordOnHydrate } from "../hooks/useEditableRecord";
 import { months, years } from "../lib/formOptions";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
 
 export default function Section2AddEmployment() {
   const { data, addEmploymentExperience, updateEmploymentExperience } =
     useApplication();
-  const { existing, isEditing, initialRecord } = useEditableRecord(
+  const { existing, id, isEditing, initialRecord } = useEditableRecord(
     data.employmentExperiences,
     () => ({
       id: crypto.randomUUID(),
@@ -31,6 +31,13 @@ export default function Section2AddEmployment() {
 
   const [formData, setFormData] = useState(initialRecord);
   const [showValidation, setShowValidation] = useState(false);
+
+  useSyncRecordOnHydrate(
+    id,
+    existing,
+    initialRecord,
+    useCallback((record) => setFormData(record), []),
+  );
   const dateRangeError =
     !formData.currentRole &&
     isMonthYearRangeOutOfOrder(

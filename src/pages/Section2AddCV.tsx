@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StatusMessage } from "../components/StatusMessage";
 import { useApplication } from "../context/ApplicationContext";
 import {
@@ -16,6 +16,7 @@ export default function Section2AddCV() {
   const {
     data,
     ensureApplicationRow,
+    isHydrating,
     removeCV,
     replaceEmploymentExperiences,
     uploadCV,
@@ -24,6 +25,23 @@ export default function Section2AddCV() {
   const [currentDocument, setCurrentDocument] = useState(data.cvDocument);
   const [currentFileName, setCurrentFileName] = useState(data.cvFileName);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // On a hard reload, application data hydrates asynchronously after this
+  // component's state has already locked onto the (still-empty) `data.cvDocument`.
+  // Re-sync once hydration finishes so a previously-uploaded CV isn't shown as
+  // missing. Only fires once, so it won't clobber in-progress edits if a later
+  // background refetch happens while the user is mid-edit.
+  const hydratedRef = useRef(!isHydrating);
+
+  useEffect(() => {
+    if (isHydrating || hydratedRef.current) {
+      return;
+    }
+
+    hydratedRef.current = true;
+    setCurrentDocument(data.cvDocument);
+    setCurrentFileName(data.cvFileName);
+  }, [data.cvDocument, data.cvFileName, isHydrating]);
 
   const parseContext = useMemo(
     () => ({
