@@ -105,7 +105,7 @@ function buildAssessmentEvidenceRows(assessment: TranscriptEligibilityAssessment
   return rows;
 }
 
-export function EvidenceReviewRow({
+function EvidenceReviewRow({
   action,
   explanation,
   explanationItems,

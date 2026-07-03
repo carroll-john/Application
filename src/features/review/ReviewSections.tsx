@@ -99,7 +99,7 @@ export function ReviewGrid({
   );
 }
 
-export function ReviewField({ label, value }: { label: string; value: string }) {
+function ReviewField({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-gray-600">{label}</p>

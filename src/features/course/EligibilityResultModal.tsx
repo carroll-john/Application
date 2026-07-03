@@ -9,7 +9,7 @@ export type StartApplicationOptions = {
   startFresh?: boolean;
 };
 
-export function ApplicationStartPicker({
+function ApplicationStartPicker({
   activeApplicationId,
   applyError,
   isApplyActionPending,
