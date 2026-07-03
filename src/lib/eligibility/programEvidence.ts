@@ -412,13 +412,9 @@ export function groupTranscriptVerifiableEvidenceRows(
     ),
   ];
   const acceptedFieldsRow = groupable.find((row) => row.kindLabel === FIELD_OF_STUDY_KIND_LABEL);
-  const acceptedFieldsSuffix = acceptedFieldsRow
-    ? ` (${acceptedFieldsRow.heading.replace(/^Accepted fields:\s*/, "Accepted: ")})`
-    : "";
-  const explanationItems = phrases.map((phrase) => {
-    const capitalized = phrase.charAt(0).toUpperCase() + phrase.slice(1);
-    return phrase === "your field of study" ? `${capitalized}${acceptedFieldsSuffix}` : capitalized;
-  });
+  const explanationItems = phrases.map(
+    (phrase) => phrase.charAt(0).toUpperCase() + phrase.slice(1),
+  );
   const explanation = `Add your transcript to verify ${new Intl.ListFormat("en", {
     style: "long",
     type: "conjunction",
