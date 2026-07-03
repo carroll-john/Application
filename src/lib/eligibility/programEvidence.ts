@@ -423,7 +423,7 @@ export function groupTranscriptVerifiableEvidenceRows(
     (row) => row.kindLabel === ENGLISH_PROFICIENCY_KIND_LABEL && row.status === "met",
   );
   if (satisfiedEnglishRow) {
-    explanationItems.push(satisfiedEnglishRow.explanation);
+    explanationItems.push("Your English language proficiency");
     groupableIds.add(satisfiedEnglishRow.id);
   }
   const explanation = `Add your transcript to verify ${new Intl.ListFormat("en", {

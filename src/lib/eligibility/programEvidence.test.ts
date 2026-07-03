@@ -276,7 +276,7 @@ describe("groupTranscriptVerifiableEvidenceRows", () => {
 
     expect(grouped).toHaveLength(1);
     expect(grouped[0]).toMatchObject({ heading: "Academic transcript" });
-    expect(grouped[0].explanationItems).toContain(englishRow!.explanation);
+    expect(grouped[0].explanationItems).toContain("Your English language proficiency");
   });
 });
 
