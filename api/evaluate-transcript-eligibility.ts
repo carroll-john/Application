@@ -1,6 +1,6 @@
 import { callLlm, type LlmContent } from "./_ai/callLlm.js";
-import { transcriptEligibilityPromptV1 } from "./_ai/prompts/transcriptEligibility.v1.js";
-import { transcriptEligibilitySchemaV1 } from "./_ai/schemas/transcriptEligibility.v1.js";
+import { transcriptEligibilityPromptV2 } from "./_ai/prompts/transcriptEligibility.v2.js";
+import { transcriptEligibilitySchemaV2 } from "./_ai/schemas/transcriptEligibility.v2.js";
 import {
   decodeTextFile,
   inferMimeType,
@@ -37,6 +37,47 @@ function jsonResponse(payload: unknown, status = 200) {
 
 function errorResponse(error: string, code: string, status = 400) {
   return jsonResponse({ code, error }, status);
+}
+
+/**
+ * Schema v2 has the model emit plain numeric academic results (wamNumeric, gpaNumeric,
+ * gpaScaleNumeric) alongside the text evidence fields. Fold the numbers into the corresponding
+ * extracted fields' normalizedValue so the downstream evaluators compare exact numbers instead of
+ * regex-parsing free text. The text field's originalValue (the verbatim transcript wording) is
+ * preserved.
+ */
+function foldNumericAcademicFields(assessment: Record<string, unknown>) {
+  const academicPerformance =
+    assessment.academicPerformance && typeof assessment.academicPerformance === "object"
+      ? (assessment.academicPerformance as Record<string, unknown>)
+      : undefined;
+  if (!academicPerformance) {
+    return;
+  }
+
+  const numericToField: Array<[string, string]> = [
+    ["wamNumeric", "gradeAverageOrWam"],
+    ["gpaNumeric", "gpa"],
+    ["gpaScaleNumeric", "gpaScale"],
+  ];
+
+  for (const [numericKey, fieldKey] of numericToField) {
+    const numeric = academicPerformance[numericKey];
+    if (typeof numeric !== "number" || !Number.isFinite(numeric)) {
+      continue;
+    }
+    const existing =
+      academicPerformance[fieldKey] && typeof academicPerformance[fieldKey] === "object"
+        ? (academicPerformance[fieldKey] as Record<string, unknown>)
+        : undefined;
+    academicPerformance[fieldKey] = {
+      confidence: typeof existing?.confidence === "number" ? existing.confidence : 0.9,
+      missingOrAmbiguous: false,
+      normalizedValue: String(numeric),
+      originalValue:
+        typeof existing?.originalValue === "string" ? existing.originalValue : String(numeric),
+    };
+  }
 }
 
 async function evaluateWithLocalModel(
@@ -85,8 +126,8 @@ async function evaluateWithLocalModel(
     provider: "openai",
     apiKey,
     model,
-    prompt: transcriptEligibilityPromptV1,
-    schema: transcriptEligibilitySchemaV1,
+    prompt: transcriptEligibilityPromptV2,
+    schema: transcriptEligibilitySchemaV2,
     attachments,
     initialMaxOutputTokens: INITIAL_MAX_OUTPUT_TOKENS,
     retryMaxOutputTokens: RETRY_MAX_OUTPUT_TOKENS,
@@ -103,10 +144,16 @@ async function evaluateWithLocalModel(
     return null;
   }
 
-  const assessment = withContextDefaults(
-    llmResult.parsed as Record<string, unknown>,
-    context,
-  );
+  const parsed = llmResult.parsed as Record<string, unknown>;
+  foldNumericAcademicFields(parsed);
+
+  // Stamp the exact (model, prompt, schema) tuple so every stored result and telemetry event can
+  // be attributed to the versions that produced it.
+  parsed.modelId = model;
+  parsed.promptVersion = `${transcriptEligibilityPromptV2.id}@v${transcriptEligibilityPromptV2.version}`;
+  parsed.schemaVersion = `${transcriptEligibilitySchemaV2.id}@v${transcriptEligibilitySchemaV2.version}`;
+
+  const assessment = withContextDefaults(parsed, context);
 
   return {
     assessment,

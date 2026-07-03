@@ -54,7 +54,8 @@ function classifyQualificationText(value: string | undefined): QualificationLeve
   if (!value) {
     return undefined;
   }
-  const text = value.toLowerCase();
+  // Underscores normalize the schema-v2 enum values ("high_school") to the legacy phrases.
+  const text = value.toLowerCase().replace(/_/g, " ");
   if (text.includes("doctor") || text.includes("phd")) {
     return "doctorate";
   }
@@ -82,7 +83,11 @@ function evaluateQualificationCompleted(
   instance: Extract<RequirementInstance, { kind: "qualification_completed" }>,
   { context, evidence }: EvaluationContext,
 ): EligibilityRequirementCheck {
-  const completionText = readFieldText(evidence.studyDetails?.completionStatus)?.toLowerCase();
+  // Normalize underscores so the schema-v2 enum values ("in_progress") match the same phrases as
+  // legacy free-text extraction ("in progress").
+  const completionText = readFieldText(evidence.studyDetails?.completionStatus)
+    ?.toLowerCase()
+    .replace(/_/g, " ");
   const completionFromForm = context.completed;
 
   const indicatesNotCompleted =
@@ -147,6 +152,10 @@ function evaluateQualificationLevel(
       ? `Extracted level "${extractedLevel}" meets the required ${instance.params.level.replace("_", " ")} level.`
       : `Extracted level "${extractedLevel}" is below the required ${instance.params.level.replace("_", " ")} level.`,
     status === "pass" ? "QUALIFICATION_LEVEL_MET" : "QUALIFICATION_LEVEL_BELOW",
+    {
+      observed: extractedLevel,
+      required: instance.params.level.replace("_", " "),
+    },
   );
 }
 
@@ -188,6 +197,11 @@ function evaluateAcademicThreshold(
           : `WAM ${comparableWam.toFixed(1)} is below minimum WAM ${params.min}.`
       }`,
       status === "pass" ? "WAM_MET" : "WAM_BELOW",
+      {
+        metric: "wam",
+        observed: comparableWam.toFixed(1),
+        required: String(params.min),
+      },
     );
   }
 
@@ -231,6 +245,11 @@ function evaluateAcademicThreshold(
         : `GPA ${comparableGpa.toFixed(2)}/${comparableScale} is below minimum GPA ${params.min}/${requiredScale}.`
     }`,
     status === "pass" ? "GPA_MET" : "GPA_BELOW",
+    {
+      metric: "gpa",
+      observed: `${comparableGpa.toFixed(2)}/${comparableScale}`,
+      required: `${params.min}/${requiredScale}`,
+    },
   );
 }
 
@@ -250,6 +269,7 @@ function evaluateEnglishProficiency(
           "pass",
           `English language proficiency satisfied by completion at an institution in ${country}.`,
           "ENGLISH_OK_COUNTRY",
+          { observed: country },
         );
       }
     }
@@ -289,16 +309,21 @@ function evaluateEnglishProficiency(
 
 function evaluateWorkExperience(
   instance: Extract<RequirementInstance, { kind: "work_experience" }>,
+  { context }: EvaluationContext,
 ): EligibilityRequirementCheck {
   // Work-experience requirements are not satisfied from transcript evidence alone — they come from
   // CV / employment history extraction, which is a separate document pipeline. We emit "unknown"
   // here so the UI can prompt the user for that evidence rather than silently failing.
   const params = instance.params as WorkExperienceParams;
+  const hasEmploymentEvidence = (context.employmentCount ?? 0) > 0 || context.cvUploaded === true;
   return buildRequirementCheck(
     instance,
     "unknown",
-    `Requires ${params.minYears}+ years of relevant work experience; transcript evidence alone cannot confirm this.`,
+    hasEmploymentEvidence
+      ? `Requires ${params.minYears}+ years of relevant work experience; employment evidence supplied elsewhere in the application will be verified by admissions.`
+      : `Requires ${params.minYears}+ years of relevant work experience; add a CV or employment history as evidence.`,
     "WORK_EXPERIENCE_UNVERIFIED",
+    { required: `${params.minYears}+ years` },
   );
 }
 
@@ -344,7 +369,7 @@ export function evaluateOne(
     case "english_proficiency":
       return evaluateEnglishProficiency(instance, ctx);
     case "work_experience":
-      return evaluateWorkExperience(instance);
+      return evaluateWorkExperience(instance, ctx);
     case "field_of_study":
       return evaluateFieldOfStudy(instance, ctx);
   }

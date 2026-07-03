@@ -1,7 +1,19 @@
+import {
+  buildRecommendedNextStep,
+  missingInformationCopyByReasonCode,
+} from "../../src/lib/eligibility/checkCopy.js";
 import { applyDeterministicEligibilityRules } from "../../src/lib/eligibility/deterministicRules.js";
 import { aggregateOutcome, evaluateRequirements } from "../../src/lib/eligibility/matcher.js";
+import {
+  requirementEvidenceSource,
+  type EvidenceSource,
+  type RequirementInstance,
+} from "../../src/lib/eligibility/requirements.js";
 import type {
+  EligibilityExtractedField,
+  EligibilityPendingEvidence,
   EligibilityRequirementCheck,
+  RequirementReasonCode,
   TranscriptExtractedData,
 } from "../../src/lib/eligibility/types.js";
 import { RULES_VERSION } from "../../src/lib/eligibility/version.js";
@@ -42,6 +54,7 @@ export function buildFallbackResponse(
         explanation:
           "Transcript evidence was saved, but an external evaluation service response was unavailable.",
         id: "service-availability",
+        reasonCode: "SERVICE_UNAVAILABLE",
         requirement: "Automated transcript eligibility evaluation availability",
         status: "unknown",
       },
@@ -105,6 +118,76 @@ function extractEvidence(assessment: Record<string, unknown>): TranscriptExtract
   return ev;
 }
 
+/**
+ * Which document proves the requirement behind a check. Folded alternative-group checks carry ids
+ * like `${groupId}:satisfied`; resolve them through the group's members. Unknown provenance is
+ * treated as transcript-scoped (conservative: it counts against the transcript verdict).
+ */
+function evidenceSourceForCheck(
+  check: EligibilityRequirementCheck,
+  requirements: readonly RequirementInstance[],
+): EvidenceSource {
+  const direct = requirements.find((requirement) => requirement.id === check.id);
+  if (direct) {
+    return requirementEvidenceSource[direct.kind];
+  }
+
+  const groupDelimiter = check.id.indexOf(":");
+  if (groupDelimiter > 0) {
+    const groupId = check.id.slice(0, groupDelimiter);
+    const members = requirements.filter(
+      (requirement) => requirement.alternativeGroupId === groupId,
+    );
+    const sources = new Set(members.map((member) => requirementEvidenceSource[member.kind]));
+    if (sources.size === 1) {
+      return [...sources][0];
+    }
+  }
+
+  return "transcript";
+}
+
+/** The extracted fields each transcript-scoped requirement kind reads, for derived confidence. */
+const FIELDS_USED_BY_KIND: Partial<
+  Record<RequirementInstance["kind"], Array<[keyof TranscriptExtractedData, string]>>
+> = {
+  qualification_completed: [["studyDetails", "completionStatus"]],
+  qualification_level: [["studyDetails", "highestEducationLevel"]],
+  academic_threshold: [
+    ["academicPerformance", "gradeAverageOrWam"],
+    ["academicPerformance", "gpa"],
+    ["academicPerformance", "gpaScale"],
+  ],
+  english_proficiency: [["applicantDetails", "countryOfInstitution"]],
+  field_of_study: [["studyDetails", "programName"]],
+};
+
+/**
+ * Extraction confidence over only the fields the evaluators actually consumed for this course's
+ * requirements — the minimum, so the number is honest about the weakest field the verdict relies
+ * on. Falls back to the LLM's overall confidence when no consumed field carries one.
+ */
+function deriveExtractionConfidence(
+  evidence: TranscriptExtractedData,
+  requirements: readonly RequirementInstance[],
+  fallback: unknown,
+): number | unknown {
+  const confidences: number[] = [];
+  const kinds = new Set(requirements.map((requirement) => requirement.kind));
+  for (const kind of kinds) {
+    for (const [group, fieldName] of FIELDS_USED_BY_KIND[kind] ?? []) {
+      const groupValue = evidence[group] as
+        | Record<string, EligibilityExtractedField | undefined>
+        | undefined;
+      const field = groupValue?.[fieldName];
+      if (field && typeof field.confidence === "number" && Number.isFinite(field.confidence)) {
+        confidences.push(field.confidence);
+      }
+    }
+  }
+  return confidences.length > 0 ? Math.min(...confidences) : fallback;
+}
+
 function applyRequirementsMatcher(
   assessment: Record<string, unknown>,
   context: TranscriptEligibilityRequestContext,
@@ -119,40 +202,74 @@ function applyRequirementsMatcher(
   const conditionalIds = new Set(
     requirements.filter((r) => r.weight === "conditional").map((r) => r.id),
   );
-  const { outcome, manualReviewRequired } = aggregateOutcome(checks, { conditionalIds });
+
+  // The transcript verdict is scoped to what a transcript can prove. Requirements whose proof
+  // lives in another document (CV, English test evidence) are diverted to `pendingEvidence` when
+  // unconfirmed instead of degrading the outcome — a great transcript should not read as "more
+  // information required" because the program also wants a CV.
+  const pendingEvidence: EligibilityPendingEvidence[] = [];
+  const scopedChecks: EligibilityRequirementCheck[] = [];
+  for (const check of checks) {
+    const source = evidenceSourceForCheck(check, requirements);
+    if (check.status === "unknown" && source !== "transcript") {
+      pendingEvidence.push({
+        evidenceSource: source,
+        kind: requirements.find((requirement) => requirement.id === check.id)?.kind ?? "",
+        ...(check.reasonCode ? { reasonCode: check.reasonCode } : {}),
+        requirementId: check.id,
+      });
+    } else {
+      scopedChecks.push(check);
+    }
+  }
+
+  const { outcome, manualReviewRequired } = aggregateOutcome(scopedChecks, { conditionalIds });
 
   const patched: Record<string, unknown> = { ...assessment };
   patched.requirementsChecked = checks;
   patched.outcome = outcome;
   patched.manualReviewRequired = manualReviewRequired;
+  patched.pendingEvidence = pendingEvidence;
 
-  const missingFromUnknown = checks
-    .filter((check) => check.status === "unknown")
-    .map((check) => check.explanation);
-  const existingMissing = Array.isArray(patched.missingInformation)
+  // LLM free-text observations never reach the applicant: keep them for admissions/analytics.
+  const llmNotes = Array.isArray(patched.missingInformation)
     ? patched.missingInformation.filter((item): item is string => typeof item === "string")
     : [];
-  patched.missingInformation = Array.from(new Set([...existingMissing, ...missingFromUnknown]));
+  const existingNotes = Array.isArray(patched.extractionNotes)
+    ? patched.extractionNotes.filter((item): item is string => typeof item === "string")
+    : [];
+  patched.extractionNotes = Array.from(new Set([...existingNotes, ...llmNotes]));
+
+  // Applicant-facing bullets derive purely from unknown transcript-scoped checks via reasonCode
+  // copy, so a bullet can never contradict a check that passed.
+  const unknownScoped = scopedChecks.filter((check) => check.status === "unknown");
+  patched.missingInformation = Array.from(
+    new Set(
+      unknownScoped.map((check) =>
+        check.reasonCode
+          ? missingInformationCopyByReasonCode[check.reasonCode]?.(check.details) ??
+            check.explanation
+          : check.explanation,
+      ),
+    ),
+  );
+
+  patched.recommendedNextStep = buildRecommendedNextStep({
+    outcome,
+    pendingEvidence,
+    unknownTranscriptReasonCodes: unknownScoped
+      .map((check) => check.reasonCode)
+      .filter((code): code is RequirementReasonCode => Boolean(code)),
+  });
+
+  // Replace the LLM's overall confidence with one derived from the fields the verdict actually
+  // used, so the number can't contradict the displayed result.
+  patched.confidence = deriveExtractionConfidence(evidence, requirements, patched.confidence);
 
   patched.rulesVersion =
     typeof patched.rulesVersion === "string" && patched.rulesVersion.trim()
       ? `${patched.rulesVersion.trim()}+${RULES_VERSION}`
       : RULES_VERSION;
-
-  if (
-    typeof patched.recommendedNextStep !== "string" ||
-    !patched.recommendedNextStep.trim() ||
-    outcome !== "eligible"
-  ) {
-    patched.recommendedNextStep =
-      outcome === "ineligible"
-        ? "Applicant is below one or more mandatory requirements. Route to admissions review for final decision."
-        : outcome === "conditionally_eligible"
-          ? "Applicant meets the mandatory requirements; one or more conditional requirements need follow-up. Route for conditional-offer review."
-          : outcome === "insufficient_data"
-            ? "Provide clearer transcript evidence (completion status, WAM/GPA, English-medium completion) and route for manual review."
-            : "Proceed with application submission and admissions verification.";
-  }
 
   return patched;
 }

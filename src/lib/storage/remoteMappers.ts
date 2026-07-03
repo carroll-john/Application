@@ -1,5 +1,6 @@
 import { getCourseByCode, getDefaultCourse } from "../courseCatalog";
 import { transcriptConfirmsCompletion } from "../eligibility/englishProficiencyEvidence";
+import { normalizeTranscriptEligibilityAssessment } from "../eligibility/normalize";
 import type {
   ContactDetails,
   EmploymentExperience,
@@ -67,6 +68,7 @@ type TertiaryRow = Pick<
   | "transcript_confirms_completion"
   | "transcript_document_id"
   | "transcript_document_name"
+  | "transcript_eligibility"
 >;
 
 type EmploymentRow = Pick<
@@ -290,6 +292,11 @@ export function mapTertiaryQualificationRow(
       ? documentMap.get(qualification.transcript_document_id)
       : undefined,
     transcriptDocumentName: qualification.transcript_document_name ?? undefined,
+    // Round-trip through the normalizer so old or foreign payload shapes are clamped to the
+    // current contract before anything renders from them.
+    transcriptEligibility: qualification.transcript_eligibility
+      ? normalizeTranscriptEligibilityAssessment(qualification.transcript_eligibility)
+      : undefined,
   };
 }
 
@@ -316,6 +323,7 @@ export function toTertiaryInsert(
     transcript_confirms_completion: transcriptConfirmsCompletion(qualification),
     transcript_document_id: getRemoteDocumentId(qualification.transcriptDocument),
     transcript_document_name: qualification.transcriptDocumentName ?? null,
+    transcript_eligibility: (qualification.transcriptEligibility ?? null) as Json,
   };
 }
 

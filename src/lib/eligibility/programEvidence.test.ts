@@ -10,8 +10,9 @@ import type { CourseCatalogEntry } from "../courseCatalog";
 import type { UploadedDocument } from "../documentStorage";
 import {
   buildProgramEvidenceRows,
-  filterResolvedTranscriptMissingInformation,
-  shouldShowTranscriptRecommendedNextStep,
+  buildTranscriptReviewSummary,
+  dedupeProgramEvidenceRowsByHeading,
+  groupTranscriptVerifiableEvidenceRows,
 } from "./programEvidence";
 
 function remoteDoc(id: string): UploadedDocument {
@@ -146,51 +147,195 @@ describe("buildProgramEvidenceRows", () => {
     ).toMatchObject({ isBlocking: true, status: "needs_details" });
   });
 
-  it("hides raw English missing-info once program evidence satisfies English", () => {
+  it("reports a satisfied summary with no bullets when nothing is blocking", () => {
     const rows = buildProgramEvidenceRows({
       applicationData: application({
         tertiaryQualifications: [tertiaryQualification()],
       }),
       course: englishCourse,
     });
-    const visibleMissingInformation = filterResolvedTranscriptMissingInformation(
-      [
-        "English instruction confirmation",
-        "English proficiency test or completion evidence",
-        "WAM evidence",
-      ],
-      rows,
-    );
+    const summary = buildTranscriptReviewSummary(rows);
 
     expect(rows[0]).toMatchObject({ status: "met" });
-    expect(visibleMissingInformation).toEqual(["WAM evidence"]);
-    expect(
-      shouldShowTranscriptRecommendedNextStep(
-        "Request confirmation or evidence of English instruction medium or valid English proficiency test.",
-        [],
-        rows,
-      ),
-    ).toBe(false);
+    expect(summary.headerTone).toBe("success");
+    expect(summary.missingItems).toEqual([]);
+    expect(summary.nextStep).toBeUndefined();
+    expect(summary.manualReviewNeeded).toBe(false);
   });
 
-  it("keeps English missing-info when English evidence is not satisfied", () => {
+  it("derives bullets and next step only from blocking rows", () => {
     const rows = buildProgramEvidenceRows({
       applicationData: application(),
       course: englishCourse,
     });
+    const summary = buildTranscriptReviewSummary(rows);
 
-    expect(
-      filterResolvedTranscriptMissingInformation(
-        ["English proficiency test or completion evidence"],
-        rows,
-      ),
-    ).toEqual(["English proficiency test or completion evidence"]);
-    expect(
-      shouldShowTranscriptRecommendedNextStep(
-        "Request valid English proficiency evidence.",
-        ["English proficiency test or completion evidence"],
-        rows,
-      ),
-    ).toBe(true);
+    expect(rows[0]).toMatchObject({ isBlocking: true });
+    expect(summary.headerTone).toBe("warning");
+    expect(summary.headerLine).toContain("1 item");
+    expect(summary.missingItems).toEqual([`${rows[0].heading} — ${rows[0].statusLabel}`]);
+    expect(summary.nextStep).toContain(rows[0].actionLabel);
+  });
+
+  it("emits one row per alternative entry pathway even when their headings match", () => {
+    const course = {
+      code: "course-2",
+      title: "Master of Business Administration (Digital)",
+      requirements: [
+        {
+          id: "level-entry-1",
+          kind: "qualification_level",
+          alternativeGroupId: "entry-1",
+          params: { level: "bachelor" },
+          sourceText: "A bachelor degree or higher.",
+          weight: "alternative",
+        },
+        {
+          id: "level-entry-2",
+          kind: "qualification_level",
+          alternativeGroupId: "entry-2",
+          params: { level: "bachelor" },
+          sourceText: "A bachelor degree or higher in a related field.",
+          weight: "alternative",
+        },
+      ],
+    } as CourseCatalogEntry;
+
+    const rows = buildProgramEvidenceRows({
+      applicationData: application({ tertiaryQualifications: [tertiaryQualification()] }),
+      course,
+    });
+
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.heading)).toEqual([
+      "Bachelor degree or higher",
+      "Bachelor degree or higher",
+    ]);
+  });
+
+  it("orders English language proficiency ahead of work experience regardless of source order", () => {
+    const course = {
+      code: "course-5",
+      title: "Master of Business Administration",
+      requirements: [
+        {
+          id: "work-experience",
+          kind: "work_experience",
+          params: { minYears: 3 },
+          sourceText: "3+ years of relevant work experience.",
+          weight: "mandatory",
+        },
+        {
+          id: "english",
+          kind: "english_proficiency",
+          params: {
+            acceptedPathways: [{ type: "completion_in_country", countries: ["AU", "NZ"] }],
+          },
+          sourceText: "English instruction confirmation or an approved English test.",
+          weight: "mandatory",
+        },
+      ],
+    } as CourseCatalogEntry;
+
+    const rows = buildProgramEvidenceRows({
+      applicationData: application({ tertiaryQualifications: [tertiaryQualification()] }),
+      course,
+    });
+
+    expect(rows.map((row) => row.requirementId)).toEqual(["english", "work-experience"]);
+  });
+});
+
+describe("groupTranscriptVerifiableEvidenceRows", () => {
+  it("folds a satisfied English proficiency row into the Academic transcript card", () => {
+    const course = {
+      code: "course-4",
+      title: "Master of Business Administration (Digital)",
+      requirements: [
+        {
+          id: "level",
+          kind: "qualification_level",
+          params: { level: "bachelor" },
+          sourceText: "A bachelor degree or higher.",
+          weight: "mandatory",
+        },
+        {
+          id: "wam",
+          kind: "academic_threshold",
+          params: { metric: "wam", min: 65 },
+          sourceText: "Minimum WAM of 65%.",
+          weight: "mandatory",
+        },
+        {
+          id: "english",
+          kind: "english_proficiency",
+          params: {
+            acceptedPathways: [{ type: "completion_in_country", countries: ["AU", "NZ"] }],
+          },
+          sourceText: "English instruction confirmation or an approved English test.",
+          weight: "mandatory",
+        },
+      ],
+    } as CourseCatalogEntry;
+
+    const rows = buildProgramEvidenceRows({
+      applicationData: application({ tertiaryQualifications: [tertiaryQualification()] }),
+      course,
+    });
+    const englishRow = rows.find((row) => row.id === "english");
+    expect(englishRow).toMatchObject({ status: "met" });
+
+    const grouped = groupTranscriptVerifiableEvidenceRows(rows);
+
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0]).toMatchObject({ heading: "Academic transcript" });
+    expect(grouped[0].explanationItems).toContain("Your English language proficiency");
+  });
+});
+
+describe("dedupeProgramEvidenceRowsByHeading", () => {
+  it("keeps the first row per unique heading", () => {
+    const course = {
+      code: "course-3",
+      title: "Master of Business Administration (Digital)",
+      requirements: [
+        {
+          id: "level-entry-1",
+          kind: "qualification_level",
+          alternativeGroupId: "entry-1",
+          params: { level: "bachelor" },
+          sourceText: "A bachelor degree or higher.",
+          weight: "alternative",
+        },
+        {
+          id: "level-entry-2",
+          kind: "qualification_level",
+          alternativeGroupId: "entry-2",
+          params: { level: "bachelor" },
+          sourceText: "A bachelor degree or higher in a related field.",
+          weight: "alternative",
+        },
+        {
+          id: "wam",
+          kind: "academic_threshold",
+          params: { metric: "wam", min: 65 },
+          sourceText: "Minimum WAM of 65%.",
+          weight: "mandatory",
+        },
+      ],
+    } as CourseCatalogEntry;
+
+    const rows = buildProgramEvidenceRows({
+      applicationData: application({ tertiaryQualifications: [tertiaryQualification()] }),
+      course,
+    });
+
+    const deduped = dedupeProgramEvidenceRowsByHeading(rows);
+
+    expect(deduped.map((row) => row.heading)).toEqual([
+      "Bachelor degree or higher",
+      "Minimum 65 WAM",
+    ]);
+    expect(deduped[0].requirementId).toBe("level-entry-1");
   });
 });

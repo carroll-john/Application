@@ -8,7 +8,12 @@ export interface EligibilityFeedbackPayload {
   reason?: string;
   courseCode?: string;
   courseTitle?: string;
+  /** Durable machine reason behind the disputed automated status, for labelled-data analysis. */
+  reasonCode?: string;
+  modelId?: string;
+  promptVersion?: string;
   rulesVersion?: string;
+  schemaVersion?: string;
   serviceVersion?: string;
 }
 

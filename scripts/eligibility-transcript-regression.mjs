@@ -33,6 +33,7 @@ function parseArgs(argv) {
       process.env.TRANSCRIPT_ELIGIBILITY_BASE_URL?.trim() ||
       process.env.ELIGIBILITY_REGRESSION_BASE_URL?.trim() ||
       DEFAULT_BASE_URL,
+    compare: null,
     courseMode: "safe",
     fixtureIds: [],
     help: false,
@@ -82,6 +83,12 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === "--compare") {
+      options.compare = [argv[i + 1] || "", argv[i + 2] || ""];
+      i += 2;
+      continue;
+    }
+
     if (arg === "--strict") {
       options.strict = true;
       continue;
@@ -101,9 +108,10 @@ function printHelp() {
 
 Options:
   --base-url <url>       API base URL (default: ${DEFAULT_BASE_URL})
+  --compare <a> <b>      Diff two previous runs' scorecard.json files and exit
   --course-mode safe|unsafe   Matcher course (safe) or legacy fallback (unsafe)
   --fixture <id>         Run a single fixture id (repeatable)
-  --out-dir <path>       Write results.json/csv here
+  --out-dir <path>       Write results.json + scorecard.json here
   --timeout-ms <n>       Per-request timeout (default: ${DEFAULT_TIMEOUT_MS})
   --strict               Fail on soft outcome/institution mismatches
   --verbose              Print requirement rows for each fixture
@@ -273,6 +281,107 @@ function isOutcomeCompatible(outcome, bucket) {
   return outcome === "ineligible" || outcome === "insufficient_data";
 }
 
+/**
+ * Internal-consistency invariants that must hold for every response regardless of transcript
+ * content. These are the guarantees that keep the UI's header, cards, bullets, and next step from
+ * contradicting each other. Violations are hard failures (not gated behind --strict).
+ */
+function consistencyInvariantViolations(payload) {
+  const violations = [];
+  const checks = Array.isArray(payload?.requirementsChecked) ? payload.requirementsChecked : [];
+  const missingInformation = Array.isArray(payload?.missingInformation)
+    ? payload.missingInformation
+    : [];
+  const pendingEvidence = Array.isArray(payload?.pendingEvidence) ? payload.pendingEvidence : [];
+
+  // A bullet can never restate a passed requirement's explanation.
+  for (const check of checks) {
+    if (check?.status === "pass" && missingInformation.includes(check.explanation)) {
+      violations.push(
+        `missingInformation contains the explanation of passed check "${check.id}".`,
+      );
+    }
+  }
+
+  // An eligible verdict cannot carry missing-information bullets.
+  if (payload?.outcome === "eligible" && missingInformation.length > 0) {
+    violations.push(
+      `outcome is eligible but missingInformation has ${missingInformation.length} item(s).`,
+    );
+  }
+
+  // Pending evidence must only reference unknown checks and never transcript-scoped ones.
+  const checkById = new Map(checks.map((check) => [check.id, check]));
+  for (const pending of pendingEvidence) {
+    const check = checkById.get(pending.requirementId);
+    if (check && check.status !== "unknown") {
+      violations.push(
+        `pendingEvidence references check "${pending.requirementId}" with status ${check.status}.`,
+      );
+    }
+    if (pending.evidenceSource === "transcript") {
+      violations.push(
+        `pendingEvidence entry "${pending.requirementId}" claims transcript as its evidence source.`,
+      );
+    }
+  }
+
+  if (typeof payload?.recommendedNextStep !== "string" || !payload.recommendedNextStep.trim()) {
+    violations.push("recommendedNextStep is empty.");
+  }
+
+  return violations;
+}
+
+function readManifestWam(fixture) {
+  if (!Array.isArray(fixture.metrics)) {
+    return undefined;
+  }
+  for (const metric of fixture.metrics) {
+    if (Array.isArray(metric) && /weighted average|wam/i.test(String(metric[0]))) {
+      const parsed = Number.parseFloat(String(metric[1]));
+      return Number.isFinite(parsed) ? parsed : undefined;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Per-field extraction scores against the manifest's ground-truth labels. `null` means the
+ * manifest has no ground truth for that field on this fixture (excluded from accuracy).
+ */
+function scoreExtraction(payload, fixture) {
+  const evidence = resolveEvidenceSource(payload);
+
+  const completionText = readFieldValue(evidence?.studyDetails, "completionStatus").replace(
+    /_/g,
+    " ",
+  );
+  let completionCorrect = null;
+  if (completionText) {
+    const extractedCompleted =
+      /\b(completed|conferred|graduated|awarded)\b/.test(completionText) &&
+      !/\b(not completed|in progress|withdrawn|discontinued|excluded)\b/.test(completionText);
+    completionCorrect = extractedCompleted === Boolean(fixture.qualification_achieved);
+  } else {
+    completionCorrect = false;
+  }
+
+  const expectedWam = readManifestWam(fixture);
+  let wamCorrect = null;
+  if (expectedWam !== undefined) {
+    const extractedWamText = readFieldValue(evidence?.academicPerformance, "gradeAverageOrWam");
+    const extractedWam = Number.parseFloat(extractedWamText.replace(/[^\d.]/g, " "));
+    wamCorrect = Number.isFinite(extractedWam) && Math.abs(extractedWam - expectedWam) <= 0.05;
+  }
+
+  const institutionValue = readFieldValue(evidence?.applicantDetails, "institutionName");
+  const keyword = institutionKeyword(fixture.university);
+  const institutionCorrect = keyword ? institutionValue.includes(keyword) : null;
+
+  return { completionCorrect, institutionCorrect, wamCorrect };
+}
+
 function duplicateRequirementIds(requirementsChecked) {
   const seen = new Set();
   const duplicates = [];
@@ -362,6 +471,13 @@ async function runFixtureCase({ baseUrl, context, fixture, timeoutMs, strict, ve
     qualityErrors.push(`Duplicate requirement ids: ${duplicates.join(", ")}`);
   }
 
+  const invariantViolations = status === 200 ? consistencyInvariantViolations(payload) : [];
+  for (const violation of invariantViolations) {
+    qualityErrors.push(`Consistency invariant violated: ${violation}`);
+  }
+
+  const extraction = status === 200 ? scoreExtraction(payload, fixture) : null;
+
   const institutionValue = readFieldValue(
     resolveEvidenceSource(payload)?.applicantDetails,
     "institutionName",
@@ -391,16 +507,104 @@ async function runFixtureCase({ baseUrl, context, fixture, timeoutMs, strict, ve
   return {
     elapsedSeconds,
     error: qualityErrors[0] || "",
+    extraction,
     file: pdfPath,
     fixtureId: fixture.fixture_id,
     institutionExtracted: institutionValue,
+    invariantViolations,
+    modelId: payload?.modelId ?? null,
     outcome,
     passed: status === 200 && qualityErrors.length === 0,
+    promptVersion: payload?.promptVersion ?? null,
     requirementCount: requirementsChecked.length,
     rulesVersion: payload?.rulesVersion ?? null,
+    schemaVersion: payload?.schemaVersion ?? null,
     status: status || "ERR",
     university: fixture.university,
   };
+}
+
+function accuracy(results, field) {
+  let correct = 0;
+  let total = 0;
+  for (const result of results) {
+    const score = result.extraction?.[field];
+    if (score === null || score === undefined) {
+      continue;
+    }
+    total += 1;
+    if (score === true) {
+      correct += 1;
+    }
+  }
+  return { correct, rate: total > 0 ? Number((correct / total).toFixed(3)) : null, total };
+}
+
+/**
+ * Aggregated, comparable summary of a run. Stamped with the exact (model, prompt, schema, rules)
+ * tuple so two scorecards can be diffed to A/B a model or prompt change (--compare).
+ */
+function buildScorecard(results, options) {
+  const firstVersioned = results.find((result) => result.rulesVersion || result.promptVersion);
+  return {
+    baseUrl: options.baseUrl,
+    courseMode: options.courseMode,
+    extractionAccuracy: {
+      completion: accuracy(results, "completionCorrect"),
+      institution: accuracy(results, "institutionCorrect"),
+      wam: accuracy(results, "wamCorrect"),
+    },
+    fixtures: results.length,
+    generatedAt: new Date().toISOString(),
+    invariantViolations: results.reduce(
+      (sum, result) => sum + (result.invariantViolations?.length ?? 0),
+      0,
+    ),
+    meanElapsedSeconds: Number(
+      (
+        results.reduce((sum, result) => sum + (result.elapsedSeconds || 0), 0) /
+        Math.max(results.length, 1)
+      ).toFixed(2),
+    ),
+    passed: results.filter((result) => result.passed).length,
+    versions: {
+      modelId: firstVersioned?.modelId ?? null,
+      promptVersion: firstVersioned?.promptVersion ?? null,
+      rulesVersion: firstVersioned?.rulesVersion ?? null,
+      schemaVersion: firstVersioned?.schemaVersion ?? null,
+    },
+  };
+}
+
+async function readScorecard(runPath) {
+  const direct = runPath.endsWith(".json") ? runPath : path.join(runPath, "scorecard.json");
+  return JSON.parse(await fs.readFile(direct, "utf8"));
+}
+
+function formatRate(entry) {
+  if (!entry || entry.rate === null) {
+    return "n/a";
+  }
+  return `${(entry.rate * 100).toFixed(1)}% (${entry.correct}/${entry.total})`;
+}
+
+async function compareScorecards(pathA, pathB) {
+  const [a, b] = await Promise.all([readScorecard(pathA), readScorecard(pathB)]);
+  const versionLine = (card) =>
+    `model=${card.versions?.modelId ?? "?"} prompt=${card.versions?.promptVersion ?? "?"} schema=${card.versions?.schemaVersion ?? "?"} rules=${card.versions?.rulesVersion ?? "?"}`;
+
+  console.log("Scorecard comparison");
+  console.log(`A: ${pathA}\n   ${versionLine(a)} | ${a.generatedAt}`);
+  console.log(`B: ${pathB}\n   ${versionLine(b)} | ${b.generatedAt}`);
+  console.log("");
+  console.log(`Pass rate:            A ${a.passed}/${a.fixtures}  vs  B ${b.passed}/${b.fixtures}`);
+  console.log(`Invariant violations: A ${a.invariantViolations}  vs  B ${b.invariantViolations}`);
+  console.log(`Mean latency (s):     A ${a.meanElapsedSeconds}  vs  B ${b.meanElapsedSeconds}`);
+  for (const field of ["completion", "wam", "institution"]) {
+    console.log(
+      `Extraction ${field.padEnd(11)}: A ${formatRate(a.extractionAccuracy?.[field])}  vs  B ${formatRate(b.extractionAccuracy?.[field])}`,
+    );
+  }
 }
 
 async function main() {
@@ -408,6 +612,11 @@ async function main() {
 
   if (options.help) {
     printHelp();
+    return;
+  }
+
+  if (options.compare) {
+    await compareScorecards(options.compare[0], options.compare[1]);
     return;
   }
 
@@ -450,6 +659,10 @@ async function main() {
   const resultsPath = path.join(outDir, "results.json");
   await fs.writeFile(resultsPath, `${JSON.stringify(results, null, 2)}\n`, "utf8");
 
+  const scorecard = buildScorecard(results, options);
+  const scorecardPath = path.join(outDir, "scorecard.json");
+  await fs.writeFile(scorecardPath, `${JSON.stringify(scorecard, null, 2)}\n`, "utf8");
+
   const passed = results.filter((result) => result.passed);
   const failed = results.filter((result) => !result.passed);
 
@@ -469,7 +682,12 @@ async function main() {
     }
   }
 
+  console.log(
+    `\nExtraction accuracy: completion ${formatRate(scorecard.extractionAccuracy.completion)} | wam ${formatRate(scorecard.extractionAccuracy.wam)} | institution ${formatRate(scorecard.extractionAccuracy.institution)}`,
+  );
+  console.log(`Versions: ${JSON.stringify(scorecard.versions)}`);
   console.log(`\nJSON: ${pathToFileURL(resultsPath).href}`);
+  console.log(`Scorecard: ${pathToFileURL(scorecardPath).href}`);
 
   if (failed.length > 0) {
     process.exitCode = 1;

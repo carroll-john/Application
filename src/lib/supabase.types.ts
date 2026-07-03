@@ -432,6 +432,7 @@ export type Database = {
           transcript_confirms_completion: boolean
           transcript_document_id: string | null
           transcript_document_name: string | null
+          transcript_eligibility: Json | null
           updated_at: string
         }
         Insert: {
@@ -452,6 +453,7 @@ export type Database = {
           transcript_confirms_completion?: boolean
           transcript_document_id?: string | null
           transcript_document_name?: string | null
+          transcript_eligibility?: Json | null
           updated_at?: string
         }
         Update: {
@@ -472,6 +474,7 @@ export type Database = {
           transcript_confirms_completion?: boolean
           transcript_document_id?: string | null
           transcript_document_name?: string | null
+          transcript_eligibility?: Json | null
           updated_at?: string
         }
         Relationships: [

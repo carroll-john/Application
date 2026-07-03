@@ -25,6 +25,7 @@ function foldAlternativeGroup(
       status: "pass",
       reasonCode: "GROUP_SATISFIED",
       explanation: `One alternative satisfied: ${passEntry.check.explanation}`,
+      ...(passEntry.check.details ? { details: passEntry.check.details } : {}),
     };
   }
 
@@ -36,6 +37,7 @@ function foldAlternativeGroup(
       status: "unknown",
       reasonCode: "GROUP_UNCONFIRMED",
       explanation: `No alternative confirmed. ${unknownEntry.check.explanation}`,
+      ...(unknownEntry.check.details ? { details: unknownEntry.check.details } : {}),
     };
   }
 

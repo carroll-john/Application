@@ -17,12 +17,11 @@ export interface TertiaryQualification {
   transcriptDocumentName?: string;
   certificateDocument?: UploadedDocument;
   certificateDocumentName?: string;
+  /** Latest transcript scan result. Persisted to Supabase (transcript_eligibility jsonb) and re-normalized on load. */
   transcriptEligibility?: TranscriptEligibilityAssessment;
   /**
-   * Persisted snapshot of whether the parsed transcript evidenced completion.
-   * `transcriptEligibility` lives only in memory, so this carries the signal
-   * across reloads to keep the conditional Certificate-of-Completion requirement
-   * consistent between client and server.
+   * Persisted snapshot of whether the parsed transcript evidenced completion. Kept alongside the
+   * full assessment because the server-side submission RPC reads this boolean column directly.
    */
   transcriptCompletionConfirmed?: boolean;
 }

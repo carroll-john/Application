@@ -7,6 +7,8 @@ export type TranscriptEligibilityRequestContext = {
   country?: string;
   courseCode?: string;
   courseTitle?: string;
+  cvUploaded?: boolean;
+  employmentCount?: number;
   entryRequirementsText?: string;
   hasAhpraRegistration?: boolean;
   institution?: string;
@@ -82,6 +84,11 @@ export function parseContext(
         typeof candidate.courseCode === "string" ? candidate.courseCode.trim() : undefined,
       courseTitle:
         typeof candidate.courseTitle === "string" ? candidate.courseTitle.trim() : undefined,
+      cvUploaded: typeof candidate.cvUploaded === "boolean" ? candidate.cvUploaded : undefined,
+      employmentCount:
+        typeof candidate.employmentCount === "number" && Number.isFinite(candidate.employmentCount)
+          ? candidate.employmentCount
+          : undefined,
       entryRequirementsText:
         typeof candidate.entryRequirementsText === "string"
           ? candidate.entryRequirementsText.trim()
