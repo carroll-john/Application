@@ -36,24 +36,24 @@ Keep credentials in PostHog's source config only — never in this repo.
 
 ## 3. Vercel ↔ PostHog
 
-- ⚠️ **The `/ingest/*` reverse proxy is currently broken** — on the deployment it
-  returns **404** for every analytics path (`/ingest/i/v0/e/`, `/ingest/flags/`,
-  `/ingest/s/`), so all capture/flags/session POSTs were silently dropped and
-  **no events reached PostHog** since the proxy shipped (DIS-196). As a result
-  `src/lib/analytics/posthogClient.ts` now sends analytics **directly** to
-  `VITE_POSTHOG_HOST` (`https://eu.i.posthog.com`) — the proven pre-proxy path —
-  instead of `/ingest`. Re-enable the proxy (set `api_host` back to `/ingest`)
-  only once `https://<deploy>/ingest/flags/` returns 200 end-to-end; the
-  `vercel.json` rewrite matches PostHog's canonical pattern, so the fault is in
-  how the rewrite is applied on the deployment, not the rule itself.
-- The **reverse proxy** is still defined in `vercel.json` (Phase 2: `/ingest/*`).
-  It is deliberately kept (not deleted) so re-enabling is a one-line client
-  change once verified. To verify from any machine with access to the deploy:
-  `curl -i https://application-prototype.vercel.app/ingest/flags/?v=2` (expect a
-  PostHog JSON response, not the SPA's 404/HTML) and
-  `curl -i -X POST -d '{}' https://<deploy>/ingest/i/v0/e/` (expect 200/400 from
-  PostHog, not 404). The funnel bot's `[ingest:*]` response log
-  (`scripts/synthetic-funnel-bot.mjs`) is the end-to-end gate.
+- ✅ **The `/ingest/*` reverse proxy is verified working and back in use**
+  (re-verified 2026-07-04 against production, both paths served via Vercel):
+  - `curl -i "https://application-prototype.vercel.app/ingest/flags/?v=2"` →
+    **200** with a real PostHog flags JSON body.
+  - `curl -i -X POST -H "content-type: application/json" -d '{}' "https://application-prototype.vercel.app/ingest/i/v0/e/"`
+    → **400** with PostHog's own parser error ("failed to hydrate events…"),
+    i.e. the capture path reaches PostHog. A broken proxy returns 404/HTML.
+
+  `src/lib/analytics/posthogClient.ts` therefore routes analytics through
+  `api_host: "/ingest"` again (same-origin, ad-blocker-resilient). History:
+  the proxy 404'd on every analytics path after it first shipped (DIS-196),
+  silently dropping all events, and the app temporarily sent events directly
+  to `VITE_POSTHOG_HOST` (`https://eu.i.posthog.com`) until the proxy was
+  re-verified with the curls above. **If events stop arriving, check the proxy
+  first** (re-run the curls) and revert the one line to
+  `api_host: POSTHOG_HOST`; the funnel bot's `[ingest:*]` response log
+  (`scripts/synthetic-funnel-bot.mjs`) shows whether the proxy forwards (200)
+  or drops (404) captures end-to-end.
 - Optionally install the **PostHog Vercel integration** to auto-inject
   `VITE_POSTHOG_KEY` / host into the project's env (instead of setting them by
   hand). It does not replace the proxy.
