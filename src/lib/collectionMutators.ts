@@ -8,23 +8,26 @@ function replaceItemById<T extends { id: string }>(
   return items.map((item) => (item.id === id ? nextItem : item));
 }
 
-interface CollectionMutatorConfig {
+interface CollectionMutatorConfig<EventName extends string> {
   collectionKey: keyof ApplicationData;
-  savedEvent: string;
-  removedEvent: string;
+  savedEvent: EventName;
+  removedEvent: EventName;
 }
 
-type UpdateDataWithEvent = (
+type UpdateDataWithEvent<EventName extends string> = (
   updater: (current: ApplicationData) => ApplicationData,
-  eventName: string,
+  eventName: EventName,
   properties?:
     | Record<string, unknown>
     | ((application: ApplicationData) => Record<string, unknown>),
 ) => Promise<void>;
 
-export function createCollectionMutators<T extends { id: string }>(
-  config: CollectionMutatorConfig,
-  updateDataWithEvent: UpdateDataWithEvent,
+export function createCollectionMutators<
+  T extends { id: string },
+  EventName extends string = string,
+>(
+  config: CollectionMutatorConfig<EventName>,
+  updateDataWithEvent: UpdateDataWithEvent<EventName>,
 ) {
   const { collectionKey, savedEvent, removedEvent } = config;
 

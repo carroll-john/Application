@@ -3,10 +3,12 @@ import type { ValidationIssue } from "../validation/types";
 import { section1Steps } from "../section1Steps";
 import { section2Steps } from "../section2Steps";
 import { applicationStepDefinitions } from "./applicationSteps";
+import type { AnalyticsEventName } from "./events";
 import { capturePostHogEvent } from "./posthogClient";
 import { getApplicationAnalyticsProperties } from "./posthogProperties";
 
-export const APPLICATION_SUBMIT_BLOCKED_EVENT = "application_submit_blocked";
+export const APPLICATION_SUBMIT_BLOCKED_EVENT =
+  "application_submit_blocked" satisfies AnalyticsEventName;
 
 const stepLabelToAnalytics = new Map(
   [...section1Steps, ...section2Steps].map((step) => [

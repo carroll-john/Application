@@ -3,6 +3,12 @@ export {
   getRouteAnalyticsDefinition,
 } from "./analytics/applicationSteps";
 export {
+  type AnalyticsEventMap,
+  type AnalyticsEventName,
+  type ApplicationRecordEventName,
+  type ApplicationStepEventName,
+} from "./analytics/events";
+export {
   getCvParserErrorCode,
   trackCvParserDraftEmpty,
   trackCvParserDraftFailed,
@@ -10,26 +16,25 @@ export {
   trackCvParserSaveContinueClicked,
 } from "./analytics/cvParserAnalytics";
 export {
-  APPLICATION_SUBMIT_BLOCKED_EVENT,
-  getSubmitBlockedValidationProperties,
-  getValidationIssueCode,
-  resolveBlockedStepKey,
-  resolveBlockedStepLabel,
-  trackApplicationSubmitBlocked,
-} from "./analytics/submitBlockedAnalytics";
+  getTertiaryTranscriptParserErrorCode,
+  trackTertiaryTranscriptParserDraftEmpty,
+  trackTertiaryTranscriptParserDraftFailed,
+  trackTertiaryTranscriptParserDraftSucceeded,
+  trackTertiaryTranscriptParserSaveContinueClicked,
+} from "./analytics/tertiaryTranscriptParserAnalytics";
 export {
-  type FeatureFlagKey,
-  getFeatureFlagPayload,
-  isFeatureFlagEnabled,
-} from "./analytics/featureFlags";
+  trackEligibilityFeedbackSubmitted,
+  trackEvidencePromptViewed,
+  trackEvidenceSectionSkipped,
+  trackEvidenceSectionUnskipped,
+} from "./analytics/evidenceFlowAnalytics";
+export { trackApplicationSubmitBlocked } from "./analytics/submitBlockedAnalytics";
 export {
   associateCourseProviderGroup,
-  canCapturePostHog,
   capturePostHogEvent,
   initPostHog,
   isPostHogEnabled,
   isReplayPiiRoute,
-  onPostHogFeatureFlags,
   syncPostHogUser,
   syncReplayRoutePrivacy,
 } from "./analytics/posthogClient";
@@ -40,8 +45,3 @@ export {
   trackApplicationStepView,
   trackPostHogPageView,
 } from "./analytics/posthogProperties";
-export {
-  isPostHogSensitiveRoute,
-  sanitizeAnalyticsSearch,
-  sanitizeAnalyticsUrl,
-} from "./analytics/sanitizeAnalyticsUrl";

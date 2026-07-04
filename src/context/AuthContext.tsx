@@ -27,6 +27,7 @@ import {
   supabase,
 } from "../lib/supabase";
 import { isPasswordLeaked } from "../lib/leakedPassword";
+import { getEmailDomain } from "../lib/emailDomain";
 import { syncPostHogUser } from "../lib/posthog";
 import { syncSentryUser } from "../lib/sentry";
 
@@ -74,10 +75,6 @@ function formatUserDisplayName(email: string | null) {
     .split(/\s+/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
-}
-
-function getEmailDomain(email: string | null) {
-  return email?.split("@")[1] ?? undefined;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

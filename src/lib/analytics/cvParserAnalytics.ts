@@ -1,11 +1,15 @@
+import type { AnalyticsEventName } from "./events";
 import { capturePostHogEvent } from "./posthogClient";
 
 // Renamed from cv_parser_autofill_* when the PostHog experiment graduated to GA.
 export const CV_PARSER_SAVE_CONTINUE_CLICKED_EVENT =
-  "cv_parser_save_continue_clicked";
-export const CV_PARSER_DRAFT_SUCCEEDED_EVENT = "cv_parser_draft_succeeded";
-export const CV_PARSER_DRAFT_EMPTY_EVENT = "cv_parser_draft_empty";
-export const CV_PARSER_DRAFT_FAILED_EVENT = "cv_parser_draft_failed";
+  "cv_parser_save_continue_clicked" satisfies AnalyticsEventName;
+export const CV_PARSER_DRAFT_SUCCEEDED_EVENT =
+  "cv_parser_draft_succeeded" satisfies AnalyticsEventName;
+export const CV_PARSER_DRAFT_EMPTY_EVENT =
+  "cv_parser_draft_empty" satisfies AnalyticsEventName;
+export const CV_PARSER_DRAFT_FAILED_EVENT =
+  "cv_parser_draft_failed" satisfies AnalyticsEventName;
 
 export function trackCvParserSaveContinueClicked(properties: {
   existingEmploymentCount: number;

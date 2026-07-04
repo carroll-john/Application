@@ -1,4 +1,10 @@
 import { captureEligibilityFeedback } from "./_shared/posthogAiObservability.js";
+// Importing initializes Sentry as a side effect.
+import {
+  buildSentryContext,
+  captureApiException,
+  flushSentry,
+} from "./_shared/sentry.js";
 
 const ALLOWED_STATUSES = new Set(["pass", "fail", "unknown"] as const);
 
@@ -32,6 +38,20 @@ function readStatus(value: unknown): Status | undefined {
 }
 
 async function handleWebRequest(request: Request) {
+  try {
+    return await handleFeedbackRequest(request);
+  } catch (error) {
+    await captureApiException(error, buildSentryContext(request));
+    await flushSentry();
+    return errorResponse(
+      "Eligibility feedback capture failed.",
+      "ELIGIBILITY_FEEDBACK_UNEXPECTED_ERROR",
+      500,
+    );
+  }
+}
+
+async function handleFeedbackRequest(request: Request) {
   if (request.method !== "POST") {
     return errorResponse(
       "Method not allowed.",

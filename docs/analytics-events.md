@@ -2,6 +2,81 @@
 
 This app sends page and funnel events to PostHog through `src/lib/posthog.ts`.
 
+## How to add an event
+
+1. Add the event name to `ANALYTICS_EVENT_NAMES` in `src/lib/analytics/events.ts`
+   (snake_case). Event names are typed: `capturePostHogEvent` only accepts names
+   from that catalog, so a typo fails to compile.
+2. Capture it through the barrel — `capturePostHogEvent` from `src/lib/posthog`,
+   or a purpose-built `track*` helper in `src/lib/analytics/` for anything with
+   derived properties. Direct `posthog-js` imports outside `src/lib/analytics/`
+   are blocked by ESLint.
+3. Add the name to the Event catalog table below and document its trigger in
+   the relevant section. `src/lib/analytics/events.test.ts` fails if the
+   catalog and this document drift apart.
+4. Never rename a shipped event — dashboards and historical data reference the
+   exact string.
+
+## Event catalog
+
+Every client-side event, kept in sync with `src/lib/analytics/events.ts` by
+`events.test.ts`. Server-side events (`eligibility_check_override`,
+`$ai_generation`) are documented separately below.
+
+<!-- analytics-event-catalog:start -->
+
+| Event | Area |
+| --- | --- |
+| `$pageview` | Pages |
+| `application_start_requested` | Core funnel |
+| `application_draft_created` | Core funnel |
+| `application_step_viewed` | Core funnel |
+| `application_step_completed` | Core funnel |
+| `application_submit_started` | Core funnel |
+| `application_submitted` | Core funnel |
+| `application_submit_blocked` | Submit outcomes |
+| `application_submit_failed` | Submit outcomes |
+| `application_draft_resumed` | Application progress |
+| `application_opened_from_dashboard` | Application progress |
+| `application_saved_for_later` | Application progress |
+| `application_sign_in_redirected` | Application progress |
+| `eligibility_check_opened` | Application progress |
+| `eligibility_check_completed` | Application progress |
+| `application_evidence_prompt_viewed` | Supporting evidence flow |
+| `application_evidence_section_skipped` | Supporting evidence flow |
+| `application_evidence_section_unskipped` | Supporting evidence flow |
+| `eligibility_feedback_submitted` | Supporting evidence flow |
+| `auth_gate_opened` | Auth |
+| `auth_sign_in_attempted` | Auth |
+| `auth_sign_in_succeeded` | Auth |
+| `auth_sign_in_failed` | Auth |
+| `auth_sign_up_attempted` | Auth |
+| `auth_sign_up_confirmation_sent` | Auth |
+| `auth_sign_up_failed` | Auth |
+| `auth_password_reset_completed` | Auth |
+| `application_cv_saved` | Record updates |
+| `application_cv_removed` | Record updates |
+| `application_employment_experience_saved` | Record updates |
+| `application_employment_experience_removed` | Record updates |
+| `application_language_test_saved` | Record updates |
+| `application_language_test_removed` | Record updates |
+| `application_professional_accreditation_saved` | Record updates |
+| `application_professional_accreditation_removed` | Record updates |
+| `application_secondary_qualification_saved` | Record updates |
+| `application_secondary_qualification_removed` | Record updates |
+| `application_tertiary_qualification_saved` | Record updates |
+| `application_tertiary_qualification_removed` | Record updates |
+| `cv_parser_save_continue_clicked` | CV parser |
+| `cv_parser_draft_succeeded` | CV parser |
+| `cv_parser_draft_empty` | CV parser |
+| `cv_parser_draft_failed` | CV parser |
+| `tertiary_transcript_parser_save_continue_clicked` | Transcript parser |
+| `tertiary_transcript_parser_draft_succeeded` | Transcript parser |
+| `tertiary_transcript_parser_draft_empty` | Transcript parser |
+| `tertiary_transcript_parser_draft_failed` | Transcript parser |
+
+<!-- analytics-event-catalog:end -->
+
 ## Identity
 
 - PostHog runs in manual mode (`autocapture: false`), so only explicit app events are sent.
@@ -102,9 +177,9 @@ Important submit-path rules:
 | `auth_sign_up_failed` | Create-account sign-up is rejected |
 | `auth_password_reset_completed` | User saves a new password after opening a reset link |
 | `auth_gate_opened` | An in-flow auth modal opens from eligibility or apply |
-| `local_draft_import_started` | Signed-in user starts importing local anonymous drafts |
-| `local_draft_import_completed` | Local draft import completes without failed drafts |
-| `local_draft_import_failed` | Local draft import leaves one or more drafts unimported |
+
+(`local_draft_import_*` events were retired with anonymous local drafts in #136 —
+application storage is remote-only.)
 
 ## Application Progress Events
 
@@ -119,6 +194,26 @@ Important submit-path rules:
 | `application_saved_for_later` | User clicks `Save & Exit` from a tracked application step |
 | `application_step_viewed` | User lands on a tracked application step |
 | `application_step_completed` | User clicks the primary CTA on a tracked application step |
+
+## Supporting Evidence Flow Events
+
+`/section2/qualifications` is a doc-first, sequential hub (#168): it surfaces
+one evidence prompt at a time (derived from the eligibility engine, or a
+generic transcript → CV → English sequence when the course has no published
+requirements), and a section can be skipped for the session. These events all
+carry the standard application/course context plus `evidence_section_key`
+(`tertiary`, `cv`, `employment`, `accreditation`, `secondary`, `languageTest`).
+
+| Event | Trigger |
+| --- | --- |
+| `application_evidence_prompt_viewed` | A new evidence prompt becomes the active one on the hub. Includes `evidence_prompt_heading`, `evidence_prompt_source` (`requirement`/`generic`) and `outstanding_prompt_count`. |
+| `application_evidence_section_skipped` | User skips the prompted section for the session |
+| `application_evidence_section_unskipped` | User re-opens a previously skipped section |
+| `eligibility_feedback_submitted` | User submits the "Doesn't match your transcript?" form. Client-side companion to the server `eligibility_check_override` (which is not tied to the user's distinct id); includes `flagged_requirement_ids`, `flagged_requirement_count`, `reason_codes`, `has_note`. |
+
+The hub's `Save & Continue` / `Save & Exit` CTAs still emit
+`application_step_completed` / `application_saved_for_later` via the shared
+`FormActionBar`, so the core funnel is unaffected by the redesign.
 
 ## Record Update Events
 
@@ -164,11 +259,11 @@ Application-step events also include:
 
 ## Feature Flags
 
-Flag reads are typed via a `FeatureFlagKey` union (`src/lib/analytics/featureFlags.ts`) — keep it in sync with the flags defined in the PostHog project.
-
-- **React:** `useFeatureFlag(key)` (`src/hooks/useFeatureFlag.ts`) over `posthog-js/react`. The app tree is wrapped in `<PostHogProvider client={posthog}>` (`src/App.tsx`).
-- **Imperative:** `isFeatureFlagEnabled(key)` / `getFeatureFlagPayload(key)` from `src/lib/posthog.ts`.
-- **Resolution / freshness:** for first-time users a flag is `undefined` until the `/flags` response arrives; the wrapper treats that as `false` (control/default variant, no flicker). For returning users posthog-js returns the value cached in localStorage immediately, which may briefly be stale until the fresh response arrives — gate kill-switch / freshness-sensitive flags on `posthog.onFeatureFlags` rather than the cached value. Experiment exposure is tracked automatically by the hook.
+The app currently reads no PostHog feature flags. The previous typed-wrapper
+scaffolding (`featureFlags.ts`, `useFeatureFlag`, the `<PostHogProvider>`
+wrapper) was placeholder code with no call sites and was removed; restore it
+from git history when the first real flag ships, replacing the placeholder
+keys with the flags actually defined in the PostHog project.
 
 ## Bot And Agent Exclusion
 

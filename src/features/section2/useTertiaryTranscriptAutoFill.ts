@@ -5,7 +5,7 @@ import {
   trackTertiaryTranscriptParserDraftEmpty,
   trackTertiaryTranscriptParserDraftFailed,
   trackTertiaryTranscriptParserDraftSucceeded,
-} from "../../lib/analytics/tertiaryTranscriptParserAnalytics";
+} from "../../lib/posthog";
 import type { Section2RecordStatusMessage } from "../../hooks/useSection2RecordSave";
 import {
   getDraftedFieldCountFromParseResult,

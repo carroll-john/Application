@@ -690,11 +690,22 @@ async function fillSection1(page) {
 /** Section 2: add the persona's tertiary qualification (satisfies submit validation). */
 async function addTertiary(page) {
   const t = persona.tertiary;
-  // The Tertiary card's CTA is a generic "Add" (+) button; it's the first card,
-  // so the first "Add" on the qualifications page → /section2/add-tertiary.
-  const addBtn = page.getByRole("button", { name: /^Add$/i }).first();
-  await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
-  await addBtn.click().catch(() => {});
+  // Doc-first hub (#168): on first landing the qualifications page shows only the
+  // Supporting Eligibility Documentation panel with a transcript-first CTA
+  // ("Upload your transcript", or the prompt's own label such as "Add transcript").
+  // Section cards with a generic "Add" button only appear once evidence exists, so
+  // that's the fallback for a returning/partially-filled application.
+  const heroCta = page
+    .getByRole("button", { name: /^(Upload your transcript|Add transcript)$/i })
+    .first();
+  await heroCta.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+  if (await heroCta.count()) {
+    await heroCta.click().catch(() => {});
+  } else {
+    const addBtn = page.getByRole("button", { name: /^Add$/i }).first();
+    await addBtn.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
+    await addBtn.click().catch(() => {});
+  }
   await page.waitForURL(/add-tertiary/, { timeout: 12000 }).catch(() => {});
   const transcript = persona.documents?.transcript ?? process.env.TRANSCRIPT_PATH;
   if (transcript) {
@@ -848,10 +859,16 @@ async function addCv(page) {
     .locator("div.rounded-lg.border")
     .filter({ has: page.getByRole("heading", { name: /Curriculum Vitae/i }) })
     .first();
-  const cvAdd = cvCard.getByRole("button", { name: /^(Add|Replace)$/i }).first();
+  let cvAdd = cvCard.getByRole("button", { name: /^(Add|Replace)$/i }).first();
   await cvAdd.waitFor({ state: "visible", timeout: 8000 }).catch(() => {});
   if (!(await cvAdd.count())) {
-    warn("CV card Add button not found — skipping CV upload.");
+    // Doc-first hub: when the CV is the next evidence prompt, the panel's own
+    // CTA ("Add CV") is shown instead of a section card.
+    cvAdd = page.getByRole("button", { name: /^Add CV$/i }).first();
+    await cvAdd.waitFor({ state: "visible", timeout: 4000 }).catch(() => {});
+  }
+  if (!(await cvAdd.count())) {
+    warn("CV Add button not found (card or evidence prompt) — skipping CV upload.");
     return false;
   }
   await cvAdd.scrollIntoViewIfNeeded().catch(() => {});
@@ -904,7 +921,9 @@ async function addAccreditation(page) {
   // Sections unlock in order — skip the active, empty ones before this card to reveal
   // its Add button (each skip unlocks the next section).
   for (let i = 0; i < 5 && !(await addBtn.count()); i += 1) {
-    const skip = page.getByRole("button", { name: /^Skip$/i }).first();
+    const skip = page
+      .getByRole("button", { name: /^(Skip|Skip for now|I don't have a transcript)$/i })
+      .first();
     if (!(await skip.count())) break;
     await skip.scrollIntoViewIfNeeded().catch(() => {});
     await skip.click().catch(() => {});
@@ -967,7 +986,9 @@ async function addLanguageTest(page) {
   // intervening sections are addressed. Skip the active, empty ones to reveal its Add
   // button (skipping unlocks the next section each time).
   for (let i = 0; i < 5 && !(await addBtn.count()); i += 1) {
-    const skip = page.getByRole("button", { name: /^Skip$/i }).first();
+    const skip = page
+      .getByRole("button", { name: /^(Skip|Skip for now|I don't have a transcript)$/i })
+      .first();
     if (!(await skip.count())) break;
     await skip.scrollIntoViewIfNeeded().catch(() => {});
     await skip.click().catch(() => {});

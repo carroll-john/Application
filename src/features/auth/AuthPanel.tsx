@@ -7,6 +7,7 @@ import {
   normalizeAuthEmail,
   validateSignUpForm,
 } from "../../lib/authPassword";
+import { getEmailDomain } from "../../lib/emailDomain";
 import { capturePostHogEvent } from "../../lib/posthog";
 import { AuthPanelHeader } from "./screens/AuthPanelHeader";
 import { ConfirmEmailSent } from "./screens/ConfirmEmailSent";
@@ -109,7 +110,7 @@ export function AuthPanel({
     setIsSubmitting(true);
     capturePostHogEvent("auth_sign_in_attempted", {
       auth_context: context,
-      email_domain: normalizedEmail.split("@")[1] ?? "unknown",
+      email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
     });
     const { error: signInError } = await signInWithPassword(
       normalizedEmail,
@@ -127,7 +128,7 @@ export function AuthPanel({
 
     capturePostHogEvent("auth_sign_in_succeeded", {
       auth_context: context,
-      email_domain: normalizedEmail.split("@")[1] ?? "unknown",
+      email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
     });
     hasNotifiedAuthenticatedRef.current = true;
     onAuthenticated?.();
@@ -151,7 +152,7 @@ export function AuthPanel({
     setIsSubmitting(true);
     capturePostHogEvent("auth_sign_up_attempted", {
       auth_context: context,
-      email_domain: normalizedEmail.split("@")[1] ?? "unknown",
+      email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
     });
     const { error: signUpError, outcome } = await signUpWithPassword(
       normalizedEmail,
@@ -174,7 +175,7 @@ export function AuthPanel({
 
     capturePostHogEvent("auth_sign_up_confirmation_sent", {
       auth_context: context,
-      email_domain: normalizedEmail.split("@")[1] ?? "unknown",
+      email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
     });
     setSentEmail(normalizedEmail);
     setScreen("confirm-email-sent");

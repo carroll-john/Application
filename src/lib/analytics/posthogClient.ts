@@ -1,11 +1,12 @@
 import posthog, { type CaptureResult } from "posthog-js";
 import { hashAnalyticsIdentifier } from "../analyticsIdentity";
+import { getEmailDomain } from "../emailDomain";
+import type { AnalyticsEventMap, AnalyticsEventName } from "./events";
 import { sanitizeAnalyticsUrl } from "./sanitizeAnalyticsUrl";
 import {
   APP_ENVIRONMENT,
   AUTOMATION_USER_AGENT_PATTERN,
   BOT_USER_AGENT_PATTERN,
-  POSTHOG_HOST,
   POSTHOG_KEY,
   POSTHOG_UI_HOST,
   SYNTHETIC_TEST_QUERY_PARAM,
@@ -206,15 +207,17 @@ export function initPostHog() {
   }
 
   posthog.init(POSTHOG_KEY, {
-    // Send analytics directly to the PostHog EU ingestion host. We previously
-    // routed through a same-origin `/ingest` reverse proxy (vercel.json) for
-    // ad-blocker resilience, but that proxy returns 404 on the deployment, so
-    // EVERY capture/flags/session POST was silently dropped and nothing reached
-    // PostHog. Direct ingestion is how analytics worked before the proxy and is
-    // the proven path; posthog-js loads its static assets from the matching EU
-    // assets host automatically. Re-introduce the proxy only once it's verified
-    // to return 200 end-to-end (see scripts/synthetic-funnel-bot.mjs diagnostics).
-    api_host: POSTHOG_HOST,
+    // Route analytics through the same-origin `/ingest` reverse proxy
+    // (vercel.json) for ad-blocker resilience. The proxy previously 404'd on
+    // the deployment (DIS-196), silently dropping every capture, so the app
+    // temporarily sent events directly to POSTHOG_HOST. Re-verified working
+    // end-to-end on 2026-07-04: GET /ingest/flags/ returns PostHog flags JSON
+    // and POST /ingest/i/v0/e/ reaches PostHog's parser (see
+    // docs/posthog-integrations.md §3). If events ever stop arriving, check
+    // the proxy first and revert this one line to `api_host: POSTHOG_HOST`;
+    // the funnel bot's [ingest:*] logs (scripts/synthetic-funnel-bot.mjs)
+    // show whether the proxy forwards (200) or drops (404) captures.
+    api_host: "/ingest",
     ui_host: POSTHOG_UI_HOST,
     autocapture: false,
     capture_pageview: false,
@@ -311,7 +314,7 @@ export function syncPostHogUser(user: PostHogUserContext | null) {
     return;
   }
 
-  const emailDomain = user.emailDomain ?? user.email?.split("@")[1] ?? "unknown";
+  const emailDomain = user.emailDomain ?? getEmailDomain(user.email) ?? "unknown";
 
   void hashAnalyticsIdentifier(user.id).then((hashedUserId) => {
     if (requestId !== postHogIdentifyRequestId || !canCapturePostHog()) {
@@ -340,20 +343,9 @@ export function associateCourseProviderGroup(
   posthog.group("course_provider", provider, { name: provider });
 }
 
-export function onPostHogFeatureFlags(callback: () => void) {
-  if (!canCapturePostHog()) {
-    return () => {};
-  }
-
-  initPostHog();
-
-  const unsubscribe = posthog.onFeatureFlags(callback);
-  return typeof unsubscribe === "function" ? unsubscribe : () => {};
-}
-
-export function capturePostHogEvent(
-  eventName: string,
-  properties?: Record<string, unknown>,
+export function capturePostHogEvent<EventName extends AnalyticsEventName>(
+  eventName: EventName,
+  properties?: AnalyticsEventMap[EventName],
 ) {
   if (!canCapturePostHog()) {
     return;

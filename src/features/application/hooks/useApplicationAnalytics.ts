@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import type { ApplicationData, SelectedCourse } from "../../../lib/applicationData";
 import {
+  type ApplicationRecordEventName,
   associateCourseProviderGroup,
   capturePostHogEvent,
   getApplicationAnalyticsProperties,
@@ -43,7 +44,7 @@ export function useApplicationAnalytics() {
 
   const trackApplicationDataEvent = useCallback(
     (
-      eventName: string,
+      eventName: ApplicationRecordEventName,
       persistedApplication: ApplicationData,
       properties?: DataEventProperties,
     ) => {

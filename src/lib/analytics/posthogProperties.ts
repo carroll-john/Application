@@ -1,5 +1,6 @@
 import type { ApplicationData } from "../applicationData";
 import { hashAnalyticsIdentifierSync } from "../analyticsIdentity";
+import type { ApplicationStepEventName } from "./events";
 import {
   getApplicationStepDefinition,
   getRouteAnalyticsDefinition,
@@ -101,7 +102,7 @@ function getApplicationStepAnalyticsProperties(
 }
 
 export function captureApplicationStepEvent(
-  eventName: string,
+  eventName: ApplicationStepEventName,
   {
     application,
     pathname,

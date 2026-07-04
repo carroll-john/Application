@@ -1,4 +1,10 @@
-import { getPostHogServerClient } from "./posthogServerClient.js";
+import {
+  buildDistinctId,
+  createTraceId,
+  getPostHogServerClient,
+  readApiKey,
+  resolvePostHogHost,
+} from "./posthogServerClient.js";
 
 type AiMessage = {
   role: "system" | "user" | "assistant";
@@ -17,59 +23,6 @@ interface CaptureTranscriptAiGenerationOptions {
     inputTokens?: number;
     outputTokens?: number;
   };
-}
-
-const DEFAULT_POSTHOG_HOST = "https://eu.i.posthog.com";
-
-function hashString(value: string) {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return (hash >>> 0).toString(16).padStart(8, "0");
-}
-
-function createTraceId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-
-  return `trace-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function normalizeHost(value: string | undefined) {
-  const normalized = (value?.trim() || DEFAULT_POSTHOG_HOST).replace(/\/+$/, "");
-
-  if (/^https:\/\/(eu|us|app)\.posthog\.com$/i.test(normalized)) {
-    if (normalized.includes("eu.")) {
-      return "https://eu.i.posthog.com";
-    }
-    return "https://us.i.posthog.com";
-  }
-
-  return normalized;
-}
-
-function readApiKey() {
-  const apiKey =
-    process.env.POSTHOG_PROJECT_API_KEY?.trim() ||
-    process.env.VITE_POSTHOG_KEY?.trim() ||
-    "";
-  return apiKey;
-}
-
-function buildDistinctId(context: Record<string, unknown>) {
-  const raw = JSON.stringify({
-    courseCode:
-      typeof context.courseCode === "string" ? context.courseCode.trim() : undefined,
-    institution:
-      typeof context.institution === "string" ? context.institution.trim() : undefined,
-    level: typeof context.level === "string" ? context.level.trim() : undefined,
-  });
-  const digest = hashString(raw);
-  return `eligibility-${digest}`;
 }
 
 function summarizeRequirements(output: Record<string, unknown>) {
@@ -316,9 +269,7 @@ export async function captureTranscriptAiGeneration(
     return;
   }
 
-  const host = normalizeHost(
-    process.env.POSTHOG_HOST?.trim() || process.env.VITE_POSTHOG_HOST?.trim(),
-  );
+  const host = resolvePostHogHost();
   const traceId = createTraceId();
   const distinctId = buildDistinctId(options.context);
   const aiInput: AiMessage[] = [

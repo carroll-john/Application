@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef } from "react";
 import { createCollectionMutators } from "../../../lib/collectionMutators";
+import type { ApplicationRecordEventName } from "../../../lib/posthog";
 import {
   createApplicationUpdateQueue,
   type ApplicationUpdateQueue,
@@ -28,7 +29,7 @@ interface UseApplicationDataOptions {
     options?: PersistApplicationOptions,
   ) => Promise<ApplicationData>;
   trackApplicationDataEvent: (
-    eventName: string,
+    eventName: ApplicationRecordEventName,
     persistedApplication: ApplicationData,
     properties?:
       | Record<string, unknown>
@@ -77,7 +78,7 @@ export function useApplicationData({
   const updateDataWithEvent = useCallback(
     async (
       updater: (current: ApplicationData) => ApplicationData,
-      eventName: string,
+      eventName: ApplicationRecordEventName,
       properties?:
         | Record<string, unknown>
         | ((application: ApplicationData) => Record<string, unknown>),
@@ -90,7 +91,7 @@ export function useApplicationData({
 
   const employmentMutators = useMemo(
     () =>
-      createCollectionMutators<EmploymentExperience>(
+      createCollectionMutators<EmploymentExperience, ApplicationRecordEventName>(
         {
           collectionKey: "employmentExperiences",
           savedEvent: "application_employment_experience_saved",
@@ -103,7 +104,7 @@ export function useApplicationData({
 
   const languageTestMutators = useMemo(
     () =>
-      createCollectionMutators<LanguageTest>(
+      createCollectionMutators<LanguageTest, ApplicationRecordEventName>(
         {
           collectionKey: "languageTests",
           savedEvent: "application_language_test_saved",
@@ -116,7 +117,7 @@ export function useApplicationData({
 
   const accreditationMutators = useMemo(
     () =>
-      createCollectionMutators<ProfessionalAccreditation>(
+      createCollectionMutators<ProfessionalAccreditation, ApplicationRecordEventName>(
         {
           collectionKey: "professionalAccreditations",
           savedEvent: "application_professional_accreditation_saved",
@@ -129,7 +130,7 @@ export function useApplicationData({
 
   const secondaryMutators = useMemo(
     () =>
-      createCollectionMutators<SecondaryQualification>(
+      createCollectionMutators<SecondaryQualification, ApplicationRecordEventName>(
         {
           collectionKey: "secondaryQualifications",
           savedEvent: "application_secondary_qualification_saved",
@@ -142,7 +143,7 @@ export function useApplicationData({
 
   const tertiaryMutators = useMemo(
     () =>
-      createCollectionMutators<TertiaryQualification>(
+      createCollectionMutators<TertiaryQualification, ApplicationRecordEventName>(
         {
           collectionKey: "tertiaryQualifications",
           savedEvent: "application_tertiary_qualification_saved",
