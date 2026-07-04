@@ -10,8 +10,13 @@ export const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY?.trim() ?? "";
 export const POSTHOG_HOST = (
   import.meta.env.VITE_POSTHOG_HOST?.trim() || "https://eu.i.posthog.com"
 ).replace(/\/+$/, "");
-// App host for "view in PostHog" links/toolbar (distinct from the ingestion host).
-export const POSTHOG_UI_HOST = "https://eu.posthog.com";
+// App host for "view in PostHog" links/toolbar (distinct from the ingestion
+// host). Derived from the region of the configured ingestion host so a non-EU
+// project only needs to change VITE_POSTHOG_HOST.
+export const POSTHOG_UI_HOST = (() => {
+  const region = /^https:\/\/(eu|us)\.i\.posthog\.com$/.exec(POSTHOG_HOST)?.[1];
+  return `https://${region ?? "eu"}.posthog.com`;
+})();
 
 // Authorised synthetic end-to-end QA traffic. The bot-detection below normally
 // drops automation (webdriver/Playwright/headless). When this build-time token

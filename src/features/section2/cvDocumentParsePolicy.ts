@@ -6,7 +6,7 @@ import {
   trackCvParserDraftFailed,
   trackCvParserDraftSucceeded,
   trackCvParserSaveContinueClicked,
-} from "../../lib/analytics/documentParserAnalytics";
+} from "../../lib/posthog";
 import {
   getCvParserErrorMessage,
   parseEmploymentExperiencesFromCv,

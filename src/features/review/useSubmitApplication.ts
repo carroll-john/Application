@@ -5,7 +5,7 @@ import {
   getSubmissionValidationIssues,
   type ValidationIssue,
 } from "../../lib/applicationValidationSchema";
-import { trackApplicationSubmitBlocked } from "../../lib/analytics/submitBlockedAnalytics";
+import { trackApplicationSubmitBlocked } from "../../lib/posthog";
 import {
   captureApplicationStepEvent,
   capturePostHogEvent,

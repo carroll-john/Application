@@ -2,6 +2,7 @@ import { HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../components/ui/button";
 import { submitEligibilityFeedback } from "../../lib/eligibility/feedbackClient";
+import { trackEligibilityFeedbackSubmitted } from "../../lib/posthog";
 import type { EligibilityRequirementStatus } from "../../lib/eligibility/types";
 import {
   eligibilityFeedbackCopy,
@@ -172,6 +173,15 @@ export function EligibilityFeedbackForm({
                 }),
               ),
             ).then(() => {
+              trackEligibilityFeedbackSubmitted({
+                courseCode,
+                courseTitle,
+                flaggedRequirementIds: flaggedRows.map((row) => row.requirementId),
+                hasNote: reason.trim().length > 0,
+                reasonCodes: flaggedRows
+                  .map((row) => row.reasonCode)
+                  .filter((code): code is string => Boolean(code)),
+              });
               setSubmitting(false);
               setSubmitted(true);
             });

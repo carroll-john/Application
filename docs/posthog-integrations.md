@@ -47,6 +47,13 @@ Keep credentials in PostHog's source config only — never in this repo.
   `vercel.json` rewrite matches PostHog's canonical pattern, so the fault is in
   how the rewrite is applied on the deployment, not the rule itself.
 - The **reverse proxy** is still defined in `vercel.json` (Phase 2: `/ingest/*`).
+  It is deliberately kept (not deleted) so re-enabling is a one-line client
+  change once verified. To verify from any machine with access to the deploy:
+  `curl -i https://application-prototype.vercel.app/ingest/flags/?v=2` (expect a
+  PostHog JSON response, not the SPA's 404/HTML) and
+  `curl -i -X POST -d '{}' https://<deploy>/ingest/i/v0/e/` (expect 200/400 from
+  PostHog, not 404). The funnel bot's `[ingest:*]` response log
+  (`scripts/synthetic-funnel-bot.mjs`) is the end-to-end gate.
 - Optionally install the **PostHog Vercel integration** to auto-inject
   `VITE_POSTHOG_KEY` / host into the project's env (instead of setting them by
   hand). It does not replace the proxy.
@@ -54,7 +61,11 @@ Keep credentials in PostHog's source config only — never in this repo.
 ## 4. Dashboards & funnels (built)
 
 Three pinned dashboards are live in EU project `133929`, built from the events
-in `docs/analytics-events.md`:
+in `docs/analytics-events.md`. A plain-English reader's guide (what each
+dashboard answers, how to read each tile, current caveats) lives in
+`docs/analytics-dashboards.md`, along with a maintenance checklist of pending
+UI-side actions (evidence-flow tiles, blocker breakdown by
+`validation_issue_codes`, test-account filters):
 
 - **[Applicant journey & activation](https://eu.posthog.com/project/133929/dashboard/761609)**
   — Core application funnel (`application_start_requested` →

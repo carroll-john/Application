@@ -1,5 +1,7 @@
 import posthog, { type CaptureResult } from "posthog-js";
 import { hashAnalyticsIdentifier } from "../analyticsIdentity";
+import { getEmailDomain } from "../emailDomain";
+import type { AnalyticsEventMap, AnalyticsEventName } from "./events";
 import { sanitizeAnalyticsUrl } from "./sanitizeAnalyticsUrl";
 import {
   APP_ENVIRONMENT,
@@ -311,7 +313,7 @@ export function syncPostHogUser(user: PostHogUserContext | null) {
     return;
   }
 
-  const emailDomain = user.emailDomain ?? user.email?.split("@")[1] ?? "unknown";
+  const emailDomain = user.emailDomain ?? getEmailDomain(user.email) ?? "unknown";
 
   void hashAnalyticsIdentifier(user.id).then((hashedUserId) => {
     if (requestId !== postHogIdentifyRequestId || !canCapturePostHog()) {
@@ -340,20 +342,9 @@ export function associateCourseProviderGroup(
   posthog.group("course_provider", provider, { name: provider });
 }
 
-export function onPostHogFeatureFlags(callback: () => void) {
-  if (!canCapturePostHog()) {
-    return () => {};
-  }
-
-  initPostHog();
-
-  const unsubscribe = posthog.onFeatureFlags(callback);
-  return typeof unsubscribe === "function" ? unsubscribe : () => {};
-}
-
-export function capturePostHogEvent(
-  eventName: string,
-  properties?: Record<string, unknown>,
+export function capturePostHogEvent<EventName extends AnalyticsEventName>(
+  eventName: EventName,
+  properties?: AnalyticsEventMap[EventName],
 ) {
   if (!canCapturePostHog()) {
     return;

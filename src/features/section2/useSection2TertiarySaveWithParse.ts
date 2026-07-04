@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { ApplicationData, TertiaryQualification } from "../../lib/applicationData";
 import { getDocumentUploadErrorMessage } from "../../lib/documentStorage";
 import type { UploadedDocument } from "../../lib/documentStorage";
-import { trackTertiaryTranscriptParserSaveContinueClicked } from "../../lib/analytics/tertiaryTranscriptParserAnalytics";
+import { trackTertiaryTranscriptParserSaveContinueClicked } from "../../lib/posthog";
 import { isQualificationCoreEmpty } from "../../lib/eligibility/mapToTertiaryQualification";
 import { clearTertiaryQualificationFromTranscript } from "../../lib/eligibility/mapToTertiaryQualification";
 import { useSection2Navigation } from "../../hooks/useSection2Navigation";

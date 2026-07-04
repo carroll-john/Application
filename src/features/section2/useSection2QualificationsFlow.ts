@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { ApplicationData } from "../../lib/applicationData";
 import {
@@ -6,6 +6,11 @@ import {
   isTertiaryQualificationSubmissionReady,
 } from "../../lib/applicationValidationSchema";
 import type { ProgramEvidenceRow } from "../../lib/eligibility/programEvidence";
+import {
+  trackEvidencePromptViewed,
+  trackEvidenceSectionSkipped,
+  trackEvidenceSectionUnskipped,
+} from "../../lib/posthog";
 import { readSection2NavigationState } from "./section2NavigationState";
 import {
   buildSection2EvidencePlan,
@@ -81,6 +86,30 @@ export function useSection2QualificationsFlow({
     [data, groupedEvidenceRows, hasPublishedRequirements, skippedSections],
   );
 
+  // The hub surfaces one evidence prompt at a time; report each prompt the
+  // applicant is shown, once, so drop-off between prompts is visible.
+  const lastTrackedPromptKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prompt = evidencePlan.nextPrompt;
+    if (!prompt) {
+      return;
+    }
+
+    const promptKey = `${prompt.sectionKey}:${prompt.heading}`;
+    if (promptKey === lastTrackedPromptKeyRef.current) {
+      return;
+    }
+
+    lastTrackedPromptKeyRef.current = promptKey;
+    trackEvidencePromptViewed({
+      application: data,
+      evidenceSectionKey: prompt.sectionKey,
+      outstandingPromptCount: evidencePlan.remainingPromptCount,
+      promptHeading: prompt.heading,
+      promptSource: prompt.source,
+    });
+  }, [data, evidencePlan.nextPrompt, evidencePlan.remainingPromptCount]);
+
   const sectionStates = useMemo(() => {
     const states = {} as SectionState;
     for (const key of sectionStateOrder) {
@@ -114,6 +143,12 @@ export function useSection2QualificationsFlow({
       return next;
     });
 
+    trackEvidenceSectionSkipped({
+      application: data,
+      evidenceSectionKey: section,
+      outstandingPromptCount: evidencePlan.remainingPromptCount,
+    });
+
     setStatusMessage({
       type: "status",
       message: "Section skipped. You can always come back to add information later.",
@@ -126,6 +161,12 @@ export function useSection2QualificationsFlow({
       next.delete(section);
       writeSkippedSections(next);
       return next;
+    });
+
+    trackEvidenceSectionUnskipped({
+      application: data,
+      evidenceSectionKey: section,
+      outstandingPromptCount: evidencePlan.remainingPromptCount,
     });
   }
 

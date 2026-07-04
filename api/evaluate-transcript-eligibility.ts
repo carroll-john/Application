@@ -20,6 +20,13 @@ import {
   withContextDefaults,
 } from "./_eligibility/assessment.js";
 import { captureTranscriptAiGeneration } from "./_shared/posthogAiObservability.js";
+// Importing initializes Sentry as a side effect, which also activates the
+// Sentry.startSpan tracing inside _ai/callLlm.ts on this route.
+import {
+  buildSentryContext,
+  captureApiException,
+  flushSentry,
+} from "./_shared/sentry.js";
 
 const DEFAULT_MODEL = "gpt-4.1-mini";
 const INITIAL_MAX_OUTPUT_TOKENS = 1_500;
@@ -268,6 +275,20 @@ async function forwardToEligibilityService(
 }
 
 async function handleWebRequest(request: Request) {
+  try {
+    return await handleEligibilityRequest(request);
+  } catch (error) {
+    await captureApiException(error, buildSentryContext(request));
+    await flushSentry();
+    return errorResponse(
+      "Transcript eligibility evaluation failed.",
+      "ELIGIBILITY_UNEXPECTED_ERROR",
+      500,
+    );
+  }
+}
+
+async function handleEligibilityRequest(request: Request) {
   if (request.method !== "POST") {
     return errorResponse("Method not allowed.", "ELIGIBILITY_METHOD_NOT_ALLOWED", 405);
   }

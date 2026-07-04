@@ -1,13 +1,14 @@
+import type { AnalyticsEventName } from "./events";
 import { capturePostHogEvent } from "./posthogClient";
 
 export const TERTIARY_TRANSCRIPT_PARSER_SAVE_CONTINUE_CLICKED_EVENT =
-  "tertiary_transcript_parser_save_continue_clicked";
+  "tertiary_transcript_parser_save_continue_clicked" satisfies AnalyticsEventName;
 export const TERTIARY_TRANSCRIPT_PARSER_DRAFT_SUCCEEDED_EVENT =
-  "tertiary_transcript_parser_draft_succeeded";
+  "tertiary_transcript_parser_draft_succeeded" satisfies AnalyticsEventName;
 export const TERTIARY_TRANSCRIPT_PARSER_DRAFT_EMPTY_EVENT =
-  "tertiary_transcript_parser_draft_empty";
+  "tertiary_transcript_parser_draft_empty" satisfies AnalyticsEventName;
 export const TERTIARY_TRANSCRIPT_PARSER_DRAFT_FAILED_EVENT =
-  "tertiary_transcript_parser_draft_failed";
+  "tertiary_transcript_parser_draft_failed" satisfies AnalyticsEventName;
 
 export function trackTertiaryTranscriptParserSaveContinueClicked(properties: {
   hasSelectedTranscript: boolean;
