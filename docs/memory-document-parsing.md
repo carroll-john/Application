@@ -32,7 +32,7 @@ When gating passes, parse starts in parallel with document save. Upload failure 
 | API extraction | `api/_documentParser/kinds/cv/extraction.ts` |
 | Prompt + schema | `api/_ai/prompts/cvEmployment.v1.ts`, `api/_ai/schemas/cvEmployment.v1.ts` |
 | Apply draft | `replaceEmploymentExperiences` via `ApplicationContext` |
-| Analytics | `documentParserAnalytics.ts` (CV event names preserved for GA) |
+| Analytics | `cvParserAnalytics.ts` via the `src/lib/posthog.ts` barrel (CV event names preserved for GA) |
 
 CV persist exception: after document save, call `uploadCV` / `removeCV` (app-scoped FK on `applications.cv_document_id`).
 

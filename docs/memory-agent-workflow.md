@@ -64,7 +64,7 @@ Load only these files for typical tasks (~5–15 files each):
 `src/pages/ReviewAndSubmit.tsx`, `src/features/review/*`, `src/lib/reviewFormatters.ts`, `src/lib/applicationProgress.ts`
 
 ### document-parsing-pipeline
-`api/parse-cv.ts`, `api/_documentParser/*`, `api/_ai/*`, `src/lib/documentParserClient.ts`, `src/lib/documentParserRegistry.ts`, `src/lib/documentParsers/*`, `src/features/section2/cvDocumentParsePolicy.ts`, `src/features/section2/useSection2DocumentSaveWithParse.ts`, `src/lib/analytics/documentParserAnalytics.ts`
+`api/parse-cv.ts`, `api/_documentParser/*`, `api/_ai/*`, `src/lib/documentParserClient.ts`, `src/lib/documentParserRegistry.ts`, `src/lib/documentParsers/*`, `src/features/section2/cvDocumentParsePolicy.ts`, `src/features/section2/useSection2DocumentSaveWithParse.ts`, `src/lib/analytics/cvParserAnalytics.ts`, `src/lib/analytics/tertiaryTranscriptParserAnalytics.ts`
 
 ### analytics
 `src/lib/posthog.ts`, `src/lib/analytics/*`, `src/lib/sentry.ts`, `src/features/application/hooks/useApplicationAnalytics.ts`

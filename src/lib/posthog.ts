@@ -3,7 +3,6 @@ export {
   getRouteAnalyticsDefinition,
 } from "./analytics/applicationSteps";
 export {
-  ANALYTICS_EVENT_NAMES,
   type AnalyticsEventMap,
   type AnalyticsEventName,
   type ApplicationRecordEventName,
@@ -29,17 +28,9 @@ export {
   trackEvidenceSectionSkipped,
   trackEvidenceSectionUnskipped,
 } from "./analytics/evidenceFlowAnalytics";
-export {
-  APPLICATION_SUBMIT_BLOCKED_EVENT,
-  getSubmitBlockedValidationProperties,
-  getValidationIssueCode,
-  resolveBlockedStepKey,
-  resolveBlockedStepLabel,
-  trackApplicationSubmitBlocked,
-} from "./analytics/submitBlockedAnalytics";
+export { trackApplicationSubmitBlocked } from "./analytics/submitBlockedAnalytics";
 export {
   associateCourseProviderGroup,
-  canCapturePostHog,
   capturePostHogEvent,
   initPostHog,
   isPostHogEnabled,
@@ -54,8 +45,3 @@ export {
   trackApplicationStepView,
   trackPostHogPageView,
 } from "./analytics/posthogProperties";
-export {
-  isPostHogSensitiveRoute,
-  sanitizeAnalyticsSearch,
-  sanitizeAnalyticsUrl,
-} from "./analytics/sanitizeAnalyticsUrl";
