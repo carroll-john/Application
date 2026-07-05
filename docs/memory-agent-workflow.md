@@ -25,7 +25,7 @@ npm run finish-task -- "Task name"
 | Application storage | `src/lib/applicationStorageAdapter.test.ts`, `applicationRecords.test.ts`, `applicationRemoteStore.test.ts` |
 | Documents | `src/lib/documentStorage.test.ts`, `documentUploadLimits.test.ts` |
 | Validation / progress | `src/lib/applicationValidationSchema.test.ts`, `applicationValidationSchema.integration.test.ts`, `applicationProgress.test.ts`, `section1Steps.test.ts`, `section2Steps.test.ts` |
-| Section 2 requirements | `src/lib/section2Requirements.test.ts` |
+| Section 2 requirements / evidence | `src/lib/section2Requirements.test.ts`, `src/lib/eligibility/eligibilityFeedbackDocument.test.ts`, `src/lib/storage/remoteMappers.test.ts` (`findEligibilityFeedbackDocument`) |
 | Document parser client / registry | `src/lib/documentParserClient.test.ts`, `documentParserRegistry.test.ts`, `cvParser.test.ts` |
 | CV parser client (compat) | `src/lib/cvParserClient.test.ts` |
 | CV parser API | `api/_ai/callLlm.test.ts`, `npm run test:cv-parser` (needs dev server + OPENAI_API_KEY) |
@@ -63,11 +63,19 @@ Load only these files for typical tasks (~5–15 files each):
 ### review-submit
 `src/pages/ReviewAndSubmit.tsx`, `src/features/review/*`, `src/lib/reviewFormatters.ts`, `src/lib/applicationProgress.ts`
 
+### hydration-placeholders
+`src/context/ApplicationContext.tsx`, `src/features/application/hooks/useApplicationStorageOrchestration.ts`, `src/features/forms/FormStepLoadingState.tsx`, `src/features/forms/FormStepRouteFallback.tsx`, `src/features/section1/Section1StepPage.tsx`, `src/features/section2/Section2RecordPage.tsx`, `src/pages/Section2Qualifications.tsx`, `src/pages/ReviewAndSubmit.tsx`, `src/features/section2/Section2QualificationsLoadingState.tsx`, `src/features/section2/Section2QualificationsRouteFallback.tsx`, `src/features/review/ReviewLoadingState.tsx`, `src/features/review/ReviewRouteFallback.tsx`, `src/routes.tsx` (`RouteLoadingScreen`)
+
 ### document-parsing-pipeline
 `api/parse-cv.ts`, `api/_documentParser/*`, `api/_ai/*`, `src/lib/documentParserClient.ts`, `src/lib/documentParserRegistry.ts`, `src/lib/documentParsers/*`, `src/features/section2/cvDocumentParsePolicy.ts`, `src/features/section2/useSection2DocumentSaveWithParse.ts`, `src/lib/analytics/cvParserAnalytics.ts`, `src/lib/analytics/tertiaryTranscriptParserAnalytics.ts`
 
 ### analytics
 `src/lib/posthog.ts`, `src/lib/analytics/*`, `src/lib/sentry.ts`, `src/features/application/hooks/useApplicationAnalytics.ts`
+
+**Eligibility feedback analytics:** `eligibility_feedback_submitted` (client, evidence
+flow — see `docs/analytics-events.md`) fires from the form; `application_eligibility_feedback_saved`
+fires after `saveEligibilityFeedback` persists state. Server `eligibility_check_override`
+is a separate companion event.
 
 ## Parallel Agent Rules
 

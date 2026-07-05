@@ -241,3 +241,39 @@
 - Fuzzy matching is advisory only in v1. Academic-threshold shortfalls can surface
   possible alternate evidence for manual review, but do not automatically pass the
   requirement.
+
+## 2026-07-05
+
+### Eligibility feedback is a hybrid document, not inline application JSON
+- Applicant disputes of automated evidence results save as
+  `application_documents` rows with `kind = eligibility_feedback` and file name
+  `eligibility-feedback.json` (schema v1 in `eligibilityFeedbackDocument.ts`).
+- Use `saveEligibilityFeedbackDocument` / `replaceStoredDocument` — same hybrid
+  storage path as other uploads; do not add page-local persistence.
+- Feedback rows are derived from displayed met/review program evidence rows in
+  `SupportingEvidencePanel` → `EligibilityFeedbackForm` (per-row notes).
+- **Hydration contract:** resolve the latest feedback document from the
+  `application_documents` query via `findEligibilityFeedbackDocument` — not from
+  `applications.eligibility_feedback_*` columns alone. Those FK columns exist for
+  optional indexing but are not the load source of truth today.
+- Analytics: client `eligibility_feedback_submitted` (evidence flow) plus record
+  update `application_eligibility_feedback_saved` after state persist.
+
+### Hydration gating uses static placeholders, not spinners or validation flash
+- While `ApplicationContext.isHydrating` is true, form pages must not render real
+  hero content, validation panels, or `FormActionBar` actions that reflect empty
+  pre-hydration state.
+- Pattern: `showActionBar={!isHydrating}` on step shells; swap body for a route-
+  specific loading state component with **static gray blocks** (no pulse/spinner).
+- Lazy route Suspense fallbacks for `/section2/qualifications`, `/review`, and other
+  `/section1/*` / `/section2/*` routes reuse the same shell + loading state
+  (`Section2QualificationsRouteFallback`, `ReviewRouteFallback`, `FormStepRouteFallback`)
+  so code-split load and data hydration look identical.
+
+### Review screen defers to evidence hub, not transcript verdict summary
+- Remove applicant-facing transcript eligibility summary from `/review`; evidence
+  review belongs on the Section 2 qualifications hub only.
+- Section 1 review cards: one **Edit** inline with the card heading (`ReviewCard`).
+- Section 2 review cards: prefer **item-level Edit** (tertiary, employment) or
+  document-row Edit (CV); avoid duplicate card-level Edit where item edits suffice.
+  Multi-record sections may still expose a hub-level Edit to `/section2/qualifications`.
