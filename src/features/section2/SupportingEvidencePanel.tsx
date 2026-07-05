@@ -7,6 +7,7 @@ import {
   type ProgramEvidenceRow,
 } from "../../lib/eligibility/programEvidence";
 import { requirementKindLabel } from "../../lib/eligibility/requirements";
+import type { UploadedDocument } from "../../lib/documentStorage";
 import type { EligibilityRequirementStatus, TranscriptEligibilityAssessment } from "../../lib/eligibility/types";
 import { programEvidenceAdvisoryCopy } from "../../lib/eligibility/uiCopy";
 import {
@@ -160,9 +161,12 @@ interface SupportingEvidencePanelProps {
   assessment?: TranscriptEligibilityAssessment;
   courseCode?: string;
   courseTitle?: string;
+  currentFeedbackDocument?: UploadedDocument;
+  ensureApplicationRow: () => Promise<string>;
   isHero: boolean;
   isProcessing: boolean;
   onNavigate: (path: string) => void;
+  onSaveFeedback: (document: UploadedDocument) => Promise<void>;
   onSkipPrompt: (section: Section2EvidenceSectionKey) => void;
   onUnskipPrompt: (section: Section2EvidenceSectionKey) => void;
   plan: Section2EvidencePlan;
@@ -174,9 +178,12 @@ export function SupportingEvidencePanel({
   assessment,
   courseCode,
   courseTitle,
+  currentFeedbackDocument,
+  ensureApplicationRow,
   isHero,
   isProcessing,
   onNavigate,
+  onSaveFeedback,
   onSkipPrompt,
   onUnskipPrompt,
   plan,
@@ -352,7 +359,10 @@ export function SupportingEvidencePanel({
           <EligibilityFeedbackForm
             courseCode={courseCode}
             courseTitle={courseTitle}
+            currentDocument={currentFeedbackDocument}
+            ensureApplicationRow={ensureApplicationRow}
             modelId={assessment.modelId}
+            onSaveFeedback={onSaveFeedback}
             promptVersion={assessment.promptVersion}
             rows={feedbackRows}
             rulesVersion={assessment.rulesVersion}

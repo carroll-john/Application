@@ -52,12 +52,14 @@ export default function Section2Qualifications() {
   const { fromReview, previousLabel, returnPath, reviewSuffix } = useReviewReturn();
   const {
     data,
+    ensureApplicationRow,
     removeCV,
     removeEmploymentExperience,
     removeLanguageTest,
     removeProfessionalAccreditation,
     removeSecondaryQualification,
     removeTertiaryQualification,
+    saveEligibilityFeedback,
     updateTertiaryQualification,
   } = useApplication();
   const latestTranscriptAssessment = getLatestTranscriptAssessment(
@@ -156,9 +158,12 @@ export default function Section2Qualifications() {
         assessment={latestTranscriptAssessment}
         courseCode={data.applicationMeta?.selectedCourse?.code}
         courseTitle={selectedCourseTitle}
+        currentFeedbackDocument={data.eligibilityFeedbackDocument}
+        ensureApplicationRow={ensureApplicationRow}
         isHero={isHeroState}
         isProcessing={isProcessingEligibility}
         onNavigate={(path) => navigate(`${path}${reviewSuffix}`)}
+        onSaveFeedback={saveEligibilityFeedback}
         onSkipPrompt={handleSkipSection}
         onUnskipPrompt={handleUnskipSection}
         plan={evidencePlan}

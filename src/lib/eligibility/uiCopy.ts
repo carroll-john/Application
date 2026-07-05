@@ -33,8 +33,9 @@ export const eligibilityFeedbackCopy = {
   rowCommentLabel: "Your note (optional)",
   rowCommentPlaceholder:
     "Explain what your documents show for this requirement.",
-  submit: "Send feedback",
+  submit: "Save feedback",
   cancel: "Cancel",
-  submitting: "Sending...",
-  submitted: "Thanks — we've noted your feedback for admissions review.",
+  submitting: "Saving...",
+  submitted: "Thanks — we've saved your feedback for admissions review.",
+  saveFailed: "We couldn't save your feedback. Please try again.",
 } as const;

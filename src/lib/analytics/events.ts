@@ -54,6 +54,7 @@ export const ANALYTICS_EVENT_NAMES = [
   // Record updates.
   "application_cv_saved",
   "application_cv_removed",
+  "application_eligibility_feedback_saved",
   "application_employment_experience_saved",
   "application_employment_experience_removed",
   "application_language_test_saved",
@@ -101,6 +102,7 @@ export type ApplicationRecordEventName = Extract<
   AnalyticsEventName,
   | "application_cv_saved"
   | "application_cv_removed"
+  | "application_eligibility_feedback_saved"
   | "application_employment_experience_saved"
   | "application_employment_experience_removed"
   | "application_language_test_saved"

@@ -1,8 +1,13 @@
 import { HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../components/ui/button";
+import {
+  buildEligibilityFeedbackDocumentPayload,
+  saveEligibilityFeedbackDocument,
+} from "../../lib/eligibility/eligibilityFeedbackDocument";
 import { submitEligibilityFeedback } from "../../lib/eligibility/feedbackClient";
 import { trackEligibilityFeedbackSubmitted } from "../../lib/posthog";
+import type { UploadedDocument } from "../../lib/documentStorage";
 import type { EligibilityRequirementStatus } from "../../lib/eligibility/types";
 import {
   eligibilityFeedbackCopy,
@@ -22,7 +27,10 @@ export interface EligibilityFeedbackRow {
 interface EligibilityFeedbackFormProps {
   courseCode?: string;
   courseTitle?: string;
+  currentDocument?: UploadedDocument;
+  ensureApplicationRow: () => Promise<string>;
   modelId?: string;
+  onSaveFeedback: (document: UploadedDocument) => Promise<void>;
   promptVersion?: string;
   rows: EligibilityFeedbackRow[];
   rulesVersion?: string;
@@ -37,7 +45,10 @@ interface EligibilityFeedbackFormProps {
 export function EligibilityFeedbackForm({
   courseCode,
   courseTitle,
+  currentDocument,
+  ensureApplicationRow,
   modelId,
+  onSaveFeedback,
   promptVersion,
   rows,
   rulesVersion,
@@ -48,7 +59,8 @@ export function EligibilityFeedbackForm({
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
   const [rowNotes, setRowNotes] = useState<Readonly<Record<string, string>>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(Boolean(currentDocument));
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   if (rows.length === 0) {
     return null;
@@ -174,6 +186,10 @@ export function EligibilityFeedbackForm({
         </div>
       </fieldset>
 
+      {saveError ? (
+        <p className="mt-3 text-[11px] text-[var(--error-text)] sm:text-xs">{saveError}</p>
+      ) : null}
+
       <div className="mt-3 flex flex-wrap gap-2">
         <Button
           disabled={!canSubmit}
@@ -182,41 +198,78 @@ export function EligibilityFeedbackForm({
           variant="soft"
           onClick={() => {
             if (selectedIds.size === 0) return;
+            setSaveError(null);
             setSubmitting(true);
             const flaggedRows = rows.filter((row) => selectedIds.has(row.requirementId));
-            void Promise.all(
-              flaggedRows.map((row) =>
-                submitEligibilityFeedback({
-                  requirementId: row.requirementId,
-                  requirementSourceText: row.requirementSourceText,
-                  originalStatus: row.originalStatus,
-                  overrideStatus: "unknown",
-                  reason: rowNotes[row.requirementId]?.trim() || undefined,
+
+            void (async () => {
+              try {
+                const applicationId = await ensureApplicationRow();
+                const payload = buildEligibilityFeedbackDocumentPayload({
+                  assessment: {
+                    modelId,
+                    promptVersion,
+                    rulesVersion,
+                    schemaVersion,
+                    serviceVersion,
+                  },
                   courseCode,
                   courseTitle,
-                  modelId,
-                  promptVersion,
-                  reasonCode: row.reasonCode,
-                  rulesVersion,
-                  schemaVersion,
-                  serviceVersion,
-                }),
-              ),
-            ).then(() => {
-              trackEligibilityFeedbackSubmitted({
-                courseCode,
-                courseTitle,
-                flaggedRequirementIds: flaggedRows.map((row) => row.requirementId),
-                hasNote: flaggedRows.some((row) =>
-                  Boolean(rowNotes[row.requirementId]?.trim()),
-                ),
-                reasonCodes: flaggedRows
-                  .map((row) => row.reasonCode)
-                  .filter((code): code is string => Boolean(code)),
-              });
-              setSubmitting(false);
-              setSubmitted(true);
-            });
+                  flaggedRequirements: flaggedRows.map((row) => ({
+                    explanation: row.explanation,
+                    heading: row.heading,
+                    note: rowNotes[row.requirementId]?.trim() || undefined,
+                    originalStatus: row.originalStatus,
+                    reasonCode: row.reasonCode,
+                    requirementId: row.requirementId,
+                    requirementSourceText: row.requirementSourceText,
+                  })),
+                });
+                const document = await saveEligibilityFeedbackDocument({
+                  applicationId,
+                  currentDocument,
+                  payload,
+                });
+                await onSaveFeedback(document);
+
+                void Promise.all(
+                  flaggedRows.map((row) =>
+                    submitEligibilityFeedback({
+                      requirementId: row.requirementId,
+                      requirementSourceText: row.requirementSourceText,
+                      originalStatus: row.originalStatus,
+                      overrideStatus: "unknown",
+                      reason: rowNotes[row.requirementId]?.trim() || undefined,
+                      courseCode,
+                      courseTitle,
+                      modelId,
+                      promptVersion,
+                      reasonCode: row.reasonCode,
+                      rulesVersion,
+                      schemaVersion,
+                      serviceVersion,
+                    }),
+                  ),
+                );
+
+                trackEligibilityFeedbackSubmitted({
+                  courseCode,
+                  courseTitle,
+                  flaggedRequirementIds: flaggedRows.map((row) => row.requirementId),
+                  hasNote: flaggedRows.some((row) =>
+                    Boolean(rowNotes[row.requirementId]?.trim()),
+                  ),
+                  reasonCodes: flaggedRows
+                    .map((row) => row.reasonCode)
+                    .filter((code): code is string => Boolean(code)),
+                });
+                setSubmitted(true);
+              } catch {
+                setSaveError(eligibilityFeedbackCopy.saveFailed);
+              } finally {
+                setSubmitting(false);
+              }
+            })();
           }}
         >
           {submitting ? eligibilityFeedbackCopy.submitting : eligibilityFeedbackCopy.submit}
@@ -229,6 +282,7 @@ export function EligibilityFeedbackForm({
             setExpanded(false);
             setSelectedIds(new Set());
             setRowNotes({});
+            setSaveError(null);
           }}
         >
           {eligibilityFeedbackCopy.cancel}

@@ -32,6 +32,8 @@ export type RemoteApplicationRow = Pick<
   | "created_at"
   | "cv_document_id"
   | "cv_file_name"
+  | "eligibility_feedback_document_id"
+  | "eligibility_feedback_file_name"
   | "id"
   | "intake_label"
   | "personal_details"
