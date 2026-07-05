@@ -139,6 +139,7 @@ export default function Section2Qualifications() {
       previousLabel={previousLabel}
       secondaryDisabled={isSaving || isProcessingEligibility}
       secondaryLabel={fromReview ? undefined : isSaving ? "Saving..." : "Save & Exit"}
+      showActionBar={!isHydrating}
     >
       {statusMessage ? (
         <div className="mb-6 sm:mb-8">
@@ -150,7 +151,7 @@ export default function Section2Qualifications() {
         </div>
       ) : null}
 
-      {eligibilityProgress ? (
+      {eligibilityProgress && !isHydrating ? (
         <div className="mb-6 sm:mb-8">
           <Section2SaveProgressPanel
             detail={eligibilityProgress.detail}

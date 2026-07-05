@@ -16,6 +16,7 @@ interface ApplicationShellProps {
   previousDisabled?: boolean;
   secondaryDisabled?: boolean;
   secondaryLabel?: string;
+  showActionBar?: boolean;
   className?: string;
   children: ReactNode;
 }
@@ -34,6 +35,7 @@ export function ApplicationShell({
   previousDisabled = false,
   secondaryDisabled = false,
   secondaryLabel,
+  showActionBar = true,
   className,
   children,
 }: ApplicationShellProps) {
@@ -60,17 +62,19 @@ export function ApplicationShell({
 
         {children}
 
-        <FormActionBar
-          onPrevious={onPrevious}
-          onPrimary={onContinue}
-          onSecondary={onSaveAndExit}
-          previousDisabled={previousDisabled}
-          primaryDisabled={continueDisabled}
-          secondaryDisabled={secondaryDisabled}
-          previousLabel={previousLabel}
-          primaryLabel={continueLabel}
-          secondaryLabel={secondaryLabel ?? (onSaveAndExit ? "Save & Exit" : undefined)}
-        />
+        {showActionBar ? (
+          <FormActionBar
+            onPrevious={onPrevious}
+            onPrimary={onContinue}
+            onSecondary={onSaveAndExit}
+            previousDisabled={previousDisabled}
+            primaryDisabled={continueDisabled}
+            secondaryDisabled={secondaryDisabled}
+            previousLabel={previousLabel}
+            primaryLabel={continueLabel}
+            secondaryLabel={secondaryLabel ?? (onSaveAndExit ? "Save & Exit" : undefined)}
+          />
+        ) : null}
       </div>
     </div>
   );
