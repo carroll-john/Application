@@ -10,6 +10,7 @@ import {
 } from "../../lib/eligibility/uiCopy";
 
 export interface EligibilityFeedbackRow {
+  explanation?: string;
   heading: string;
   originalStatus: EligibilityRequirementStatus;
   /** Durable machine reason behind the automated status, attached to the feedback event. */
@@ -138,32 +139,35 @@ export function EligibilityFeedbackForm({
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block font-medium text-gray-900">{row.heading}</span>
-                    <span className="block text-[11px] text-gray-500 sm:text-xs">
+                    {row.explanation ? (
+                      <span className="mt-0.5 block text-[11px] text-gray-700 sm:text-xs">
+                        {row.explanation}
+                      </span>
+                    ) : null}
+                    <span className="mt-0.5 block text-[11px] text-gray-500 sm:text-xs">
                       {eligibilityFeedbackCopy.automatedResultLabel}:{" "}
                       {eligibilityRequirementStatusCopy[row.originalStatus]}
                     </span>
                   </span>
                 </label>
-                {selected ? (
-                  <div className="mt-2 pl-5">
-                    <label
-                      className="block text-[11px] font-medium text-gray-800 sm:text-xs"
-                      htmlFor={noteId}
-                    >
-                      {eligibilityFeedbackCopy.rowCommentLabel}
-                    </label>
-                    <textarea
-                      id={noteId}
-                      value={rowNotes[row.requirementId] ?? ""}
-                      onChange={(event) =>
-                        updateRowNote(row.requirementId, event.target.value)
-                      }
-                      rows={2}
-                      placeholder={eligibilityFeedbackCopy.rowCommentPlaceholder}
-                      className="mt-1 w-full rounded-md border border-gray-300 bg-white p-2 text-xs sm:text-sm"
-                    />
-                  </div>
-                ) : null}
+                <div className="mt-2 pl-5">
+                  <label
+                    className="block text-[11px] font-medium text-gray-800 sm:text-xs"
+                    htmlFor={noteId}
+                  >
+                    {eligibilityFeedbackCopy.rowCommentLabel}
+                  </label>
+                  <textarea
+                    id={noteId}
+                    value={rowNotes[row.requirementId] ?? ""}
+                    onChange={(event) =>
+                      updateRowNote(row.requirementId, event.target.value)
+                    }
+                    rows={2}
+                    placeholder={eligibilityFeedbackCopy.rowCommentPlaceholder}
+                    className="mt-1 w-full rounded-md border border-gray-300 bg-white p-2 text-xs sm:text-sm"
+                  />
+                </div>
               </div>
             );
           })}

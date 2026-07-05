@@ -7,10 +7,7 @@ import {
   type ProgramEvidenceRow,
 } from "../../lib/eligibility/programEvidence";
 import { requirementKindLabel } from "../../lib/eligibility/requirements";
-import type {
-  EligibilityRequirementStatus,
-  TranscriptEligibilityAssessment,
-} from "../../lib/eligibility/types";
+import type { EligibilityRequirementStatus, TranscriptEligibilityAssessment } from "../../lib/eligibility/types";
 import { programEvidenceAdvisoryCopy } from "../../lib/eligibility/uiCopy";
 import {
   EligibilityFeedbackForm,
@@ -20,6 +17,31 @@ import type {
   Section2EvidencePlan,
   Section2EvidenceSectionKey,
 } from "./section2EvidencePlan";
+
+function feedbackStatusFromRow(
+  row: ProgramEvidenceRow,
+): EligibilityRequirementStatus {
+  if (row.requirementStatus) {
+    return row.requirementStatus;
+  }
+  if (row.status === "met") {
+    return "pass";
+  }
+  return "unknown";
+}
+
+function buildFeedbackRowsFromEvidenceRows(
+  rows: readonly ProgramEvidenceRow[],
+): EligibilityFeedbackRow[] {
+  return rows.map((row) => ({
+    explanation: row.explanation,
+    heading: row.heading,
+    originalStatus: feedbackStatusFromRow(row),
+    reasonCode: row.reasonCode,
+    requirementId: row.requirementId,
+    requirementSourceText: row.sourceText,
+  }));
+}
 
 export function getLatestTranscriptAssessment(
   assessments: Array<TranscriptEligibilityAssessment | undefined>,
@@ -233,18 +255,7 @@ export function SupportingEvidencePanel({
     (row) => !row.isBlocking && row.status === "needs_review" && row.requirementStatus,
   );
   const feedbackRows: EligibilityFeedbackRow[] = assessment
-    ? dedupedRows
-        .filter(
-          (row): row is ProgramEvidenceRow & { requirementStatus: EligibilityRequirementStatus } =>
-            Boolean(row.requirementStatus),
-        )
-        .map((row) => ({
-          heading: row.heading,
-          originalStatus: row.requirementStatus,
-          reasonCode: row.reasonCode,
-          requirementId: row.requirementId,
-          requirementSourceText: row.sourceText,
-        }))
+    ? buildFeedbackRowsFromEvidenceRows([...metRows, ...reviewRows])
     : [];
   // Manual-review flag derives from the same evidence rows that render the cards.
   const transcriptReviewSummary = assessment
