@@ -1,5 +1,5 @@
 import type { ApplicationData } from "../../lib/applicationData";
-import { ReviewAttachments, ReviewCard, ReviewList } from "./ReviewSections";
+import { ReviewCard, ReviewDocumentRow, ReviewList } from "./ReviewSections";
 
 interface ReviewSection2SummaryProps {
   data: ApplicationData;
@@ -10,10 +10,7 @@ export function ReviewSection2Summary({ data, onEdit }: ReviewSection2SummaryPro
   return (
     <>
       {data.tertiaryQualifications.length > 0 ? (
-        <ReviewCard
-          onEdit={() => onEdit("/section2/qualifications?from=review")}
-          title="Tertiary qualifications"
-        >
+        <ReviewCard title="Tertiary qualifications">
           <ReviewList
             items={data.tertiaryQualifications.map((qualification) => ({
               attachments: [
@@ -51,25 +48,18 @@ export function ReviewSection2Summary({ data, onEdit }: ReviewSection2SummaryPro
       ) : null}
 
       {data.cvUploaded ? (
-        <ReviewCard
-          onEdit={() => onEdit("/section2/add-cv?from=review")}
-          title="Curriculum Vitae (CV)"
-        >
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-            <ReviewAttachments
-              attachments={
-                data.cvFileName ? [{ fileName: data.cvFileName }] : []
-              }
+        <ReviewCard title="Curriculum Vitae (CV)">
+          {data.cvFileName ? (
+            <ReviewDocumentRow
+              fileName={data.cvFileName}
+              onEdit={() => onEdit("/section2/add-cv?from=review")}
             />
-          </div>
+          ) : null}
         </ReviewCard>
       ) : null}
 
       {data.employmentExperiences.length > 0 ? (
-        <ReviewCard
-          onEdit={() => onEdit("/section2/qualifications?from=review")}
-          title="Employment experience"
-        >
+        <ReviewCard title="Employment experience">
           <ReviewList
             items={data.employmentExperiences.map((experience) => ({
               detail: experience.duties ? (

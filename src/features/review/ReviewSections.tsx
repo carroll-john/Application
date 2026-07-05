@@ -8,24 +8,65 @@ export function ReviewCard({
   children,
 }: {
   title: string;
-  onEdit: () => void;
+  onEdit?: () => void;
   children: ReactNode;
 }) {
   return (
     <div className="rounded-lg border border-gray-200 border-l-4 border-l-[var(--cta-secondary)] bg-white p-5 shadow-sm sm:p-6">
-      <div className="mb-5 flex flex-col gap-4">
+      <div
+        className={
+          onEdit
+            ? "mb-5 flex items-center justify-between gap-3"
+            : "mb-5"
+        }
+      >
         <h3 className="text-base font-bold text-gray-900 sm:text-lg">{title}</h3>
+        {onEdit ? (
+          <Button
+            className="shrink-0 rounded-lg text-sm font-medium shadow-none"
+            onClick={onEdit}
+            size="sm"
+            variant="outline"
+          >
+            <Edit className="h-4 w-4" />
+            Edit
+          </Button>
+        ) : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export function ReviewDocumentRow({
+  fileName,
+  label,
+  onEdit,
+}: {
+  fileName: string;
+  label?: string;
+  onEdit: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-2">
+          <Paperclip className="h-4 w-4 shrink-0 text-green-600" />
+          <span className="min-w-0 break-all text-sm font-medium text-green-600">
+            {label ? `${label}: ` : ""}
+            {fileName}
+          </span>
+        </div>
         <Button
-          className="h-11 w-full rounded-lg text-sm font-medium shadow-none sm:h-9 sm:w-auto"
+          className="shrink-0 rounded-lg"
           onClick={onEdit}
           size="sm"
           variant="outline"
         >
-          <Edit className="h-4 w-4" />
+          <Edit className="h-3 w-3" />
           Edit
         </Button>
       </div>
-      {children}
     </div>
   );
 }
