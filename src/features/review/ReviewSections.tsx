@@ -13,10 +13,10 @@ export function ReviewCard({
 }) {
   return (
     <div className="rounded-lg border border-gray-200 border-l-4 border-l-[var(--cta-secondary)] bg-white p-5 shadow-sm sm:p-6">
-      <div className="mb-5 flex flex-col gap-4">
+      <div className="mb-5 flex items-center justify-between gap-3">
         <h3 className="text-base font-bold text-gray-900 sm:text-lg">{title}</h3>
         <Button
-          className="h-11 w-full rounded-lg text-sm font-medium shadow-none sm:h-9 sm:w-auto"
+          className="shrink-0 rounded-lg text-sm font-medium shadow-none"
           onClick={onEdit}
           size="sm"
           variant="outline"
