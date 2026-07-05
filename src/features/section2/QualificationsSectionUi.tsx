@@ -23,6 +23,7 @@ interface QualificationsSectionCardProps<T> {
   actionRoute: string;
   actionText?: string;
   onSkip: () => void;
+  showAddAction?: boolean;
 }
 
 export function QualificationsSectionCard<T>({
@@ -36,6 +37,7 @@ export function QualificationsSectionCard<T>({
   actionRoute,
   actionText = "Add",
   onSkip,
+  showAddAction = true,
 }: QualificationsSectionCardProps<T>) {
   const navigate = useNavigate();
   const isLocked = status === "locked";
@@ -108,7 +110,7 @@ export function QualificationsSectionCard<T>({
           <div className="text-xs italic text-gray-500 sm:text-sm">
             Complete previous sections to unlock
           </div>
-        ) : (
+        ) : showAddAction ? (
           <div className="flex gap-2">
             <Button
               className={`h-10 rounded-lg text-sm font-medium shadow-none ${
@@ -131,7 +133,7 @@ export function QualificationsSectionCard<T>({
               </Button>
             ) : null}
           </div>
-        )}
+        ) : null}
       </div>
 
       {isLocked ? null : items.length > 0 ? (

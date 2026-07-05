@@ -20,7 +20,6 @@ import {
   useSection2QualificationsFlow,
 } from "../features/section2";
 import {
-  buildAssessmentEvidenceSummary,
   getLatestTranscriptAssessment,
   SupportingEvidencePanel,
 } from "../features/section2/SupportingEvidencePanel";
@@ -33,7 +32,6 @@ import {
   dedupeProgramEvidenceRowsByHeading,
   groupTranscriptVerifiableEvidenceRows,
 } from "../lib/eligibility/programEvidence";
-import { eligibilityOutcomeCopy } from "../lib/eligibility/uiCopy";
 import { getSection2EditPath, getSection2Step } from "../lib/section2Steps";
 
 const addMoreSections: Array<{
@@ -168,41 +166,36 @@ export default function Section2Qualifications() {
       />
 
       {showSection("tertiary") ? (
-        <QualificationsSectionCard
-          actionRoute={section2AddPath("tertiary")}
-          description="Add your university degrees and diplomas"
-          emptyMessage="No qualifications added yet"
-          icon={
-            <GraduationCap className="h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />
-          }
-          items={data.tertiaryQualifications}
-          onSkip={() => handleSkipSection("tertiary")}
-          renderItem={(qualification) => (
-            <QualificationsListItem
-              key={qualification.id}
-              subtitle={
-                qualification.transcriptEligibility
-                  ? `${qualification.institution || "Institution pending"} · ${eligibilityOutcomeCopy[qualification.transcriptEligibility.outcome]}${buildAssessmentEvidenceSummary(
-                      qualification.transcriptEligibility,
-                    )
-                      ? ` · ${buildAssessmentEvidenceSummary(qualification.transcriptEligibility)}`
-                      : ""}`
-                  : qualification.institution || "Complete qualification details"
-              }
-              title={qualification.courseName || "Tertiary Qualification"}
-              attachments={[
-                qualification.transcriptDocumentName,
-                qualification.certificateDocumentName,
-              ].filter(Boolean) as string[]}
-              onDelete={() => removeTertiaryQualification(qualification.id)}
-              onEdit={() =>
-                navigate(`${getSection2EditPath("tertiary", qualification.id)}${reviewSuffix}`)
-              }
-            />
-          )}
-          status={sectionStates.tertiary}
-          title="Tertiary Qualifications"
-        />
+        <div className="mb-6 sm:mb-8">
+          <QualificationsSectionCard
+            actionRoute={section2AddPath("tertiary")}
+            description="Add your university degrees and diplomas"
+            emptyMessage="No qualifications added yet"
+            icon={
+              <GraduationCap className="h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />
+            }
+            items={data.tertiaryQualifications}
+            onSkip={() => handleSkipSection("tertiary")}
+            renderItem={(qualification) => (
+              <QualificationsListItem
+                key={qualification.id}
+                subtitle={qualification.institution || "Institution pending"}
+                title={qualification.courseName || "Tertiary Qualification"}
+                attachments={[
+                  qualification.transcriptDocumentName,
+                  qualification.certificateDocumentName,
+                ].filter(Boolean) as string[]}
+                onDelete={() => removeTertiaryQualification(qualification.id)}
+                onEdit={() =>
+                  navigate(`${getSection2EditPath("tertiary", qualification.id)}${reviewSuffix}`)
+                }
+              />
+            )}
+            showAddAction={false}
+            status={sectionStates.tertiary}
+            title="Tertiary Qualifications"
+          />
+        </div>
       ) : null}
 
       {!isHeroState ? (
