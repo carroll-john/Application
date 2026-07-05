@@ -173,6 +173,7 @@ Important submit-path rules:
 | `auth_sign_in_succeeded` | Password sign-in establishes a session |
 | `auth_sign_in_failed` | Password sign-in is rejected |
 | `auth_sign_up_attempted` | User submits the create-account form |
+| `auth_sign_up_succeeded` | Server captures after Supabase creates the `auth.users` row (once per user via `$insert_id`; includes `signup_method`) |
 | `auth_sign_up_confirmation_sent` | Supabase accepts sign-up and sends a confirmation email |
 | `auth_sign_up_failed` | Create-account sign-up is rejected |
 | `auth_password_reset_completed` | User saves a new password after opening a reset link |

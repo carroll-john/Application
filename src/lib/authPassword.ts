@@ -14,6 +14,7 @@ type AuthClient = Pick<
 export type SignUpWithPasswordResult = {
   error: string | null;
   outcome?: "confirmation_sent" | "existing_account";
+  userId?: string;
 };
 
 // DIS-119: an injected checker that resolves true when a password is known to
@@ -263,7 +264,11 @@ export async function signUpWithPassword(
       };
     }
 
-    return { error: null, outcome: "confirmation_sent" };
+    return {
+      error: null,
+      outcome: "confirmation_sent",
+      userId: data.user?.id,
+    };
   } catch (error) {
     return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
   }

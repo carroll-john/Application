@@ -7,6 +7,7 @@ import {
   normalizeAuthEmail,
   validateSignUpForm,
 } from "../../lib/authPassword";
+import { reportAuthSignUpSucceeded } from "../../lib/authSignUpAnalyticsClient";
 import { getEmailDomain } from "../../lib/emailDomain";
 import { capturePostHogEvent } from "../../lib/posthog";
 import { AuthPanelHeader } from "./screens/AuthPanelHeader";
@@ -154,7 +155,7 @@ export function AuthPanel({
       auth_context: context,
       email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
     });
-    const { error: signUpError, outcome } = await signUpWithPassword(
+    const { error: signUpError, outcome, userId } = await signUpWithPassword(
       normalizedEmail,
       password,
       { redirectPath: signUpRedirectPath ?? redirectPath },
@@ -171,6 +172,15 @@ export function AuthPanel({
         switchTab("sign-in");
       }
       return;
+    }
+
+    if (userId) {
+      void reportAuthSignUpSucceeded({
+        userId,
+        signupMethod: "email",
+        emailDomain: normalizedEmail.split("@")[1] ?? "unknown",
+        authContext: context,
+      });
     }
 
     capturePostHogEvent("auth_sign_up_confirmation_sent", {
