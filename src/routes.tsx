@@ -23,6 +23,7 @@ import {
 import { isSentryEnabled } from "./lib/sentry";
 import { lazyWithRetry } from "./lib/routeChunkRecovery";
 import { Section2QualificationsRouteFallback } from "./features/section2/Section2QualificationsRouteFallback";
+import { FormStepRouteFallback } from "./features/forms/FormStepRouteFallback";
 import { ReviewRouteFallback } from "./features/review/ReviewRouteFallback";
 import RouteErrorBoundary from "./pages/RouteErrorBoundary";
 
@@ -102,6 +103,14 @@ function RouteLoadingScreen() {
 
   if (location.pathname === "/review") {
     return <ReviewRouteFallback />;
+  }
+
+  if (
+    location.pathname.startsWith("/section1/") ||
+    (location.pathname.startsWith("/section2/") &&
+      location.pathname !== "/section2/qualifications")
+  ) {
+    return <FormStepRouteFallback />;
   }
 
   return (

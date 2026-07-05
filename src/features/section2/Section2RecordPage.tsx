@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { ApplicationShell } from "../../features/forms";
 import { StatusMessage } from "../../components/StatusMessage";
+import { useApplication } from "../../context/ApplicationContext";
+import { ApplicationShell, FormStepLoadingState } from "../../features/forms";
 import { useSection2Navigation } from "../../hooks/useSection2Navigation";
 import type { Section2RecordStatusMessage } from "../../hooks/useSection2RecordSave";
 import { SECTION2_SECTION_LABEL } from "../../lib/section2Steps";
@@ -44,6 +45,7 @@ export function Section2RecordPage({
   previousDisabled,
   statusMessage,
 }: Section2RecordPageProps) {
+  const { isHydrating } = useApplication();
   const { returnToQualifications } = useSection2Navigation();
 
   const handleContinue = () => {
@@ -66,18 +68,19 @@ export function Section2RecordPage({
   return (
     <ApplicationShell
       className={className}
-      continueDisabled={continueDisabled}
+      continueDisabled={continueDisabled || isHydrating}
       continueLabel={continueLabel}
       description={description}
       onContinue={handleContinue}
       onPrevious={onPrevious ?? returnToQualifications}
-      previousDisabled={previousDisabled}
+      previousDisabled={previousDisabled || isHydrating}
       previousLabel="Cancel"
       progress={SECTION2_PROGRESS}
       sectionLabel={SECTION2_SECTION_LABEL}
+      showActionBar={!isHydrating}
       title={isEditing ? editTitle : addTitle}
     >
-      {statusMessage ? (
+      {!isHydrating && statusMessage ? (
         <div className="mb-6">
           <StatusMessage
             message={statusMessage.message}
@@ -86,7 +89,7 @@ export function Section2RecordPage({
           />
         </div>
       ) : null}
-      {children}
+      {isHydrating ? <FormStepLoadingState /> : children}
     </ApplicationShell>
   );
 }
