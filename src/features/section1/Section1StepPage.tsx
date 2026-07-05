@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { ApplicationShell } from "../../features/forms";
+import { useApplication } from "../../context/ApplicationContext";
+import { ApplicationShell, FormStepLoadingState } from "../../features/forms";
 import { useSection1Step } from "../../hooks/useSection1Step";
 import type { Section1StepKey } from "../../lib/section1Steps";
 
@@ -18,6 +19,7 @@ export function Section1StepPage({
   persist,
   step,
 }: Section1StepPageProps) {
+  const { isHydrating } = useApplication();
   const { shellProps, step: definition } = useSection1Step({
     beforeContinue,
     persist,
@@ -31,9 +33,13 @@ export function Section1StepPage({
       title={definition.title}
       description={definition.description}
       {...shellProps}
+      continueDisabled={isHydrating}
       onContinue={onContinue ?? shellProps.onContinue}
+      previousDisabled={isHydrating}
+      secondaryDisabled={isHydrating}
+      showActionBar={!isHydrating}
     >
-      {children}
+      {isHydrating ? <FormStepLoadingState /> : children}
     </ApplicationShell>
   );
 }
