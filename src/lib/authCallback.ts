@@ -187,6 +187,26 @@ export function buildRecoveryCallbackRedirectFromUrl(
   }
 }
 
+type RecoveryOtpClient = {
+  auth: {
+    verifyOtp: (params: {
+      token_hash: string;
+      type: "recovery";
+    }) => Promise<{ error: { message: string } | null }>;
+  };
+};
+
+/** POST verifyOtp — must run only after explicit user action (Safe Links runs JS). */
+export async function verifyRecoveryTokenHash(
+  client: RecoveryOtpClient,
+  tokenHash: string,
+) {
+  return client.auth.verifyOtp({
+    token_hash: tokenHash,
+    type: "recovery",
+  });
+}
+
 export function parseRecoveryTokenHashFromUrl(
   href: string = typeof window !== "undefined" ? window.location.href : "",
 ) {
