@@ -20,6 +20,7 @@ import {
   getRemoteDocumentId,
   getRemoteUuid,
   mapEmploymentRow,
+  findEligibilityFeedbackDocument,
   mapLanguageTestRow,
   mapProfessionalAccreditationRow,
   mapRemoteDocument,
@@ -57,7 +58,7 @@ type SavedApplicationRow = Pick<
 >;
 
 const APPLICATION_SELECT =
-  "id, applicant_profile_id, application_number, course_code, course_title, intake_label, personal_details, contact_details, cv_document_id, cv_file_name, eligibility_feedback_document_id, eligibility_feedback_file_name, status, submitted_at, created_at, updated_at";
+  "id, applicant_profile_id, application_number, course_code, course_title, intake_label, personal_details, contact_details, cv_document_id, cv_file_name, status, submitted_at, created_at, updated_at";
 const SAVED_APPLICATION_SELECT =
   "id, applicant_profile_id, application_number, submitted_at, updated_at";
 
@@ -183,7 +184,7 @@ export async function loadRemoteApplicationById(
     client
       .from("application_documents")
       .select(
-        "id, file_name, size_bytes, mime_type, created_at, storage_bucket, storage_path",
+        "id, file_name, size_bytes, mime_type, created_at, storage_bucket, storage_path, kind",
       )
       .eq("application_id", applicationId),
     client
@@ -239,9 +240,9 @@ export async function loadRemoteApplicationById(
   const cvDocument = application.cv_document_id
     ? documentMap.get(application.cv_document_id)
     : undefined;
-  const eligibilityFeedbackDocument = application.eligibility_feedback_document_id
-    ? documentMap.get(application.eligibility_feedback_document_id)
-    : undefined;
+  const eligibilityFeedbackDocument = findEligibilityFeedbackDocument(
+    applicationDocumentsResponse.data ?? [],
+  );
 
   return mergeStoredApplicationData({
     applicationMeta: {
@@ -259,7 +260,7 @@ export async function loadRemoteApplicationById(
     cvFileName: application.cv_file_name ?? undefined,
     cvUploaded: isSubmissionReadyDocument(cvDocument),
     eligibilityFeedbackDocument,
-    eligibilityFeedbackFileName: application.eligibility_feedback_file_name ?? undefined,
+    eligibilityFeedbackFileName: eligibilityFeedbackDocument?.name,
     employmentExperiences: (employmentExperiencesResponse.data ?? []).map(mapEmploymentRow),
     languageTests: (languageTestsResponse.data ?? []).map((test) =>
       mapLanguageTestRow(test, documentMap),
@@ -305,7 +306,6 @@ function buildApplicationPayload(
     remoteApplicationId: string | undefined;
     remoteApplicantProfileId: string | null;
     remoteCvDocumentId: string | null;
-    remoteEligibilityFeedbackDocumentId: string | null;
   },
 ): TablesInsert<"applications"> {
   const defaultCourse = getDefaultCourse();
@@ -320,10 +320,6 @@ function buildApplicationPayload(
     course_title: selectedCourse?.title ?? defaultCourse.title,
     cv_document_id: ids.remoteCvDocumentId,
     cv_file_name: ids.remoteCvDocumentId ? data.cvFileName ?? null : null,
-    eligibility_feedback_document_id: ids.remoteEligibilityFeedbackDocumentId,
-    eligibility_feedback_file_name: ids.remoteEligibilityFeedbackDocumentId
-      ? data.eligibilityFeedbackFileName ?? null
-      : null,
     id: ids.remoteApplicationId ?? undefined,
     intake_label: selectedCourse?.intake ?? defaultCourse.intakeLabel,
     personal_details: toJsonValue(data.personalDetails),
@@ -595,16 +591,11 @@ export async function saveRemoteApplication(
     client,
     getRemoteDocumentId(data.cvDocument),
   );
-  const remoteEligibilityFeedbackDocumentId = await resolveExistingRemoteDocumentId(
-    client,
-    getRemoteDocumentId(data.eligibilityFeedbackDocument),
-  );
 
   const applicationPayload = buildApplicationPayload(session, data, {
     remoteApplicationId,
     remoteApplicantProfileId,
     remoteCvDocumentId,
-    remoteEligibilityFeedbackDocumentId,
   });
 
   const applicationRow = await upsertApplicationRow(

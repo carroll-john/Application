@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { UploadedDocument } from "../documentStorage";
 import {
+  findEligibilityFeedbackDocument,
   getRemoteDocumentId,
   getRemoteUuid,
   mapEmploymentRow,
@@ -375,5 +376,45 @@ describe("domain -> insert builders", () => {
     expect(insert.document_name).toBeNull();
     expect(insert.overall_score).toBe(7.5);
     expect(insert.speaking_score).toBeNull();
+  });
+});
+
+describe("findEligibilityFeedbackDocument", () => {
+  it("returns the newest eligibility feedback document", () => {
+    const document = findEligibilityFeedbackDocument([
+      {
+        created_at: "2026-07-05T09:00:00Z",
+        file_name: "old.json",
+        id: "doc-old",
+        kind: "eligibility_feedback",
+        mime_type: "application/json",
+        size_bytes: 10,
+        storage_bucket: "documents",
+        storage_path: "path/old",
+      },
+      {
+        created_at: "2026-07-05T10:00:00Z",
+        file_name: "eligibility-feedback.json",
+        id: "doc-new",
+        kind: "eligibility_feedback",
+        mime_type: "application/json",
+        size_bytes: 20,
+        storage_bucket: "documents",
+        storage_path: "path/new",
+      },
+      {
+        created_at: "2026-07-05T11:00:00Z",
+        file_name: "cv.pdf",
+        id: "doc-cv",
+        kind: "cv",
+        mime_type: "application/pdf",
+        size_bytes: 30,
+        storage_bucket: "documents",
+        storage_path: "path/cv",
+      },
+    ]);
+
+    expect(document?.id).toBe("doc-new");
+    expect(document?.name).toBe("eligibility-feedback.json");
   });
 });
