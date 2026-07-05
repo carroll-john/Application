@@ -23,6 +23,7 @@ import {
 import { isSentryEnabled } from "./lib/sentry";
 import { lazyWithRetry } from "./lib/routeChunkRecovery";
 import { Section2QualificationsRouteFallback } from "./features/section2/Section2QualificationsRouteFallback";
+import { ReviewRouteFallback } from "./features/review/ReviewRouteFallback";
 import RouteErrorBoundary from "./pages/RouteErrorBoundary";
 
 const ApplicationSubmitted = lazyWithRetry(
@@ -97,6 +98,10 @@ function RouteLoadingScreen() {
 
   if (location.pathname === "/section2/qualifications") {
     return <Section2QualificationsRouteFallback />;
+  }
+
+  if (location.pathname === "/review") {
+    return <ReviewRouteFallback />;
   }
 
   return (

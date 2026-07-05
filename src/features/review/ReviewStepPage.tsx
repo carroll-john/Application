@@ -14,6 +14,7 @@ interface ReviewStepPageProps {
   previousDisabled?: boolean;
   secondaryDisabled?: boolean;
   secondaryLabel?: string;
+  showActionBar?: boolean;
 }
 
 export function ReviewStepPage({
@@ -26,6 +27,7 @@ export function ReviewStepPage({
   previousDisabled,
   secondaryDisabled,
   secondaryLabel,
+  showActionBar = true,
 }: ReviewStepPageProps) {
   return (
     <ApplicationShell
@@ -41,6 +43,7 @@ export function ReviewStepPage({
       secondaryDisabled={secondaryDisabled}
       secondaryLabel={secondaryLabel ?? (onSaveAndExit ? "Save & Exit" : undefined)}
       sectionLabel={REVIEW_SECTION_LABEL}
+      showActionBar={showActionBar}
       title="Review and submit"
     >
       {children}
