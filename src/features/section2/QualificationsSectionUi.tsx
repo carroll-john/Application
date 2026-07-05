@@ -153,6 +153,7 @@ export function QualificationsSectionCard<T>({
 interface QualificationsListItemProps {
   title: string;
   subtitle: string;
+  attentionMessage?: string;
   attachment?: string;
   attachments?: string[];
   onEdit: () => void;
@@ -162,6 +163,7 @@ interface QualificationsListItemProps {
 export function QualificationsListItem({
   title,
   subtitle,
+  attentionMessage,
   attachment,
   attachments,
   onEdit,
@@ -175,6 +177,11 @@ export function QualificationsListItem({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-gray-900 sm:text-base">{title}</p>
           <p className="text-xs text-gray-600 sm:text-sm">{subtitle}</p>
+          {attentionMessage ? (
+            <p className="mt-0.5 text-xs font-medium text-[var(--warning-text)] sm:text-sm">
+              {attentionMessage}
+            </p>
+          ) : null}
           {attachmentList.length
             ? attachmentList.map((attachmentName, index) => (
                 <QualificationsAttachment

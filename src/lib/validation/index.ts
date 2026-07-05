@@ -90,7 +90,9 @@ export type {
 } from "./types";
 
 export {
+  getEmploymentExperienceSubmissionMissingFields,
   getTertiaryQualificationSubmissionMissingFields,
   isEmploymentExperienceChronologyValid,
+  isEmploymentExperienceSubmissionReady,
   isTertiaryQualificationSubmissionReady,
 } from "./rules/section2";

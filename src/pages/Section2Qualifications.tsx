@@ -33,6 +33,7 @@ import {
   groupTranscriptVerifiableEvidenceRows,
 } from "../lib/eligibility/programEvidence";
 import { getSection2EditPath, getSection2Step } from "../lib/section2Steps";
+import { getEmploymentExperienceSubmissionMissingFields } from "../lib/validation/rules/section2";
 
 const addMoreSections: Array<{
   key: Section2EvidenceSectionKey;
@@ -235,26 +236,40 @@ export default function Section2Qualifications() {
         {showSection("employment") ? (
           <QualificationsSectionCard
             actionRoute={section2AddPath("employment")}
-            description="Add your work history and experience"
+            description={
+              sectionStates.employment === "needsAttention"
+                ? "One or more roles below need details before this section is complete."
+                : "Add your work history and experience"
+            }
             emptyMessage="No employment experience added yet"
             icon={
               <Briefcase className="h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />
             }
             items={data.employmentExperiences}
             onSkip={() => handleSkipSection("employment")}
-            renderItem={(experience) => (
-              <QualificationsListItem
-                key={experience.id}
-                subtitle={experience.company}
-                title={experience.position || "Position"}
-                onDelete={() => removeEmploymentExperience(experience.id)}
-                onEdit={() =>
-                  navigate(
-                    `${getSection2EditPath("employment", experience.id)}${reviewSuffix}`,
-                  )
-                }
-              />
-            )}
+            renderItem={(experience) => {
+              const missingFields =
+                getEmploymentExperienceSubmissionMissingFields(experience);
+
+              return (
+                <QualificationsListItem
+                  key={experience.id}
+                  attentionMessage={
+                    missingFields.length > 0
+                      ? `Missing: ${missingFields.join(", ")}`
+                      : undefined
+                  }
+                  subtitle={experience.company}
+                  title={experience.position || "Position"}
+                  onDelete={() => removeEmploymentExperience(experience.id)}
+                  onEdit={() =>
+                    navigate(
+                      `${getSection2EditPath("employment", experience.id)}${reviewSuffix}`,
+                    )
+                  }
+                />
+              );
+            }}
             status={sectionStates.employment}
             title="Employment Experience"
           />
