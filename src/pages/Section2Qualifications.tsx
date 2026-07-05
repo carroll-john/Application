@@ -14,6 +14,7 @@ import {
   QualificationsListItem,
   QualificationsSectionCard,
   Section2EvidenceNextStepPanel,
+  Section2QualificationsLoadingState,
   Section2QualificationsPage,
   Section2SaveProgressPanel,
   useSection2QualificationsFlow,
@@ -158,7 +159,9 @@ export default function Section2Qualifications() {
         </div>
       ) : null}
 
-      {!isHydrating ? (
+      {isHydrating ? (
+        <Section2QualificationsLoadingState />
+      ) : (
         <>
       <SupportingEvidencePanel
         assessment={latestTranscriptAssessment}
@@ -393,7 +396,7 @@ export default function Section2Qualifications() {
         ) : null}
       </div>
         </>
-      ) : null}
+      )}
     </Section2QualificationsPage>
   );
 }
