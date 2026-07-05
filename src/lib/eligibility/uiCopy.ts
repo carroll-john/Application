@@ -24,15 +24,15 @@ export const programEvidenceAdvisoryCopy = [
 ] as const;
 
 export const eligibilityFeedbackCopy = {
-  trigger: "Doesn't match your transcript?",
+  trigger: "Doesn't match your documents?",
   prompt: "Suggest a correction",
   intro:
-    "If any of these automated results don't reflect your official transcript, select them below and tell us what's wrong. Admissions will review your note — this won't change your application automatically.",
+    "If any of these automated results don't reflect your official documents, select them below and add a note for each one. Admissions will review your feedback — this won't change your application automatically.",
   automatedResultLabel: "Automated result",
-  selectRowsLegend: "Which results don't match your transcript?",
-  reasonLabel: "Add details (optional)",
-  reasonPlaceholder:
-    "For example, conferral date, qualification title, or grades not visible on this transcript.",
+  selectRowsLegend: "Which results don't match your documents?",
+  rowCommentLabel: "Your note (optional)",
+  rowCommentPlaceholder:
+    "Explain what your documents show for this requirement.",
   submit: "Send feedback",
   cancel: "Cancel",
   submitting: "Sending...",

@@ -14,7 +14,7 @@ import type { SectionStatus } from "./types";
 
 interface QualificationsSectionCardProps<T> {
   title: string;
-  description: string;
+  description?: string;
   icon: ReactNode;
   status: SectionStatus;
   items: T[];
@@ -102,7 +102,9 @@ export function QualificationsSectionCard<T>({
                 </StatusPill>
               ) : null}
             </div>
-            <p className="text-xs text-gray-600 sm:text-sm">{description}</p>
+            {description ? (
+              <p className="text-xs text-gray-600 sm:text-sm">{description}</p>
+            ) : null}
           </div>
         </div>
 
@@ -151,8 +153,8 @@ export function QualificationsSectionCard<T>({
 }
 
 interface QualificationsListItemProps {
-  title: string;
-  subtitle: string;
+  title?: string;
+  subtitle?: string;
   attentionMessage?: string;
   attachment?: string;
   attachments?: string[];
@@ -170,13 +172,20 @@ export function QualificationsListItem({
   onDelete,
 }: QualificationsListItemProps) {
   const attachmentList = attachments ?? (attachment ? [attachment] : []);
+  const attachmentOnly = !title && !subtitle && attachmentList.length > 0;
 
   return (
     <div className="rounded border border-gray-200 bg-white p-3 sm:p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div
+        className={`flex flex-col gap-3 sm:flex-row sm:justify-between ${
+          attachmentOnly ? "sm:items-center" : "sm:items-start"
+        }`}
+      >
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-gray-900 sm:text-base">{title}</p>
-          <p className="text-xs text-gray-600 sm:text-sm">{subtitle}</p>
+          {title ? (
+            <p className="text-sm font-medium text-gray-900 sm:text-base">{title}</p>
+          ) : null}
+          {subtitle ? <p className="text-xs text-gray-600 sm:text-sm">{subtitle}</p> : null}
           {attentionMessage ? (
             <p className="mt-0.5 text-xs font-medium text-[var(--warning-text)] sm:text-sm">
               {attentionMessage}
@@ -186,6 +195,7 @@ export function QualificationsListItem({
             ? attachmentList.map((attachmentName, index) => (
                 <QualificationsAttachment
                   key={`${attachmentName}-${index}`}
+                  className={attachmentOnly ? "" : "mt-2"}
                   fileName={attachmentName}
                 />
               ))
@@ -212,9 +222,15 @@ export function QualificationsListItem({
   );
 }
 
-export function QualificationsAttachment({ fileName }: { fileName: string }) {
+export function QualificationsAttachment({
+  className = "mt-2",
+  fileName,
+}: {
+  className?: string;
+  fileName: string;
+}) {
   return (
-    <div className="mt-2 flex min-w-0 items-start gap-1.5">
+    <div className={`flex min-w-0 items-start gap-1.5 ${className}`}>
       <Paperclip className="h-3 w-3 shrink-0 text-green-600 sm:h-3.5 sm:w-3.5" />
       <span className="min-w-0 break-all text-xs font-medium text-green-600">{fileName}</span>
     </div>
