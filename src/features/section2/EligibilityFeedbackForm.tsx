@@ -30,9 +30,8 @@ interface EligibilityFeedbackFormProps {
 }
 
 /**
- * One entry point for disputing automated evidence results, covering every checked requirement
- * at once instead of a separate trigger + form per row. The applicant flags which items look
- * wrong and adds one shared note; each flagged item is reported for admissions review.
+ * One entry point for disputing automated evidence results. The applicant flags
+ * which requirements look wrong and can add a separate note for each one.
  */
 export function EligibilityFeedbackForm({
   courseCode,
@@ -46,7 +45,7 @@ export function EligibilityFeedbackForm({
 }: EligibilityFeedbackFormProps) {
   const [expanded, setExpanded] = useState(false);
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(new Set());
-  const [reason, setReason] = useState("");
+  const [rowNotes, setRowNotes] = useState<Readonly<Record<string, string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -82,11 +81,23 @@ export function EligibilityFeedbackForm({
       const next = new Set(previous);
       if (next.has(requirementId)) {
         next.delete(requirementId);
+        setRowNotes((notes) => {
+          const updated = { ...notes };
+          delete updated[requirementId];
+          return updated;
+        });
       } else {
         next.add(requirementId);
       }
       return next;
     });
+  }
+
+  function updateRowNote(requirementId: string, value: string) {
+    setRowNotes((previous) => ({
+      ...previous,
+      [requirementId]: value.slice(0, 500),
+    }));
   }
 
   const canSubmit = selectedIds.size > 0 && !submitting;
@@ -105,44 +116,59 @@ export function EligibilityFeedbackForm({
           {eligibilityFeedbackCopy.selectRowsLegend}
         </legend>
         <div className="mt-2 flex flex-col gap-2">
-          {rows.map((row) => (
-            <label
-              key={row.requirementId}
-              className={`flex cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-xs sm:text-sm ${
-                selectedIds.has(row.requirementId)
-                  ? "border-[var(--cta-secondary)] bg-white"
-                  : "border-gray-200 bg-white/80"
-              }`}
-            >
-              <input
-                type="checkbox"
-                checked={selectedIds.has(row.requirementId)}
-                onChange={() => toggleRow(row.requirementId)}
-                className="mt-0.5 h-3.5 w-3.5"
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium text-gray-900">{row.heading}</span>
-                <span className="block text-[11px] text-gray-500 sm:text-xs">
-                  {eligibilityFeedbackCopy.automatedResultLabel}:{" "}
-                  {eligibilityRequirementStatusCopy[row.originalStatus]}
-                </span>
-              </span>
-            </label>
-          ))}
+          {rows.map((row) => {
+            const selected = selectedIds.has(row.requirementId);
+            const noteId = `eligibility-feedback-note-${row.requirementId}`;
+
+            return (
+              <div
+                key={row.requirementId}
+                className={`rounded-md border px-3 py-2 text-xs sm:text-sm ${
+                  selected
+                    ? "border-[var(--cta-secondary)] bg-white"
+                    : "border-gray-200 bg-white/80"
+                }`}
+              >
+                <label className="flex cursor-pointer items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={() => toggleRow(row.requirementId)}
+                    className="mt-0.5 h-3.5 w-3.5"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium text-gray-900">{row.heading}</span>
+                    <span className="block text-[11px] text-gray-500 sm:text-xs">
+                      {eligibilityFeedbackCopy.automatedResultLabel}:{" "}
+                      {eligibilityRequirementStatusCopy[row.originalStatus]}
+                    </span>
+                  </span>
+                </label>
+                {selected ? (
+                  <div className="mt-2 pl-5">
+                    <label
+                      className="block text-[11px] font-medium text-gray-800 sm:text-xs"
+                      htmlFor={noteId}
+                    >
+                      {eligibilityFeedbackCopy.rowCommentLabel}
+                    </label>
+                    <textarea
+                      id={noteId}
+                      value={rowNotes[row.requirementId] ?? ""}
+                      onChange={(event) =>
+                        updateRowNote(row.requirementId, event.target.value)
+                      }
+                      rows={2}
+                      placeholder={eligibilityFeedbackCopy.rowCommentPlaceholder}
+                      className="mt-1 w-full rounded-md border border-gray-300 bg-white p-2 text-xs sm:text-sm"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       </fieldset>
-
-      <label className="mt-3 block text-[11px] font-medium text-gray-800 sm:text-xs" htmlFor="eligibility-feedback-reason">
-        {eligibilityFeedbackCopy.reasonLabel}
-      </label>
-      <textarea
-        id="eligibility-feedback-reason"
-        value={reason}
-        onChange={(event) => setReason(event.target.value.slice(0, 500))}
-        rows={3}
-        placeholder={eligibilityFeedbackCopy.reasonPlaceholder}
-        className="mt-1 w-full rounded-md border border-gray-300 bg-white p-2 text-xs sm:text-sm"
-      />
 
       <div className="mt-3 flex flex-wrap gap-2">
         <Button
@@ -161,7 +187,7 @@ export function EligibilityFeedbackForm({
                   requirementSourceText: row.requirementSourceText,
                   originalStatus: row.originalStatus,
                   overrideStatus: "unknown",
-                  reason: reason.trim() || undefined,
+                  reason: rowNotes[row.requirementId]?.trim() || undefined,
                   courseCode,
                   courseTitle,
                   modelId,
@@ -177,7 +203,9 @@ export function EligibilityFeedbackForm({
                 courseCode,
                 courseTitle,
                 flaggedRequirementIds: flaggedRows.map((row) => row.requirementId),
-                hasNote: reason.trim().length > 0,
+                hasNote: flaggedRows.some((row) =>
+                  Boolean(rowNotes[row.requirementId]?.trim()),
+                ),
                 reasonCodes: flaggedRows
                   .map((row) => row.reasonCode)
                   .filter((code): code is string => Boolean(code)),
@@ -196,7 +224,7 @@ export function EligibilityFeedbackForm({
           onClick={() => {
             setExpanded(false);
             setSelectedIds(new Set());
-            setReason("");
+            setRowNotes({});
           }}
         >
           {eligibilityFeedbackCopy.cancel}

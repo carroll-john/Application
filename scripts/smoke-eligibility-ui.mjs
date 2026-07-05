@@ -171,7 +171,7 @@ try {
 
   if (MODE === "safe") {
     const feedbackBtn = page
-      .getByRole("button", { name: "Doesn't match your transcript?" })
+      .getByRole("button", { name: "Doesn't match your documents?" })
       .first();
     if (await feedbackBtn.isVisible()) {
       await feedbackBtn.click();
