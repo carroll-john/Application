@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildAuthCallbackUrl,
   buildPasswordRecoveryCallbackUrl,
@@ -14,6 +14,7 @@ import {
   resolveAuthRedirectPath,
   sanitizeRedirectPath,
   shouldTreatSessionAsPasswordRecovery,
+  verifyRecoveryTokenHash,
   withoutAuthErrorParams,
   withoutPasswordRecoveryQuery,
   withoutRecoveryTokenHashParams,
@@ -113,6 +114,30 @@ describe("parseRecoveryTokenHashFromUrl", () => {
         "https://application-prototype.vercel.app/auth/callback?redirect=%2Fdashboard",
       ),
     ).toBeNull();
+  });
+});
+
+describe("verifyRecoveryTokenHash", () => {
+  it("calls verifyOtp with recovery token_hash", async () => {
+    const verifyOtp = vi.fn().mockResolvedValue({ error: null });
+    const client = { auth: { verifyOtp } };
+
+    await verifyRecoveryTokenHash(client, "abc123");
+
+    expect(verifyOtp).toHaveBeenCalledWith({
+      token_hash: "abc123",
+      type: "recovery",
+    });
+  });
+
+  it("returns verifyOtp errors", async () => {
+    const error = { message: "Email link is invalid or has expired" };
+    const verifyOtp = vi.fn().mockResolvedValue({ error });
+    const client = { auth: { verifyOtp } };
+
+    const result = await verifyRecoveryTokenHash(client, "abc123");
+
+    expect(result.error).toEqual(error);
   });
 });
 
