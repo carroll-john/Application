@@ -15,7 +15,7 @@ function createAuthMock() {
   return {
     signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
     signUp: vi.fn().mockResolvedValue({
-      data: { user: { identities: [{ provider: "email" }] } },
+      data: { user: { id: "test-user-id", identities: [{ provider: "email" }] } },
       error: null,
     }),
     resetPasswordForEmail: vi.fn().mockResolvedValue({ error: null }),
@@ -44,7 +44,11 @@ describe("authPassword", () => {
         emailRedirectTo:
           "https://application-prototype.vercel.app/auth/callback?redirect=%2F",
       }),
-    ).resolves.toEqual({ error: null, outcome: "confirmation_sent" });
+    ).resolves.toEqual({
+      error: null,
+      outcome: "confirmation_sent",
+      userId: "test-user-id",
+    });
     expect(auth.signUp).toHaveBeenCalledWith({
       email: "user@example.com",
       password: "secret123",
@@ -161,7 +165,11 @@ describe("authPassword", () => {
       signUpWithPassword(auth, "user@example.com", "secret123", {
         checkLeakedPassword,
       }),
-    ).resolves.toEqual({ error: null, outcome: "confirmation_sent" });
+    ).resolves.toEqual({
+      error: null,
+      outcome: "confirmation_sent",
+      userId: "test-user-id",
+    });
     expect(auth.signUp).toHaveBeenCalled();
   });
 
@@ -173,7 +181,11 @@ describe("authPassword", () => {
       signUpWithPassword(auth, "user@example.com", "secret123", {
         checkLeakedPassword,
       }),
-    ).resolves.toEqual({ error: null, outcome: "confirmation_sent" });
+    ).resolves.toEqual({
+      error: null,
+      outcome: "confirmation_sent",
+      userId: "test-user-id",
+    });
     expect(auth.signUp).toHaveBeenCalled();
   });
 
