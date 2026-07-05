@@ -56,6 +56,7 @@ Every client-side event, kept in sync with `src/lib/analytics/events.ts` by
 | `auth_password_reset_completed` | Auth |
 | `application_cv_saved` | Record updates |
 | `application_cv_removed` | Record updates |
+| `application_eligibility_feedback_saved` | Record updates |
 | `application_employment_experience_saved` | Record updates |
 | `application_employment_experience_removed` | Record updates |
 | `application_language_test_saved` | Record updates |
@@ -224,6 +225,7 @@ These all include application context such as course, application id/number, sta
 | --- |
 | `application_cv_saved` |
 | `application_cv_removed` |
+| `application_eligibility_feedback_saved` |
 | `application_employment_experience_saved` |
 | `application_employment_experience_removed` |
 | `application_tertiary_qualification_saved` |
