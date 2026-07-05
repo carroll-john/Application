@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Button } from "../../components/ui/button";
 import {
+  buildAssessmentCheckEvidenceRows,
   buildTranscriptReviewSummary,
   dedupeProgramEvidenceRowsByHeading,
   type ProgramEvidenceRow,
@@ -219,7 +220,14 @@ export function SupportingEvidencePanel({
     );
   }
 
-  const dedupedRows = dedupeProgramEvidenceRowsByHeading(ungroupedRows);
+  // Courses without published matcher requirements are evaluated by the legacy deterministic
+  // engine, whose checks match no catalog requirement — render the assessment's own checks so
+  // passing evidence still shows as met cards (and unresolved checks still prompt for action).
+  const sourceRows =
+    ungroupedRows.length === 0 && assessment
+      ? buildAssessmentCheckEvidenceRows(assessment)
+      : ungroupedRows;
+  const dedupedRows = dedupeProgramEvidenceRowsByHeading(sourceRows);
   const metRows = dedupedRows.filter((row) => row.status === "met");
   const reviewRows = dedupedRows.filter(
     (row) => !row.isBlocking && row.status === "needs_review" && row.requirementStatus,
@@ -243,7 +251,7 @@ export function SupportingEvidencePanel({
   const transcriptReviewSummary = assessment
     ? buildTranscriptReviewSummary(dedupedRows)
     : undefined;
-  const hasAcademicThresholdRequirement = ungroupedRows.some(
+  const hasAcademicThresholdRequirement = sourceRows.some(
     (row) => row.kindLabel === requirementKindLabel("academic_threshold"),
   );
   const assessmentEvidenceRows = assessment

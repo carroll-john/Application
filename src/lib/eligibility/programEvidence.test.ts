@@ -8,7 +8,9 @@ import type {
 import { initialApplicationData } from "../applicationData";
 import type { CourseCatalogEntry } from "../courseCatalog";
 import type { UploadedDocument } from "../documentStorage";
+import { normalizeTranscriptEligibilityAssessment } from "./normalize";
 import {
+  buildAssessmentCheckEvidenceRows,
   buildProgramEvidenceRows,
   buildTranscriptReviewSummary,
   dedupeProgramEvidenceRowsByHeading,
@@ -290,6 +292,122 @@ describe("groupTranscriptVerifiableEvidenceRows", () => {
     expect(grouped).toHaveLength(1);
     expect(grouped[0]).toMatchObject({ heading: "Academic transcript" });
     expect(grouped[0].explanationItems).toContain("Your English language proficiency");
+  });
+});
+
+describe("buildAssessmentCheckEvidenceRows", () => {
+  function assessmentWithChecks(checks: unknown[]) {
+    return normalizeTranscriptEligibilityAssessment({
+      checkedAt: "2026-07-04T00:00:00Z",
+      outcome: "insufficient_data",
+      requirementsChecked: checks,
+      rulesVersion: "v1+deterministic-v1",
+    });
+  }
+
+  it("renders passing deterministic checks as met rows so evidence shows green", () => {
+    const rows = buildAssessmentCheckEvidenceRows(
+      assessmentWithChecks([
+        {
+          id: "deterministic-completion",
+          requirement: "Completed qualification requirement",
+          status: "pass",
+          reasonCode: "QUALIFICATION_COMPLETE",
+          explanation: "Qualification appears completed based on supplied evidence.",
+        },
+        {
+          id: "deterministic-english-proficiency",
+          requirement: "English language proficiency",
+          status: "pass",
+          reasonCode: "ENGLISH_OK_COUNTRY",
+          details: { observed: "Australia" },
+          explanation: "English satisfied by Australian study.",
+        },
+      ]),
+    );
+
+    expect(rows).toHaveLength(2);
+    expect(rows.every((row) => row.status === "met" && !row.isBlocking)).toBe(true);
+    expect(rows[0]).toMatchObject({
+      heading: "Completed qualification requirement",
+      requirementId: "deterministic-completion",
+      requirementStatus: "pass",
+      statusLabel: "Met",
+    });
+    // reasonCode copy, not the free-text explanation
+    expect(rows[1].explanation).toBe(
+      "English language proficiency is satisfied by study in Australia.",
+    );
+
+    const summary = buildTranscriptReviewSummary(rows);
+    expect(summary.headerTone).toBe("success");
+    expect(summary.manualReviewNeeded).toBe(false);
+  });
+
+  it("turns unknown checks into blocking rows that prompt a qualification review", () => {
+    const rows = buildAssessmentCheckEvidenceRows(
+      assessmentWithChecks([
+        {
+          id: "deterministic-wam-gpa-threshold",
+          requirement: "Minimum WAM threshold (60)",
+          status: "unknown",
+          reasonCode: "ACADEMIC_EVIDENCE_MISSING",
+          explanation: "No WAM or GPA found.",
+        },
+      ]),
+    );
+
+    expect(rows[0]).toMatchObject({
+      actionLabel: "Review qualification",
+      actionPath: "/section2/add-tertiary?from=review",
+      isBlocking: true,
+      status: "needs_details",
+    });
+
+    const summary = buildTranscriptReviewSummary(rows);
+    expect(summary.headerTone).toBe("warning");
+    expect(summary.missingItems).toEqual(["Minimum WAM threshold (60) — Add details"]);
+  });
+
+  it("keeps service outages and failed checks non-blocking for manual review", () => {
+    const rows = buildAssessmentCheckEvidenceRows(
+      assessmentWithChecks([
+        {
+          id: "service-availability",
+          requirement: "Automated transcript eligibility evaluation availability",
+          status: "unknown",
+          reasonCode: "SERVICE_UNAVAILABLE",
+          explanation: "External evaluation service response was unavailable.",
+        },
+        {
+          id: "deterministic-completion",
+          requirement: "Completed qualification requirement",
+          status: "fail",
+          reasonCode: "QUALIFICATION_INCOMPLETE",
+          explanation: "Qualification appears incomplete.",
+        },
+      ]),
+    );
+
+    expect(rows.every((row) => row.status === "needs_review" && !row.isBlocking)).toBe(true);
+    expect(buildTranscriptReviewSummary(rows).manualReviewNeeded).toBe(true);
+  });
+
+  it("labels the deterministic WAM/GPA check as an academic threshold kind", () => {
+    const rows = buildAssessmentCheckEvidenceRows(
+      assessmentWithChecks([
+        {
+          id: "deterministic-wam-gpa-threshold",
+          requirement: "Minimum WAM threshold (60)",
+          status: "pass",
+          reasonCode: "WAM_MET",
+          explanation: "WAM meets minimum.",
+        },
+      ]),
+    );
+
+    // The panel suppresses the duplicate extracted "Academic result" row on this label.
+    expect(rows[0].kindLabel).toBe("Academic results threshold");
   });
 });
 
