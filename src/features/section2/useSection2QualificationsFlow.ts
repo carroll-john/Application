@@ -148,11 +148,6 @@ export function useSection2QualificationsFlow({
       evidenceSectionKey: section,
       outstandingPromptCount: evidencePlan.remainingPromptCount,
     });
-
-    setStatusMessage({
-      type: "status",
-      message: "Section skipped. You can always come back to add information later.",
-    });
   }
 
   function handleUnskipSection(section: keyof SectionState) {
