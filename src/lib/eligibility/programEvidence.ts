@@ -508,6 +508,72 @@ export function getBlockingProgramEvidenceRows(options: {
   return buildProgramEvidenceRows(options).filter((row) => row.isBlocking);
 }
 
+/**
+ * Kind labels for the legacy deterministic engine's synthetic check ids, so check-derived rows
+ * participate in the same kind-based rules as catalog rows (e.g. suppressing the extracted
+ * "Academic result from transcript" row when a WAM/GPA threshold card is present).
+ */
+const deterministicCheckKindLabels: Record<string, string> = {
+  "deterministic-completion": requirementKindLabel("qualification_completed"),
+  "deterministic-english-proficiency": requirementKindLabel("english_proficiency"),
+  "deterministic-qualification-level": requirementKindLabel("qualification_level"),
+  "deterministic-wam-gpa-threshold": requirementKindLabel("academic_threshold"),
+};
+
+/**
+ * Display rows for courses with no published matcher-safe requirements. Those courses are
+ * evaluated by the legacy deterministic engine, whose checks carry synthetic ids
+ * (`deterministic-*`) that match no catalog requirement instance — so `buildProgramEvidenceRows`
+ * returns nothing for them and passing evidence would otherwise render no "Met" cards at all.
+ * Build rows straight from the assessment's own checks instead, mirroring `statusFromCheck`'s
+ * status mapping.
+ */
+export function buildAssessmentCheckEvidenceRows(
+  assessment: TranscriptEligibilityAssessment,
+): ProgramEvidenceRow[] {
+  return assessment.requirementsChecked.map((check): ProgramEvidenceRow => {
+    const base = {
+      explanation: requirementCheckDisplayCopy(check),
+      heading: check.requirement,
+      id: check.id,
+      kindLabel: deterministicCheckKindLabels[check.id] ?? "",
+      reasonCode: check.reasonCode,
+      requirementId: check.id,
+      requirementStatus: check.status,
+      sourceText: check.requirement,
+    };
+
+    if (check.status === "pass") {
+      return {
+        ...base,
+        isBlocking: false,
+        status: "met",
+        statusLabel: programEvidenceStatusCopy.met,
+      };
+    }
+
+    // A service outage isn't something the applicant can fix by editing their qualification;
+    // it falls through to the non-blocking manual-review row below.
+    if (check.status === "unknown" && check.reasonCode !== "SERVICE_UNAVAILABLE") {
+      return {
+        ...base,
+        actionLabel: "Review qualification",
+        actionPath: tertiaryPath,
+        isBlocking: true,
+        status: "needs_details",
+        statusLabel: programEvidenceStatusCopy.needs_details,
+      };
+    }
+
+    return {
+      ...base,
+      isBlocking: false,
+      status: "needs_review",
+      statusLabel: programEvidenceStatusCopy.needs_review,
+    };
+  });
+}
+
 export interface TranscriptReviewSummary {
   headerLine: string;
   headerTone: "success" | "warning";
