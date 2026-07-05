@@ -22,6 +22,7 @@ import {
 } from "./lib/posthog";
 import { isSentryEnabled } from "./lib/sentry";
 import { lazyWithRetry } from "./lib/routeChunkRecovery";
+import { Section2QualificationsRouteFallback } from "./features/section2/Section2QualificationsRouteFallback";
 import RouteErrorBoundary from "./pages/RouteErrorBoundary";
 
 const ApplicationSubmitted = lazyWithRetry(
@@ -92,6 +93,12 @@ const Section2Qualifications = lazyWithRetry(
 );
 
 function RouteLoadingScreen() {
+  const location = useLocation();
+
+  if (location.pathname === "/section2/qualifications") {
+    return <Section2QualificationsRouteFallback />;
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#f7f7f4] px-4">
       <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm">
