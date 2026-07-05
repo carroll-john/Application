@@ -48,7 +48,7 @@ export const tertiaryTranscriptParseCopy = {
   draftHubEmpty:
     "We saved your transcript and reviewed program evidence, but couldn't draft a qualification from it. Complete the details manually.",
   draftHubSuccess:
-    "We saved a qualification drafted from your transcript. Review the details below and add any missing program evidence.",
+    "We saved a qualification drafted from your transcript. Review the details below and update any missing or incorrect information.",
   eligibilityTitle: "Reviewing program evidence from your transcript...",
   eligibilityDetail: "This can take a little longer for larger files.",
   parsingTitle: "Reading your transcript and drafting your qualification...",
@@ -222,11 +222,8 @@ export function buildTertiaryTranscriptFlashMessage(options: {
   }
 
   if (draftedFieldCount > 0) {
-    const eligibilityNote = assessment
-      ? ` Evidence review: ${assessment.outcome.replace(/_/g, " ")}.`
-      : "";
     return {
-      message: `${tertiaryTranscriptParseCopy.draftHubSuccess}${eligibilityNote}`,
+      message: tertiaryTranscriptParseCopy.draftHubSuccess,
       type: "success" as const,
     };
   }
@@ -251,9 +248,8 @@ export function buildTertiaryTranscriptFlashMessage(options: {
       };
     }
 
-    const eligibilityNote = ` Evidence review: ${assessment.outcome.replace(/_/g, " ")}.`;
     return {
-      message: `${tertiaryTranscriptParseCopy.draftHubSuccess}${eligibilityNote}`,
+      message: tertiaryTranscriptParseCopy.draftHubSuccess,
       type: "success" as const,
     };
   }

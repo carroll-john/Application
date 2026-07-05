@@ -246,19 +246,30 @@ export function SupportingEvidencePanel({
           requirementSourceText: row.sourceText,
         }))
     : [];
-  // All summary surfaces derive from the same rows that render the cards, so the header,
-  // missing-information bullets, next step, and manual-review line can never contradict them.
+  // Manual-review flag derives from the same evidence rows that render the cards.
   const transcriptReviewSummary = assessment
     ? buildTranscriptReviewSummary(dedupedRows)
     : undefined;
   const hasAcademicThresholdRequirement = sourceRows.some(
     (row) => row.kindLabel === requirementKindLabel("academic_threshold"),
   );
+  const hasQualificationCompletionRequirement = sourceRows.some(
+    (row) => row.kindLabel === requirementKindLabel("qualification_completed"),
+  );
   const assessmentEvidenceRows = assessment
-    ? buildAssessmentEvidenceRows(assessment).filter(
-        (row) => !(hasAcademicThresholdRequirement && row.id === "academic-result"),
-      )
+    ? buildAssessmentEvidenceRows(assessment).filter((row) => {
+        if (hasAcademicThresholdRequirement && row.id === "academic-result") {
+          return false;
+        }
+        if (hasQualificationCompletionRequirement && row.id === "completion-status") {
+          return false;
+        }
+        return true;
+      })
     : [];
+
+  const transcriptMissingItems =
+    assessment?.missingInformation.filter((item) => item.trim().length > 0) ?? [];
 
   const summary = plan.isEvidenceReady
     ? "Evidence ready"
@@ -279,28 +290,11 @@ export function SupportingEvidencePanel({
         </h2>
         <p className={`text-xs font-semibold sm:text-sm ${summaryTone}`}>{summary}</p>
       </div>
-      {transcriptReviewSummary ? (
-        <p
-          className={`mt-1 text-xs font-medium sm:text-sm ${
-            transcriptReviewSummary.headerTone === "success"
-              ? "text-[var(--success-text)]"
-              : "text-[var(--warning-text)]"
-          }`}
-        >
-          {transcriptReviewSummary.headerLine}
-        </p>
-      ) : null}
       {showParsedTranscriptIntro ? (
-        <>
-          <p className="mt-2 text-xs text-gray-700 sm:text-sm">
-            Based on your uploaded transcript, we&apos;ve reviewed your eligibility
-            {courseTitle ? ` for ${courseTitle}` : ""}.
-          </p>
-          <p className="mt-2 text-xs text-gray-700 sm:text-sm">
-            Review the qualification we drafted and correct anything that doesn&apos;t
-            look right.
-          </p>
-        </>
+        <p className="mt-2 text-xs text-gray-700 sm:text-sm">
+          Based on your uploaded transcript, we&apos;ve reviewed your eligibility
+          {courseTitle ? ` for ${courseTitle}` : ""}.
+        </p>
       ) : null}
       {programEvidenceAdvisoryCopy.map((paragraph) => (
         <p key={paragraph} className="mt-2 text-xs text-gray-600 sm:text-sm">
@@ -344,6 +338,20 @@ export function SupportingEvidencePanel({
             />
           ))}
         </ul>
+      ) : null}
+      {assessment && feedbackRows.length > 0 ? (
+        <div className="mt-3" aria-label="Transcript feedback">
+          <EligibilityFeedbackForm
+            courseCode={courseCode}
+            courseTitle={courseTitle}
+            modelId={assessment.modelId}
+            promptVersion={assessment.promptVersion}
+            rows={feedbackRows}
+            rulesVersion={assessment.rulesVersion}
+            schemaVersion={assessment.schemaVersion}
+            serviceVersion={assessment.serviceVersion}
+          />
+        </div>
       ) : null}
       {!isProcessing && prompt ? (
         <div
@@ -428,36 +436,17 @@ export function SupportingEvidencePanel({
           </ul>
         </div>
       ) : null}
-      {assessment && feedbackRows.length > 0 ? (
-        <div className="mt-3" aria-label="Transcript feedback">
-          <EligibilityFeedbackForm
-            courseCode={courseCode}
-            courseTitle={courseTitle}
-            modelId={assessment.modelId}
-            promptVersion={assessment.promptVersion}
-            rows={feedbackRows}
-            rulesVersion={assessment.rulesVersion}
-            schemaVersion={assessment.schemaVersion}
-            serviceVersion={assessment.serviceVersion}
-          />
-        </div>
-      ) : null}
-      {transcriptReviewSummary && transcriptReviewSummary.missingItems.length > 0 ? (
+      {transcriptMissingItems.length > 0 ? (
         <div className="mt-3 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3">
           <p className="text-xs font-semibold text-[var(--warning-text)] sm:text-sm">
             Missing or unclear information
           </p>
           <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-[var(--warning-text)] sm:text-sm">
-            {transcriptReviewSummary.missingItems.map((item) => (
+            {transcriptMissingItems.map((item) => (
               <li key={item}>{item}</li>
             ))}
           </ul>
         </div>
-      ) : null}
-      {transcriptReviewSummary?.nextStep ? (
-        <p className="mt-3 text-xs text-gray-700 sm:text-sm">
-          Recommended next step: {transcriptReviewSummary.nextStep}
-        </p>
       ) : null}
       {transcriptReviewSummary?.manualReviewNeeded ? (
         <p className="mt-2 text-xs font-medium text-[var(--warning-text)] sm:text-sm">
