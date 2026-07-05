@@ -2,12 +2,16 @@ import { describe, expect, it } from "vitest";
 import {
   buildAuthCallbackUrl,
   buildPasswordResetRedirectUrl,
+  clearAuthErrorFromUrl,
+  formatAuthUrlErrorMessage,
   hasPasswordRecoveryTokenInUrl,
   isPasswordRecoveryCallback,
   isPasswordRecoveryLanding,
+  parseAuthErrorFromUrl,
   resolveAuthRedirectPath,
   sanitizeRedirectPath,
   shouldTreatSessionAsPasswordRecovery,
+  withoutAuthErrorParams,
   withoutPasswordRecoveryQuery,
 } from "./authCallback";
 
@@ -211,5 +215,89 @@ describe("clearPasswordRecoveryQueryFromUrl", () => {
     ).toBe(
       "https://application-prototype.vercel.app/sign-in?redirect=%2Fdashboard",
     );
+  });
+});
+
+describe("parseAuthErrorFromUrl", () => {
+  it("detects auth errors in the URL hash", () => {
+    expect(
+      parseAuthErrorFromUrl(
+        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired&sb=",
+      ),
+    ).toEqual({
+      error: "access_denied",
+      errorCode: "otp_expired",
+      errorDescription: "Email link is invalid or has expired",
+    });
+  });
+
+  it("detects auth errors in the query string", () => {
+    expect(
+      parseAuthErrorFromUrl(
+        "https://application-prototype.vercel.app/sign-in?error=access_denied&error_code=otp_expired",
+      ),
+    ).toEqual({
+      error: "access_denied",
+      errorCode: "otp_expired",
+      errorDescription: null,
+    });
+  });
+
+  it("returns null when no auth error params are present", () => {
+    expect(
+      parseAuthErrorFromUrl(
+        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard",
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("formatAuthUrlErrorMessage", () => {
+  it("maps otp_expired to a reset-specific message", () => {
+    expect(
+      formatAuthUrlErrorMessage({
+        error: "access_denied",
+        errorCode: "otp_expired",
+        errorDescription: "Email link is invalid or has expired",
+      }),
+    ).toBe("This reset link has expired. Request a new one.");
+  });
+
+  it("falls back to the error description when code is unknown", () => {
+    expect(
+      formatAuthUrlErrorMessage({
+        error: "access_denied",
+        errorCode: "unexpected",
+        errorDescription: "Something went wrong",
+      }),
+    ).toBe("Something went wrong");
+  });
+});
+
+describe("withoutAuthErrorParams", () => {
+  it("strips auth error params from the hash and recovery landing flag", () => {
+    expect(
+      withoutAuthErrorParams(
+        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired&sb=",
+      ),
+    ).toBe(
+      "https://application-prototype.vercel.app/sign-in?redirect=%2Fdashboard",
+    );
+  });
+
+  it("preserves unrelated query params", () => {
+    expect(
+      withoutAuthErrorParams(
+        "https://application-prototype.vercel.app/sign-in?redirect=%2Fprofile&error=access_denied",
+      ),
+    ).toBe(
+      "https://application-prototype.vercel.app/sign-in?redirect=%2Fprofile",
+    );
+  });
+});
+
+describe("clearAuthErrorFromUrl", () => {
+  it("is exported for AuthPanel URL cleanup", () => {
+    expect(typeof clearAuthErrorFromUrl).toBe("function");
   });
 });

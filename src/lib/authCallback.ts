@@ -135,3 +135,114 @@ export function buildPasswordResetRedirectUrl(
 
   return `${base}/sign-in?${params.toString()}`;
 }
+
+export type AuthUrlError = {
+  error: string | null;
+  errorCode: string | null;
+  errorDescription: string | null;
+};
+
+const AUTH_ERROR_PARAM_KEYS = [
+  "error",
+  "error_code",
+  "error_description",
+  "sb",
+] as const;
+
+function readAuthErrorParams(
+  params: URLSearchParams,
+): AuthUrlError | null {
+  const error = params.get("error");
+  const errorCode = params.get("error_code");
+  const errorDescription = params.get("error_description");
+
+  if (!error && !errorCode && !errorDescription) {
+    return null;
+  }
+
+  return { error, errorCode, errorDescription };
+}
+
+/** Supabase auth failures arrive in the URL hash or query after a bad/expired link. */
+export function parseAuthErrorFromUrl(
+  href: string = typeof window !== "undefined" ? window.location.href : "",
+): AuthUrlError | null {
+  if (!href) {
+    return null;
+  }
+
+  try {
+    const url = new URL(href);
+    const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+    const fromHash = readAuthErrorParams(hashParams);
+
+    if (fromHash) {
+      return fromHash;
+    }
+
+    return readAuthErrorParams(url.searchParams);
+  } catch {
+    return null;
+  }
+}
+
+export function formatAuthUrlErrorMessage(authError: AuthUrlError): string {
+  const code = authError.errorCode?.toLowerCase();
+
+  switch (code) {
+    case "otp_expired":
+      return "This reset link has expired. Request a new one.";
+    case "otp_disabled":
+      return "This sign-in link is no longer valid. Request a new one.";
+    default: {
+      const description = authError.errorDescription
+        ?.replace(/\+/g, " ")
+        .trim();
+
+      if (description) {
+        return description;
+      }
+
+      return "This link is invalid or has expired. Request a new one.";
+    }
+  }
+}
+
+export function withoutAuthErrorParams(href: string) {
+  const url = new URL(href);
+
+  for (const key of AUTH_ERROR_PARAM_KEYS) {
+    url.searchParams.delete(key);
+  }
+
+  const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
+
+  for (const key of AUTH_ERROR_PARAM_KEYS) {
+    hashParams.delete(key);
+  }
+
+  const nextHash = hashParams.toString();
+  url.hash = nextHash ? `#${nextHash}` : "";
+
+  if (url.searchParams.get("recovery") === "1") {
+    url.searchParams.delete("recovery");
+  }
+
+  const nextSearch = url.searchParams.toString();
+
+  return `${url.origin}${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
+}
+
+export function clearAuthErrorFromUrl() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const nextUrl = withoutAuthErrorParams(window.location.href);
+
+  if (nextUrl === window.location.href) {
+    return;
+  }
+
+  window.history.replaceState(window.history.state, "", nextUrl);
+}
