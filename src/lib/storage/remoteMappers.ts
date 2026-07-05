@@ -32,8 +32,6 @@ export type RemoteApplicationRow = Pick<
   | "created_at"
   | "cv_document_id"
   | "cv_file_name"
-  | "eligibility_feedback_document_id"
-  | "eligibility_feedback_file_name"
   | "id"
   | "intake_label"
   | "personal_details"
@@ -47,6 +45,7 @@ export type RemoteApplicationDocumentRow = Pick<
   | "created_at"
   | "file_name"
   | "id"
+  | "kind"
   | "mime_type"
   | "size_bytes"
   | "storage_bucket"
@@ -205,6 +204,17 @@ export function mapRemoteDocument(
     storageBucket: document.storage_bucket,
     storagePath: document.storage_path,
   };
+}
+
+export function findEligibilityFeedbackDocument(
+  documents: readonly RemoteApplicationDocumentRow[],
+): UploadedDocument | undefined {
+  const feedbackDocuments = documents
+    .filter((document) => document.kind === "eligibility_feedback")
+    .sort((left, right) => right.created_at.localeCompare(left.created_at));
+
+  const latest = feedbackDocuments[0];
+  return latest ? mapRemoteDocument(latest) : undefined;
 }
 
 export function mapEmploymentRow(experience: EmploymentRow): EmploymentExperience {
