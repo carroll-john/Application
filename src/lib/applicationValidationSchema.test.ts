@@ -13,7 +13,11 @@ import {
   isSubmissionReady,
   isTertiaryQualificationSubmissionReady,
 } from "./applicationValidationSchema";
-import { getTertiaryQualificationSubmissionMissingFields } from "./validation/rules/section2";
+import {
+  getEmploymentExperienceSubmissionMissingFields,
+  getTertiaryQualificationSubmissionMissingFields,
+  isEmploymentExperienceSubmissionReady,
+} from "./validation/rules/section2";
 
 function makeCompletionAssessment(): TranscriptEligibilityAssessment {
   return {
@@ -211,6 +215,25 @@ describe("applicationValidationSchema", () => {
         }),
       ]),
     );
+  });
+
+  it("flags employment rows missing details drafted from a CV", () => {
+    const cvEmployment = makeEmploymentExperience({
+      company: "Who Gives a Crap",
+      position: "Director of Product",
+      type: "",
+      duties: "",
+      startMonth: "",
+      startYear: "",
+      endMonth: "",
+      endYear: "",
+      currentRole: true,
+    });
+
+    expect(getEmploymentExperienceSubmissionMissingFields(cvEmployment)).toEqual(
+      expect.arrayContaining(["Employment type", "Start date", "Key duties"]),
+    );
+    expect(isEmploymentExperienceSubmissionReady(cvEmployment)).toBe(false);
   });
 
   it("requires family background branches that are still unanswered", () => {

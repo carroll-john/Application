@@ -106,6 +106,64 @@ export function isEmploymentExperienceChronologyValid(
   );
 }
 
+interface EmploymentFieldRule {
+  field: string;
+  isMissing: (experience: EmploymentExperience) => boolean;
+}
+
+const employmentFieldRules: EmploymentFieldRule[] = [
+  {
+    field: "Company/Organization",
+    isMissing: (experience) => !experience.company.trim(),
+  },
+  {
+    field: "Position/Role",
+    isMissing: (experience) => !experience.position.trim(),
+  },
+  {
+    field: "Employment type",
+    isMissing: (experience) => !experience.type,
+  },
+  {
+    field: "Start date",
+    isMissing: (experience) => !experience.startMonth || !experience.startYear,
+  },
+  {
+    field: "End date",
+    isMissing: (experience) =>
+      !experience.currentRole && (!experience.endMonth || !experience.endYear),
+  },
+  {
+    field: "Start date must be before or the same as end date",
+    isMissing: (experience) =>
+      !experience.currentRole &&
+      isMonthYearRangeOutOfOrder(
+        experience.startMonth,
+        experience.startYear,
+        experience.endMonth,
+        experience.endYear,
+      ),
+  },
+  {
+    field: "Key duties",
+    isMissing: (experience) => !experience.duties.trim(),
+  },
+];
+
+export function getEmploymentExperienceSubmissionMissingFields(
+  experience: EmploymentExperience,
+) {
+  return employmentFieldRules
+    .filter((rule) => rule.isMissing(experience))
+    .map((rule) => rule.field);
+}
+
+export function isEmploymentExperienceSubmissionReady(
+  experience: EmploymentExperience,
+) {
+  return getEmploymentExperienceSubmissionMissingFields(experience).length === 0;
+}
+
 export function getSection2RequirementRules(data: ApplicationData): ValidationRule[] {
   return getSection2SubmissionMissingFields(getSection2RequirementInput(data)).map(
     (field) => ({
@@ -171,17 +229,13 @@ export function getTertiaryQualificationRules(data: ApplicationData): Validation
 
 export function getEmploymentChronologyRules(data: ApplicationData): ValidationRule[] {
   return data.employmentExperiences.flatMap((experience, index) =>
-    isEmploymentExperienceChronologyValid(experience)
-      ? []
-      : [
-          {
-            section: SECTION_2,
-            subsection: "Employment experience",
-            field: `Employment ${index + 1}: Start date must be before or the same as end date`,
-            path: `/section2/edit-employment/${experience.id}?from=review`,
-            targets: ["submissionReady"],
-            isMissing: () => true,
-          },
-        ],
+    getEmploymentExperienceSubmissionMissingFields(experience).map((field) => ({
+      section: SECTION_2,
+      subsection: "Employment experience",
+      field: `Employment ${index + 1}: ${field}`,
+      path: `/section2/edit-employment/${experience.id}?from=review`,
+      targets: ["submissionReady"],
+      isMissing: () => true,
+    })),
   );
 }

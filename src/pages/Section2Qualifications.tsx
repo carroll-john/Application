@@ -20,7 +20,6 @@ import {
   useSection2QualificationsFlow,
 } from "../features/section2";
 import {
-  buildAssessmentEvidenceSummary,
   getLatestTranscriptAssessment,
   SupportingEvidencePanel,
 } from "../features/section2/SupportingEvidencePanel";
@@ -33,8 +32,8 @@ import {
   dedupeProgramEvidenceRowsByHeading,
   groupTranscriptVerifiableEvidenceRows,
 } from "../lib/eligibility/programEvidence";
-import { eligibilityOutcomeCopy } from "../lib/eligibility/uiCopy";
 import { getSection2EditPath, getSection2Step } from "../lib/section2Steps";
+import { getEmploymentExperienceSubmissionMissingFields } from "../lib/validation/rules/section2";
 
 const addMoreSections: Array<{
   key: Section2EvidenceSectionKey;
@@ -168,41 +167,36 @@ export default function Section2Qualifications() {
       />
 
       {showSection("tertiary") ? (
-        <QualificationsSectionCard
-          actionRoute={section2AddPath("tertiary")}
-          description="Add your university degrees and diplomas"
-          emptyMessage="No qualifications added yet"
-          icon={
-            <GraduationCap className="h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />
-          }
-          items={data.tertiaryQualifications}
-          onSkip={() => handleSkipSection("tertiary")}
-          renderItem={(qualification) => (
-            <QualificationsListItem
-              key={qualification.id}
-              subtitle={
-                qualification.transcriptEligibility
-                  ? `${qualification.institution || "Institution pending"} · ${eligibilityOutcomeCopy[qualification.transcriptEligibility.outcome]}${buildAssessmentEvidenceSummary(
-                      qualification.transcriptEligibility,
-                    )
-                      ? ` · ${buildAssessmentEvidenceSummary(qualification.transcriptEligibility)}`
-                      : ""}`
-                  : qualification.institution || "Complete qualification details"
-              }
-              title={qualification.courseName || "Tertiary Qualification"}
-              attachments={[
-                qualification.transcriptDocumentName,
-                qualification.certificateDocumentName,
-              ].filter(Boolean) as string[]}
-              onDelete={() => removeTertiaryQualification(qualification.id)}
-              onEdit={() =>
-                navigate(`${getSection2EditPath("tertiary", qualification.id)}${reviewSuffix}`)
-              }
-            />
-          )}
-          status={sectionStates.tertiary}
-          title="Tertiary Qualifications"
-        />
+        <div className="mb-6 sm:mb-8">
+          <QualificationsSectionCard
+            actionRoute={section2AddPath("tertiary")}
+            description="Add your university degrees and diplomas"
+            emptyMessage="No qualifications added yet"
+            icon={
+              <GraduationCap className="h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />
+            }
+            items={data.tertiaryQualifications}
+            onSkip={() => handleSkipSection("tertiary")}
+            renderItem={(qualification) => (
+              <QualificationsListItem
+                key={qualification.id}
+                subtitle={qualification.institution || "Institution pending"}
+                title={qualification.courseName || "Tertiary Qualification"}
+                attachments={[
+                  qualification.transcriptDocumentName,
+                  qualification.certificateDocumentName,
+                ].filter(Boolean) as string[]}
+                onDelete={() => removeTertiaryQualification(qualification.id)}
+                onEdit={() =>
+                  navigate(`${getSection2EditPath("tertiary", qualification.id)}${reviewSuffix}`)
+                }
+              />
+            )}
+            showAddAction={false}
+            status={sectionStates.tertiary}
+            title="Tertiary Qualifications"
+          />
+        </div>
       ) : null}
 
       {!isHeroState ? (
@@ -242,26 +236,40 @@ export default function Section2Qualifications() {
         {showSection("employment") ? (
           <QualificationsSectionCard
             actionRoute={section2AddPath("employment")}
-            description="Add your work history and experience"
+            description={
+              sectionStates.employment === "needsAttention"
+                ? "One or more roles below need details before this section is complete."
+                : "Add your work history and experience"
+            }
             emptyMessage="No employment experience added yet"
             icon={
               <Briefcase className="h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />
             }
             items={data.employmentExperiences}
             onSkip={() => handleSkipSection("employment")}
-            renderItem={(experience) => (
-              <QualificationsListItem
-                key={experience.id}
-                subtitle={experience.company}
-                title={experience.position || "Position"}
-                onDelete={() => removeEmploymentExperience(experience.id)}
-                onEdit={() =>
-                  navigate(
-                    `${getSection2EditPath("employment", experience.id)}${reviewSuffix}`,
-                  )
-                }
-              />
-            )}
+            renderItem={(experience) => {
+              const missingFields =
+                getEmploymentExperienceSubmissionMissingFields(experience);
+
+              return (
+                <QualificationsListItem
+                  key={experience.id}
+                  attentionMessage={
+                    missingFields.length > 0
+                      ? `Missing: ${missingFields.join(", ")}`
+                      : undefined
+                  }
+                  subtitle={experience.company}
+                  title={experience.position || "Position"}
+                  onDelete={() => removeEmploymentExperience(experience.id)}
+                  onEdit={() =>
+                    navigate(
+                      `${getSection2EditPath("employment", experience.id)}${reviewSuffix}`,
+                    )
+                  }
+                />
+              );
+            }}
             status={sectionStates.employment}
             title="Employment Experience"
           />

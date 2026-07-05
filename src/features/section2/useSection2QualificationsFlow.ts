@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { ApplicationData } from "../../lib/applicationData";
 import {
-  isEmploymentExperienceChronologyValid,
+  isEmploymentExperienceSubmissionReady,
   isTertiaryQualificationSubmissionReady,
 } from "../../lib/applicationValidationSchema";
 import type { ProgramEvidenceRow } from "../../lib/eligibility/programEvidence";
@@ -49,7 +49,7 @@ export function useSection2QualificationsFlow({
     isTertiaryQualificationSubmissionReady,
   );
   const employmentRequirementsMet = data.employmentExperiences.every(
-    isEmploymentExperienceChronologyValid,
+    isEmploymentExperienceSubmissionReady,
   );
 
   useEffect(() => {
@@ -147,11 +147,6 @@ export function useSection2QualificationsFlow({
       application: data,
       evidenceSectionKey: section,
       outstandingPromptCount: evidencePlan.remainingPromptCount,
-    });
-
-    setStatusMessage({
-      type: "status",
-      message: "Section skipped. You can always come back to add information later.",
     });
   }
 
