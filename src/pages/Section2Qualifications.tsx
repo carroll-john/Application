@@ -11,7 +11,6 @@ import { StatusMessage } from "../components/StatusMessage";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
 import {
-  QualificationsAttachment,
   QualificationsListItem,
   QualificationsSectionCard,
   Section2EvidenceNextStepPanel,
@@ -53,6 +52,7 @@ export default function Section2Qualifications() {
   const { fromReview, previousLabel, returnPath, reviewSuffix } = useReviewReturn();
   const {
     data,
+    removeCV,
     removeEmploymentExperience,
     removeLanguageTest,
     removeProfessionalAccreditation,
@@ -170,7 +170,6 @@ export default function Section2Qualifications() {
         <div className="mb-6 sm:mb-8">
           <QualificationsSectionCard
             actionRoute={section2AddPath("tertiary")}
-            description="Add your university degrees and diplomas"
             emptyMessage="No qualifications added yet"
             icon={
               <GraduationCap className="h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />
@@ -212,8 +211,6 @@ export default function Section2Qualifications() {
         {showSection("cv") ? (
           <QualificationsSectionCard
             actionRoute={section2AddPath("cv")}
-            actionText={data.cvUploaded ? "Replace" : "Add"}
-            description="Add your current CV or resume"
             emptyMessage="No CV uploaded yet"
             icon={
               <FileText className="h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />
@@ -221,13 +218,14 @@ export default function Section2Qualifications() {
             items={data.cvUploaded ? [{ id: "cv", name: data.cvFileName ?? "" }] : []}
             onSkip={() => handleSkipSection("cv")}
             renderItem={(item) => (
-              <div
+              <QualificationsListItem
                 key={item.id}
-                className="rounded border border-gray-200 bg-white p-3 sm:p-4"
-              >
-                <QualificationsAttachment fileName={item.name} />
-              </div>
+                attachment={item.name}
+                onDelete={() => void removeCV()}
+                onEdit={() => navigate(section2AddPath("cv"))}
+              />
             )}
+            showAddAction={false}
             status={sectionStates.cv}
             title="Curriculum Vitae (CV)"
           />
@@ -239,7 +237,7 @@ export default function Section2Qualifications() {
             description={
               sectionStates.employment === "needsAttention"
                 ? "One or more roles below need details before this section is complete."
-                : "Add your work history and experience"
+                : undefined
             }
             emptyMessage="No employment experience added yet"
             icon={
@@ -270,6 +268,7 @@ export default function Section2Qualifications() {
                 />
               );
             }}
+            showAddAction={false}
             status={sectionStates.employment}
             title="Employment Experience"
           />
