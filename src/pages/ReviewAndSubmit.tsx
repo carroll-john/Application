@@ -11,39 +11,6 @@ import {
   useSubmitApplication,
 } from "../features/review";
 import { useApplication } from "../context/ApplicationContext";
-import type { TranscriptEligibilityAssessment } from "../lib/eligibility/types";
-import { eligibilityAdvisoryCopy, eligibilityOutcomeCopy } from "../lib/eligibility/uiCopy";
-
-function buildEvidenceSummary(assessment: TranscriptEligibilityAssessment) {
-  const wam =
-    assessment.extractedData.academicPerformance?.gradeAverageOrWam?.normalizedValue ??
-    assessment.extractedData.academicPerformance?.gradeAverageOrWam?.originalValue;
-  const gpa =
-    assessment.extractedData.academicPerformance?.gpa?.normalizedValue ??
-    assessment.extractedData.academicPerformance?.gpa?.originalValue;
-  const gpaScale =
-    assessment.extractedData.academicPerformance?.gpaScale?.normalizedValue ??
-    assessment.extractedData.academicPerformance?.gpaScale?.originalValue;
-  const completion =
-    assessment.extractedData.studyDetails?.completionStatus?.normalizedValue ??
-    assessment.extractedData.studyDetails?.completionStatus?.originalValue;
-
-  const parts = [
-    completion ? `Completion: ${completion}` : null,
-    wam ? `WAM: ${wam}` : null,
-    gpa ? `GPA: ${gpa}${gpaScale ? `/${gpaScale}` : ""}` : null,
-  ].filter(Boolean);
-
-  return parts.join(" · ");
-}
-
-function getLatestEligibility(assessments: TranscriptEligibilityAssessment[]) {
-  const available = assessments.filter(Boolean);
-  if (available.length === 0) {
-    return undefined;
-  }
-  return [...available].sort((a, b) => b.checkedAt.localeCompare(a.checkedAt))[0];
-}
 
 export default function ReviewAndSubmit() {
   const navigate = useNavigate();
@@ -58,10 +25,6 @@ export default function ReviewAndSubmit() {
   } = useSubmitApplication();
   const { navigateToReviewEdit } = useReviewNavigation(validationErrors);
   const prefilledFrom = data.applicationMeta.prefilledFrom;
-  const transcriptEligibilitySnapshots = data.tertiaryQualifications
-    .map((qualification) => qualification.transcriptEligibility)
-    .filter((assessment): assessment is NonNullable<typeof assessment> => Boolean(assessment));
-  const latestEligibility = getLatestEligibility(transcriptEligibilitySnapshots);
 
   return (
     <>
@@ -91,28 +54,6 @@ export default function ReviewAndSubmit() {
             </div>
           ) : null}
         </div>
-
-        {latestEligibility ? (
-          <div className="mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4">
-            <p className="text-sm font-semibold text-gray-900">
-              Transcript eligibility: {eligibilityOutcomeCopy[latestEligibility.outcome]}
-            </p>
-            {buildEvidenceSummary(latestEligibility) ? (
-              <p className="mt-1 text-xs text-gray-700">
-                Evidence: {buildEvidenceSummary(latestEligibility)}
-              </p>
-            ) : null}
-            <p className="mt-1 text-xs text-gray-600">{eligibilityAdvisoryCopy}</p>
-            <p className="mt-1 text-xs text-gray-700">
-              Recommended next step: {latestEligibility.recommendedNextStep}
-            </p>
-            {latestEligibility.manualReviewRequired ? (
-              <p className="mt-1 text-xs font-medium text-[var(--warning-text)]">
-                Manual admissions review is still required.
-              </p>
-            ) : null}
-          </div>
-        ) : null}
 
         {validationErrors.length > 0 ? (
           <ReviewValidationPanel
