@@ -9,7 +9,7 @@ import {
 import type { Session, User } from "@supabase/supabase-js";
 import {
   buildAuthCallbackUrl,
-  buildPasswordResetRedirectUrl,
+  buildPasswordRecoveryCallbackUrl,
   clearPasswordRecoveryQueryFromUrl,
   hasPasswordRecoveryTokenInUrl,
   shouldTreatSessionAsPasswordRecovery,
@@ -213,7 +213,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const redirectTo =
           typeof window !== "undefined"
-            ? buildPasswordResetRedirectUrl(
+            ? buildPasswordRecoveryCallbackUrl(
                 window.location.origin,
                 options?.redirectPath,
               )

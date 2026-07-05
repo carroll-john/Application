@@ -136,6 +136,46 @@ export function buildPasswordResetRedirectUrl(
   return `${base}/sign-in?${params.toString()}`;
 }
 
+/** resetPasswordForEmail redirectTo — lands on /auth/callback for token_hash verifyOtp. */
+export function buildPasswordRecoveryCallbackUrl(
+  origin: string,
+  redirectPath?: string | null,
+) {
+  return buildAuthCallbackUrl(origin, sanitizeRedirectPath(redirectPath));
+}
+
+export function parseRecoveryTokenHashFromUrl(
+  href: string = typeof window !== "undefined" ? window.location.href : "",
+) {
+  if (!href) {
+    return null;
+  }
+
+  try {
+    const url = new URL(href);
+    const tokenHash = url.searchParams.get("token_hash");
+
+    if (!tokenHash || url.searchParams.get("type") !== "recovery") {
+      return null;
+    }
+
+    return { tokenHash };
+  } catch {
+    return null;
+  }
+}
+
+export function withoutRecoveryTokenHashParams(href: string) {
+  const url = new URL(href);
+
+  url.searchParams.delete("token_hash");
+  url.searchParams.delete("type");
+
+  const nextSearch = url.searchParams.toString();
+
+  return `${url.origin}${url.pathname}${nextSearch ? `?${nextSearch}` : ""}${url.hash}`;
+}
+
 export type AuthUrlError = {
   error: string | null;
   errorCode: string | null;
@@ -191,7 +231,7 @@ export function formatAuthUrlErrorMessage(authError: AuthUrlError): string {
 
   switch (code) {
     case "otp_expired":
-      return "This reset link has expired. Request a new one.";
+      return "This reset link has expired or was already used. Corporate email security (for example Microsoft Safe Links) can consume reset links before you open them — request a new one and click it promptly, or try a personal email address.";
     case "otp_disabled":
       return "This sign-in link is no longer valid. Request a new one.";
     default: {
