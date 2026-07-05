@@ -4,6 +4,7 @@ export { documentRemovalCopy } from "./documentRemovalCopy";
 export { CvUploadFields } from "./CvUploadFields";
 export { saveSection2DocumentRecord } from "./section2DocumentSave";
 export { Section2FormCard } from "./Section2FormCard";
+export { Section2QualificationsLoadingState } from "./Section2QualificationsLoadingState";
 export { Section2QualificationsPage } from "./Section2QualificationsPage";
 export { Section2RecordPage } from "./Section2RecordPage";
 export { Section2SaveProgressPanel } from "./Section2SaveProgressPanel";
