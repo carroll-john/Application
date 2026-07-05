@@ -35,6 +35,9 @@ export const supabase: SupabaseClient<Database> | null = isSupabaseConfigured
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        // Defer URL session detection until AuthContext subscribes to
+        // onAuthStateChange so PASSWORD_RECOVERY is not missed on reset links.
+        skipAutoInitialize: true,
       },
       // DIS-142: retry transient network failures (e.g. "Failed to fetch")
       // with exponential back-off before the error surfaces to the UI. Only

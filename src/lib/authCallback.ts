@@ -62,6 +62,32 @@ export function hasPasswordRecoveryTokenInUrl(
   }
 }
 
+/** Landing marker from resetPasswordForEmail redirectTo — not recovery on its own. */
+export function isPasswordRecoveryLanding(
+  href: string = typeof window !== "undefined" ? window.location.href : "",
+) {
+  if (!href) {
+    return false;
+  }
+
+  try {
+    return new URL(href).searchParams.get("recovery") === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function shouldTreatSessionAsPasswordRecovery(
+  session: { user: unknown } | null,
+  href: string = typeof window !== "undefined" ? window.location.href : "",
+) {
+  if (hasPasswordRecoveryTokenInUrl(href)) {
+    return true;
+  }
+
+  return Boolean(session) && isPasswordRecoveryLanding(href);
+}
+
 /** @deprecated Use hasPasswordRecoveryTokenInUrl for auth-state decisions. */
 export function isPasswordRecoveryCallback(
   href: string = typeof window !== "undefined" ? window.location.href : "",

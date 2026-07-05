@@ -4,8 +4,10 @@ import {
   buildPasswordResetRedirectUrl,
   hasPasswordRecoveryTokenInUrl,
   isPasswordRecoveryCallback,
+  isPasswordRecoveryLanding,
   resolveAuthRedirectPath,
   sanitizeRedirectPath,
+  shouldTreatSessionAsPasswordRecovery,
   withoutPasswordRecoveryQuery,
 } from "./authCallback";
 
@@ -126,6 +128,64 @@ describe("hasPasswordRecoveryTokenInUrl", () => {
   it("returns false for normal sign-in URLs", () => {
     expect(
       hasPasswordRecoveryTokenInUrl(
+        "https://application-prototype.vercel.app/sign-in?redirect=%2Fprofile",
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("isPasswordRecoveryLanding", () => {
+  it("detects the recovery landing query flag", () => {
+    expect(
+      isPasswordRecoveryLanding(
+        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard",
+      ),
+    ).toBe(true);
+  });
+
+  it("returns false without the recovery landing flag", () => {
+    expect(
+      isPasswordRecoveryLanding(
+        "https://application-prototype.vercel.app/sign-in?redirect=%2Fdashboard",
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("shouldTreatSessionAsPasswordRecovery", () => {
+  const session = { user: { id: "user-1" } };
+
+  it("treats recovery tokens in the URL as active recovery", () => {
+    expect(
+      shouldTreatSessionAsPasswordRecovery(
+        null,
+        "https://application-prototype.vercel.app/sign-in#access_token=abc&type=recovery",
+      ),
+    ).toBe(true);
+  });
+
+  it("treats recovery landing plus session as active recovery", () => {
+    expect(
+      shouldTreatSessionAsPasswordRecovery(
+        session,
+        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard",
+      ),
+    ).toBe(true);
+  });
+
+  it("ignores recovery landing without a session", () => {
+    expect(
+      shouldTreatSessionAsPasswordRecovery(
+        null,
+        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard",
+      ),
+    ).toBe(false);
+  });
+
+  it("ignores normal authenticated sign-in URLs", () => {
+    expect(
+      shouldTreatSessionAsPasswordRecovery(
+        session,
         "https://application-prototype.vercel.app/sign-in?redirect=%2Fprofile",
       ),
     ).toBe(false);

@@ -91,6 +91,8 @@ VITE_ANALYTICS_HASH_SALT=replace_with_private_salt
 VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 VITE_POSTHOG_KEY=your_posthog_project_key
 VITE_POSTHOG_HOST=https://eu.i.posthog.com
+POSTHOG_PROJECT_API_KEY=your_posthog_project_key
+POSTHOG_HOST=https://eu.i.posthog.com
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 VITE_REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION=30
@@ -135,6 +137,9 @@ Current workspace values:
 - source map upload during build requires `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`
 - PostHog runs with manual event capture only (`autocapture: false`) and uses hashed analytics user IDs.
 - PostHog session replay is disabled by default and only started on the public catalog routes (`/`, `/courses/:code`); it is stopped on all authenticated/PII routes and masks all inputs and text while active.
+- **Client PostHog** uses `VITE_POSTHOG_KEY` / `VITE_POSTHOG_HOST` (inlined into the browser bundle at build time).
+- **Server PostHog** (`posthog-node` in `/api/*`) reads `POSTHOG_PROJECT_API_KEY` and `POSTHOG_HOST` at **runtime** via `api/_shared/posthogServerClient.ts`. Set both on Production and Preview in Vercel — use the same project key as `VITE_POSTHOG_KEY`. Without `POSTHOG_PROJECT_API_KEY`, server routes such as `/api/capture-auth-sign-up-succeeded` and `/api/capture-eligibility-feedback` return `{ ok: true }` but **do not send events** (capture is skipped silently).
+- `auth_sign_up_succeeded` is captured server-side after sign-up (`/api/capture-auth-sign-up-succeeded`). To exercise it locally, use **`vercel dev`** — plain `npm run dev` does not proxy that route (only transcript eligibility and suggest are proxied in `vite.config.ts`).
 - keep the publishable key only in local env and Vercel envs, not in checked-in docs
 
 ## Address auto-suggest (Google Places)
