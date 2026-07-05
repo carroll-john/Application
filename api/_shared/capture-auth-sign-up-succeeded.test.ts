@@ -9,7 +9,7 @@ const PostHogMock = vi.hoisted(() =>
 
 vi.mock("posthog-node", () => ({ PostHog: PostHogMock }));
 
-import signUpRoute from "./capture-auth-sign-up-succeeded";
+import signUpRoute from "../capture-auth-sign-up-succeeded";
 
 beforeEach(() => {
   captureImmediate.mockReset();
