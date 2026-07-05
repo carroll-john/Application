@@ -138,25 +138,65 @@ function classifyQualification(value: string | undefined): number | undefined {
   return undefined;
 }
 
-function updateOutcomeFromChecks(
-  requiredChecks: EligibilityRequirementCheck[],
-  currentOutcome: unknown,
-): "eligible" | "conditionally_eligible" | "ineligible" | "insufficient_data" {
-  if (requiredChecks.some((check) => check.status === "fail")) {
-    return "ineligible" as const;
+type DeterministicOutcome =
+  | "eligible"
+  | "conditionally_eligible"
+  | "ineligible"
+  | "insufficient_data";
+
+/** Structured checks the upstream service supplied in its own payload, defensively extracted. */
+function readUpstreamChecks(assessment: Record<string, unknown>) {
+  if (!Array.isArray(assessment.requirementsChecked)) {
+    return [];
   }
-  if (requiredChecks.some((check) => check.status === "unknown")) {
-    return "insufficient_data" as const;
+  return assessment.requirementsChecked.filter(
+    (entry): entry is { status: string } =>
+      Boolean(entry) &&
+      typeof entry === "object" &&
+      typeof (entry as Record<string, unknown>).status === "string",
+  );
+}
+
+/**
+ * Reconciles the upstream service's holistic verdict with the structured checks. The deterministic
+ * rules only cover generic requirements (completion, level, WAM/GPA, English), so for multi-pathway
+ * fallback courses the service's outcome carries signal the rules cannot compute and is preserved —
+ * but only while it doesn't contradict the checks:
+ *
+ *   - any failed check (upstream or deterministic) is definitive → ineligible
+ *   - an unknown deterministic check means the transcript left a generic rule unresolved →
+ *     insufficient_data
+ *   - "insufficient_data" alongside all-passing checks is a contradiction (nothing is missing per
+ *     the structured evidence; LLM verdicts have been observed inventing it) → eligible
+ *   - otherwise the upstream verdict passes through; absent/invalid verdicts become eligible
+ */
+function resolveOutcome(
+  deterministicChecks: EligibilityRequirementCheck[],
+  upstreamChecks: ReadonlyArray<{ status: string }>,
+  upstreamOutcome: unknown,
+): DeterministicOutcome {
+  const combined = [...upstreamChecks, ...deterministicChecks];
+  if (combined.some((check) => check.status === "fail")) {
+    return "ineligible";
+  }
+  if (deterministicChecks.some((check) => check.status === "unknown")) {
+    return "insufficient_data";
   }
   if (
-    currentOutcome === "eligible" ||
-    currentOutcome === "conditionally_eligible" ||
-    currentOutcome === "ineligible" ||
-    currentOutcome === "insufficient_data"
+    upstreamOutcome === "eligible" ||
+    upstreamOutcome === "conditionally_eligible" ||
+    upstreamOutcome === "ineligible" ||
+    upstreamOutcome === "insufficient_data"
   ) {
-    return currentOutcome;
+    if (
+      upstreamOutcome === "insufficient_data" &&
+      combined.every((check) => check.status === "pass")
+    ) {
+      return "eligible";
+    }
+    return upstreamOutcome;
   }
-  return "eligible" as const;
+  return "eligible";
 }
 
 export function applyDeterministicEligibilityRules(
@@ -354,12 +394,13 @@ export function applyDeterministicEligibilityRules(
   }
 
   const deterministicChecks = checks.filter((item) => item.id.startsWith("deterministic-"));
-  let outcome = updateOutcomeFromChecks(deterministicChecks, assessment.outcome);
+  const upstreamChecks = readUpstreamChecks(assessment);
+  const outcome = resolveOutcome(deterministicChecks, upstreamChecks, assessment.outcome);
   const needsManualReview = deterministicChecks.some((item) => item.status === "unknown");
-
-  if (outcome === "eligible" && needsManualReview) {
-    outcome = "conditionally_eligible";
-  }
+  // When the upstream "insufficient_data" verdict was overridden as contradictory, its
+  // manualReviewRequired flag is part of the same invented verdict and is discarded with it.
+  const upstreamVerdictOverridden =
+    assessment.outcome === "insufficient_data" && outcome === "eligible";
 
   // Applicant-facing bullets derive purely from unknown checks (reasonCode copy), so they can
   // never mention a requirement that passed.
@@ -379,7 +420,8 @@ export function applyDeterministicEligibilityRules(
   assessment.requirementsChecked = checks;
   assessment.outcome = outcome;
   assessment.manualReviewRequired =
-    needsManualReview || Boolean(assessment.manualReviewRequired);
+    needsManualReview ||
+    (!upstreamVerdictOverridden && Boolean(assessment.manualReviewRequired));
   assessment.missingInformation = Array.from(new Set(missingInformation));
   assessment.rulesVersion =
     typeof assessment.rulesVersion === "string" && assessment.rulesVersion.trim()
