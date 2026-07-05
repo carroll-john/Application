@@ -50,6 +50,15 @@ export function hasPasswordRecoveryTokenInUrl(
 
   try {
     const url = new URL(href);
+
+    // token_hash links must be verified on /auth/callback (verifyOtp) first.
+    if (
+      url.searchParams.get("token_hash") &&
+      url.searchParams.get("type") === "recovery"
+    ) {
+      return false;
+    }
+
     const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
 
     if (hashParams.get("type") === "recovery") {
@@ -142,6 +151,40 @@ export function buildPasswordRecoveryCallbackUrl(
   redirectPath?: string | null,
 ) {
   return buildAuthCallbackUrl(origin, sanitizeRedirectPath(redirectPath));
+}
+
+/** When a reset email lands on the wrong route, send it through /auth/callback. */
+export function buildRecoveryCallbackRedirectFromUrl(
+  href: string = typeof window !== "undefined" ? window.location.href : "",
+) {
+  const token = parseRecoveryTokenHashFromUrl(href);
+
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const url = new URL(href);
+    const pathname = url.pathname.replace(/\/$/, "");
+
+    if (pathname.endsWith("/auth/callback")) {
+      return null;
+    }
+
+    const params = new URLSearchParams();
+    const redirect = url.searchParams.get("redirect");
+
+    if (redirect) {
+      params.set("redirect", sanitizeRedirectPath(redirect));
+    }
+
+    params.set("token_hash", token.tokenHash);
+    params.set("type", "recovery");
+
+    return `/auth/callback?${params.toString()}`;
+  } catch {
+    return null;
+  }
 }
 
 export function parseRecoveryTokenHashFromUrl(
