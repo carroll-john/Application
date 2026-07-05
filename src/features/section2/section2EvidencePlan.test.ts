@@ -210,7 +210,8 @@ describe("buildSection2EvidencePlan in requirements mode", () => {
       skippedSections: noSkips,
     });
     expect(openPlan.suggestion?.sectionKey).toBe("employment");
-    expect(openPlan.visibleSections.has("employment")).toBe(true);
+    expect(openPlan.visibleSections.has("employment")).toBe(false);
+    expect(openPlan.visibleSections.has("tertiary")).toBe(true);
   });
 });
 
@@ -274,7 +275,7 @@ describe("buildSection2EvidencePlan in generic mode", () => {
 });
 
 describe("visibleSections", () => {
-  it("shows every section with data plus the next prompt", () => {
+  it("shows only sections that already have uploaded data", () => {
     const plan = buildSection2EvidencePlan({
       data: application({
         employmentExperiences: [employmentExperience()],
@@ -293,9 +294,8 @@ describe("visibleSections", () => {
       skippedSections: noSkips,
     });
 
-    expect([...plan.visibleSections].sort()).toEqual(
-      ["employment", "languageTest", "tertiary"].sort(),
-    );
+    expect([...plan.visibleSections].sort()).toEqual(["employment", "tertiary"]);
+    expect(plan.visibleSections.has("languageTest")).toBe(false);
     expect(plan.visibleSections.has("accreditation")).toBe(false);
     expect(plan.hasAnyEvidence).toBe(true);
   });

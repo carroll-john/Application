@@ -194,12 +194,6 @@ export function buildSection2EvidencePlan(options: {
       visibleSections.add(key);
     }
   }
-  if (nextPrompt) {
-    visibleSections.add(nextPrompt.sectionKey);
-  }
-  if (suggestion) {
-    visibleSections.add(suggestion.sectionKey);
-  }
 
   return {
     hasAnyEvidence,

@@ -102,7 +102,9 @@ export default function Section2Qualifications() {
   const showSection = (key: Section2EvidenceSectionKey) =>
     !isHeroState && evidencePlan.visibleSections.has(key);
   const hiddenAddMoreSections = addMoreSections.filter(
-    (section) => !evidencePlan.visibleSections.has(section.key),
+    (section) =>
+      !evidencePlan.visibleSections.has(section.key) &&
+      evidencePlan.nextPrompt?.sectionKey !== section.key,
   );
 
   function section2AddPath(key: Parameters<typeof getSection2Step>[0]) {
