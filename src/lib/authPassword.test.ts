@@ -205,12 +205,12 @@ describe("authPassword", () => {
     await expect(
       requestPasswordReset(auth, "user@example.com", {
         redirectTo:
-          "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fprofile",
+          "https://application-prototype.vercel.app/auth/callback?redirect=%2Fprofile",
       }),
     ).resolves.toEqual({ error: null });
     expect(auth.resetPasswordForEmail).toHaveBeenCalledWith("user@example.com", {
       redirectTo:
-        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fprofile",
+        "https://application-prototype.vercel.app/auth/callback?redirect=%2Fprofile",
     });
   });
 

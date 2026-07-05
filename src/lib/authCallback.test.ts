@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAuthCallbackUrl,
+  buildPasswordRecoveryCallbackUrl,
   buildPasswordResetRedirectUrl,
   clearAuthErrorFromUrl,
   formatAuthUrlErrorMessage,
@@ -8,11 +9,13 @@ import {
   isPasswordRecoveryCallback,
   isPasswordRecoveryLanding,
   parseAuthErrorFromUrl,
+  parseRecoveryTokenHashFromUrl,
   resolveAuthRedirectPath,
   sanitizeRedirectPath,
   shouldTreatSessionAsPasswordRecovery,
   withoutAuthErrorParams,
   withoutPasswordRecoveryQuery,
+  withoutRecoveryTokenHashParams,
 } from "./authCallback";
 
 describe("sanitizeRedirectPath", () => {
@@ -77,6 +80,49 @@ describe("buildAuthCallbackUrl", () => {
       ),
     ).toBe(
       "https://application-prototype.vercel.app/auth/callback?redirect=%2Fcourses%2FMBA%3Fapply%3D1",
+    );
+  });
+});
+
+describe("buildPasswordRecoveryCallbackUrl", () => {
+  it("builds an auth callback URL for password recovery emails", () => {
+    expect(
+      buildPasswordRecoveryCallbackUrl(
+        "https://application-prototype.vercel.app",
+        "/dashboard",
+      ),
+    ).toBe(
+      "https://application-prototype.vercel.app/auth/callback?redirect=%2Fdashboard",
+    );
+  });
+});
+
+describe("parseRecoveryTokenHashFromUrl", () => {
+  it("detects recovery token_hash query params", () => {
+    expect(
+      parseRecoveryTokenHashFromUrl(
+        "https://application-prototype.vercel.app/auth/callback?redirect=%2Fdashboard&token_hash=abc123&type=recovery",
+      ),
+    ).toEqual({ tokenHash: "abc123" });
+  });
+
+  it("returns null without token_hash or recovery type", () => {
+    expect(
+      parseRecoveryTokenHashFromUrl(
+        "https://application-prototype.vercel.app/auth/callback?redirect=%2Fdashboard",
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("withoutRecoveryTokenHashParams", () => {
+  it("strips token_hash and type from the callback URL", () => {
+    expect(
+      withoutRecoveryTokenHashParams(
+        "https://application-prototype.vercel.app/auth/callback?redirect=%2Fdashboard&token_hash=abc123&type=recovery",
+      ),
+    ).toBe(
+      "https://application-prototype.vercel.app/auth/callback?redirect=%2Fdashboard",
     );
   });
 });
@@ -260,7 +306,7 @@ describe("formatAuthUrlErrorMessage", () => {
         errorCode: "otp_expired",
         errorDescription: "Email link is invalid or has expired",
       }),
-    ).toBe("This reset link has expired. Request a new one.");
+    ).toContain("This reset link has expired or was already used.");
   });
 
   it("falls back to the error description when code is unknown", () => {
