@@ -51,12 +51,11 @@ export function hasPasswordRecoveryTokenInUrl(
   try {
     const url = new URL(href);
 
-    // token_hash links must be verified on /auth/callback (verifyOtp) first.
     if (
       url.searchParams.get("token_hash") &&
       url.searchParams.get("type") === "recovery"
     ) {
-      return false;
+      return true;
     }
 
     const hashParams = new URLSearchParams(url.hash.replace(/^#/, ""));
@@ -167,7 +166,7 @@ export function buildRecoveryCallbackRedirectFromUrl(
     const url = new URL(href);
     const pathname = url.pathname.replace(/\/$/, "");
 
-    if (pathname.endsWith("/auth/callback")) {
+    if (pathname.endsWith("/auth/callback") || pathname.endsWith("/sign-in")) {
       return null;
     }
 
@@ -196,7 +195,10 @@ type RecoveryOtpClient = {
   };
 };
 
-/** POST verifyOtp — must run only after explicit user action (Safe Links runs JS). */
+/**
+ * POST verifyOtp for token_hash recovery links. Call on password-form submit,
+ * not on page load — Microsoft Safe Links may execute JS but does not submit forms.
+ */
 export async function verifyRecoveryTokenHash(
   client: RecoveryOtpClient,
   tokenHash: string,

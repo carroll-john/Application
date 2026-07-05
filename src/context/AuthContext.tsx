@@ -12,7 +12,10 @@ import {
   buildPasswordRecoveryCallbackUrl,
   clearPasswordRecoveryQueryFromUrl,
   hasPasswordRecoveryTokenInUrl,
+  parseRecoveryTokenHashFromUrl,
   shouldTreatSessionAsPasswordRecovery,
+  verifyRecoveryTokenHash,
+  withoutRecoveryTokenHashParams,
 } from "../lib/authCallback";
 import {
   normalizeAuthEmail,
@@ -229,6 +232,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return {
             error: "Authentication is not configured on this deployment.",
           };
+        }
+
+        const pendingToken =
+          typeof window !== "undefined"
+            ? parseRecoveryTokenHashFromUrl()
+            : null;
+
+        if (pendingToken) {
+          const { error: verifyError } = await verifyRecoveryTokenHash(
+            supabase,
+            pendingToken.tokenHash,
+          );
+
+          if (verifyError) {
+            return {
+              error:
+                verifyError.message ||
+                "This reset link has expired or was already used.",
+            };
+          }
+
+          if (typeof window !== "undefined") {
+            const nextUrl = withoutRecoveryTokenHashParams(
+              window.location.href,
+            );
+
+            if (nextUrl !== window.location.href) {
+              window.history.replaceState(window.history.state, "", nextUrl);
+            }
+          }
         }
 
         const { error } = await updatePasswordAfterRecoveryRequest(

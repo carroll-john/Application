@@ -97,7 +97,7 @@ The repo recovery template [`supabase/templates/recovery.html`](../supabase/temp
 <a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=recovery">Reset password</a>
 ```
 
-`resetPasswordForEmail` passes `redirectTo` as `/auth/callback?redirect=…`. [`AuthCallback.tsx`](../src/pages/AuthCallback.tsx) shows a **Continue to reset password** button first; only after the user clicks does it call `verifyOtp({ token_hash, type: 'recovery' })` (POST). Safe Links may prefetch the landing page and even execute JavaScript — auto-calling `verifyOtp` on mount consumed tokens before the user clicked (2026-07-05 evidence: Azure IP `4.199.143.157` POST `/verify` 200, then user IP 403).
+`resetPasswordForEmail` passes `redirectTo` as `/auth/callback?redirect=…`. [`AuthCallback.tsx`](../src/pages/AuthCallback.tsx) forwards the user straight to the **Choose new password** form on `/sign-in`. `verifyOtp({ token_hash, type: 'recovery' })` runs only when they submit that form (POST). Safe Links may prefetch the landing page and execute JavaScript — auto-calling `verifyOtp` on mount consumed tokens before the user acted (2026-07-05 evidence: Azure IP `4.199.143.157` POST `/verify` 200, then user IP 403). Form submit is not triggered by link scanners.
 
 **Hosted dashboard — required after deploy:**
 
