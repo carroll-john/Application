@@ -7,6 +7,7 @@ export { Section2FormCard } from "./Section2FormCard";
 export { Section2QualificationsPage } from "./Section2QualificationsPage";
 export { Section2RecordPage } from "./Section2RecordPage";
 export { Section2SaveProgressPanel } from "./Section2SaveProgressPanel";
+export { Section2EvidenceNextStepPanel } from "./Section2EvidenceNextStepPanel";
 export {
   buildSection2EvidencePlan,
   getEvidenceSectionKeyForPath,
