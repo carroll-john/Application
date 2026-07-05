@@ -3,6 +3,7 @@ import {
   buildAuthCallbackUrl,
   buildPasswordRecoveryCallbackUrl,
   buildPasswordResetRedirectUrl,
+  buildRecoveryCallbackRedirectFromUrl,
   clearAuthErrorFromUrl,
   formatAuthUrlErrorMessage,
   hasPasswordRecoveryTokenInUrl,
@@ -115,6 +116,34 @@ describe("parseRecoveryTokenHashFromUrl", () => {
   });
 });
 
+describe("buildRecoveryCallbackRedirectFromUrl", () => {
+  it("redirects token_hash recovery links from sign-in to auth/callback", () => {
+    expect(
+      buildRecoveryCallbackRedirectFromUrl(
+        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard&token_hash=abc123&type=recovery",
+      ),
+    ).toBe(
+      "/auth/callback?redirect=%2Fdashboard&token_hash=abc123&type=recovery",
+    );
+  });
+
+  it("returns null when already on auth/callback", () => {
+    expect(
+      buildRecoveryCallbackRedirectFromUrl(
+        "https://application-prototype.vercel.app/auth/callback?redirect=%2Fdashboard&token_hash=abc123&type=recovery",
+      ),
+    ).toBeNull();
+  });
+
+  it("returns null without a recovery token_hash", () => {
+    expect(
+      buildRecoveryCallbackRedirectFromUrl(
+        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard",
+      ),
+    ).toBeNull();
+  });
+});
+
 describe("withoutRecoveryTokenHashParams", () => {
   it("strips token_hash and type from the callback URL", () => {
     expect(
@@ -167,6 +196,14 @@ describe("hasPasswordRecoveryTokenInUrl", () => {
     ).toBe(true);
   });
 
+  it("ignores unverified token_hash query params", () => {
+    expect(
+      hasPasswordRecoveryTokenInUrl(
+        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard&token_hash=abc123&type=recovery",
+      ),
+    ).toBe(false);
+  });
+
   it("ignores the recovery landing flag without a recovery token", () => {
     expect(
       hasPasswordRecoveryTokenInUrl(
@@ -212,6 +249,15 @@ describe("shouldTreatSessionAsPasswordRecovery", () => {
         "https://application-prototype.vercel.app/sign-in#access_token=abc&type=recovery",
       ),
     ).toBe(true);
+  });
+
+  it("ignores unverified token_hash links without a session", () => {
+    expect(
+      shouldTreatSessionAsPasswordRecovery(
+        null,
+        "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard&token_hash=abc123&type=recovery",
+      ),
+    ).toBe(false);
   });
 
   it("treats recovery landing plus session as active recovery", () => {
