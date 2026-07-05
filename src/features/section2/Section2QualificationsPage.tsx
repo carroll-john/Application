@@ -15,6 +15,7 @@ interface Section2QualificationsPageProps {
   previousLabel?: string;
   secondaryDisabled?: boolean;
   secondaryLabel?: string;
+  showActionBar?: boolean;
 }
 
 export function Section2QualificationsPage({
@@ -28,6 +29,7 @@ export function Section2QualificationsPage({
   previousLabel = "Previous",
   secondaryDisabled,
   secondaryLabel,
+  showActionBar = true,
 }: Section2QualificationsPageProps) {
   return (
     <ApplicationShell
@@ -41,6 +43,7 @@ export function Section2QualificationsPage({
       previousLabel={previousLabel}
       secondaryDisabled={secondaryDisabled}
       secondaryLabel={secondaryLabel}
+      showActionBar={showActionBar}
       progress={SECTION2_PROGRESS}
       sectionLabel={SECTION2_SECTION_LABEL}
       title="Your qualifications"
