@@ -12,6 +12,7 @@ import {
   buildPasswordResetRedirectUrl,
   clearPasswordRecoveryQueryFromUrl,
   hasPasswordRecoveryTokenInUrl,
+  shouldTreatSessionAsPasswordRecovery,
 } from "../lib/authCallback";
 import {
   normalizeAuthEmail,
@@ -91,36 +92,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let isActive = true;
 
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
-        if (isActive) {
-          setSession(data.session);
-          if (hasPasswordRecoveryTokenInUrl()) {
-            setIsPasswordRecovery(true);
-          }
-          setIsLoading(false);
-        }
-      })
-      .catch(() => {
-        if (isActive) {
-          setIsLoading(false);
-        }
-      });
-
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (!isActive) {
+        return;
+      }
+
       setSession(nextSession);
 
       if (event === "PASSWORD_RECOVERY") {
         setIsPasswordRecovery(true);
       } else if (event === "SIGNED_OUT") {
         setIsPasswordRecovery(false);
+      } else if (shouldTreatSessionAsPasswordRecovery(nextSession)) {
+        setIsPasswordRecovery(true);
       }
 
       setIsLoading(false);
     });
+
+    void (async () => {
+      try {
+        await supabase.auth.initialize();
+        if (!isActive) {
+          return;
+        }
+
+        const { data } = await supabase.auth.getSession();
+        if (!isActive) {
+          return;
+        }
+
+        setSession(data.session);
+        if (shouldTreatSessionAsPasswordRecovery(data.session)) {
+          setIsPasswordRecovery(true);
+        }
+      } catch {
+        // initialize/getSession failures fall through to signed-out UI.
+      } finally {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      }
+    })();
 
     return () => {
       isActive = false;
