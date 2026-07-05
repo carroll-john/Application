@@ -1,4 +1,6 @@
 export * from "./ReviewSections";
+export { ReviewLoadingState } from "./ReviewLoadingState";
+export { ReviewRouteFallback } from "./ReviewRouteFallback";
 export { ReviewDeclaration } from "./ReviewDeclaration";
 export { ReviewStepPage } from "./ReviewStepPage";
 export { ReviewSection1Summary } from "./ReviewSection1Summary";
