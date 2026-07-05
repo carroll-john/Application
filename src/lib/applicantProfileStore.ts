@@ -285,9 +285,11 @@ export async function ensureApplicantProfile(
 
   const localProfile = existingProfile ?? loadLocalApplicantProfile();
   const metadata = session.user.user_metadata;
+  // Signed-in profile email must match auth.users.email so application data
+  // cannot inherit a stale anonymous localStorage address after account switch.
   const email =
-    localProfile?.email?.trim().toLowerCase() ??
-    session.user.email?.trim().toLowerCase();
+    session.user.email?.trim().toLowerCase() ??
+    localProfile?.email?.trim().toLowerCase();
 
   if (!email) {
     return null;

@@ -206,6 +206,50 @@ describe("applicantProfileStore", () => {
     expect(upsertQuery?.calls.some((call) => call.method === "update")).toBe(false);
   });
 
+  it("uses the signed-in auth email instead of a stale local profile email", async () => {
+    saveLocalApplicantProfile({
+      email: "carroll_john@me.com",
+      firstName: "John",
+      lastName: "Carroll",
+    });
+
+    mockClient.tableResults.set("applicant_profiles", [
+      { data: null, error: null },
+      {
+        data: {
+          id: "661e8400-e29b-41d4-a716-446655440001",
+          email: "carroll_john+bot@me.com",
+          first_name: "John",
+          last_name: "Carroll",
+        },
+        error: null,
+      },
+    ]);
+
+    const aliasSession = {
+      user: {
+        id: "user-456",
+        email: "carroll_john+bot@me.com",
+      },
+    } as Session;
+
+    const profile = await ensureApplicantProfile(aliasSession);
+
+    expect(profile).toEqual({
+      id: "661e8400-e29b-41d4-a716-446655440001",
+      email: "carroll_john+bot@me.com",
+      firstName: "John",
+      lastName: "Carroll",
+    });
+
+    const upsertQuery = mockClient.fromCalls[1]?.query;
+    const upsertCall = upsertQuery?.calls.find((call) => call.method === "upsert");
+    expect(upsertCall?.args[0]).toMatchObject({
+      email: "carroll_john+bot@me.com",
+      owner_user_id: "user-456",
+    });
+  });
+
   it("recreates a remote profile when local storage only has a stale remote id", async () => {
     saveLocalApplicantProfile({
       email: "john.carroll@keypathedu.com.au",
