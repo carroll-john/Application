@@ -139,6 +139,8 @@ export interface ApplicationData {
   cvUploaded: boolean;
   cvDocument?: UploadedDocument;
   cvFileName?: string;
+  eligibilityFeedbackDocument?: UploadedDocument;
+  eligibilityFeedbackFileName?: string;
 }
 
 export const initialApplicationData: ApplicationData = {
@@ -317,6 +319,10 @@ export function mergeRemoteApplicationWithLocalDocuments(
     cvUploaded: remoteData.cvUploaded || localData.cvUploaded,
     cvDocument: remoteData.cvDocument ?? localData.cvDocument,
     cvFileName: remoteData.cvFileName ?? localData.cvFileName,
+    eligibilityFeedbackDocument:
+      remoteData.eligibilityFeedbackDocument ?? localData.eligibilityFeedbackDocument,
+    eligibilityFeedbackFileName:
+      remoteData.eligibilityFeedbackFileName ?? localData.eligibilityFeedbackFileName,
     tertiaryQualifications: remoteData.tertiaryQualifications.map((qualification) => {
       const localQualification = localTertiaryMap.get(qualification.id);
 

@@ -196,6 +196,20 @@ export function useApplicationData({
           }),
           "application_cv_removed",
         ),
+      saveEligibilityFeedback: (
+        document: NonNullable<ApplicationData["eligibilityFeedbackDocument"]>,
+      ) =>
+        updateDataWithEvent(
+          (current) => ({
+            ...current,
+            eligibilityFeedbackDocument: document,
+            eligibilityFeedbackFileName: document.name,
+          }),
+          "application_eligibility_feedback_saved",
+          () => ({
+            eligibility_feedback_file_name: document.name,
+          }),
+        ),
       replaceEmploymentExperiences: (experiences: EmploymentExperience[]) =>
         updateDataWithEvent(
           (current) => ({

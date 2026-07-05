@@ -54,6 +54,9 @@ interface ApplicationContextType {
   updatePersonalDetails: (updates: Partial<PersonalDetails>) => Promise<void>;
   uploadCV: (document: NonNullable<ApplicationData["cvDocument"]>) => Promise<void>;
   removeCV: () => Promise<void>;
+  saveEligibilityFeedback: (
+    document: NonNullable<ApplicationData["eligibilityFeedbackDocument"]>,
+  ) => Promise<void>;
   replaceEmploymentExperiences: (
     experiences: EmploymentExperience[],
   ) => Promise<void>;
@@ -165,6 +168,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       updatePersonalDetails: dataActions.updatePersonalDetails,
       uploadCV: dataActions.uploadCV,
       removeCV: dataActions.removeCV,
+      saveEligibilityFeedback: dataActions.saveEligibilityFeedback,
       replaceEmploymentExperiences: dataActions.replaceEmploymentExperiences,
       addEmploymentExperience: dataActions.addEmploymentExperience,
       updateEmploymentExperience: dataActions.updateEmploymentExperience,

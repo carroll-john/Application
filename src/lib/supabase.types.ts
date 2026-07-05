@@ -107,6 +107,8 @@ export type Database = {
           created_at: string
           cv_document_id: string | null
           cv_file_name: string | null
+          eligibility_feedback_document_id: string | null
+          eligibility_feedback_file_name: string | null
           english_proficiency_policy: Json | null
           id: string
           intake_label: string
@@ -126,6 +128,8 @@ export type Database = {
           created_at?: string
           cv_document_id?: string | null
           cv_file_name?: string | null
+          eligibility_feedback_document_id?: string | null
+          eligibility_feedback_file_name?: string | null
           english_proficiency_policy?: Json | null
           id?: string
           intake_label: string
@@ -145,6 +149,8 @@ export type Database = {
           created_at?: string
           cv_document_id?: string | null
           cv_file_name?: string | null
+          eligibility_feedback_document_id?: string | null
+          eligibility_feedback_file_name?: string | null
           english_proficiency_policy?: Json | null
           id?: string
           intake_label?: string
@@ -166,6 +172,13 @@ export type Database = {
           {
             foreignKeyName: "applications_cv_document_id_fkey"
             columns: ["cv_document_id"]
+            isOneToOne: false
+            referencedRelation: "application_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_eligibility_feedback_document_id_fkey"
+            columns: ["eligibility_feedback_document_id"]
             isOneToOne: false
             referencedRelation: "application_documents"
             referencedColumns: ["id"]
@@ -524,6 +537,7 @@ export type Database = {
         | "tertiary_certificate"
         | "accreditation_document"
         | "language_test_document"
+        | "eligibility_feedback"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -658,6 +672,7 @@ export const Constants = {
         "tertiary_certificate",
         "accreditation_document",
         "language_test_document",
+        "eligibility_feedback",
       ],
     },
   },

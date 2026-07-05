@@ -178,9 +178,9 @@ try {
       const feedbackForm = page.locator("fieldset").filter({ hasText: "What should this be?" }).first();
       await feedbackForm.getByRole("radio", { name: "Not met" }).click();
       await page.getByLabel("Add details (optional)").fill("Post-merge smoke override");
-      await page.getByRole("button", { name: "Send feedback" }).click();
+      await page.getByRole("button", { name: "Save feedback" }).click();
       await page
-        .getByText(/Thanks — we've noted your feedback for admissions review/)
+        .getByText(/Thanks — we've saved your feedback for admissions review/)
         .waitFor({ timeout: 15000 });
       console.log("OK override feedback submitted");
     }
