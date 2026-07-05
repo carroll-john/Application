@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { resolveAuthRedirectPath } from "../../lib/authCallback";
+import {
+  clearAuthErrorFromUrl,
+  formatAuthUrlErrorMessage,
+  parseAuthErrorFromUrl,
+  resolveAuthRedirectPath,
+} from "../../lib/authCallback";
 import {
   isValidEmailAddress,
   normalizeAuthEmail,
@@ -60,6 +65,18 @@ export function AuthPanel({
   const hasNotifiedAuthenticatedRef = useRef(false);
   const normalizedEmail = normalizeAuthEmail(email);
   const currentScreen: AuthScreen = isPasswordRecovery ? "new-password" : screen;
+
+  useEffect(() => {
+    const authError = parseAuthErrorFromUrl();
+
+    if (!authError) {
+      return;
+    }
+
+    setError(formatAuthUrlErrorMessage(authError));
+    setScreen("forgot-password");
+    clearAuthErrorFromUrl();
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || isPasswordRecovery || hasNotifiedAuthenticatedRef.current) {
