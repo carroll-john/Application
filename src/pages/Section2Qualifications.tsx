@@ -53,6 +53,7 @@ export default function Section2Qualifications() {
   const {
     data,
     ensureApplicationRow,
+    isHydrating,
     removeCV,
     removeEmploymentExperience,
     removeLanguageTest,
@@ -99,7 +100,10 @@ export default function Section2Qualifications() {
     });
   const showParsedTranscriptIntro = Boolean(latestTranscriptAssessment);
   const isHeroState =
-    !evidencePlan.hasAnyEvidence && !latestTranscriptAssessment && !evidencePlan.hasSkips;
+    !isHydrating &&
+    !evidencePlan.hasAnyEvidence &&
+    !latestTranscriptAssessment &&
+    !evidencePlan.hasSkips;
   const showSection = (key: Section2EvidenceSectionKey) =>
     !isHeroState && evidencePlan.visibleSections.has(key);
   const hiddenAddMoreSections = addMoreSections.filter(
@@ -154,6 +158,8 @@ export default function Section2Qualifications() {
         </div>
       ) : null}
 
+      {!isHydrating ? (
+        <>
       <SupportingEvidencePanel
         assessment={latestTranscriptAssessment}
         courseCode={data.applicationMeta?.selectedCourse?.code}
@@ -386,6 +392,8 @@ export default function Section2Qualifications() {
           </div>
         ) : null}
       </div>
+        </>
+      ) : null}
     </Section2QualificationsPage>
   );
 }
