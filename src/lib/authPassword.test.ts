@@ -75,6 +75,36 @@ describe("authPassword", () => {
     });
   });
 
+  it("treats sign-up responses with missing identities as existing accounts", async () => {
+    const auth = createAuthMock();
+    auth.signUp.mockResolvedValue({
+      data: { user: { id: "existing-user-id" } },
+      error: null,
+    });
+
+    await expect(
+      signUpWithPassword(auth, "user@example.com", "secret123"),
+    ).resolves.toEqual({
+      error:
+        "An account with this email already exists. Switch to Sign in instead.",
+      outcome: "existing_account",
+    });
+    expect(auth.signUp).toHaveBeenCalledWith({
+      email: "user@example.com",
+      password: "secret123",
+      options: undefined,
+    });
+  });
+
+  it("normalizes email casing before sign-up so duplicates cannot bypass checks", async () => {
+    const auth = createAuthMock();
+
+    await signUpWithPassword(auth, " User@Example.com ", "secret123");
+    expect(auth.signUp).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "user@example.com" }),
+    );
+  });
+
   it("validates matching password pairs", () => {
     expect(validatePasswordPair("secret123", "secret123")).toBeNull();
     expect(validatePasswordPair("123", "123")).toMatch(/at least/i);

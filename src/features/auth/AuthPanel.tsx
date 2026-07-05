@@ -63,6 +63,7 @@ export function AuthPanel({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const hasNotifiedAuthenticatedRef = useRef(false);
+  const signUpInFlightRef = useRef(false);
   const normalizedEmail = normalizeAuthEmail(email);
   const currentScreen: AuthScreen = isPasswordRecovery ? "new-password" : screen;
 
@@ -154,6 +155,11 @@ export function AuthPanel({
 
   async function handleSignUp(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (signUpInFlightRef.current) {
+      return;
+    }
+
     setError(null);
 
     const validationError = validateSignUpForm(
@@ -167,47 +173,53 @@ export function AuthPanel({
       return;
     }
 
+    signUpInFlightRef.current = true;
     setIsSubmitting(true);
-    capturePostHogEvent("auth_sign_up_attempted", {
-      auth_context: context,
-      email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
-    });
-    const { error: signUpError, outcome, userId } = await signUpWithPassword(
-      normalizedEmail,
-      password,
-      { redirectPath: signUpRedirectPath ?? redirectPath },
-    );
-    setIsSubmitting(false);
 
-    if (signUpError) {
-      capturePostHogEvent("auth_sign_up_failed", {
+    try {
+      capturePostHogEvent("auth_sign_up_attempted", {
         auth_context: context,
-        sign_up_outcome: outcome ?? "error",
+        email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
       });
-      setError(signUpError);
-      if (outcome === "existing_account") {
-        switchTab("sign-in");
+      const { error: signUpError, outcome, userId } = await signUpWithPassword(
+        normalizedEmail,
+        password,
+        { redirectPath: signUpRedirectPath ?? redirectPath },
+      );
+
+      if (signUpError) {
+        capturePostHogEvent("auth_sign_up_failed", {
+          auth_context: context,
+          sign_up_outcome: outcome ?? "error",
+        });
+        setError(signUpError);
+        if (outcome === "existing_account") {
+          switchTab("sign-in");
+        }
+        return;
       }
-      return;
-    }
 
-    if (userId) {
-      void reportAuthSignUpSucceeded({
-        userId,
-        signupMethod: "email",
-        emailDomain: normalizedEmail.split("@")[1] ?? "unknown",
-        authContext: context,
+      if (userId) {
+        void reportAuthSignUpSucceeded({
+          userId,
+          signupMethod: "email",
+          emailDomain: normalizedEmail.split("@")[1] ?? "unknown",
+          authContext: context,
+        });
+      }
+
+      capturePostHogEvent("auth_sign_up_confirmation_sent", {
+        auth_context: context,
+        email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
       });
+      setSentEmail(normalizedEmail);
+      setScreen("confirm-email-sent");
+      setPassword("");
+      setConfirmPassword("");
+    } finally {
+      signUpInFlightRef.current = false;
+      setIsSubmitting(false);
     }
-
-    capturePostHogEvent("auth_sign_up_confirmation_sent", {
-      auth_context: context,
-      email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
-    });
-    setSentEmail(normalizedEmail);
-    setScreen("confirm-email-sent");
-    setPassword("");
-    setConfirmPassword("");
   }
 
   async function handleForgotPassword(event: React.FormEvent<HTMLFormElement>) {
