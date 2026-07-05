@@ -142,14 +142,20 @@ describe("verifyRecoveryTokenHash", () => {
 });
 
 describe("buildRecoveryCallbackRedirectFromUrl", () => {
-  it("redirects token_hash recovery links from sign-in to auth/callback", () => {
+  it("returns null when token_hash recovery link is already on sign-in", () => {
     expect(
       buildRecoveryCallbackRedirectFromUrl(
         "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard&token_hash=abc123&type=recovery",
       ),
-    ).toBe(
-      "/auth/callback?redirect=%2Fdashboard&token_hash=abc123&type=recovery",
-    );
+    ).toBeNull();
+  });
+
+  it("redirects token_hash recovery links from other routes to auth/callback", () => {
+    expect(
+      buildRecoveryCallbackRedirectFromUrl(
+        "https://application-prototype.vercel.app/profile?token_hash=abc123&type=recovery",
+      ),
+    ).toBe("/auth/callback?token_hash=abc123&type=recovery");
   });
 
   it("returns null when already on auth/callback", () => {
@@ -221,12 +227,12 @@ describe("hasPasswordRecoveryTokenInUrl", () => {
     ).toBe(true);
   });
 
-  it("ignores unverified token_hash query params", () => {
+  it("detects unverified token_hash query params as pending recovery", () => {
     expect(
       hasPasswordRecoveryTokenInUrl(
         "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard&token_hash=abc123&type=recovery",
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("ignores the recovery landing flag without a recovery token", () => {
@@ -276,13 +282,13 @@ describe("shouldTreatSessionAsPasswordRecovery", () => {
     ).toBe(true);
   });
 
-  it("ignores unverified token_hash links without a session", () => {
+  it("treats unverified token_hash links as pending recovery without a session", () => {
     expect(
       shouldTreatSessionAsPasswordRecovery(
         null,
         "https://application-prototype.vercel.app/sign-in?recovery=1&redirect=%2Fdashboard&token_hash=abc123&type=recovery",
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it("treats recovery landing plus session as active recovery", () => {

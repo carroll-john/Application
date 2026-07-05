@@ -38,7 +38,8 @@
 ## Password Recovery
 
 - `AuthContext.isPasswordRecovery` is the **only** flag pages should read for recovery mode.
-- Token detection lives in `authCallback.ts` (`hasPasswordRecoveryTokenInUrl`); `AuthContext` initializes and updates state from URL tokens and the `PASSWORD_RECOVERY` auth event.
+- Token detection lives in `authCallback.ts` (`hasPasswordRecoveryTokenInUrl`, including pending `token_hash`); `AuthContext` initializes and updates state from URL tokens and the `PASSWORD_RECOVERY` auth event.
+- Pending `token_hash` links show the new-password form immediately; `verifyOtp` runs on form submit (not on page load) so corporate email scanners that execute JS do not consume the token.
 - Reset emails land on `/sign-in?recovery=1&redirect=…`. The `recovery=1` query flag is a landing marker only — not active recovery state. After a successful password update, `clearPasswordRecoveryQueryFromUrl()` strips `recovery=1` while preserving `redirect`.
 - Protected routes redirect recovery sessions to `/sign-in?recovery=1` via `AuthRequiredLayout` in `routes.tsx`.
 - Do **not** re-check recovery tokens in page components — use `isPasswordRecovery` from context only.

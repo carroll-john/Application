@@ -1,14 +1,10 @@
-import { useMemo } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { AuthPanel } from "../features/auth";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { SurfaceCard } from "../components/SurfaceCard";
 import { useAuth } from "../context/AuthContext";
-import {
-  buildRecoveryCallbackRedirectFromUrl,
-  sanitizeRedirectPath,
-} from "../lib/authCallback";
+import { sanitizeRedirectPath } from "../lib/authCallback";
 
 export default function SignIn() {
   const location = useLocation();
@@ -17,19 +13,6 @@ export default function SignIn() {
   const redirectPath = sanitizeRedirectPath(
     new URLSearchParams(location.search).get("redirect"),
   );
-  const recoveryCallbackRedirect = useMemo(() => {
-    if (typeof window === "undefined") {
-      return null;
-    }
-
-    return buildRecoveryCallbackRedirectFromUrl(
-      `${window.location.origin}${location.pathname}${location.search}`,
-    );
-  }, [location.pathname, location.search]);
-
-  if (recoveryCallbackRedirect) {
-    return <Navigate replace to={recoveryCallbackRedirect} />;
-  }
 
   if (isLoading) {
     return (
