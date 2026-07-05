@@ -268,9 +268,6 @@ export function SupportingEvidencePanel({
       })
     : [];
 
-  const transcriptMissingItems =
-    assessment?.missingInformation.filter((item) => item.trim().length > 0) ?? [];
-
   const summary = plan.isEvidenceReady
     ? "Evidence ready"
     : plan.remainingPromptCount > 0
@@ -353,43 +350,6 @@ export function SupportingEvidencePanel({
           />
         </div>
       ) : null}
-      {!isProcessing && prompt ? (
-        <div
-          aria-label="Next evidence step"
-          className="mt-3 rounded-md border-2 border-[var(--cta-secondary)] bg-[var(--info-bg)] p-3"
-        >
-          <p className="text-xs font-semibold text-gray-900 sm:text-sm">
-            Next step: {prompt.heading}
-          </p>
-          {prompt.explanationItems && prompt.explanationItems.length > 0 ? (
-            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-gray-700 sm:text-sm">
-              {prompt.explanationItems.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-1 text-xs text-gray-700 sm:text-sm">{prompt.explanation}</p>
-          )}
-          {plan.remainingPromptCount > 1 ? (
-            <p className="mt-1 text-xs text-gray-500">
-              Step 1 of {plan.remainingPromptCount} — the next step appears once this one is
-              done.
-            </p>
-          ) : null}
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
-            <Button
-              onClick={() => onSkipPrompt(prompt.sectionKey)}
-              type="button"
-              variant="outline"
-            >
-              Skip for now
-            </Button>
-            <Button onClick={() => onNavigate(prompt.actionPath)} type="button">
-              {prompt.actionLabel}
-            </Button>
-          </div>
-        </div>
-      ) : null}
       {!isProcessing && !prompt && plan.suggestion ? (
         <ul className="mt-3 space-y-2" aria-label="Optional evidence suggestion">
           <EvidenceReviewRow
@@ -432,18 +392,6 @@ export function SupportingEvidencePanel({
                   Restore
                 </Button>
               </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-      {transcriptMissingItems.length > 0 ? (
-        <div className="mt-3 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3">
-          <p className="text-xs font-semibold text-[var(--warning-text)] sm:text-sm">
-            Missing or unclear information
-          </p>
-          <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-[var(--warning-text)] sm:text-sm">
-            {transcriptMissingItems.map((item) => (
-              <li key={item}>{item}</li>
             ))}
           </ul>
         </div>
