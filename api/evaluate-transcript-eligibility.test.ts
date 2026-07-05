@@ -549,6 +549,70 @@ describe("evaluate-transcript-eligibility api route", () => {
     );
   });
 
+  it("overrides an upstream verdict and checkedAt that contradict all-passing deterministic checks", async () => {
+    // Production incident shape: the external service returned insufficient_data,
+    // manualReviewRequired and a checkedAt years in the past alongside evidence whose
+    // deterministic checks all pass.
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          checkedAt: "2024-06-05T00:00:00Z",
+          confidence: 0.8,
+          manualReviewRequired: true,
+          outcome: "insufficient_data",
+          requirementsChecked: [],
+          applicantDetails: {
+            countryOfInstitution: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "Australia",
+              originalValue: "Australia",
+            },
+            institutionName: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "The University of Melbourne",
+              originalValue: "The University of Melbourne",
+            },
+          },
+          studyDetails: {
+            completionStatus: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "completed",
+              originalValue: "completed",
+            },
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "au-pass.txt", { type: "text/plain" }));
+    formData.append("context", JSON.stringify({ completed: true }));
+
+    const before = Date.now();
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+    const statuses = (payload.requirementsChecked as Array<Record<string, unknown>>).map(
+      (check) => check.status,
+    );
+
+    expect(response.status).toBe(200);
+    expect(statuses.every((status) => status === "pass")).toBe(true);
+    expect(payload.outcome).toBe("eligible");
+    expect(payload.manualReviewRequired).toBe(false);
+    // checkedAt is re-stamped server-side so a hallucinated old date can't outrank fresh scans
+    expect(Date.parse(payload.checkedAt as string)).toBeGreaterThanOrEqual(before - 1000);
+  });
+
   it("does not degrade the transcript verdict for requirements another document proves (screenshot scenario)", async () => {
     // A strong AU bachelor transcript (completed, GPA 5.25/7, English by country) applying to an
     // MBA that also wants 3+ years work experience. The transcript can never prove work

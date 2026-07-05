@@ -282,10 +282,14 @@ export function applyEligibilityResolution(
   assessment: Record<string, unknown>,
   context: TranscriptEligibilityRequestContext,
 ): Record<string, unknown> {
+  // Always stamp server time, discarding any upstream checkedAt. External services / LLMs invent
+  // this field (observed: dates years in the past), and checkedAt drives latest-assessment
+  // selection on the client, so a hallucinated old date makes a fresh scan lose to a stale one.
+  const stamped = { ...assessment, checkedAt: new Date().toISOString() };
   if (context.requirements && context.requirements.length > 0) {
-    return applyRequirementsMatcher(assessment, context);
+    return applyRequirementsMatcher(stamped, context);
   }
-  return applyDeterministicEligibilityRules(assessment, context) as Record<string, unknown>;
+  return applyDeterministicEligibilityRules(stamped, context) as Record<string, unknown>;
 }
 
 export function withContextDefaults(
@@ -293,10 +297,6 @@ export function withContextDefaults(
   context: TranscriptEligibilityRequestContext,
 ) {
   const patched = { ...assessment };
-
-  if (typeof patched.checkedAt !== "string" || !patched.checkedAt.trim()) {
-    patched.checkedAt = new Date().toISOString();
-  }
 
   if (!patched.programCode && context.courseCode) {
     patched.programCode = context.courseCode;

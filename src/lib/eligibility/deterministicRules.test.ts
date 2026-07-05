@@ -151,6 +151,47 @@ describe("applyDeterministicEligibilityRules", () => {
     expect(thresholdCheck?.status).toBe("unknown");
   });
 
+  it("derives the verdict from the checks, ignoring a contradicting upstream outcome", () => {
+    const result = applyDeterministicEligibilityRules(
+      {
+        // Upstream LLM verdict fields that contradict the evidence below
+        manualReviewRequired: true,
+        outcome: "insufficient_data",
+        requirementsChecked: [],
+        applicantDetails: {
+          countryOfInstitution: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "Australia",
+            originalValue: "Australia",
+          },
+          institutionName: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "The University of Melbourne",
+            originalValue: "The University of Melbourne",
+          },
+        },
+        studyDetails: {
+          completionStatus: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "completed",
+            originalValue: "completed",
+          },
+        },
+      },
+      { completed: true },
+    );
+
+    const statuses = (result.requirementsChecked as Array<{ status: string }>).map(
+      (check) => check.status,
+    );
+    expect(statuses.every((status) => status === "pass")).toBe(true);
+    expect(result.outcome).toBe("eligible");
+    expect(result.manualReviewRequired).toBe(false);
+  });
+
   it("emits exactly one deterministic check per applicable rule with no duplicates", () => {
     const result = applyDeterministicEligibilityRules(
       {
