@@ -143,6 +143,10 @@ function formatRequirementHeading(
     return requirementKindLabel("english_proficiency");
   }
 
+  if (instance.kind === "qualification_completed") {
+    return requirementKindLabel("qualification_completed");
+  }
+
   const level = findQualificationLevel(instance, requirements);
   return level ? formatQualificationLevel(level) : instance.sourceText;
 }
@@ -162,12 +166,21 @@ function statusFromCheck(
   | "status"
 > {
   if (!check) {
+    if (hasTranscriptEvidence) {
+      return {
+        explanation:
+          "We reviewed your transcript but could not confirm this requirement automatically. Admissions will verify it.",
+        isBlocking: false,
+        status: "needs_review",
+      };
+    }
+
     return {
       actionLabel: "Add transcript",
       actionPath: tertiaryPath,
       explanation: "Add your transcript to verify this requirement.",
       isBlocking: true,
-      status: hasTranscriptEvidence ? "needs_review" : "needs_evidence",
+      status: "needs_evidence",
     };
   }
 
@@ -182,6 +195,18 @@ function statusFromCheck(
   }
 
   if (check.status === "unknown") {
+    if (hasTranscriptEvidence) {
+      return {
+        actionLabel: "Review qualification",
+        actionPath: tertiaryPath,
+        explanation: requirementCheckDisplayCopy(check),
+        isBlocking: false,
+        reasonCode: check.reasonCode,
+        requirementStatus: check.status,
+        status: "needs_review",
+      };
+    }
+
     return {
       actionLabel: "Review qualification",
       actionPath: tertiaryPath,
@@ -189,7 +214,7 @@ function statusFromCheck(
       isBlocking: true,
       reasonCode: check.reasonCode,
       requirementStatus: check.status,
-      status: hasTranscriptEvidence ? "needs_details" : "needs_evidence",
+      status: "needs_evidence",
     };
   }
 
