@@ -187,8 +187,8 @@ describe("buildSection2EvidencePlan in requirements mode", () => {
 
   it("only surfaces a possible-alternative suggestion when nothing blocks", () => {
     const alternativeRow = evidenceRow({
-      actionLabel: "Add work evidence",
-      actionPath: "/section2/add-employment?from=review",
+      actionLabel: "Add CV",
+      actionPath: "/section2/add-cv?from=review",
       heading: "Minimum WAM of 65",
       id: "row-alt",
       isBlocking: false,
@@ -209,8 +209,8 @@ describe("buildSection2EvidencePlan in requirements mode", () => {
       hasPublishedRequirements: true,
       skippedSections: noSkips,
     });
-    expect(openPlan.suggestion?.sectionKey).toBe("employment");
-    expect(openPlan.visibleSections.has("employment")).toBe(false);
+    expect(openPlan.suggestion?.sectionKey).toBe("cv");
+    expect(openPlan.visibleSections.has("cv")).toBe(false);
     expect(openPlan.visibleSections.has("tertiary")).toBe(true);
   });
 });
