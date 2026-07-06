@@ -126,13 +126,16 @@ function RouteLoadingScreen() {
 
 function Layout() {
   const location = useLocation();
-  const { data } = useApplication();
+  const { data, isHydrating } = useApplication();
 
   useEffect(() => {
     syncReplayRoutePrivacy(location.pathname);
-    trackPostHogPageView(location.pathname, location.search);
-    trackApplicationStepView(location.pathname, data);
-  }, [data, location.pathname, location.search]);
+    trackPostHogPageView(location.pathname, location.search, {
+      application: data,
+      isHydrating,
+    });
+    trackApplicationStepView(location.pathname, data, { isHydrating });
+  }, [data, isHydrating, location.pathname, location.search]);
 
   return (
     <>

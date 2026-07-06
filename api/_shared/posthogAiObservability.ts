@@ -3,6 +3,7 @@ import {
   createTraceId,
   getPostHogServerClient,
   readApiKey,
+  resolvePostHogAppEnvironment,
   resolvePostHogHost,
 } from "./posthogServerClient.js";
 
@@ -240,6 +241,7 @@ export async function captureEligibilityFeedback(
       distinctId,
       event: "eligibility_check_override",
       properties: {
+        app_environment: resolvePostHogAppEnvironment(),
         eligibility_pipeline: "transcript_eligibility_v1",
         eligibility_rules_version: options.rulesVersion ?? "unknown",
         eligibility_service_version: options.serviceVersion ?? "unknown",
@@ -298,6 +300,7 @@ export async function captureTranscriptAiGeneration(
     .filter((code): code is string => typeof code === "string");
 
   const eventProperties = stripUndefinedProperties({
+    app_environment: resolvePostHogAppEnvironment(),
     $ai_trace_id: traceId,
     $ai_model: options.model,
     $ai_provider: options.provider,

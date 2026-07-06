@@ -135,7 +135,7 @@ Current workspace values:
 - frontend Sentry capture uses `VITE_SENTRY_DSN` and `VITE_SENTRY_ENABLED`
 - frontend smoke-test markers are filtered before send in non-development environments (`/dev/sentry-smoke`, `dev_sentry_smoke`, and codex smoke messages)
 - source map upload during build requires `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`
-- PostHog runs with manual event capture only (`autocapture: false`) and uses hashed analytics user IDs.
+- PostHog product analytics uses explicit funnel events and hashed analytics user IDs. Autocapture is narrowly enabled for public catalog bug-bash discovery only: click events on links/buttons at `/` and `/courses/:code`.
 - PostHog session replay is disabled by default and only started on the public catalog routes (`/`, `/courses/:code`); it is stopped on all authenticated/PII routes and masks all inputs and text while active.
 - **Client PostHog** uses `VITE_POSTHOG_KEY` / `VITE_POSTHOG_HOST` (inlined into the browser bundle at build time).
 - **Server PostHog** (`posthog-node` in `/api/*`) reads `POSTHOG_PROJECT_API_KEY` and `POSTHOG_HOST` at **runtime** via `api/_shared/posthogServerClient.ts`. Set both on Production and Preview in Vercel — use the same project key as `VITE_POSTHOG_KEY`. Without `POSTHOG_PROJECT_API_KEY`, server routes such as `/api/capture-auth-sign-up-succeeded` and `/api/capture-eligibility-feedback` return `{ ok: true }` but **do not send events** (capture is skipped silently).

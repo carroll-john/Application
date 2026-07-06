@@ -22,6 +22,16 @@ export function resolvePostHogHost() {
   );
 }
 
+export function resolvePostHogAppEnvironment() {
+  return (
+    process.env.APP_ENVIRONMENT?.trim() ||
+    process.env.VITE_APP_ENVIRONMENT?.trim() ||
+    process.env.VERCEL_ENV?.trim() ||
+    process.env.NODE_ENV?.trim() ||
+    "production"
+  );
+}
+
 export function readApiKey() {
   return (
     process.env.POSTHOG_PROJECT_API_KEY?.trim() ||

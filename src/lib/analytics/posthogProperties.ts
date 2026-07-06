@@ -40,6 +40,11 @@ type ApplicationAnalyticsContext = Partial<
 let lastTrackedPageKey: string | null = null;
 let lastTrackedApplicationStepKey: string | null = null;
 
+type RouteTrackingOptions = {
+  application?: ApplicationAnalyticsContext | null;
+  isHydrating?: boolean;
+};
+
 export function getCourseAnalyticsProperties(
   course: CourseAnalyticsContext | null | undefined,
 ) {
@@ -101,6 +106,18 @@ function getApplicationStepAnalyticsProperties(
   };
 }
 
+function hasApplicationRouteContext(
+  properties: ReturnType<typeof getApplicationAnalyticsProperties> | null,
+) {
+  return Boolean(properties?.application_id && properties.course_code);
+}
+
+function getApplicationRouteContextKey(
+  properties: ReturnType<typeof getApplicationAnalyticsProperties>,
+) {
+  return `${properties.application_id}:${properties.course_code}`;
+}
+
 export function captureApplicationStepEvent(
   eventName: ApplicationStepEventName,
   {
@@ -125,23 +142,41 @@ export function captureApplicationStepEvent(
   });
 }
 
-export function trackPostHogPageView(pathname: string, search = "") {
+export function trackPostHogPageView(
+  pathname: string,
+  search = "",
+  options: RouteTrackingOptions = {},
+) {
   if (isPostHogSensitiveRoute(pathname, search) || !canCapturePostHog()) {
     return;
   }
 
-  initPostHog();
+  const route = getRouteAnalyticsDefinition(pathname);
+  const routeGroup = route?.group ?? "system";
+  const applicationProperties =
+    routeGroup === "application"
+      ? getApplicationAnalyticsProperties(options.application)
+      : null;
+
+  if (routeGroup === "application") {
+    if (options.isHydrating || !hasApplicationRouteContext(applicationProperties)) {
+      return;
+    }
+  }
 
   const sanitizedSearch = sanitizeAnalyticsSearch(search);
-  const pageKey = `${pathname}${sanitizedSearch}`;
+  const pageKey =
+    routeGroup === "application" && applicationProperties
+      ? `${pathname}${sanitizedSearch}:${getApplicationRouteContextKey(applicationProperties)}`
+      : `${pathname}${sanitizedSearch}`;
 
   if (pageKey === lastTrackedPageKey) {
     return;
   }
 
+  initPostHog();
   lastTrackedPageKey = pageKey;
 
-  const route = getRouteAnalyticsDefinition(pathname);
   const safeUrl =
     typeof window !== "undefined"
       ? sanitizeAnalyticsUrl(window.location.href)
@@ -153,12 +188,14 @@ export function trackPostHogPageView(pathname: string, search = "") {
     page_group: route?.group ?? "system",
     page_key: route?.key ?? "unknown_page",
     page_name: route?.label ?? "Unknown page",
+    ...(applicationProperties ?? {}),
   });
 }
 
 export function trackApplicationStepView(
   pathname: string,
   application: ApplicationAnalyticsContext | null | undefined,
+  options: Pick<RouteTrackingOptions, "isHydrating"> = {},
 ) {
   const stepProperties = getApplicationStepAnalyticsProperties(pathname, application);
 
@@ -167,11 +204,17 @@ export function trackApplicationStepView(
     return;
   }
 
-  if (pathname === lastTrackedApplicationStepKey) {
+  if (options.isHydrating || !hasApplicationRouteContext(stepProperties)) {
     return;
   }
 
-  lastTrackedApplicationStepKey = pathname;
+  const stepKey = `${pathname}:${getApplicationRouteContextKey(stepProperties)}`;
+
+  if (stepKey === lastTrackedApplicationStepKey) {
+    return;
+  }
+
+  lastTrackedApplicationStepKey = stepKey;
 
   capturePostHogEvent("application_step_viewed", stepProperties);
 }

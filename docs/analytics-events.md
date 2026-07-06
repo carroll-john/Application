@@ -80,7 +80,10 @@ Every client-side event, kept in sync with `src/lib/analytics/events.ts` by
 
 ## Identity
 
-- PostHog runs in manual mode (`autocapture: false`), so only explicit app events are sent.
+- Core product analytics runs on explicit app events. PostHog interaction
+  autocapture is limited to public catalog routes (`/`, `/courses/:code`) for
+  bug-bash discovery, and only captures click interactions on links/buttons.
+  Auth and application routes stay explicit-event only.
 - PostHog user identity is configured from `AuthContext` after Supabase session
   load: logged-in applicants call `posthog.identify()` with a salted hash of
   the Supabase user id as the distinct id, and signed-out users call
@@ -96,6 +99,9 @@ Every client-side event, kept in sync with `src/lib/analytics/events.ts` by
 - `$pageview` `$current_url` is sanitized: URL fragments (hash) are stripped and auth-related query parameters are removed before capture.
 - PostHog does not capture pageviews on `/auth/callback` (magic-link tokens must not reach analytics).
 - `/sign-in` pageviews are skipped when the query string contains auth tokens.
+- Autocapture uses PostHog's JavaScript `AutocaptureConfig` URL/event/element
+  allowlists, so authenticated forms and application screens are outside the
+  automatic interaction capture surface.
 
 ## Page Naming
 
@@ -104,6 +110,11 @@ Every client-side event, kept in sync with `src/lib/analytics/events.ts` by
 - `page_name`: human-readable page label
 - `page_key`: stable machine-friendly key
 - `page_group`: high-level bucket for filtering
+
+Application-route `$pageview` events wait for application hydration, then carry
+the standard application/course context (`application_id`, `course_code`,
+`course_provider`, `application_status`, counts, etc.). Public catalog
+pageviews intentionally do not carry application context.
 
 Current page names:
 
@@ -157,6 +168,9 @@ sequence:
 
 Each step already carries `application_step_order` / `application_step_key`
 plus course and application context, which can be used for funnel breakdowns.
+`application_start_requested` includes `start_trigger` (`manual_apply` or
+`auto_apply_after_auth`) so the normal Apply button and email-confirmation
+resume path can be separated without adding a duplicate funnel event.
 
 The funnel and its supporting charts are built as three pinned PostHog
 dashboards (EU project `133929`) — see `docs/posthog-integrations.md` §4 for the
@@ -186,6 +200,11 @@ Important submit-path rules:
 | `auth_sign_up_failed` | Create-account sign-up is rejected |
 | `auth_password_reset_completed` | User saves a new password after opening a reset link |
 | `auth_gate_opened` | An in-flow auth modal opens from eligibility or apply |
+
+Auth events include `email_domain` where an email address is available, including
+failed sign-in and failed sign-up attempts. The server-side
+`auth_sign_up_succeeded` event also includes `app_environment` for project-wide
+environment filtering.
 
 (`local_draft_import_*` events were retired with anonymous local drafts in #136 —
 application storage is remote-only.)
@@ -251,6 +270,9 @@ Common properties now available across page and funnel events:
 - `page_name`
 - `page_key`
 - `page_group`
+
+Application-route pageviews and application funnel events also include:
+
 - `course_code`
 - `course_title`
 - `course_provider`
@@ -266,6 +288,10 @@ Application-step events also include:
 - `application_step_key`
 - `application_step_group`
 - `application_step_order`
+
+Server-side analytics events (`auth_sign_up_succeeded`,
+`eligibility_check_override`, `$ai_generation`) include `app_environment`, so
+they can be filtered alongside browser events from the same deployment class.
 
 ## Feature Flags
 

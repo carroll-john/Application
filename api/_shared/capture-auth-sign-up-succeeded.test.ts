@@ -17,8 +17,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  delete process.env.APP_ENVIRONMENT;
   delete process.env.POSTHOG_PROJECT_API_KEY;
   delete process.env.POSTHOG_HOST;
+  delete process.env.VERCEL_ENV;
+  delete process.env.VITE_APP_ENVIRONMENT;
 });
 
 function makeRequest(body: unknown, method: string = "POST") {
@@ -72,6 +75,7 @@ describe("capture-auth-sign-up-succeeded api route", () => {
 
   it("forwards auth_sign_up_succeeded to PostHog with dedupe insert id", async () => {
     process.env.POSTHOG_PROJECT_API_KEY = "test-key";
+    process.env.VERCEL_ENV = "preview";
     const userId = "550e8400-e29b-41d4-a716-446655440000";
 
     const response = await signUpRoute.fetch(
@@ -92,6 +96,7 @@ describe("capture-auth-sign-up-succeeded api route", () => {
     };
     expect(event.event).toBe("auth_sign_up_succeeded");
     expect(event.distinctId).toMatch(/^sha256:/);
+    expect(event.properties.app_environment).toBe("preview");
     expect(event.properties.signup_method).toBe("email");
     expect(event.properties.email_domain).toBe("example.com");
     expect(event.properties.auth_context).toBe("modal");

@@ -17,8 +17,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  delete process.env.APP_ENVIRONMENT;
   delete process.env.POSTHOG_PROJECT_API_KEY;
   delete process.env.POSTHOG_HOST;
+  delete process.env.VERCEL_ENV;
+  delete process.env.VITE_APP_ENVIRONMENT;
 });
 
 function makeRequest(body: unknown, method: string = "POST") {
@@ -60,6 +63,7 @@ describe("capture-eligibility-feedback api route", () => {
 
   it("forwards a captured override event to PostHog when configured", async () => {
     process.env.POSTHOG_PROJECT_API_KEY = "test-key";
+    process.env.VERCEL_ENV = "preview";
 
     const response = await feedbackRoute.fetch(
       makeRequest({
@@ -82,6 +86,7 @@ describe("capture-eligibility-feedback api route", () => {
     };
     expect(event.event).toBe("eligibility_check_override");
     expect(typeof event.distinctId).toBe("string");
+    expect(event.properties.app_environment).toBe("preview");
     expect(event.properties.requirement_id).toBe("wam-65");
     expect(event.properties.original_status).toBe("fail");
     expect(event.properties.override_status).toBe("pass");
