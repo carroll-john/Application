@@ -14,14 +14,13 @@ Run two active tracks in parallel:
   English proof, AHPRA evidence, and course pre-check questions on the Section 2 hub.
 
 ## Status Update (2026-07-05)
-- **Shipped (PRs #193–#201):** eligibility feedback form aligned to met/review
+- **Shipped (PRs #193–#204):** eligibility feedback form aligned to met/review
   evidence rows; feedback persisted as `eligibility_feedback` document kind;
-  hydration/reload fixes for feedback + Section 2 qualifications hub + review page;
+  hydration/reload fixes for feedback, Section 2 qualifications hub, review page,
+  and all Section 1/2 form steps (`FormStepLoadingState` / `FormStepRouteFallback`);
   review UX polish (no transcript eligibility summary block; inline Section 1 Edit;
-  Section 2 item-level Edit for tertiary/employment, CV Edit on document row).
-- **Ready to merge ([PR #202](https://github.com/carroll-john/Application/pull/202)):** form-wide
-  hydration placeholders (`FormStepLoadingState`, `FormStepRouteFallback`) on all
-  Section 1 and Section 2 record steps via `Section1StepPage` / `Section2RecordPage` shells.
+  Section 2 item-level Edit for tertiary/employment, CV Edit on document row);
+  WAM calculation on evidence cards (#204).
 
 ## Status Update (2026-03-06)
 - Tuesday demo scope is complete.
@@ -129,9 +128,9 @@ Run two active tracks in parallel:
 3. Implement orchestration skeleton and adapter lifecycle contract (`DIS-61`), then move to file export baseline (`DIS-60`).
 
 ## Next 3 Tasks: UX Track
-1. Merge [PR #202](https://github.com/carroll-john/Application/pull/202) (form-wide hydration placeholders) and [PR #201](https://github.com/carroll-john/Application/pull/201) (review hydration) when ready.
-2. Continue high-impact friction fixes: `DIS-10`, `DIS-11`, `DIS-9`.
-3. Validate parse-first tertiary transcript flow against hosted environments and tune mapper for common AU transcript layouts.
+1. Continue high-impact friction fixes: `DIS-10`, `DIS-11`, `DIS-9`.
+2. Validate parse-first tertiary transcript flow against hosted environments and tune mapper for common AU transcript layouts.
+3. Evidence card score CTA polish on the Section 2 hub (in progress on `codex/evidence-card-score-cta`).
 
 ## Known Risks: Integration Track
 - Contract drift between repos if compatibility checks are not enforced in CI.
