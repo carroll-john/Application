@@ -278,6 +278,43 @@ describe("evaluateRequirements", () => {
     expect(check.status).toBe("pass");
     expect(check.explanation).toContain("Mapped GPA");
   });
+
+  it("academic_threshold calculates WAM from counted unit marks before using GPA fallback", () => {
+    const instances: RequirementInstance[] = [
+      {
+        id: "wam",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 60 },
+        sourceText: "WAM 60% or above.",
+        weight: "mandatory",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      academicPerformance: {
+        gpa: { confidence: 0.9, normalizedValue: "5.25" },
+        gpaScale: { confidence: 0.9, normalizedValue: "7" },
+        unitResults: [
+          { counted: true, creditPoints: 10, grade: "D", mark: 71 },
+          { counted: true, creditPoints: 10, grade: "Cr", mark: 66 },
+          { counted: true, creditPoints: 10, grade: "P", mark: 58 },
+          { counted: true, creditPoints: 10, grade: "S" },
+          { counted: true, creditPoints: 10, grade: "F", mark: 41 },
+          { counted: true, creditPoints: 10, grade: "W" },
+        ],
+      },
+    };
+
+    const [check] = evaluateRequirements(instances, evidence, emptyContext());
+
+    expect(check.status).toBe("fail");
+    expect(check.reasonCode).toBe("WAM_BELOW");
+    expect(check.details).toMatchObject({
+      metric: "wam",
+      observed: "59.0",
+      required: "60",
+    });
+    expect(check.explanation).toContain("Calculated WAM 59.0");
+  });
 });
 
 describe("conditional requirements end-to-end", () => {

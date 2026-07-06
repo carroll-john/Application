@@ -284,6 +284,73 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(deterministicCheck?.status).toBe("fail");
   });
 
+  it("uses external-service unit results to calculate WAM when no aggregate WAM is present", async () => {
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confidence: 0.93,
+          manualReviewRequired: false,
+          missingInformation: [],
+          outcome: "eligible",
+          recommendedNextStep: "Proceed",
+          requirementsChecked: [],
+          academicPerformance: {
+            gpa: {
+              confidence: 0.9,
+              missingOrAmbiguous: false,
+              normalizedValue: "5.25",
+              originalValue: "GPA for conferred exit award 5.25",
+            },
+            gpaScale: {
+              confidence: 0.7,
+              missingOrAmbiguous: true,
+              normalizedValue: "7",
+              originalValue: "Australian seven-point GPA scale inferred from context",
+            },
+            unitResults: [
+              { counted: true, creditPoints: 10, grade: "D", mark: 71 },
+              { counted: true, creditPoints: 10, grade: "Cr", mark: 66 },
+              { counted: true, creditPoints: 10, grade: "P", mark: 58 },
+              { counted: true, creditPoints: 10, grade: "S", mark: null },
+              { counted: true, creditPoints: 10, grade: "F", mark: 41 },
+              { counted: true, creditPoints: 10, grade: "W", mark: null },
+            ],
+          },
+          applicantDetails: {},
+          englishLanguageEvidence: {},
+          studyDetails: {},
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "macquarie.txt", { type: "text/plain" }));
+    formData.append("context", JSON.stringify({ minWam: 60 }));
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+    const deterministicCheck = (payload.requirementsChecked as Array<Record<string, unknown>>).find(
+      (check) => check.id === "deterministic-wam-gpa-threshold",
+    );
+
+    expect(response.status).toBe(200);
+    expect(payload.outcome).toBe("ineligible");
+    expect(deterministicCheck?.status).toBe("fail");
+    expect(deterministicCheck?.reasonCode).toBe("WAM_BELOW");
+    expect(deterministicCheck?.details).toMatchObject({
+      metric: "wam",
+      observed: "59.0",
+      required: "60",
+    });
+  });
+
   it("returns insufficient_data when no mappable WAM/GPA evidence exists", async () => {
     process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
     fetchMock.mockResolvedValueOnce(
@@ -886,4 +953,3 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(englishCheck?.reasonCode).toBe("ENGLISH_OK_AHPRA");
   });
 });
-

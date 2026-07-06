@@ -1,13 +1,14 @@
 export const TRANSCRIPT_ELIGIBILITY_SCHEMA_ID = "transcript_eligibility_extraction";
-export const TRANSCRIPT_ELIGIBILITY_SCHEMA_VERSION = 2;
+export const TRANSCRIPT_ELIGIBILITY_SCHEMA_VERSION = 3;
 
 /**
- * Version 2 is extraction-only. Unlike v1, the model no longer outputs verdict fields
+ * Version 2+ is extraction-only. Unlike v1, the model no longer outputs verdict fields
  * (`outcome`, `manualReviewRequired`, `missingInformation`, `recommendedNextStep`) — v1 forced the
  * model to invent a judgement that the deterministic rules engine then overwrote, and the leftover
  * free text leaked into the UI and contradicted the rules result. The model's observations now go
  * to `extractionNotes` (never rendered to applicants), and key fields are constrained to enums or
- * numbers so downstream parsing is exact rather than regex-based.
+ * numbers so downstream parsing is exact rather than regex-based. Version 3 adds unit-level result
+ * rows so WAM can be calculated deterministically when no aggregate WAM is shown.
  */
 
 const extractedFieldSchema = {
@@ -110,6 +111,7 @@ const academicPerformanceSchema = {
     "gpaScaleNumeric",
     "gradeAverageOrWam",
     "gradingNotes",
+    "unitResults",
     "wamNumeric",
   ],
   properties: {
@@ -121,6 +123,31 @@ const academicPerformanceSchema = {
     gpaScaleNumeric: { type: ["number", "null"] },
     gradeAverageOrWam: { anyOf: [extractedFieldSchema, { type: "null" }] },
     gradingNotes: { anyOf: [extractedFieldSchema, { type: "null" }] },
+    unitResults: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: [
+          "counted",
+          "creditPoints",
+          "grade",
+          "mark",
+          "notes",
+          "title",
+          "unitCode",
+        ],
+        properties: {
+          counted: { type: ["boolean", "null"] },
+          creditPoints: { type: ["number", "null"] },
+          grade: { type: ["string", "null"] },
+          mark: { type: ["number", "null"] },
+          notes: { type: ["string", "null"] },
+          title: { type: ["string", "null"] },
+          unitCode: { type: ["string", "null"] },
+        },
+      },
+    },
     wamNumeric: { type: ["number", "null"] },
   },
 } as const;

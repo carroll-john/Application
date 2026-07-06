@@ -80,6 +80,17 @@ export interface EligibilityAcademicPerformance {
   gpa?: EligibilityExtractedField;
   gpaScale?: EligibilityExtractedField;
   gradingNotes?: EligibilityExtractedField;
+  unitResults?: EligibilityAcademicUnitResult[];
+}
+
+export interface EligibilityAcademicUnitResult {
+  counted?: boolean;
+  creditPoints?: number;
+  grade?: string;
+  mark?: number;
+  notes?: string;
+  title?: string;
+  unitCode?: string;
 }
 
 export interface EligibilityEnglishEvidence {

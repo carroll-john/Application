@@ -74,6 +74,69 @@ describe("applyDeterministicEligibilityRules", () => {
     ).toBe("fail");
   });
 
+  it("calculates WAM from counted unit marks before using GPA fallback", () => {
+    const result = applyDeterministicEligibilityRules(
+      {
+        outcome: "eligible",
+        requirementsChecked: [],
+        academicPerformance: {
+          gpa: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "5.25",
+            originalValue: "GPA 5.25",
+          },
+          gpaScale: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "7",
+            originalValue: "7 point scale",
+          },
+          unitResults: [
+            { counted: true, creditPoints: 10, grade: "D", mark: 71 },
+            { counted: true, creditPoints: 10, grade: "Cr", mark: 66 },
+            { counted: true, creditPoints: 10, grade: "P", mark: 58 },
+            { counted: true, creditPoints: 10, grade: "S" },
+            { counted: true, creditPoints: 10, grade: "F", mark: 41 },
+            { counted: true, creditPoints: 10, grade: "W" },
+          ],
+        },
+        studyDetails: {
+          completionStatus: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "completed",
+            originalValue: "completed",
+          },
+        },
+      },
+      {
+        completed: true,
+        minWam: 60,
+      },
+    );
+
+    const thresholdCheck = (
+      result.requirementsChecked as Array<{
+        details?: Record<string, string>;
+        explanation: string;
+        id: string;
+        reasonCode?: string;
+        status: string;
+      }>
+    ).find((check) => check.id === "deterministic-wam-gpa-threshold");
+
+    expect(thresholdCheck?.status).toBe("fail");
+    expect(thresholdCheck?.reasonCode).toBe("WAM_BELOW");
+    expect(thresholdCheck?.details).toMatchObject({
+      metric: "wam",
+      observed: "59.0",
+      required: "60",
+    });
+    expect(thresholdCheck?.explanation).toContain("Comparable WAM 59.0");
+    expect(result.outcome).toBe("ineligible");
+  });
+
   it("passes English proficiency for Australian institutions completed in Australia", () => {
     const result = applyDeterministicEligibilityRules(
       {

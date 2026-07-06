@@ -82,6 +82,12 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   parser `parseContext` (`api/_eligibility/context.ts`). A field added to one but
   not the other is silently dropped before reaching the evaluator in the real upload
   flow (caught in PR #130).
+- **Academic thresholds:** when a transcript has no aggregate WAM but exposes unit
+  marks and credit points, calculate WAM deterministically from all counted unit
+  rows (`sum(mark * creditPoints) / sum(creditPoints)`). Include failed subjects
+  with numeric marks; exclude blank-mark pass/fail-only, withdrawn, RPL/exemption,
+  advanced-standing, and credit-transfer rows. Use GPA-to-percent mapping only as
+  a last fallback when no aggregate or unit-derived WAM exists.
 
 ## Course Catalog
 

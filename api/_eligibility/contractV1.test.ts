@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import eligibilityRoute from "../evaluate-transcript-eligibility";
 import {
   ELIGIBILITY_AUTH_SCHEME,
+  ELIGIBILITY_ACADEMIC_PERFORMANCE_OPTIONAL_FIELDS_V1,
   ELIGIBILITY_CONTRACT_VERSION,
   ELIGIBILITY_EVIDENCE_GROUPS,
   ELIGIBILITY_OUTCOMES,
@@ -52,6 +53,17 @@ function makeV1ServicePayload(): Record<string, unknown> {
     gpaScale: extractedField("7"),
     gradeAverageOrWam: extractedField("78"),
     gradingNotes: extractedField(null),
+    unitResults: [
+      {
+        counted: true,
+        creditPoints: 12,
+        grade: "D",
+        mark: 78,
+        notes: "Counted",
+        title: "Example Unit",
+        unitCode: "EX101",
+      },
+    ],
   };
   const englishLanguageEvidence = {
     englishCountryEvidence: extractedField("Australia"),
@@ -177,6 +189,9 @@ describe("eligibility-evaluate contract v1", () => {
     // Every evidence group the service sent survives to the app response (matcher consumes these)
     for (const group of ELIGIBILITY_EVIDENCE_GROUPS) {
       expect(payload, `evidence group dropped: ${group}`).toHaveProperty(group);
+    }
+    for (const field of ELIGIBILITY_ACADEMIC_PERFORMANCE_OPTIONAL_FIELDS_V1) {
+      expect(payload.academicPerformance as Record<string, unknown>).toHaveProperty(field);
     }
 
     // App always emits a requirements verdict list and preserves program identity

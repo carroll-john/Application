@@ -29,8 +29,8 @@ import {
 } from "./_shared/sentry.js";
 
 const DEFAULT_MODEL = "gpt-4.1-mini";
-const INITIAL_MAX_OUTPUT_TOKENS = 1_500;
-const RETRY_MAX_OUTPUT_TOKENS = 3_500;
+const INITIAL_MAX_OUTPUT_TOKENS = 3_000;
+const RETRY_MAX_OUTPUT_TOKENS = 7_000;
 
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -323,4 +323,3 @@ async function handleEligibilityRequest(request: Request) {
 export default {
   fetch: handleWebRequest,
 };
-
