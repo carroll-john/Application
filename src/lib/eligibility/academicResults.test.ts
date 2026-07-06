@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateWamFromUnitResults } from "./academicResults";
+import { calculateWamFromUnitResults, resolveComparableWam } from "./academicResults";
 
 describe("calculateWamFromUnitResults", () => {
   it("calculates WAM from all counted numeric unit attempts", () => {
@@ -66,6 +66,27 @@ describe("calculateWamFromUnitResults", () => {
       totalWeightedPoints: 2360,
     });
     expect(result?.wam).toBe(59);
+  });
+
+  it("prefers calculated unit WAM over an extracted aggregate", () => {
+    const calculated = calculateWamFromUnitResults([
+      { counted: true, creditPoints: 10, grade: "D", mark: 71 },
+      { counted: true, creditPoints: 10, grade: "Cr", mark: 66 },
+      { counted: true, creditPoints: 10, grade: "P", mark: 58 },
+      { counted: true, creditPoints: 10, grade: "F", mark: 41 },
+    ]);
+
+    const resolved = resolveComparableWam({
+      calculatedWam: calculated,
+      extractedWam: 65,
+      gpaScale: 7,
+      gpaValue: 5.25,
+    });
+
+    expect(resolved).toMatchObject({
+      source: "calculated",
+      wam: 59,
+    });
   });
 
   it("excludes transfer, exemption, advanced-standing, and explicitly uncounted rows", () => {

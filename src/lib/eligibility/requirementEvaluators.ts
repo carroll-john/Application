@@ -1,11 +1,14 @@
+import {
+  classifyQualificationText,
+  meetsQualificationLevel,
+} from "./aqfLevels.js";
 import { isCountryInAcceptedList } from "./englishMediumCountries.js";
-import { calculateWamFromUnitResults } from "./academicResults.js";
+import { calculateWamFromUnitResults, resolveComparableWam } from "./academicResults.js";
 import {
   buildRequirementCheck,
   type AcademicThresholdParams,
   type EnglishProficiencyParams,
   type FieldOfStudyParams,
-  type QualificationLevel,
   type RequirementInstance,
   type WorkExperienceParams,
 } from "./requirements.js";
@@ -21,15 +24,6 @@ export interface EvaluationContext {
   context: TranscriptEligibilityRequestContext;
   evidence: TranscriptExtractedData;
 }
-
-const QUALIFICATION_LEVEL_RANK: Record<QualificationLevel, number> = {
-  high_school: 1,
-  diploma: 2,
-  bachelor: 3,
-  honours: 3,
-  masters: 4,
-  doctorate: 5,
-};
 
 function readFieldText(field: EligibilityExtractedField | undefined): string | undefined {
   if (!field) {
@@ -49,33 +43,6 @@ function parseNumberFromText(value: string | undefined): number | undefined {
   }
   const parsed = Number.parseFloat(match[0]);
   return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function classifyQualificationText(value: string | undefined): QualificationLevel | undefined {
-  if (!value) {
-    return undefined;
-  }
-  // Underscores normalize the schema-v2 enum values ("high_school") to the legacy phrases.
-  const text = value.toLowerCase().replace(/_/g, " ");
-  if (text.includes("doctor") || text.includes("phd")) {
-    return "doctorate";
-  }
-  if (text.includes("master")) {
-    return "masters";
-  }
-  if (text.includes("honour") || text.includes("honor")) {
-    return "honours";
-  }
-  if (text.includes("bachelor")) {
-    return "bachelor";
-  }
-  if (text.includes("diploma")) {
-    return "diploma";
-  }
-  if (text.includes("secondary") || text.includes("high school") || text.includes("year 12")) {
-    return "high_school";
-  }
-  return undefined;
 }
 
 // ---------- Per-kind evaluators ----------
@@ -128,12 +95,11 @@ function evaluateQualificationLevel(
   instance: Extract<RequirementInstance, { kind: "qualification_level" }>,
   { context, evidence }: EvaluationContext,
 ): EligibilityRequirementCheck {
-  const requiredRank = QUALIFICATION_LEVEL_RANK[instance.params.level];
   const extractedLevel =
     readFieldText(evidence.studyDetails?.highestEducationLevel) ?? context.level;
   const extractedKind = classifyQualificationText(extractedLevel);
 
-  if (!extractedKind || requiredRank === undefined) {
+  if (!extractedKind) {
     return buildRequirementCheck(
       instance,
       "unknown",
@@ -142,9 +108,12 @@ function evaluateQualificationLevel(
     );
   }
 
-  const extractedRank = QUALIFICATION_LEVEL_RANK[extractedKind];
-  const status: EligibilityRequirementStatus =
-    extractedRank >= requiredRank ? "pass" : "fail";
+  const status: EligibilityRequirementStatus = meetsQualificationLevel(
+    extractedKind,
+    instance.params.level,
+  )
+    ? "pass"
+    : "fail";
 
   return buildRequirementCheck(
     instance,
@@ -173,18 +142,14 @@ function evaluateAcademicThreshold(
   const gpaScale = parseNumberFromText(readFieldText(evidence.academicPerformance?.gpaScale));
 
   if (params.metric === "wam") {
-    let comparableWam: number | undefined = wamValue;
-    let explanationLead = "";
-    if (comparableWam === undefined && calculatedWam) {
-      comparableWam = calculatedWam.wam;
-      explanationLead = `Calculated WAM ${comparableWam.toFixed(1)} from ${calculatedWam.includedUnitCount} counted unit results (${calculatedWam.totalCreditPoints} credit points). `;
-    }
-    if (comparableWam === undefined && gpaValue !== undefined && gpaScale !== undefined && gpaScale > 0) {
-      comparableWam = (gpaValue / gpaScale) * 100;
-      explanationLead = `Mapped GPA ${gpaValue}/${gpaScale} to approximately ${comparableWam.toFixed(1)}% WAM. `;
-    }
+    const resolvedWam = resolveComparableWam({
+      calculatedWam,
+      extractedWam: wamValue,
+      gpaScale,
+      gpaValue,
+    });
 
-    if (comparableWam === undefined) {
+    if (!resolvedWam) {
       return buildRequirementCheck(
         instance,
         "unknown",
@@ -193,6 +158,7 @@ function evaluateAcademicThreshold(
       );
     }
 
+    const { explanationLead, wam: comparableWam } = resolvedWam;
     const status: EligibilityRequirementStatus = comparableWam >= params.min ? "pass" : "fail";
     return buildRequirementCheck(
       instance,
@@ -217,7 +183,13 @@ function evaluateAcademicThreshold(
   let comparableScale: number | undefined = gpaScale ?? requiredScale;
   let explanationLead = "";
 
-  const wamForGpaConversion = wamValue ?? calculatedWam?.wam;
+  const wamForGpaConversion =
+    resolveComparableWam({
+      calculatedWam,
+      extractedWam: wamValue,
+      gpaScale,
+      gpaValue,
+    })?.wam;
   if (comparableGpa === undefined && wamForGpaConversion !== undefined && typeof requiredScale === "number") {
     comparableGpa = (wamForGpaConversion / 100) * requiredScale;
     comparableScale = requiredScale;

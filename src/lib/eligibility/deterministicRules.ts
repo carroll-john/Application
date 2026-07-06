@@ -1,3 +1,4 @@
+import { classifyQualificationRank } from "./aqfLevels.js";
 import { commonTertiaryInstitutionSuggestions } from "../tertiaryInstitutions.js";
 import {
   buildRecommendedNextStep,
@@ -5,6 +6,7 @@ import {
 } from "./checkCopy.js";
 import {
   calculateWamFromUnitResults,
+  resolveComparableWam,
   type AcademicUnitResultInput,
 } from "./academicResults.js";
 import type {
@@ -117,29 +119,6 @@ function evaluateAuEnglishProficiency(
   }
 
   return true;
-}
-
-function classifyQualification(value: string | undefined): number | undefined {
-  if (!value) {
-    return undefined;
-  }
-  const text = value.toLowerCase();
-  if (text.includes("doctor")) {
-    return 5;
-  }
-  if (text.includes("master")) {
-    return 4;
-  }
-  if (text.includes("bachelor")) {
-    return 3;
-  }
-  if (text.includes("diploma")) {
-    return 2;
-  }
-  if (text.includes("secondary") || text.includes("high school")) {
-    return 1;
-  }
-  return undefined;
 }
 
 type DeterministicOutcome =
@@ -273,8 +252,8 @@ export function applyDeterministicEligibilityRules(
   if (requiredLevel) {
     const extractedLevel =
       readFieldValue(studyDetails, "highestEducationLevel") ?? context.level?.trim();
-    const extractedRank = classifyQualification(extractedLevel);
-    const requiredRank = classifyQualification(requiredLevel);
+    const extractedRank = classifyQualificationRank(extractedLevel);
+    const requiredRank = classifyQualificationRank(requiredLevel);
     let status: EligibilityRequirementStatus = "unknown";
     if (requiredRank !== undefined && extractedRank !== undefined) {
       status = extractedRank >= requiredRank ? "pass" : "fail";
@@ -320,19 +299,16 @@ export function applyDeterministicEligibilityRules(
     let thresholdDetails: EligibilityRequirementCheck["details"];
 
     if (typeof minWam === "number") {
-      let comparableWam: number | undefined = wamValue;
-      if (comparableWam === undefined && calculatedWam) {
-        comparableWam = calculatedWam.wam;
-        thresholdExplanationLead = `Calculated WAM ${comparableWam.toFixed(1)} from ${calculatedWam.includedUnitCount} counted unit results (${calculatedWam.totalCreditPoints} credit points). `;
-      }
-      if (comparableWam === undefined && gpaValue !== undefined && gpaScale !== undefined) {
-        comparableWam = toPercentFromGpa(gpaValue, gpaScale);
-        thresholdExplanationLead = `Mapped GPA ${gpaValue}/${gpaScale} to approximately ${comparableWam?.toFixed(
-          1,
-        )}% WAM for threshold comparison. `;
-      }
+      const resolvedWam = resolveComparableWam({
+        calculatedWam,
+        extractedWam: wamValue,
+        gpaScale,
+        gpaValue,
+        mapGpaToPercent: toPercentFromGpa,
+      });
 
-      if (comparableWam !== undefined) {
+      if (resolvedWam) {
+        const { explanationLead, wam: comparableWam } = resolvedWam;
         thresholdStatus = comparableWam >= minWam ? "pass" : "fail";
         thresholdReasonCode = thresholdStatus === "pass" ? "WAM_MET" : "WAM_BELOW";
         thresholdDetails = {
@@ -340,6 +316,7 @@ export function applyDeterministicEligibilityRules(
           observed: comparableWam.toFixed(1),
           required: String(minWam),
         };
+        thresholdExplanationLead = explanationLead;
         thresholdExplanation =
           thresholdStatus === "pass"
             ? `${thresholdExplanationLead}Comparable WAM ${comparableWam.toFixed(1)} meets minimum WAM ${minWam}.`
@@ -350,7 +327,13 @@ export function applyDeterministicEligibilityRules(
         gpaValue !== undefined ? gpaValue : undefined;
       let comparableScale: number | undefined =
         gpaScale !== undefined ? gpaScale : minGpaScale;
-      const wamForGpaConversion = wamValue ?? calculatedWam?.wam;
+      const wamForGpaConversion = resolveComparableWam({
+        calculatedWam,
+        extractedWam: wamValue,
+        gpaScale,
+        gpaValue,
+        mapGpaToPercent: toPercentFromGpa,
+      })?.wam;
 
       if (
         comparableGpa === undefined &&
