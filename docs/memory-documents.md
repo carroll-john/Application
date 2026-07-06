@@ -7,6 +7,19 @@
   - No session → IndexedDB local fallback
 - Never store file names only; preserve binary content.
 
+### Document kinds (Section 2 + feedback)
+
+| Kind | Typical file | Notes |
+|------|--------------|-------|
+| `cv` | résumé PDF/DOC | Single per application |
+| `transcript`, `certificate`, etc. | per tertiary row | See Section 2 upload sequence |
+| `eligibility_feedback` | `eligibility-feedback.json` | Applicant dispute of automated evidence rows; schema v1 in `eligibilityFeedbackDocument.ts` |
+
+Migration: `supabase/migrations/20260705100000_eligibility_feedback_document.sql`
+adds the enum value and optional `applications.eligibility_feedback_document_id` FK.
+**Load contract:** hydration picks the latest `eligibility_feedback` row from
+`application_documents` (`findEligibilityFeedbackDocument`) — not the FK column alone.
+
 ## Upload UX
 
 - Shared component: `src/components/FileUpload.tsx`
@@ -49,6 +62,7 @@ Optional parse layer on top: [memory-document-parsing.md](memory-document-parsin
 | `src/lib/storage/documentReplace.ts` | Replace, duplicate, delete orchestration |
 | `src/lib/documentAttachment.ts` | Attachment metadata helpers |
 | `src/features/section2/section2DocumentSave.ts` | Kind-generic Section 2 document save |
+| `src/lib/eligibility/eligibilityFeedbackDocument.ts` | Feedback JSON payload + `saveEligibilityFeedbackDocument` |
 | `src/lib/documentUploadLimits.ts` | Quota constants + friendly errors |
 | `src/components/DocumentUploadField.tsx` | Form field wrapper |
 | `api/document-delivery.ts` | Server proxy |

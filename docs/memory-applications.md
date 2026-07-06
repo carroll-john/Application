@@ -6,6 +6,9 @@
 - One open draft per course; submitted applications kept separately.
 - Selected course stored in `applicationMeta.selectedCourse` — never implicit/hard-coded.
 - Eligibility is course-specific; no direct apply shortcut bypassing eligibility on course pages.
+- `eligibilityFeedbackDocument` / `eligibilityFeedbackFileName` on `ApplicationData` —
+  optional JSON feedback artifact; hydrate from latest `application_documents` row with
+  `kind = eligibility_feedback` (see [memory-documents.md](memory-documents.md)).
 
 ## State Layer
 
@@ -41,6 +44,17 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   an English test must have a ready score-report document and scores meeting the
   selected program's generated requirement; AHPRA evidence must be recognised by
   name, marked `Active`, and have a ready supporting document.
+
+### Eligibility feedback (applicant disputes)
+
+- Saved via `saveEligibilityFeedback` in `ApplicationContext` →
+  `useApplicationData.saveEligibilityFeedbackDocument`.
+- Payload builder: `src/lib/eligibility/eligibilityFeedbackDocument.ts`
+  (`ELIGIBILITY_FEEDBACK_SCHEMA_VERSION`, `eligibility-feedback.json`).
+- UI: `SupportingEvidencePanel` + `EligibilityFeedbackForm` on the qualifications hub.
+- Remote load: `findEligibilityFeedbackDocument` in `remoteMappers.ts` over the
+  documents query — do not assume `applications.eligibility_feedback_*` columns
+  are populated on read.
 
 ## Submission
 
@@ -87,8 +101,10 @@ server `submit_application` RPC enforces the same conditions (see Submission).
 | `src/lib/applicationRecords.ts` | Local record helpers |
 | `src/lib/applicationRemoteStore.ts` | Supabase persistence |
 | `src/lib/eligibility/englishProficiencyEvidence.ts` | Conditional cert + English-proficiency helpers (client + server share the rules) |
+| `src/lib/eligibility/eligibilityFeedbackDocument.ts` | Feedback JSON document kind + save helper |
 | `src/lib/validation/rules/section2.ts` | Section 2 submission rules incl. the conditional requirements |
 | `src/pages/ReviewAndSubmit.tsx` | Review + submit |
+| `src/pages/Section2Qualifications.tsx` | Evidence hub + feedback entry |
 
 ## Agent Module Boundary
 

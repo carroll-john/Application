@@ -40,3 +40,5 @@ Durable product, UX, and implementation contracts. For task-specific detail, loa
 - Integration platform runs in a separate repository; keep this repo focused on applicant UX.
 - Regenerate `src/lib/supabase.types.ts` after schema changes.
 - Hosted app: `https://application-prototype.vercel.app`
+- **Hydration:** gate form heroes, validation, and action bars on `!isHydrating`; use static placeholder shells — see [memory-ui.md](memory-ui.md).
+- **Eligibility feedback:** hybrid `eligibility_feedback` document kind — see [memory-documents.md](memory-documents.md) and [memory-applications.md](memory-applications.md).
