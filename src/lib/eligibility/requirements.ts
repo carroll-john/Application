@@ -146,6 +146,12 @@ interface RequirementInstanceBase {
    * the group. The matcher treats the whole group as a single OR-check and emits one check row.
    */
   alternativeGroupId?: string;
+  /**
+   * Bundles requirements that must all pass together for one entry pathway. When a course declares
+   * two or more distinct pathway bundles, satisfying any one bundle satisfies the pathway OR —
+   * failures from other bundles do not gate eligibility.
+   */
+  pathwayBundleId?: string;
 }
 
 export const requirementKindLabels: Record<RequirementKind, string> = {

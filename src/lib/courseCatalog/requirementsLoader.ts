@@ -26,6 +26,9 @@ function normalizeInstance(value: unknown): RequirementInstance {
   if (normalized.alternativeGroupId === null) {
     delete normalized.alternativeGroupId;
   }
+  if (normalized.pathwayBundleId === null) {
+    delete normalized.pathwayBundleId;
+  }
   const params = normalized.params;
   if (params && typeof params === "object") {
     const paramsRecord = { ...(params as Record<string, unknown>) };

@@ -211,12 +211,36 @@ function applyRequirementsMatcher(
   const scopedChecks: EligibilityRequirementCheck[] = [];
   for (const check of checks) {
     const source = evidenceSourceForCheck(check, requirements);
-    if (check.status === "unknown" && source !== "transcript") {
+    const groupDelimiter = check.id.indexOf(":");
+    const foldedGroupId = groupDelimiter > 0 ? check.id.slice(0, groupDelimiter) : undefined;
+    const foldedGroupMembers = foldedGroupId
+      ? requirements.filter((requirement) => requirement.alternativeGroupId === foldedGroupId)
+      : [];
+    const foldedGroupNeedsNonTranscriptEvidence =
+      foldedGroupMembers.length > 0 &&
+      foldedGroupMembers.some(
+        (member) => requirementEvidenceSource[member.kind] !== "transcript",
+      );
+
+    if (
+      check.status === "unknown" &&
+      (source !== "transcript" || foldedGroupNeedsNonTranscriptEvidence)
+    ) {
       pendingEvidence.push({
-        evidenceSource: source,
-        kind: requirements.find((requirement) => requirement.id === check.id)?.kind ?? "",
+        evidenceSource:
+          source !== "transcript"
+            ? source
+            : (requirementEvidenceSource[
+                foldedGroupMembers.find(
+                  (member) => requirementEvidenceSource[member.kind] !== "transcript",
+                )?.kind ?? "work_experience"
+              ] ?? "cv"),
+        kind:
+          requirements.find((requirement) => requirement.id === check.id)?.kind ??
+          foldedGroupMembers[0]?.kind ??
+          "",
         ...(check.reasonCode ? { reasonCode: check.reasonCode } : {}),
-        requirementId: check.id,
+        requirementId: foldedGroupId ?? check.id,
       });
     } else {
       scopedChecks.push(check);

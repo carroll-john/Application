@@ -9,6 +9,114 @@ import type {
   TranscriptExtractedData,
 } from "./types.js";
 
+function pathwayBundleIds(instances: readonly RequirementInstance[]): string[] {
+  const ids = new Set<string>();
+  for (const instance of instances) {
+    if (instance.pathwayBundleId) {
+      ids.add(instance.pathwayBundleId);
+    }
+  }
+  return [...ids];
+}
+
+function pathwayBundleForInstance(
+  instances: readonly RequirementInstance[],
+  instanceId: string,
+): string | undefined {
+  const direct = instances.find((instance) => instance.id === instanceId);
+  if (direct?.pathwayBundleId) {
+    return direct.pathwayBundleId;
+  }
+  return undefined;
+}
+
+function pathwayBundleForAlternativeGroup(
+  instances: readonly RequirementInstance[],
+  groupId: string,
+): string | undefined {
+  const member = instances.find(
+    (instance) =>
+      instance.alternativeGroupId === groupId && instance.weight === "alternative",
+  );
+  return member?.pathwayBundleId;
+}
+
+function pathwayBundleForCheck(
+  instances: readonly RequirementInstance[],
+  check: EligibilityRequirementCheck,
+): string | undefined {
+  const direct = pathwayBundleForInstance(instances, check.id);
+  if (direct) {
+    return direct;
+  }
+
+  const groupDelimiter = check.id.indexOf(":");
+  if (groupDelimiter > 0) {
+    return pathwayBundleForAlternativeGroup(instances, check.id.slice(0, groupDelimiter));
+  }
+
+  return undefined;
+}
+
+function isPathwayBundleSatisfied(checks: readonly EligibilityRequirementCheck[]): boolean {
+  return checks.length > 0 && !checks.some((check) => check.status === "fail");
+}
+
+/**
+ * When a course declares multiple entry pathways, keep only checks from satisfied pathway bundles.
+ * Global requirements (no pathwayBundleId) are always retained.
+ */
+function applyPathwayOrFiltering(
+  instances: readonly RequirementInstance[],
+  checks: readonly EligibilityRequirementCheck[],
+): EligibilityRequirementCheck[] {
+  const bundleIds = pathwayBundleIds(instances);
+  if (bundleIds.length < 2) {
+    return [...checks];
+  }
+
+  const checksByBundle = new Map<string, EligibilityRequirementCheck[]>();
+  const globalChecks: EligibilityRequirementCheck[] = [];
+
+  for (const check of checks) {
+    const bundleId = pathwayBundleForCheck(instances, check);
+    if (!bundleId) {
+      globalChecks.push(check);
+      continue;
+    }
+    const bucket = checksByBundle.get(bundleId) ?? [];
+    bucket.push(check);
+    checksByBundle.set(bundleId, bucket);
+  }
+
+  const satisfiedBundles = bundleIds.filter((bundleId) =>
+    isPathwayBundleSatisfied(checksByBundle.get(bundleId) ?? []),
+  );
+
+  if (satisfiedBundles.length === 0) {
+    return [...checks];
+  }
+
+  const retainedBundles = new Set(satisfiedBundles);
+  const retained: EligibilityRequirementCheck[] = [...globalChecks];
+
+  for (const check of checks) {
+    const bundleId = pathwayBundleForCheck(instances, check);
+    if (!bundleId || !retainedBundles.has(bundleId)) {
+      continue;
+    }
+    const groupDelimiter = check.id.indexOf(":");
+    if (groupDelimiter > 0 && check.status === "unknown") {
+      // Supplementary OR-options (e.g. GPA vs experience) stay pending elsewhere when the
+      // mandatory pathway checks already passed.
+      continue;
+    }
+    retained.push(check);
+  }
+
+  return retained;
+}
+
 /**
  * Folds an alternative group (multiple requirements that share an alternativeGroupId) into a single
  * check. Status is the strongest result across the group: pass beats unknown beats fail.
@@ -113,7 +221,7 @@ export function evaluateRequirements(
     }
   }
 
-  return out;
+  return applyPathwayOrFiltering(instances, out);
 }
 
 /**

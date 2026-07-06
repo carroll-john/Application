@@ -164,7 +164,8 @@
         },
         "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
         "weight": "mandatory",
-        "alternativeGroupId": null
+        "alternativeGroupId": null,
+        "pathwayBundleId": "mba-level-1"
       },
       {
         "id": "academic_threshold-60",
@@ -176,7 +177,8 @@
         },
         "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
         "weight": "mandatory",
-        "alternativeGroupId": null
+        "alternativeGroupId": null,
+        "pathwayBundleId": "mba-level-1"
       },
       {
         "id": "academic_threshold-60-gpa",
@@ -188,7 +190,8 @@
         },
         "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
         "weight": "alternative",
-        "alternativeGroupId": "level1-entry-acad-min"
+        "alternativeGroupId": "level1-entry-acad-min",
+        "pathwayBundleId": "mba-level-1"
       },
       {
         "id": "work_experience-3y-professional",
@@ -199,7 +202,8 @@
         },
         "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
         "weight": "alternative",
-        "alternativeGroupId": "level1-entry-acad-min"
+        "alternativeGroupId": "level1-entry-acad-min",
+        "pathwayBundleId": "mba-level-1"
       },
       {
         "id": "qualification_completed-gradcert-busadmin-digital",
@@ -207,7 +211,8 @@
         "params": {},
         "sourceText": "Entry Level 2: Completion of a Monash University Graduate Certificate of Business Administration (Digital) with at least a credit average of 60%.",
         "weight": "mandatory",
-        "alternativeGroupId": null
+        "alternativeGroupId": null,
+        "pathwayBundleId": "mba-level-2"
       },
       {
         "id": "academic_threshold-60-level2",
@@ -219,7 +224,8 @@
         },
         "sourceText": "Entry Level 2: Completion of a Monash University Graduate Certificate of Business Administration (Digital) with at least a credit average of 60%.",
         "weight": "mandatory",
-        "alternativeGroupId": null
+        "alternativeGroupId": null,
+        "pathwayBundleId": "mba-level-2"
       }
     ],
     "master-of-digital-health": [
