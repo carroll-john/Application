@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import type { ApplicationData, SelectedCourse } from "../../../lib/applicationData";
+import { hashAnalyticsIdentifierSync } from "../../../lib/analyticsIdentity";
 import {
   type ApplicationRecordEventName,
   associateCourseProviderGroup,
@@ -34,7 +35,9 @@ export function useApplicationAnalytics() {
       associateCourseProviderGroup(course.provider);
       capturePostHogEvent("application_draft_created", {
         ...getCourseAnalyticsProperties(course),
-        applicant_profile_id: applicantProfileId,
+        applicant_profile_id: applicantProfileId
+          ? hashAnalyticsIdentifierSync(applicantProfileId)
+          : null,
         application_id: applicationId,
         storage_mode: "remote",
       });

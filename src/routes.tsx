@@ -25,6 +25,7 @@ import { lazyWithRetry } from "./lib/routeChunkRecovery";
 import { Section2QualificationsRouteFallback } from "./features/section2/Section2QualificationsRouteFallback";
 import { FormStepRouteFallback } from "./features/forms/FormStepRouteFallback";
 import { ReviewRouteFallback } from "./features/review/ReviewRouteFallback";
+import { PostHogSupportLauncher } from "./features/support";
 import RouteErrorBoundary from "./pages/RouteErrorBoundary";
 
 const ApplicationSubmitted = lazyWithRetry(
@@ -136,6 +137,7 @@ function Layout() {
   return (
     <>
       <ScrollToTop />
+      <PostHogSupportLauncher />
       <Suspense fallback={<RouteLoadingScreen />}>
         <Outlet />
       </Suspense>

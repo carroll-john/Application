@@ -150,6 +150,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAuthenticated = Boolean(session?.user);
 
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
     if (!isAuthenticated || !userEmail) {
       syncPostHogUser(null);
       syncSentryUser(null);
@@ -165,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     syncPostHogUser(identity);
     syncSentryUser(identity);
-  }, [isAuthenticated, session?.user.id, userEmail]);
+  }, [isAuthenticated, isLoading, session?.user.id, userEmail]);
 
   const value = useMemo<AuthContextType>(
     () => ({

@@ -20,6 +20,7 @@ let postHogBlockReason: string | null = null;
 let postHogIdentifyRequestId = 0;
 
 export const isPostHogEnabled = Boolean(POSTHOG_KEY);
+export const POSTHOG_IDENTITY_VERSION = 1;
 
 // Properties that can carry a full URL (and therefore auth tokens in the hash or
 // query). With the real SDK, `capture_pageleave` auto-populates `$current_url`
@@ -325,6 +326,9 @@ export function syncPostHogUser(user: PostHogUserContext | null) {
       app_environment: APP_ENVIRONMENT,
       analytics_user_id_hash: hashedUserId,
       email_domain: emailDomain,
+      is_authenticated: true,
+      posthog_identity_version: POSTHOG_IDENTITY_VERSION,
+      user_type: "applicant",
     });
   });
 }

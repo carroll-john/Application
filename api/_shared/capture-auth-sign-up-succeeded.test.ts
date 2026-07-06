@@ -97,4 +97,36 @@ describe("capture-auth-sign-up-succeeded api route", () => {
     expect(event.properties.auth_context).toBe("modal");
     expect(event.properties.$insert_id).toBe(`auth-sign-up-succeeded:${userId}`);
   });
+
+  it("waits for PostHog capture before returning", async () => {
+    process.env.POSTHOG_PROJECT_API_KEY = "test-key";
+    let resolveCapture!: () => void;
+    captureImmediate.mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveCapture = resolve;
+      }),
+    );
+
+    let settled = false;
+    const responsePromise = signUpRoute
+      .fetch(
+        makeRequest({
+          userId: "550e8400-e29b-41d4-a716-446655440000",
+          signupMethod: "email",
+        }),
+      )
+      .then((response) => {
+        settled = true;
+        return response;
+      });
+
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    resolveCapture();
+    const response = await responsePromise;
+
+    expect(response.status).toBe(200);
+    expect(settled).toBe(true);
+  });
 });

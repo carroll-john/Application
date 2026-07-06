@@ -119,6 +119,43 @@ Per-stage event volume (all-time, EU project `133929`):
 Re-run / extend with the PostHog MCP (`query-funnel`, `query-trends`,
 `insight-create`, `dashboard-create`, …).
 
+## 5. PostHog Identify
+
+The app configures PostHog identity centrally from `AuthContext`:
+
+- After Supabase resolves a logged-in session, `syncPostHogUser()` calls
+  `posthog.identify()` with a salted hash of `auth.users.id` as the distinct id.
+- On sign-out, `syncPostHogUser(null)` calls `posthog.reset()` and restores base
+  super-properties.
+- Person properties are limited to non-sensitive segmentation traits:
+  `analytics_user_id_hash`, `email_domain`, `user_type`, `is_authenticated`,
+  `app_environment`, and `posthog_identity_version`.
+
+Do not add raw email, names, or Supabase user IDs to PostHog identify traits
+without an explicit privacy decision. The Support ticket form can still pass a
+contact email to PostHog Support when a tester deliberately sends a ticket.
+
+## 6. Support tickets for bug bash
+
+The app now mounts a global **Report issue** launcher that uses
+`posthog.conversations.sendMessage(..., true)` to create a fresh PostHog
+Support ticket with the current page, course, and application context. It only
+appears when the SDK reports that the Support conversations API is available.
+
+PostHog-side setup required:
+
+1. In the same PostHog project configured by `VITE_POSTHOG_KEY`, open
+   **Support → Settings**.
+2. Enable **conversations**. This makes `posthog.conversations` available to
+   the prototype.
+3. Optional: enable the built-in **In-app widget**. If the native PostHog
+   widget is visible, the app hides its custom launcher to avoid two support
+   buttons.
+4. Verify with a clean browser session: open the prototype, click
+   **Report issue**, send a test ticket, then confirm it appears in the
+   PostHog Support inbox. The relevant automatic events are
+   `$conversation_ticket_created` and `$conversation_message_received`.
+
 ## Linear
 
 Part of the **DIS-202** PostHog analytics rollout (and DIS-195 / DIS-196 /

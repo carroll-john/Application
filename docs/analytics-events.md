@@ -81,7 +81,14 @@ Every client-side event, kept in sync with `src/lib/analytics/events.ts` by
 ## Identity
 
 - PostHog runs in manual mode (`autocapture: false`), so only explicit app events are sent.
-- PostHog user identity uses a salted hash (raw email/user IDs are not used as analytics distinct IDs).
+- PostHog user identity is configured from `AuthContext` after Supabase session
+  load: logged-in applicants call `posthog.identify()` with a salted hash of
+  the Supabase user id as the distinct id, and signed-out users call
+  `posthog.reset()`.
+- Identify person properties intentionally stay non-sensitive:
+  `analytics_user_id_hash`, `email_domain`, `user_type`, `is_authenticated`,
+  `app_environment`, and `posthog_identity_version`. Raw email/user IDs are not
+  used as analytics distinct IDs or person traits.
 - `applicant_profile_id` event property is hashed before capture.
 
 ## URL privacy
@@ -267,6 +274,19 @@ scaffolding (`featureFlags.ts`, `useFeatureFlag`, the `<PostHogProvider>`
 wrapper) was placeholder code with no call sites and was removed; restore it
 from git history when the first real flag ships, replacing the placeholder
 keys with the flags actually defined in the PostHog project.
+
+## Support Tickets
+
+The prototype has a global `Report issue` launcher for bug bash sessions. It
+uses PostHog Support's conversations API to create tickets when the configured
+PostHog project has Support conversations enabled. These are PostHog-managed
+events, not app-owned analytics catalog events:
+
+- `$conversation_ticket_created`
+- `$conversation_message_received`
+
+If the native PostHog in-app widget is enabled and visible, the app hides its
+custom launcher so testers see only one support entry point.
 
 ## Bot And Agent Exclusion
 

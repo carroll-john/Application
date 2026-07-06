@@ -39,6 +39,12 @@ export {
   syncReplayRoutePrivacy,
 } from "./analytics/posthogClient";
 export {
+  getPostHogSupportState,
+  hidePostHogSupportWidget,
+  sendPostHogSupportTicket,
+} from "./analytics/posthogSupport";
+export { isPostHogSensitiveRoute } from "./analytics/sanitizeAnalyticsUrl";
+export {
   captureApplicationStepEvent,
   getApplicationAnalyticsProperties,
   getCourseAnalyticsProperties,

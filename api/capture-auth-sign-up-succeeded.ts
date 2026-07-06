@@ -84,8 +84,10 @@ async function handleWebRequest(request: Request) {
     );
   }
 
-  // Fire-and-forget: analytics must not block the response.
-  void captureAuthSignUpSucceeded({
+  // Await the bounded capture call so serverless runtimes do not freeze the
+  // request before PostHog receives the event. Failures are swallowed inside
+  // captureAuthSignUpSucceeded, so analytics still never blocks sign-up UX.
+  await captureAuthSignUpSucceeded({
     userId,
     signupMethod,
     emailDomain: readString(candidate.emailDomain, 200),
