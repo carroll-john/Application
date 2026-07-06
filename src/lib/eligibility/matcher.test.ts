@@ -315,6 +315,178 @@ describe("evaluateRequirements", () => {
     });
     expect(check.explanation).toContain("Calculated WAM 59.0");
   });
+
+  it("prefers calculated unit WAM over a conflicting extracted aggregate", () => {
+    const instances: RequirementInstance[] = [
+      {
+        id: "wam",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 60 },
+        sourceText: "WAM 60% or above.",
+        weight: "mandatory",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      academicPerformance: {
+        gradeAverageOrWam: { confidence: 0.9, normalizedValue: "65" },
+        unitResults: [
+          { counted: true, creditPoints: 10, grade: "D", mark: 71 },
+          { counted: true, creditPoints: 10, grade: "Cr", mark: 66 },
+          { counted: true, creditPoints: 10, grade: "P", mark: 58 },
+          { counted: true, creditPoints: 10, grade: "F", mark: 41 },
+        ],
+      },
+    };
+
+    const [check] = evaluateRequirements(instances, evidence, emptyContext());
+
+    expect(check.status).toBe("fail");
+    expect(check.details).toMatchObject({ observed: "59.0", required: "60" });
+  });
+
+  it("treats graduate certificate as bachelor-or-higher for qualification_level", () => {
+    const instances: RequirementInstance[] = [
+      {
+        id: "level-bachelor",
+        kind: "qualification_level",
+        params: { level: "bachelor" },
+        sourceText: "Australian bachelor degree or equivalent.",
+        weight: "mandatory",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      studyDetails: {
+        highestEducationLevel: {
+          confidence: 0.9,
+          normalizedValue: "Graduate Certificate of Business",
+        },
+      },
+    };
+
+    const [check] = evaluateRequirements(instances, evidence, emptyContext());
+
+    expect(check.status).toBe("pass");
+    expect(check.reasonCode).toBe("QUALIFICATION_LEVEL_MET");
+  });
+
+  it("suppresses unsatisfied pathway bundles when another pathway is fully met", () => {
+    const instances: RequirementInstance[] = [
+      {
+        id: "level1-qual",
+        kind: "qualification_level",
+        params: { level: "bachelor" },
+        sourceText: "Entry Level 1: bachelor or equivalent with 60% average.",
+        weight: "mandatory",
+        pathwayBundleId: "level-1",
+      },
+      {
+        id: "level1-wam",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 60 },
+        sourceText: "Entry Level 1: bachelor or equivalent with 60% average.",
+        weight: "mandatory",
+        pathwayBundleId: "level-1",
+      },
+      {
+        id: "level2-completion",
+        kind: "qualification_completed",
+        params: {},
+        sourceText: "Entry Level 2: Monash graduate certificate with 60% average.",
+        weight: "mandatory",
+        pathwayBundleId: "level-2",
+      },
+      {
+        id: "level2-wam",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 60 },
+        sourceText: "Entry Level 2: Monash graduate certificate with 60% average.",
+        weight: "mandatory",
+        pathwayBundleId: "level-2",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      studyDetails: {
+        completionStatus: { confidence: 0.9, normalizedValue: "completed" },
+        highestEducationLevel: {
+          confidence: 0.9,
+          normalizedValue: "Graduate Certificate of Business",
+        },
+      },
+      academicPerformance: {
+        gradeAverageOrWam: { confidence: 0.9, normalizedValue: "72" },
+      },
+    };
+
+    const checks = evaluateRequirements(instances, evidence, emptyContext());
+
+    expect(checks.map((check) => check.id).sort()).toEqual([
+      "level1-qual",
+      "level1-wam",
+      "level2-completion",
+      "level2-wam",
+    ]);
+    expect(aggregateOutcome(checks)).toEqual({
+      outcome: "eligible",
+      manualReviewRequired: false,
+    });
+  });
+
+  it("drops unsatisfied pathway bundles when another pathway has no failing checks", () => {
+    const instances: RequirementInstance[] = [
+      {
+        id: "level1-qual",
+        kind: "qualification_level",
+        params: { level: "bachelor" },
+        sourceText: "Entry Level 1: bachelor or equivalent with 60% average.",
+        weight: "mandatory",
+        pathwayBundleId: "level-1",
+      },
+      {
+        id: "level1-wam",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 60 },
+        sourceText: "Entry Level 1: bachelor or equivalent with 60% average.",
+        weight: "mandatory",
+        pathwayBundleId: "level-1",
+      },
+      {
+        id: "level2-completion",
+        kind: "qualification_completed",
+        params: {},
+        sourceText: "Entry Level 2: Monash graduate certificate with 80% average.",
+        weight: "mandatory",
+        pathwayBundleId: "level-2",
+      },
+      {
+        id: "level2-wam",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 80 },
+        sourceText: "Entry Level 2: Monash graduate certificate with 80% average.",
+        weight: "mandatory",
+        pathwayBundleId: "level-2",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      studyDetails: {
+        completionStatus: { confidence: 0.9, normalizedValue: "completed" },
+        highestEducationLevel: {
+          confidence: 0.9,
+          normalizedValue: "Graduate Certificate of Business",
+        },
+      },
+      academicPerformance: {
+        gradeAverageOrWam: { confidence: 0.9, normalizedValue: "72" },
+      },
+    };
+
+    const checks = evaluateRequirements(instances, evidence, emptyContext());
+
+    expect(checks.map((check) => check.id).sort()).toEqual(["level1-qual", "level1-wam"]);
+    expect(aggregateOutcome(checks)).toEqual({
+      outcome: "eligible",
+      manualReviewRequired: false,
+    });
+  });
 });
 
 describe("conditional requirements end-to-end", () => {
