@@ -15,6 +15,7 @@ const REQUIREMENTS_PATH = path.join(
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:4191";
 const DEFAULT_TIMEOUT_MS = 180_000;
+const DEFAULT_CONCURRENCY = 1;
 const SAFE_COURSE_CODE = "la-trobe-university-master-of-information-technology";
 const SAFE_COURSE_TITLE = "Master of Information Technology";
 const UNSAFE_COURSE_CODE = "master-of-business-marketing";
@@ -34,6 +35,9 @@ function parseArgs(argv) {
       process.env.ELIGIBILITY_REGRESSION_BASE_URL?.trim() ||
       DEFAULT_BASE_URL,
     compare: null,
+    concurrency: Number(
+      process.env.TRANSCRIPT_ELIGIBILITY_CONCURRENCY || DEFAULT_CONCURRENCY,
+    ),
     courseMode: "safe",
     fixtureIds: [],
     help: false,
@@ -89,6 +93,12 @@ function parseArgs(argv) {
       continue;
     }
 
+    if (arg === "--concurrency") {
+      options.concurrency = Number(argv[i + 1] || options.concurrency);
+      i += 1;
+      continue;
+    }
+
     if (arg === "--strict") {
       options.strict = true;
       continue;
@@ -109,6 +119,7 @@ function printHelp() {
 Options:
   --base-url <url>       API base URL (default: ${DEFAULT_BASE_URL})
   --compare <a> <b>      Diff two previous runs' scorecard.json files and exit
+  --concurrency <n>      Run up to n fixtures in parallel (default: ${DEFAULT_CONCURRENCY})
   --course-mode safe|unsafe   Matcher course (safe) or legacy fallback (unsafe)
   --fixture <id>         Run a single fixture id (repeatable)
   --out-dir <path>       Write results.json + scorecard.json here
@@ -399,6 +410,42 @@ function duplicateRequirementIds(requirementsChecked) {
   return duplicates;
 }
 
+/**
+ * Run mapper over items with a fixed worker pool. Results keep input order.
+ */
+async function mapWithConcurrency(items, concurrency, mapper) {
+  if (items.length === 0) {
+    return [];
+  }
+
+  const limit = Math.max(1, Math.floor(concurrency));
+  if (limit === 1) {
+    const results = [];
+    for (const [index, item] of items.entries()) {
+      results.push(await mapper(item, index));
+    }
+    return results;
+  }
+
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= items.length) {
+        return;
+      }
+      results[index] = await mapper(items[index], index);
+    }
+  }
+
+  const workerCount = Math.min(limit, items.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
+}
+
 async function runFixtureCase({ baseUrl, context, fixture, timeoutMs, strict, verbose }) {
   const startedAt = Date.now();
   const pdfPath = path.join(FIXTURE_ROOT, fixture.file);
@@ -632,6 +679,10 @@ async function main() {
     throw new Error("No transcript fixtures selected.");
   }
 
+  if (!Number.isFinite(options.concurrency) || options.concurrency < 1) {
+    throw new Error("`--concurrency` must be a positive integer.");
+  }
+
   const context = await loadEvaluationContext(options.courseMode);
   const outDir =
     options.outDir ||
@@ -642,10 +693,12 @@ async function main() {
     );
   await fs.mkdir(outDir, { recursive: true });
 
-  const results = [];
-  for (const fixture of fixtures) {
-    results.push(
-      await runFixtureCase({
+  const runStartedAt = Date.now();
+  const results = await mapWithConcurrency(
+    fixtures,
+    options.concurrency,
+    (fixture) =>
+      runFixtureCase({
         baseUrl: options.baseUrl,
         context,
         fixture,
@@ -653,8 +706,8 @@ async function main() {
         timeoutMs: options.timeoutMs,
         verbose: options.verbose,
       }),
-    );
-  }
+  );
+  const wallElapsedSeconds = Number(((Date.now() - runStartedAt) / 1000).toFixed(2));
 
   const resultsPath = path.join(outDir, "results.json");
   await fs.writeFile(resultsPath, `${JSON.stringify(results, null, 2)}\n`, "utf8");
@@ -667,9 +720,11 @@ async function main() {
   const failed = results.filter((result) => !result.passed);
 
   console.log(
-    `Transcript eligibility regression (${options.baseUrl}, course=${options.courseMode})`,
+    `Transcript eligibility regression (${options.baseUrl}, course=${options.courseMode}, concurrency=${options.concurrency})`,
   );
-  console.log(`Fixtures: ${results.length} | Passed: ${passed.length} | Failed: ${failed.length}`);
+  console.log(
+    `Fixtures: ${results.length} | Passed: ${passed.length} | Failed: ${failed.length} | Wall time: ${wallElapsedSeconds}s`,
+  );
   console.log(`Output: ${outDir}`);
 
   for (const result of results) {
