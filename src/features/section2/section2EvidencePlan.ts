@@ -31,7 +31,7 @@ export interface Section2EvidencePlan {
   remainingPromptCount: number;
   /** Prompts hidden because their section was skipped and still has no data. */
   skippedPrompts: Section2EvidencePrompt[];
-  /** Non-blocking alternative pathway (e.g. work evidence), surfaced only when nothing blocks. */
+  /** Non-blocking alternative pathway (e.g. CV/work evidence), surfaced only when nothing blocks. */
   suggestion: Section2EvidencePrompt | null;
   visibleSections: ReadonlySet<Section2EvidenceSectionKey>;
 }

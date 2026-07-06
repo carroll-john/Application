@@ -61,7 +61,6 @@ export const programEvidenceStatusCopy: Record<ProgramEvidenceStatus, string> = 
 };
 
 const tertiaryPath = "/section2/add-tertiary?from=review";
-const employmentPath = "/section2/add-employment?from=review";
 const languagePath = "/section2/add-language-test?from=review";
 const cvPath = "/section2/add-cv?from=review";
 
@@ -196,10 +195,9 @@ function statusFromCheck(
 
   if (instance.kind === "academic_threshold") {
     return {
-      actionLabel: "Add work evidence",
-      actionPath: employmentPath,
-      explanation:
-        "Your result is below this requirement. Add work experience for admissions to consider an alternate pathway.",
+      actionLabel: "Add CV",
+      actionPath: cvPath,
+      explanation: `${requirementCheckDisplayCopy(check)} Add a CV for admissions to consider an alternate pathway.`,
       isBlocking: false,
       reasonCode: check.reasonCode,
       requirementStatus: check.status,

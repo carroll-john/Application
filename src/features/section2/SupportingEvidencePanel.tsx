@@ -378,7 +378,6 @@ export function SupportingEvidencePanel({
               <Button
                 onClick={() => onNavigate(plan.suggestion!.actionPath)}
                 type="button"
-                variant="soft"
               >
                 {plan.suggestion.actionLabel}
               </Button>

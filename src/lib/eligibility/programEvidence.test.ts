@@ -246,6 +246,52 @@ describe("buildProgramEvidenceRows", () => {
 
     expect(rows.map((row) => row.requirementId)).toEqual(["english", "work-experience"]);
   });
+
+  it("surfaces the observed WAM and sends below-threshold alternatives to CV upload", () => {
+    const course = {
+      code: "course-6",
+      title: "Master of Analytics",
+      requirements: [
+        {
+          id: "wam",
+          kind: "academic_threshold",
+          params: { metric: "wam", min: 65, scale: 100 },
+          sourceText: "Minimum WAM of 65%.",
+          weight: "mandatory",
+        },
+      ],
+    } as CourseCatalogEntry;
+    const transcriptAssessment = normalizeTranscriptEligibilityAssessment({
+      checkedAt: "2026-07-04T00:00:00Z",
+      outcome: "ineligible",
+      requirementsChecked: [
+        {
+          id: "wam",
+          requirement: "Minimum 65% WAM",
+          status: "fail",
+          reasonCode: "WAM_BELOW",
+          details: { metric: "wam", observed: "59.0", required: "65" },
+          explanation: "WAM is below the minimum.",
+        },
+      ],
+      rulesVersion: "v1",
+    });
+
+    const rows = buildProgramEvidenceRows({
+      applicationData: application({ tertiaryQualifications: [tertiaryQualification()] }),
+      course,
+      transcriptAssessment,
+    });
+
+    expect(rows[0]).toMatchObject({
+      actionLabel: "Add CV",
+      actionPath: "/section2/add-cv?from=review",
+      explanation:
+        "Your WAM of 59.0 is below the minimum of 65. Add a CV for admissions to consider an alternate pathway.",
+      isBlocking: false,
+      status: "possible_alternative",
+    });
+  });
 });
 
 describe("groupTranscriptVerifiableEvidenceRows", () => {
