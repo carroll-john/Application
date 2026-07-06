@@ -106,7 +106,7 @@ export function resolveComparableWam(options: {
   extractedWam?: number;
   gpaScale?: number;
   gpaValue?: number;
-  mapGpaToPercent?: (gpa: number, scale: number) => number;
+  mapGpaToPercent?: (gpa: number, scale: number) => number | undefined;
 }): ResolvedComparableWam | undefined {
   const { calculatedWam, extractedWam, gpaScale, gpaValue, mapGpaToPercent } = options;
 
@@ -130,11 +130,13 @@ export function resolveComparableWam(options: {
     const wam = mapGpaToPercent
       ? mapGpaToPercent(gpaValue, gpaScale)
       : (gpaValue / gpaScale) * 100;
-    return {
-      explanationLead: `Mapped GPA ${gpaValue}/${gpaScale} to approximately ${wam.toFixed(1)}% WAM. `,
-      source: "gpa_mapped",
-      wam,
-    };
+    if (wam !== undefined) {
+      return {
+        explanationLead: `Mapped GPA ${gpaValue}/${gpaScale} to approximately ${wam.toFixed(1)}% WAM. `,
+        source: "gpa_mapped",
+        wam,
+      };
+    }
   }
 
   return undefined;
