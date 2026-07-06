@@ -137,6 +137,80 @@ describe("applyDeterministicEligibilityRules", () => {
     expect(result.outcome).toBe("ineligible");
   });
 
+  it("treats graduate certificate as bachelor-or-higher", () => {
+    const result = applyDeterministicEligibilityRules(
+      {
+        outcome: "eligible",
+        requirementsChecked: [],
+        studyDetails: {
+          highestEducationLevel: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "Graduate Certificate of Business",
+            originalValue: "Graduate Certificate of Business",
+          },
+        },
+      },
+      {
+        qualificationLevelRequirement: "bachelor",
+      },
+    );
+
+    const levelCheck = (
+      result.requirementsChecked as Array<{ id: string; status: string }>
+    ).find((check) => check.id === "deterministic-qualification-level");
+
+    expect(levelCheck?.status).toBe("pass");
+  });
+
+  it("prefers calculated unit WAM over a conflicting extracted aggregate", () => {
+    const result = applyDeterministicEligibilityRules(
+      {
+        outcome: "eligible",
+        requirementsChecked: [],
+        academicPerformance: {
+          gradeAverageOrWam: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "65",
+            originalValue: "WAM 65",
+          },
+          unitResults: [
+            { counted: true, creditPoints: 10, grade: "D", mark: 71 },
+            { counted: true, creditPoints: 10, grade: "Cr", mark: 66 },
+            { counted: true, creditPoints: 10, grade: "P", mark: 58 },
+            { counted: true, creditPoints: 10, grade: "S" },
+            { counted: true, creditPoints: 10, grade: "F", mark: 41 },
+            { counted: true, creditPoints: 10, grade: "W" },
+          ],
+        },
+        studyDetails: {
+          completionStatus: {
+            confidence: 0.9,
+            missingOrAmbiguous: false,
+            normalizedValue: "completed",
+            originalValue: "completed",
+          },
+        },
+      },
+      {
+        completed: true,
+        minWam: 60,
+      },
+    );
+
+    const thresholdCheck = (
+      result.requirementsChecked as Array<{ details?: Record<string, string>; id: string; status: string }>
+    ).find((check) => check.id === "deterministic-wam-gpa-threshold");
+
+    expect(thresholdCheck?.status).toBe("fail");
+    expect(thresholdCheck?.details).toMatchObject({
+      metric: "wam",
+      observed: "59.0",
+      required: "60",
+    });
+  });
+
   it("passes English proficiency for Australian institutions completed in Australia", () => {
     const result = applyDeterministicEligibilityRules(
       {

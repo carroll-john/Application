@@ -91,3 +91,54 @@ export function calculateWamFromUnitResults(
   };
 }
 
+export interface ResolvedComparableWam {
+  explanationLead: string;
+  source: "calculated" | "extracted" | "gpa_mapped";
+  wam: number;
+}
+
+/**
+ * Resolves the WAM used for threshold comparison. Counted unit marks are authoritative when
+ * present; extracted transcript aggregates and GPA mapping are fallbacks only.
+ */
+export function resolveComparableWam(options: {
+  calculatedWam?: WamCalculationResult;
+  extractedWam?: number;
+  gpaScale?: number;
+  gpaValue?: number;
+  mapGpaToPercent?: (gpa: number, scale: number) => number | undefined;
+}): ResolvedComparableWam | undefined {
+  const { calculatedWam, extractedWam, gpaScale, gpaValue, mapGpaToPercent } = options;
+
+  if (calculatedWam) {
+    return {
+      explanationLead: `Calculated WAM ${calculatedWam.wam.toFixed(1)} from ${calculatedWam.includedUnitCount} counted unit results (${calculatedWam.totalCreditPoints} credit points). `,
+      source: "calculated",
+      wam: calculatedWam.wam,
+    };
+  }
+
+  if (extractedWam !== undefined) {
+    return {
+      explanationLead: "",
+      source: "extracted",
+      wam: extractedWam,
+    };
+  }
+
+  if (gpaValue !== undefined && gpaScale !== undefined && gpaScale > 0) {
+    const wam = mapGpaToPercent
+      ? mapGpaToPercent(gpaValue, gpaScale)
+      : (gpaValue / gpaScale) * 100;
+    if (wam !== undefined) {
+      return {
+        explanationLead: `Mapped GPA ${gpaValue}/${gpaScale} to approximately ${wam.toFixed(1)}% WAM. `,
+        source: "gpa_mapped",
+        wam,
+      };
+    }
+  }
+
+  return undefined;
+}
+
