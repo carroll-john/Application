@@ -1,4 +1,5 @@
 import { isCountryInAcceptedList } from "./englishMediumCountries.js";
+import { calculateWamFromUnitResults } from "./academicResults.js";
 import {
   buildRequirementCheck,
   type AcademicThresholdParams,
@@ -167,12 +168,17 @@ function evaluateAcademicThreshold(
   const wamValue = parseNumberFromText(
     readFieldText(evidence.academicPerformance?.gradeAverageOrWam),
   );
+  const calculatedWam = calculateWamFromUnitResults(evidence.academicPerformance?.unitResults);
   const gpaValue = parseNumberFromText(readFieldText(evidence.academicPerformance?.gpa));
   const gpaScale = parseNumberFromText(readFieldText(evidence.academicPerformance?.gpaScale));
 
   if (params.metric === "wam") {
     let comparableWam: number | undefined = wamValue;
     let explanationLead = "";
+    if (comparableWam === undefined && calculatedWam) {
+      comparableWam = calculatedWam.wam;
+      explanationLead = `Calculated WAM ${comparableWam.toFixed(1)} from ${calculatedWam.includedUnitCount} counted unit results (${calculatedWam.totalCreditPoints} credit points). `;
+    }
     if (comparableWam === undefined && gpaValue !== undefined && gpaScale !== undefined && gpaScale > 0) {
       comparableWam = (gpaValue / gpaScale) * 100;
       explanationLead = `Mapped GPA ${gpaValue}/${gpaScale} to approximately ${comparableWam.toFixed(1)}% WAM. `;
@@ -211,10 +217,11 @@ function evaluateAcademicThreshold(
   let comparableScale: number | undefined = gpaScale ?? requiredScale;
   let explanationLead = "";
 
-  if (comparableGpa === undefined && wamValue !== undefined && typeof requiredScale === "number") {
-    comparableGpa = (wamValue / 100) * requiredScale;
+  const wamForGpaConversion = wamValue ?? calculatedWam?.wam;
+  if (comparableGpa === undefined && wamForGpaConversion !== undefined && typeof requiredScale === "number") {
+    comparableGpa = (wamForGpaConversion / 100) * requiredScale;
     comparableScale = requiredScale;
-    explanationLead = `Mapped WAM ${wamValue.toFixed(1)}% to approximately GPA ${comparableGpa.toFixed(2)}/${requiredScale}. `;
+    explanationLead = `Mapped WAM ${wamForGpaConversion.toFixed(1)}% to approximately GPA ${comparableGpa.toFixed(2)}/${requiredScale}. `;
   }
 
   if (

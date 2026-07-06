@@ -1,10 +1,11 @@
 export const TRANSCRIPT_ELIGIBILITY_PROMPT_ID = "transcript-eligibility";
-export const TRANSCRIPT_ELIGIBILITY_PROMPT_VERSION = 2;
+export const TRANSCRIPT_ELIGIBILITY_PROMPT_VERSION = 3;
 
 /**
- * Version 2 is extraction-only: the model reports what the document shows and nothing else.
+ * Version 2+ is extraction-only: the model reports what the document shows and nothing else.
  * All eligibility judgement (outcome, missing information, next steps) happens downstream in the
- * deterministic rules engine, so the prompt no longer mentions outcomes at all.
+ * deterministic rules engine, so the prompt no longer mentions outcomes at all. Version 3 adds
+ * unit-level academic result extraction so WAM can be calculated outside the model.
  */
 const INSTRUCTIONS =
   "You are extracting evidence from an academic transcript for postgraduate admission processing. " +
@@ -21,7 +22,14 @@ const INSTRUCTIONS =
   "or other. For academic results, populate the numeric fields (wamNumeric for a weighted average " +
   "mark or percentage average, gpaNumeric and gpaScaleNumeric for a GPA and its scale) with plain " +
   "numbers parsed from the document, alongside the corresponding text fields — use null when the " +
-  "document shows no such figure and never compute or convert one yourself. For incomplete " +
+  "document shows no such figure and never compute or convert one yourself. Also populate " +
+  "academicPerformance.unitResults with every unit, course, subject, or module result row from " +
+  "the academic record. For each row, extract the unit code, title, credit points, percentage " +
+  "mark, grade, and notes/counting label. Use null for missing marks or credit points. Set " +
+  "counted to true when the row is counted toward any course, award, or program shown on the " +
+  "transcript, including failed subjects with numeric marks. Set counted to false only when the " +
+  "row is explicitly not counted, transferred, exempt, advanced standing, RPL, or credit granted; " +
+  "use null when unclear. Do not include grading-key/result-code legend rows. For incomplete " +
   "qualifications, distinguish the terminal study end/status date from an expected completion " +
   "date: use studyEndDate for dates labelled status date, exclusion date, withdrawal/" +
   "discontinuation date, last enrolled date, or the date the incomplete study period ended; use " +

@@ -3,6 +3,10 @@ import {
   buildRecommendedNextStep,
   missingInformationCopyByReasonCode,
 } from "./checkCopy.js";
+import {
+  calculateWamFromUnitResults,
+  type AcademicUnitResultInput,
+} from "./academicResults.js";
 import type {
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
@@ -300,22 +304,32 @@ export function applyDeterministicEligibilityRules(
   const minGpaValue = context.minGpaValue;
   const minGpaScale = context.minGpaScale;
   const wamValue = parseNumber(readFieldValue(academicPerformance, "gradeAverageOrWam"));
+  const calculatedWam = calculateWamFromUnitResults(
+    Array.isArray(academicPerformance.unitResults)
+      ? (academicPerformance.unitResults as AcademicUnitResultInput[])
+      : undefined,
+  );
   const gpaValue = parseNumber(readFieldValue(academicPerformance, "gpa"));
   const gpaScale = parseNumber(readFieldValue(academicPerformance, "gpaScale"));
 
   if (typeof minWam === "number" || typeof minGpaValue === "number") {
     let thresholdStatus: EligibilityRequirementStatus = "unknown";
     let thresholdExplanation = "Academic threshold evidence is incomplete.";
+    let thresholdExplanationLead = "";
     let thresholdReasonCode: RequirementReasonCode = "ACADEMIC_EVIDENCE_MISSING";
     let thresholdDetails: EligibilityRequirementCheck["details"];
 
     if (typeof minWam === "number") {
       let comparableWam: number | undefined = wamValue;
+      if (comparableWam === undefined && calculatedWam) {
+        comparableWam = calculatedWam.wam;
+        thresholdExplanationLead = `Calculated WAM ${comparableWam.toFixed(1)} from ${calculatedWam.includedUnitCount} counted unit results (${calculatedWam.totalCreditPoints} credit points). `;
+      }
       if (comparableWam === undefined && gpaValue !== undefined && gpaScale !== undefined) {
         comparableWam = toPercentFromGpa(gpaValue, gpaScale);
-        thresholdExplanation = `Mapped GPA ${gpaValue}/${gpaScale} to approximately ${comparableWam?.toFixed(
+        thresholdExplanationLead = `Mapped GPA ${gpaValue}/${gpaScale} to approximately ${comparableWam?.toFixed(
           1,
-        )}% WAM for threshold comparison.`;
+        )}% WAM for threshold comparison. `;
       }
 
       if (comparableWam !== undefined) {
@@ -328,21 +342,26 @@ export function applyDeterministicEligibilityRules(
         };
         thresholdExplanation =
           thresholdStatus === "pass"
-            ? `Comparable WAM ${comparableWam.toFixed(1)} meets minimum WAM ${minWam}.`
-            : `Comparable WAM ${comparableWam.toFixed(1)} is below minimum WAM ${minWam}.`;
+            ? `${thresholdExplanationLead}Comparable WAM ${comparableWam.toFixed(1)} meets minimum WAM ${minWam}.`
+            : `${thresholdExplanationLead}Comparable WAM ${comparableWam.toFixed(1)} is below minimum WAM ${minWam}.`;
       }
     } else if (typeof minGpaValue === "number") {
       let comparableGpa: number | undefined =
         gpaValue !== undefined ? gpaValue : undefined;
       let comparableScale: number | undefined =
         gpaScale !== undefined ? gpaScale : minGpaScale;
+      const wamForGpaConversion = wamValue ?? calculatedWam?.wam;
 
-      if (comparableGpa === undefined && wamValue !== undefined && typeof minGpaScale === "number") {
+      if (
+        comparableGpa === undefined &&
+        wamForGpaConversion !== undefined &&
+        typeof minGpaScale === "number"
+      ) {
         comparableScale = minGpaScale;
-        comparableGpa = (wamValue / 100) * minGpaScale;
-        thresholdExplanation = `Mapped WAM ${wamValue.toFixed(
+        comparableGpa = (wamForGpaConversion / 100) * minGpaScale;
+        thresholdExplanationLead = `Mapped WAM ${wamForGpaConversion.toFixed(
           1,
-        )}% to approximately GPA ${comparableGpa.toFixed(2)}/${minGpaScale}.`;
+        )}% to approximately GPA ${comparableGpa.toFixed(2)}/${minGpaScale}. `;
       }
 
       if (
@@ -362,8 +381,8 @@ export function applyDeterministicEligibilityRules(
         };
         thresholdExplanation =
           thresholdStatus === "pass"
-            ? `Comparable GPA ${comparableGpa.toFixed(2)}/${comparableScale} meets minimum GPA ${minGpaValue}/${requiredScale}.`
-            : `Comparable GPA ${comparableGpa.toFixed(2)}/${comparableScale} is below minimum GPA ${minGpaValue}/${requiredScale}.`;
+            ? `${thresholdExplanationLead}Comparable GPA ${comparableGpa.toFixed(2)}/${comparableScale} meets minimum GPA ${minGpaValue}/${requiredScale}.`
+            : `${thresholdExplanationLead}Comparable GPA ${comparableGpa.toFixed(2)}/${comparableScale} is below minimum GPA ${minGpaValue}/${requiredScale}.`;
       }
     }
 

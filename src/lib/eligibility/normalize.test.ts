@@ -55,6 +55,39 @@ describe("normalizeTranscriptEligibilityAssessment", () => {
     });
   });
 
+  it("preserves academic unit result rows", () => {
+    const normalized = normalizeTranscriptEligibilityAssessment({
+      confidence: 0.9,
+      outcome: "eligible",
+      academicPerformance: {
+        gradeAverageOrWam: null,
+        unitResults: [
+          {
+            counted: true,
+            creditPoints: "10",
+            grade: "F",
+            mark: "41",
+            notes: "Masters only",
+            title: "International Trade and Finance",
+            unitCode: "IBUS8020",
+          },
+        ],
+      },
+    });
+
+    expect(normalized.extractedData.academicPerformance?.unitResults).toEqual([
+      {
+        counted: true,
+        creditPoints: 10,
+        grade: "F",
+        mark: 41,
+        notes: "Masters only",
+        title: "International Trade and Finance",
+        unitCode: "IBUS8020",
+      },
+    ]);
+  });
+
   it("preserves reasonCode, details, pendingEvidence, notes, and version stamps", () => {
     const normalized = normalizeTranscriptEligibilityAssessment({
       confidence: 0.85,
@@ -126,4 +159,3 @@ describe("normalizeTranscriptEligibilityAssessment", () => {
     expect(normalized.recommendedNextStep).toContain("Provide additional transcript evidence");
   });
 });
-

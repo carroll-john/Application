@@ -39,6 +39,11 @@ export const ELIGIBILITY_EVIDENCE_GROUPS = [
   "englishLanguageEvidence",
 ] as const;
 
+/** Additive structured evidence fields accepted inside v1 evidence groups. */
+export const ELIGIBILITY_ACADEMIC_PERFORMANCE_OPTIONAL_FIELDS_V1 = [
+  "unitResults",
+] as const;
+
 /**
  * Top-level fields a v1 service response is required to include. Mirrors the service's
  * REQUIRED_RESPONSE_FIELDS; the service rejects an incomplete model response upstream.

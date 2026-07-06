@@ -58,6 +58,11 @@ rejected upstream as `502`):
   ```json
   { "confidence": 0.0, "missingOrAmbiguous": false, "normalizedValue": null, "originalValue": null }
   ```
+- **Academic unit rows** — newer v1-compatible extractors may also include
+  `academicPerformance.unitResults`, an array of transcript unit/result rows with
+  `unitCode`, `title`, `creditPoints`, `mark`, `grade`, `notes`, and `counted`.
+  This is additive: the app uses it to calculate WAM when no aggregate WAM is shown,
+  while older v1 responses without `unitResults` remain valid.
 
 ### Service responsibility boundary
 

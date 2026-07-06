@@ -1,5 +1,7 @@
 import type {
   EligibilityCheckDetails,
+  EligibilityAcademicPerformance,
+  EligibilityAcademicUnitResult,
   EligibilityExtractedField,
   EligibilityOutcome,
   EligibilityPendingEvidence,
@@ -171,6 +173,73 @@ function normalizeExtractedGroup(value: unknown) {
   return Object.fromEntries(entries);
 }
 
+function normalizeNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const parsed = Number.parseFloat(value.trim());
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function normalizeAcademicUnitResults(value: unknown): EligibilityAcademicUnitResult[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const units = value
+    .map((entry): EligibilityAcademicUnitResult | null => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+
+      const candidate = entry as Record<string, unknown>;
+      const unit: EligibilityAcademicUnitResult = {};
+      const creditPoints = normalizeNumber(candidate.creditPoints);
+      const mark = normalizeNumber(candidate.mark);
+
+      if (typeof candidate.counted === "boolean") {
+        unit.counted = candidate.counted;
+      }
+      if (creditPoints !== undefined) {
+        unit.creditPoints = creditPoints;
+      }
+      if (mark !== undefined) {
+        unit.mark = mark;
+      }
+      for (const key of ["grade", "notes", "title", "unitCode"] as const) {
+        const item = candidate[key];
+        if (typeof item === "string" && item.trim()) {
+          unit[key] = item.trim();
+        }
+      }
+
+      return Object.keys(unit).length > 0 ? unit : null;
+    })
+    .filter((unit): unit is EligibilityAcademicUnitResult => Boolean(unit));
+
+  return units.length > 0 ? units : undefined;
+}
+
+function normalizeAcademicPerformance(value: unknown): EligibilityAcademicPerformance | undefined {
+  const group = normalizeExtractedGroup(value) as EligibilityAcademicPerformance | undefined;
+  const candidate = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const unitResults = normalizeAcademicUnitResults(candidate.unitResults);
+
+  if (!group && !unitResults) {
+    return undefined;
+  }
+
+  return {
+    ...(group ?? {}),
+    ...(unitResults ? { unitResults } : {}),
+  };
+}
+
 function normalizeRequirementChecks(value: unknown): EligibilityRequirementCheck[] {
   if (!Array.isArray(value)) {
     return [];
@@ -240,7 +309,7 @@ export function normalizeTranscriptEligibilityAssessment(
         : new Date().toISOString(),
     confidence: normalizeConfidence(candidate.confidence, 0.45),
     extractedData: {
-      academicPerformance: normalizeExtractedGroup(evidenceSource.academicPerformance),
+      academicPerformance: normalizeAcademicPerformance(evidenceSource.academicPerformance),
       applicantDetails: normalizeExtractedGroup(evidenceSource.applicantDetails),
       englishLanguageEvidence: normalizeExtractedGroup(evidenceSource.englishLanguageEvidence),
       studyDetails: normalizeExtractedGroup(evidenceSource.studyDetails),
@@ -276,4 +345,3 @@ export function normalizeTranscriptEligibilityAssessment(
         : undefined,
   };
 }
-
