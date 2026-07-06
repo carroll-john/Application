@@ -95,3 +95,36 @@ describe("syncPostHogUser", () => {
     });
   });
 });
+
+describe("initPostHog", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_project_key");
+    vi.stubEnv("VITE_POSTHOG_HOST", "https://eu.i.posthog.com");
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("limits autocapture to public click interactions", async () => {
+    const { initPostHog } = await importPostHogClient();
+
+    initPostHog();
+
+    expect(posthogMock.init).toHaveBeenCalledTimes(1);
+    const [, config] = posthogMock.init.mock.calls[0];
+    expect(config).toMatchObject({
+      autocapture: {
+        dom_event_allowlist: ["click"],
+        element_allowlist: ["a", "button"],
+        capture_copied_text: false,
+      },
+      capture_dead_clicks: false,
+      capture_pageview: false,
+      rageclick: false,
+    });
+    expect(config.autocapture.url_allowlist).toHaveLength(2);
+  });
+});

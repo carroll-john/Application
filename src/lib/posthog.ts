@@ -34,6 +34,7 @@ export {
   capturePostHogEvent,
   initPostHog,
   isPostHogEnabled,
+  isPublicAutocaptureRoute,
   isReplayPiiRoute,
   syncPostHogUser,
   syncReplayRoutePrivacy,

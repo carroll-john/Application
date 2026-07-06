@@ -69,6 +69,25 @@ export function useCourseApplicationStart({
   );
   const isApplyActionPending = isHydrating || isStartingApplication;
 
+  const trackApplicationStartRequested = useCallback(
+    (startTrigger: "manual_apply" | "auto_apply_after_auth") => {
+      associateCourseProviderGroup(selectedCourse.provider);
+      capturePostHogEvent("application_start_requested", {
+        ...getCourseAnalyticsProperties(course),
+        auth_state: "authenticated",
+        available_prefill_sources: reusableSourceApplications.length,
+        current_course_draft_available: Boolean(currentCourseDraft),
+        start_trigger: startTrigger,
+      });
+    },
+    [
+      course,
+      currentCourseDraft,
+      reusableSourceApplications.length,
+      selectedCourse.provider,
+    ],
+  );
+
   const resetApplicationStartState = useCallback(() => {
     setApplyError(null);
     setShowApplicationStartPicker(false);
@@ -114,12 +133,7 @@ export function useCourseApplicationStart({
     setApplyError(null);
 
     if (isAuthenticated) {
-      associateCourseProviderGroup(selectedCourse.provider);
-      capturePostHogEvent("application_start_requested", {
-        ...getCourseAnalyticsProperties(course),
-        auth_state: "authenticated",
-        available_prefill_sources: reusableSourceApplications.length,
-      });
+      trackApplicationStartRequested("manual_apply");
 
       if (currentCourseDraft) {
         await startApplication();
@@ -148,8 +162,8 @@ export function useCourseApplicationStart({
     isAuthenticated,
     onAuthRequired,
     reusableSourceApplications.length,
-    selectedCourse,
     startApplication,
+    trackApplicationStartRequested,
   ]);
 
   useEffect(() => {
@@ -158,6 +172,7 @@ export function useCourseApplicationStart({
     }
 
     autoApplyStartedRef.current = true;
+    trackApplicationStartRequested("auto_apply_after_auth");
 
     if (currentCourseDraft) {
       void beginCourseApplication(selectedCourse)
@@ -204,6 +219,7 @@ export function useCourseApplicationStart({
     reusableSourceApplications.length,
     selectedCourse,
     shouldAutoApply,
+    trackApplicationStartRequested,
   ]);
 
   return {

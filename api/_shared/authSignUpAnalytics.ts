@@ -1,5 +1,8 @@
 import { hashAnalyticsIdentifierServer } from "./analyticsIdentity.js";
-import { getPostHogServerClient } from "./posthogServerClient.js";
+import {
+  getPostHogServerClient,
+  resolvePostHogAppEnvironment,
+} from "./posthogServerClient.js";
 
 const ALLOWED_SIGNUP_METHODS = new Set(["email", "google", "magic_link"]);
 
@@ -37,6 +40,7 @@ export async function captureAuthSignUpSucceeded(
       distinctId,
       event: "auth_sign_up_succeeded",
       properties: {
+        app_environment: resolvePostHogAppEnvironment(),
         signup_method: options.signupMethod,
         email_domain: options.emailDomain ?? null,
         auth_context: options.authContext ?? null,

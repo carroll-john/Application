@@ -16,10 +16,12 @@ project `133929`). For the event definitions behind them see
   analytics overhaul: legacy `funnel_step_N_*` duplicates existed and the 23
   `application_submit_*` events from March 2026 belong to the pre-overhaul app.
   When in doubt, start ranges at 2026-06-21.
-- **Every event carries context.** `course_code` / `course_provider` /
-  `course_intake`, `application_id` / `application_number` /
-  `application_status`, and `page_*` properties are available for breakdowns
-  on nearly every application event.
+- **Application events carry context.** Application-route `$pageview`,
+  `application_step_viewed`, and the named funnel events include
+  `course_code` / `course_provider` / `course_intake`, `application_id` /
+  `application_number` / `application_status`, and `page_*` properties once
+  application data has hydrated. Public catalog pageviews and public
+  autocapture events intentionally do not carry application context.
 
 ## 1. Applicant journey & activation ([dashboard 761609](https://eu.posthog.com/project/133929/dashboard/761609))
 
@@ -32,7 +34,8 @@ submitting?*
   `application_submit_started` → `application_submitted`.
   A step's drop-off means the applicant never performed the *next* action, not
   that they left the site. Break down by `course_provider` to compare
-  institutions.
+  institutions. Break down `application_start_requested` by `start_trigger` to
+  compare manual Apply starts with email-confirmation auto-resume starts.
 - **Steps reached** (`application_step_viewed` by `application_step_key`) —
   which form step is the deepest one applicants see. Step keys follow the
   application order (`basic_information` … `review_and_submit`).

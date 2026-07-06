@@ -31,6 +31,27 @@ const SANITIZED_URL_EVENT_PROPERTIES = [
   "$pathname",
 ] as const;
 
+const PUBLIC_AUTOCAPTURE_ROUTE_PATTERNS = [/^\/$/, /^\/courses\/[^/]+$/];
+const PUBLIC_AUTOCAPTURE_URL_ALLOWLIST = [
+  /^https?:\/\/[^/?#]+\/?(?:[?#].*)?$/,
+  /^https?:\/\/[^/?#]+\/courses\/[^/?#]+\/?(?:[?#].*)?$/,
+];
+const AUTOCAPTURE_SELECTOR_IGNORELIST = [
+  ".ph-no-autocapture",
+  "[data-ph-no-autocapture]",
+  ".ph-no-capture",
+  ".ph-sensitive",
+  "[data-sensitive]",
+];
+
+export function isPublicAutocaptureRoute(pathname: string) {
+  const normalizedPathname =
+    pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  return PUBLIC_AUTOCAPTURE_ROUTE_PATTERNS.some((pattern) =>
+    pattern.test(normalizedPathname),
+  );
+}
+
 function sanitizeEventUrlProperties(
   properties: CaptureResult["properties"] | undefined,
 ) {
@@ -220,9 +241,20 @@ export function initPostHog() {
     // show whether the proxy forwards (200) or drops (404) captures.
     api_host: "/ingest",
     ui_host: POSTHOG_UI_HOST,
-    autocapture: false,
+    // Controlled autocapture for bug-bash discovery only: public catalog routes,
+    // click interactions, and link/button elements. Auth and application routes
+    // stay explicit-event only.
+    autocapture: {
+      dom_event_allowlist: ["click"],
+      element_allowlist: ["a", "button"],
+      url_allowlist: PUBLIC_AUTOCAPTURE_URL_ALLOWLIST,
+      css_selector_ignorelist: AUTOCAPTURE_SELECTOR_IGNORELIST,
+      capture_copied_text: false,
+    },
     capture_pageview: false,
     capture_pageleave: true,
+    rageclick: false,
+    capture_dead_clicks: false,
     // Disable posthog-js's built-in user-agent bot filter so OUR synthetic-aware
     // gate (canCapturePostHog / beforeSendPostHog / the loaded opt-out below) is
     // the single source of truth. The SDK's own filter is not synthetic-aware:

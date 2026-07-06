@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { getApplicationAnalyticsProperties, isReplayPiiRoute } from "./posthog";
+import {
+  getApplicationAnalyticsProperties,
+  isPublicAutocaptureRoute,
+  isReplayPiiRoute,
+} from "./posthog";
 import { matchesSyntheticTestToken } from "./analytics/posthogClient";
 import { BOT_USER_AGENT_PATTERN } from "./analytics/posthogTypes";
 
@@ -52,6 +56,17 @@ describe("isReplayPiiRoute", () => {
   it("does not mark public catalog routes as PII routes (replay allowed)", () => {
     expect(isReplayPiiRoute("/")).toBe(false);
     expect(isReplayPiiRoute("/courses/mba")).toBe(false);
+  });
+});
+
+describe("isPublicAutocaptureRoute", () => {
+  it("allows only public catalog routes", () => {
+    expect(isPublicAutocaptureRoute("/")).toBe(true);
+    expect(isPublicAutocaptureRoute("/courses/mba-online")).toBe(true);
+    expect(isPublicAutocaptureRoute("/courses/mba-online/")).toBe(true);
+    expect(isPublicAutocaptureRoute("/sign-in")).toBe(false);
+    expect(isPublicAutocaptureRoute("/overview")).toBe(false);
+    expect(isPublicAutocaptureRoute("/section2/qualifications")).toBe(false);
   });
 });
 

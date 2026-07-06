@@ -140,6 +140,7 @@ export function AuthPanel({
     if (signInError) {
       capturePostHogEvent("auth_sign_in_failed", {
         auth_context: context,
+        email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
       });
       setError(signInError);
       return;
@@ -190,6 +191,7 @@ export function AuthPanel({
       if (signUpError) {
         capturePostHogEvent("auth_sign_up_failed", {
           auth_context: context,
+          email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
           sign_up_outcome: outcome ?? "error",
         });
         setError(signUpError);

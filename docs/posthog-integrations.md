@@ -57,6 +57,14 @@ Keep credentials in PostHog's source config only — never in this repo.
 - Optionally install the **PostHog Vercel integration** to auto-inject
   `VITE_POSTHOG_KEY` / host into the project's env (instead of setting them by
   hand). It does not replace the proxy.
+- Client collection policy: core product analytics is explicit-event based.
+  The JavaScript SDK uses a narrow `AutocaptureConfig` for bug-bash discovery
+  only: click events on links/buttons, URL-allowlisted to `/` and
+  `/courses/:code`. Auth and application routes remain explicit-event only.
+- Server-side captures (`auth_sign_up_succeeded`, `eligibility_check_override`,
+  `$ai_generation`) stamp `app_environment` from `APP_ENVIRONMENT`,
+  `VITE_APP_ENVIRONMENT`, `VERCEL_ENV`, or `NODE_ENV` so backend events can be
+  filtered with browser events in the EU project.
 
 ## 4. Dashboards & funnels (built)
 
