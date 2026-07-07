@@ -20,7 +20,11 @@
 ## Validation
 
 - Single schema: `src/lib/applicationValidationSchema.ts` for step completion and submission readiness.
-- Section 2 submission rule: at least one tertiary qualification **or** both CV and employment experience.
+- Section 2 submission rule: course-specific overlay from `section2Requirements.ts`.
+  The legacy fallback is at least one tertiary qualification **or** both CV and
+  employment experience; current remote drafts persist a course-derived
+  `applications.section2_submission_policy` snapshot so the submit RPC can enforce
+  minimum education rank, secondary-qualification support, and experience alternatives.
 - Tertiary documents are submission-gated, not save-gated.
 - Course-specific Section 2 overlay: `src/lib/section2Requirements.ts`.
 
@@ -64,7 +68,8 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   above (migrations `20260620120000_conditional_submission_requirements.sql` and
   `20260701090000_program_evidence_validation.sql`). It reads
   `applications.requires_english_proficiency`,
-  `applications.english_proficiency_policy`, language-test scores/documents, and
+  `applications.english_proficiency_policy`,
+  `applications.section2_submission_policy`, language-test scores/documents, and
   `tertiary_qualifications.transcript_confirms_completion`; the app writes the
   course-derived signals at save time in `src/lib/storage/remoteMappers.ts` /
   `remoteStore.ts`.

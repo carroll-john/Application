@@ -8,6 +8,13 @@ import { pathToFileURL } from "node:url";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:4190";
 const DEFAULT_TIMEOUT_MS = 180_000;
+const DEFAULT_RETRIES = 1;
+
+const RETRYABLE_ERROR_CODES = new Set([
+  "CV_PARSER_UPSTREAM_RATE_LIMITED",
+  "CV_PARSER_UPSTREAM_TIMEOUT",
+  "CV_PARSER_UPSTREAM_UNAVAILABLE",
+]);
 
 const MIME_BY_EXTENSION = {
   doc: "application/msword",
@@ -158,6 +165,7 @@ const MIN_UNIQUE_POSITIONS_BY_FIXTURE = new Map([
 function parseArgs(argv) {
   const options = {
     baseUrl: process.env.CV_PARSER_BASE_URL?.trim() || DEFAULT_BASE_URL,
+    retries: Number(process.env.CV_PARSER_RETRIES || DEFAULT_RETRIES),
     strict: true,
     timeoutMs: Number(process.env.CV_PARSER_TIMEOUT_MS || DEFAULT_TIMEOUT_MS),
     userFiles: [],
@@ -174,6 +182,12 @@ function parseArgs(argv) {
 
     if (arg === "--timeout-ms") {
       options.timeoutMs = Number(argv[i + 1] || options.timeoutMs);
+      i += 1;
+      continue;
+    }
+
+    if (arg === "--retries") {
+      options.retries = Number(argv[i + 1] || options.retries);
       i += 1;
       continue;
     }
@@ -212,6 +226,7 @@ function printHelp() {
 Options:
   --base-url <url>      Parser host (default: ${DEFAULT_BASE_URL})
   --timeout-ms <ms>     Per-file timeout in milliseconds (default: ${DEFAULT_TIMEOUT_MS})
+  --retries <count>     Transient parser failure retries per file (default: ${DEFAULT_RETRIES})
   --out-dir <path>      Output directory (default: /tmp/cv-parser-regression-<timestamp>)
   --file <path>         Additional CV file to include (repeatable)
   --no-strict           Exit 0 even if failures occur
@@ -330,6 +345,10 @@ function mimeTypeFor(filePath) {
   return MIME_BY_EXTENSION[extension] || "application/octet-stream";
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function ensureFileExists(filePath, warnings) {
   try {
     await fs.access(filePath);
@@ -340,11 +359,7 @@ async function ensureFileExists(filePath, warnings) {
   }
 }
 
-async function runParserCase({ baseUrl, filePath, timeoutMs }) {
-  const startedAt = Date.now();
-  const name = path.basename(filePath);
-  const mimeType = mimeTypeFor(filePath);
-
+function runSingleParserAttempt({ baseUrl, filePath, mimeType, timeoutMs }) {
   let status = 0;
   let payload = null;
   let rawText = "";
@@ -395,6 +410,65 @@ async function runParserCase({ baseUrl, filePath, timeoutMs }) {
     networkError = error instanceof Error ? error.message : String(error);
   }
 
+  return {
+    networkError,
+    payload,
+    rawText,
+    status,
+  };
+}
+
+function isRetryableParserFailure({ networkError, payload, status }) {
+  if (networkError) {
+    return true;
+  }
+
+  if (
+    payload &&
+    typeof payload === "object" &&
+    RETRYABLE_ERROR_CODES.has(payload.code)
+  ) {
+    return true;
+  }
+
+  return status === 408 || status === 429 || status === 503 || status === 504;
+}
+
+async function runParserCase({ baseUrl, filePath, retries, timeoutMs }) {
+  const startedAt = Date.now();
+  const name = path.basename(filePath);
+  const mimeType = mimeTypeFor(filePath);
+  const attempts = [];
+  const maxAttempts = retries + 1;
+  let result = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    result = runSingleParserAttempt({
+      baseUrl,
+      filePath,
+      mimeType,
+      timeoutMs,
+    });
+
+    attempts.push({
+      error:
+        result.payload?.error ||
+        result.networkError ||
+        (!result.status ? "request did not return an HTTP status" : ""),
+      status: result.status || "ERR",
+    });
+
+    if (
+      attempt >= maxAttempts ||
+      !isRetryableParserFailure(result)
+    ) {
+      break;
+    }
+
+    await sleep(Math.min(1_000 * attempt, 3_000));
+  }
+
+  const { networkError, payload, rawText, status } = result;
   const elapsedSeconds = Number(((Date.now() - startedAt) / 1000).toFixed(3));
   const parsedExperiences = Array.isArray(payload?.experiences) ? payload.experiences : [];
   const experiences = Array.isArray(payload?.experiences) ? parsedExperiences.length : null;
@@ -441,6 +515,7 @@ async function runParserCase({ baseUrl, filePath, timeoutMs }) {
     (!passed ? rawText.slice(0, 300) : "");
 
   return {
+    attempts: attempts.length,
     elapsedSeconds,
     error,
     experiences,
@@ -462,6 +537,14 @@ async function main() {
 
   if (!Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0) {
     throw new Error("`--timeout-ms` must be a positive number.");
+  }
+
+  if (
+    !Number.isInteger(options.retries) ||
+    options.retries < 0 ||
+    options.retries > 5
+  ) {
+    throw new Error("`--retries` must be an integer between 0 and 5.");
   }
 
   if (!commandExists("curl")) {
@@ -502,6 +585,7 @@ async function main() {
       await runParserCase({
         baseUrl: options.baseUrl,
         filePath,
+        retries: options.retries,
         timeoutMs: options.timeoutMs,
       }),
     );
@@ -516,6 +600,7 @@ async function main() {
       "file",
       "status",
       "seconds",
+      "attempts",
       "experiences",
       "unique_positions",
       "model",
@@ -527,6 +612,7 @@ async function main() {
         result.file,
         result.status,
         result.elapsedSeconds,
+        result.attempts,
         result.experiences ?? "",
         result.uniquePositions ?? "",
         result.model ?? "",
@@ -570,7 +656,7 @@ async function main() {
   for (const result of results) {
     const label = result.passed ? "PASS" : "FAIL";
     console.log(
-      `[${label}] ${path.basename(result.file)} | status=${result.status} | ${result.elapsedSeconds}s | experiences=${result.experiences ?? "-"} | uniquePositions=${result.uniquePositions ?? "-"}${result.model ? ` | model=${result.model}` : ""}`,
+      `[${label}] ${path.basename(result.file)} | status=${result.status} | ${result.elapsedSeconds}s | attempts=${result.attempts} | experiences=${result.experiences ?? "-"} | uniquePositions=${result.uniquePositions ?? "-"}${result.model ? ` | model=${result.model}` : ""}`,
     );
     if (!result.passed && result.error) {
       console.log(`       error: ${result.error}`);

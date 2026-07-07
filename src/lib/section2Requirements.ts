@@ -37,6 +37,8 @@ const minimumEducationRanks: Record<CourseEducationLevel, number> = {
   "Masters degree": 5,
 };
 
+export const SECTION2_SUBMISSION_POLICY_SCHEMA_VERSION = 1;
+
 export interface Section2RequirementInput {
   cvUploaded: boolean;
   employmentExperiencesCount: number;
@@ -50,6 +52,11 @@ export interface Section2RequirementProfile {
   minimumEducation: CourseEducationLevel;
   supportsExperienceAlternative: boolean;
   supportsSecondaryQualification: boolean;
+}
+
+export interface Section2SubmissionPolicy extends Section2RequirementProfile {
+  minimumEducationRank: number;
+  schemaVersion: typeof SECTION2_SUBMISSION_POLICY_SCHEMA_VERSION;
 }
 
 function resolveSelectedCourse(
@@ -129,6 +136,22 @@ export function getSection2RequirementProfile(
       selectedCourse.eligibility,
     ),
     supportsSecondaryQualification: minimumEducation === "High school",
+  };
+}
+
+export function buildSection2SubmissionPolicy(
+  selectedCourse: CourseCatalogEntry | null,
+): Section2SubmissionPolicy | null {
+  const profile = getSection2RequirementProfile(selectedCourse);
+
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    ...profile,
+    minimumEducationRank: getRequiredEducationRank(profile.minimumEducation),
+    schemaVersion: SECTION2_SUBMISSION_POLICY_SCHEMA_VERSION,
   };
 }
 

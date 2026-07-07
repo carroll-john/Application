@@ -22,7 +22,7 @@ The coupling is **purely this HTTP contract**. There is no shared code import.
 - **Body:** `multipart/form-data` with exactly two parts:
   | part | type | meaning |
   |------|------|---------|
-  | `file` | binary | the transcript (supported types; service caps at 5 MB) |
+  | `file` | binary | the transcript (PDF, DOC, DOCX, PNG, JPEG, or TXT; service caps at 5 MB) |
   | `context` | string | JSON program context (see below) |
 - **Auth:** when `ELIGIBILITY_SERVICE_TOKEN` is set, the proxy sends
   `Authorization: Bearer {token}`. The service compares it to its own `SERVICE_API_TOKEN`:

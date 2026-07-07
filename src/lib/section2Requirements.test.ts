@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildSection2SubmissionPolicy,
   getSection2SubmissionMissingFields,
   meetsSection2SubmissionRequirement,
 } from "./section2Requirements";
@@ -138,5 +139,28 @@ describe("section2 submission requirements", () => {
         tertiaryQualifications: [],
       }),
     ).toBe(true);
+  });
+
+  it("builds the persisted Section 2 submission policy from course requirements", () => {
+    expect(
+      buildSection2SubmissionPolicy(
+        makeCourse({
+          rules: [
+            {
+              type: "min_education_or_experience",
+              minEducation: "Diploma",
+              minExperienceYears: 2,
+            },
+          ],
+        }),
+      ),
+    ).toEqual({
+      educationEvidenceLabel: "a diploma, associate degree, or higher qualification",
+      minimumEducation: "Diploma",
+      minimumEducationRank: 2,
+      schemaVersion: 1,
+      supportsExperienceAlternative: true,
+      supportsSecondaryQualification: false,
+    });
   });
 });

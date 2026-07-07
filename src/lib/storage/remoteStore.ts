@@ -14,6 +14,7 @@ import {
 } from "../applicationRecords";
 import { isSubmissionReadyDocument } from "../documentAttachment";
 import type { UploadedDocument } from "../documentStorage";
+import { buildSection2SubmissionPolicy } from "../section2Requirements";
 import type { Tables, TablesInsert } from "../supabase.types";
 import { supabase } from "../supabase";
 import {
@@ -330,6 +331,9 @@ function buildApplicationPayload(
       getEnglishProficiencyRequirements(selectedCourseEntry),
     ),
     requires_english_proficiency: courseRequiresEnglishProficiency(selectedCourseEntry),
+    section2_submission_policy: toJsonValue(
+      buildSection2SubmissionPolicy(selectedCourseEntry),
+    ),
     status: data.applicationMeta.submittedAt ? "submitted" : "draft",
     submitted_at: data.applicationMeta.submittedAt ?? null,
     user_id: session.user.id,

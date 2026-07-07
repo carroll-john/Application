@@ -14,8 +14,13 @@ type AiMessage = {
 
 interface CaptureTranscriptAiGenerationOptions {
   context: Record<string, unknown>;
+  document: {
+    fileExtension?: string;
+    kind: "transcript";
+    mimeType: string;
+    sizeBucket: string;
+  };
   evaluationSource: "external_service" | "fallback_response" | "local_openai";
-  fileName: string;
   latencyMs: number;
   model: string;
   output: Record<string, unknown>;
@@ -86,7 +91,7 @@ function summarizeOutput(output: Record<string, unknown>) {
 function summarizeInput(
   context: Record<string, unknown>,
   evaluationSource: CaptureTranscriptAiGenerationOptions["evaluationSource"],
-  fileName: string,
+  document: CaptureTranscriptAiGenerationOptions["document"],
 ) {
   return JSON.stringify(
     {
@@ -109,8 +114,8 @@ function summarizeInput(
             ? context.qualificationLevelRequirement
             : undefined,
       },
+      document,
       evaluationSource,
-      fileName,
       pipeline: "transcript_eligibility",
     },
     null,
@@ -277,7 +282,7 @@ export async function captureTranscriptAiGeneration(
   const aiInput: AiMessage[] = [
     {
       role: "user",
-      content: summarizeInput(options.context, options.evaluationSource, options.fileName),
+      content: summarizeInput(options.context, options.evaluationSource, options.document),
     },
   ];
   const aiOutputChoices: AiMessage[] = [
