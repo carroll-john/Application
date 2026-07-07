@@ -32,6 +32,47 @@ const DEFAULT_MODEL = "gpt-4.1-mini";
 const INITIAL_MAX_OUTPUT_TOKENS = 3_000;
 const RETRY_MAX_OUTPUT_TOKENS = 7_000;
 
+function getSafeFileExtension(fileName: string) {
+  const match = /\.([a-z0-9]{1,12})$/i.exec(fileName.trim());
+  return match?.[1]?.toLowerCase();
+}
+
+function getFileSizeBucket(size: number) {
+  if (!Number.isFinite(size) || size <= 0) {
+    return "unknown";
+  }
+
+  if (size <= 10 * 1024) {
+    return "0-10kb";
+  }
+
+  if (size <= 100 * 1024) {
+    return "10-100kb";
+  }
+
+  if (size <= 1024 * 1024) {
+    return "100kb-1mb";
+  }
+
+  if (size <= MAX_FILE_SIZE_BYTES) {
+    return "1-5mb";
+  }
+
+  return "over-5mb";
+}
+
+function buildTranscriptDocumentMetadata(
+  file: ParsedUploadFile,
+  mimeType: string,
+) {
+  return {
+    fileExtension: getSafeFileExtension(file.name),
+    kind: "transcript" as const,
+    mimeType: mimeType || "application/octet-stream",
+    sizeBucket: getFileSizeBucket(file.size),
+  };
+}
+
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
     headers: {
@@ -180,6 +221,7 @@ async function forwardToEligibilityService(
 ) {
   const serviceUrl = process.env.ELIGIBILITY_SERVICE_URL?.trim();
   const startedAt = Date.now();
+  const document = buildTranscriptDocumentMetadata(file, mimeType);
 
   if (!serviceUrl) {
     const localAssessment = await evaluateWithLocalModel(
@@ -192,8 +234,8 @@ async function forwardToEligibilityService(
     if (localAssessment) {
       await captureTranscriptAiGeneration({
         context: context as Record<string, unknown>,
+        document,
         evaluationSource: "local_openai",
-        fileName: file.name || "transcript",
         latencyMs: Date.now() - startedAt,
         model: localAssessment.model,
         output: localAssessment.assessment,
@@ -207,8 +249,8 @@ async function forwardToEligibilityService(
     const fallbackAssessment = buildFallbackResponse(context);
     await captureTranscriptAiGeneration({
       context: context as Record<string, unknown>,
+      document,
       evaluationSource: "fallback_response",
-      fileName: file.name || "transcript",
       latencyMs: Date.now() - startedAt,
       model: "fallback",
       output: fallbackAssessment as Record<string, unknown>,
@@ -263,8 +305,8 @@ async function forwardToEligibilityService(
 
   await captureTranscriptAiGeneration({
     context: context as Record<string, unknown>,
+    document,
     evaluationSource: "external_service",
-    fileName: file.name || "transcript",
     latencyMs: Date.now() - startedAt,
     model: "transcript-eligibility-service",
     output: assessment as Record<string, unknown>,

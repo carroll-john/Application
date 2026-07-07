@@ -8,6 +8,7 @@ import {
   ELIGIBILITY_OUTCOMES,
   ELIGIBILITY_REQUEST_PARTS,
   ELIGIBILITY_RESPONSE_REQUIRED_FIELDS_V1,
+  ELIGIBILITY_SUPPORTED_TRANSCRIPT_MIME_TYPES_V1,
   isEligibilityOutcome,
 } from "./contractV1";
 
@@ -120,6 +121,19 @@ async function postTranscript(contextJson: string) {
 describe("eligibility-evaluate contract v1", () => {
   it("is pinned at version v1", () => {
     expect(ELIGIBILITY_CONTRACT_VERSION).toBe("v1");
+  });
+
+  it("pins the transcript MIME types accepted by the app proxy and service", () => {
+    expect([...ELIGIBILITY_SUPPORTED_TRANSCRIPT_MIME_TYPES_V1].sort()).toEqual(
+      [
+        "application/msword",
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "image/jpeg",
+        "image/png",
+        "text/plain",
+      ].sort(),
+    );
   });
 
   it("the canonical v1 payload includes every contract-required field", () => {

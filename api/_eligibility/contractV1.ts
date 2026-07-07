@@ -16,6 +16,16 @@ export const ELIGIBILITY_CONTRACT_VERSION = "v1" as const;
 /** The multipart/form-data part names the proxy sends, and the service requires. */
 export const ELIGIBILITY_REQUEST_PARTS = ["file", "context"] as const;
 
+/** Transcript MIME types accepted by both the app proxy and the external service. */
+export const ELIGIBILITY_SUPPORTED_TRANSCRIPT_MIME_TYPES_V1 = [
+  "application/msword",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "image/png",
+  "image/jpeg",
+  "text/plain",
+] as const;
+
 /** Auth scheme used when ELIGIBILITY_SERVICE_TOKEN is configured. */
 export const ELIGIBILITY_AUTH_SCHEME = "Bearer" as const;
 

@@ -43,6 +43,15 @@ Enforced in client and DB:
 - Proxy returns `Cache-Control: no-store` and attachment disposition for sensitive MIME types.
 - Localhost may fall back to signed URLs only when proxy unavailable.
 
+## Cleanup
+
+- Remote upload is intentionally foreground-safe rather than fully transactional:
+  replacement saves the new document before deleting the previous one.
+- Use `npm run documents:cleanup` for a dry-run admin scan of orphaned private
+  bucket objects and `application_documents` rows whose storage object is gone.
+- Add `-- --execute` only after reviewing the dry-run JSON. The script requires a
+  service-role key via `SUPABASE_SERVICE_ROLE_KEY`.
+
 ## Section 2 upload sequence
 
 1. `ensureApplicationRow()` — shell-only application persist (no child-table rewrite). See [memory-applications.md](memory-applications.md).
@@ -60,6 +69,7 @@ Optional parse layer on top: [memory-document-parsing.md](memory-document-parsin
 | `src/lib/storage/remoteDocumentUpload.ts` | Supabase upload + metadata rows |
 | `src/lib/storage/documentDelivery.ts` | Proxy fetch, view, download |
 | `src/lib/storage/documentReplace.ts` | Replace, duplicate, delete orchestration |
+| `scripts/document-orphan-cleanup.mjs` | Dry-run-first orphaned remote document cleanup |
 | `src/lib/documentAttachment.ts` | Attachment metadata helpers |
 | `src/features/section2/section2DocumentSave.ts` | Kind-generic Section 2 document save |
 | `src/lib/eligibility/eligibilityFeedbackDocument.ts` | Feedback JSON payload + `saveEligibilityFeedbackDocument` |

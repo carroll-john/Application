@@ -124,6 +124,66 @@ describe("evaluate-transcript-eligibility api route", () => {
     );
   });
 
+  it("redacts raw transcript filenames from PostHog AI observability input", async () => {
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    process.env.POSTHOG_PROJECT_API_KEY = "ph-project-key";
+    process.env.POSTHOG_HOST = "https://posthog.example";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          confidence: 0.91,
+          outcome: "eligible",
+          requirementsChecked: [],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new File(["fixture"], "Jane-Doe-student-123-transcript.txt", {
+        type: "text/plain",
+      }),
+    );
+    formData.append("context", JSON.stringify({ completed: true, courseCode: "MBA101" }));
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [posthogUrl, posthogInit] = fetchMock.mock.calls[1];
+    expect(posthogUrl).toBe("https://posthog.example/i/v0/ai/");
+    expect(posthogInit.body).toBeInstanceOf(FormData);
+
+    const aiInputPart = (posthogInit.body as FormData).get("event.properties.$ai_input");
+    expect(aiInputPart).toBeTruthy();
+    expect(typeof (aiInputPart as Blob).text).toBe("function");
+
+    const aiInput = JSON.parse(await (aiInputPart as Blob).text()) as Array<{
+      content: string;
+      role: string;
+    }>;
+    const serializedInput = JSON.stringify(aiInput);
+    expect(serializedInput).not.toContain("Jane-Doe");
+    expect(serializedInput).not.toContain("student-123");
+    expect(serializedInput).not.toContain("transcript.txt");
+
+    const summarizedInput = JSON.parse(aiInput[0].content) as Record<string, unknown>;
+    expect(summarizedInput).not.toHaveProperty("fileName");
+    expect(summarizedInput.document).toEqual({
+      fileExtension: "txt",
+      kind: "transcript",
+      mimeType: "text/plain",
+      sizeBucket: "0-10kb",
+    });
+  });
+
   it("returns typed upstream error details when service responds non-ok", async () => {
     process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
     fetchMock.mockResolvedValueOnce(

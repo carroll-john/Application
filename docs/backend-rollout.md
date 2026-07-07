@@ -88,7 +88,6 @@ Add these to Vercel and local `.env`:
 
 ```env
 VITE_ANALYTICS_HASH_SALT=replace_with_private_salt
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
 VITE_POSTHOG_KEY=your_posthog_project_key
 VITE_POSTHOG_HOST=https://eu.i.posthog.com
 POSTHOG_PROJECT_API_KEY=your_posthog_project_key
@@ -121,7 +120,6 @@ SENTRY_PROJECT=your_sentry_project_slug
 
 Current workspace values:
 - `VITE_SUPABASE_URL` points at your Supabase project
-- `VITE_GOOGLE_MAPS_API_KEY` powers the residential/postal address auto-suggest in Section 1; until it is set the fields stay in manual-entry mode (see [Address auto-suggest (Google Places)](#address-auto-suggest-google-places))
 - remote upload guardrail defaults are:
   - `VITE_REMOTE_UPLOAD_MAX_FILES_PER_APPLICATION=30`
   - `VITE_REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION=104857600` (100 MB)
@@ -142,63 +140,49 @@ Current workspace values:
 - `auth_sign_up_succeeded` is captured server-side after sign-up (`/api/capture-auth-sign-up-succeeded`). To exercise it locally, use **`vercel dev`** — plain `npm run dev` does not proxy that route (only transcript eligibility and suggest are proxied in `vite.config.ts`).
 - keep the publishable key only in local env and Vercel envs, not in checked-in docs
 
-## Address auto-suggest (Google Places)
+## Address auto-suggest (Google Places via suggest-service)
 
-Section 1 of the application (`/section1/address`) already ships live
-address auto-suggest for both the **residential address** and the
-**postal address** (the latter appears once "My postal address is
-different" is ticked). The UI lives in
-`src/features/section1/AddressSectionUi.tsx`; the lookup is
-`createGoogleAddressLookup()` in `src/lib/googlePlaces.ts`, which uses the
-Google Maps JavaScript loader plus the Places API (New)
-`AutocompleteSuggestion` / `Place.fetchFields`, and
-`src/lib/googlePlacesAddress.ts` maps the result into the structured
-address fields (unit, street, suburb, state, postcode, country).
+Section 1 address auto-suggest runs through the shared suggest boundary:
+browser -> Vercel `/api/suggest/addresses` -> `suggest-service` -> Google
+Places. The application does **not** use a browser `VITE_GOOGLE_MAPS_API_KEY`.
+Google credentials belong only in the `suggest-service` environment as
+`GOOGLE_MAPS_API_KEY`.
 
-The feature is gated entirely on `VITE_GOOGLE_MAPS_API_KEY`. When the key
-is **absent**, `hasGooglePlacesApiKey()` returns `false`, the inputs drop
-to manual-entry mode, and the form shows *"Live address lookup is not
-configured in this environment. Keep typing to enter the address
-manually."* — i.e. no dropdown appears. Setting the key is all that's
-needed to turn auto-suggest on; **no code change is required.**
+The UI lives in `src/features/section1/AddressSectionUi.tsx`; the app-side
+lookup is `createAppAddressLookup()` in `src/lib/suggestClient.ts`, and
+`src/lib/googlePlacesAddress.ts` maps Google-style address components into the
+structured application address fields (unit, street, suburb, state, postcode,
+country).
+
+When `SUGGEST_SERVICE_URL` is absent from the app environment, the `/api/suggest/*`
+proxy returns `404 SUGGEST_SERVICE_NOT_CONFIGURED` and the UI falls back to
+manual address entry.
 
 ### Enable it
 
 1. **Google Cloud project** — in a project with **billing enabled**
    (Places requests are billed; Google's monthly free tier usually covers
-   low volume), enable both:
-   - **Maps JavaScript API** (loads the client library)
-   - **Places API (New)** (backs `AutocompleteSuggestion` + `fetchFields`)
+   low volume), enable **Places API (New)**.
 2. **Create an API key** (APIs & Services → Credentials → Create
-   credentials → API key). This key ships in the client bundle, so lock it
-   down rather than relying on secrecy:
-   - **Application restriction → HTTP referrers (web sites):** add the
-     production domain, the Vercel preview wildcard
-     (`*.vercel.app/*` or your project's preview pattern), and
-     `http://localhost:*/*` for local dev.
-   - **API restriction:** restrict the key to *Maps JavaScript API* and
-     *Places API (New)* only.
-3. **Set the env var** as `VITE_GOOGLE_MAPS_API_KEY`:
-   - **Vercel:** Project → Settings → Environment Variables, for the
-     Production and Preview environments (and Development if you use
-     `vercel dev`).
-   - **Local:** add it to your `.env` (see `.env.example`).
-   - It is a `VITE_`-prefixed value, so it is **inlined at build time** —
-     after adding/changing it you must trigger a fresh build/redeploy; an
-     already-built deployment will not pick it up at runtime.
-4. **CSP is already configured** — `vercel.json` whitelists
-   `https://maps.googleapis.com` and `https://maps.gstatic.com` in
-   `script-src`, `img-src`, and `connect-src`, so no header changes are
-   needed.
+   credentials → API key). This key stays server-side in `suggest-service`:
+   - **Application restriction:** prefer IP restrictions for hosted service
+     egress if the deployment platform provides stable outbound IPs; otherwise
+     leave application restrictions unset and rely on the service token plus API
+     restriction.
+   - **API restriction:** restrict the key to *Places API (New)* only.
+3. **Set `GOOGLE_MAPS_API_KEY` on `suggest-service` only.** Keep
+   `SUGGEST_SERVICE_URL` and optional `SUGGEST_SERVICE_TOKEN` in the app's
+   Vercel/server environment so `/api/suggest/*` can call the service.
+4. **No app CSP change is required** because the browser talks to the app's
+   `/api/suggest/*` routes, not directly to Google.
 
 ### Verify
 
-After redeploying with the key set, open `/section1/address`, type at
-least 3 characters of a street address, and confirm a suggestions dropdown
-appears; selecting one should populate the suburb/state/postcode meta line
-below the field. Lookups are scoped to Australia (`includedRegionCodes:
-["au"]`, `region: "au"`, `language: "en-AU"`) in `googlePlaces.ts` — adjust
-there if other regions are ever needed.
+After redeploying the service with `GOOGLE_MAPS_API_KEY` and the app with
+`SUGGEST_SERVICE_URL`, open `/section1/address`, type at least 3 characters of
+a street address, and confirm a suggestions dropdown appears; selecting one
+should populate the suburb/state/postcode meta line below the field. Region
+scoping is owned by `suggest-service`.
 
 ## Restore a paused or inactive hosted project
 Free-tier Supabase projects auto-pause after inactivity. While paused, the project API hostname does not resolve (`NXDOMAIN` / `Failed to fetch`), so hosted auth and `supabase db push` both fail until the project is restored.
@@ -338,7 +322,9 @@ Notes:
   - with empty employment history, Save should draft roles or show a parser warning (CV still saved)
 - Remaining limitation:
   - the remote storage path still needs end-to-end verification against a real Supabase project and bucket configuration
-  - document cleanup is best-effort today; orphaned remote file records are still possible if a document upload succeeds but a later draft save fails
+  - orphaned remote files/metadata are cleaned up with the dry-run-first admin
+    command `npm run documents:cleanup`; add `-- --execute` only after reviewing
+    the JSON report. The command needs `SUPABASE_SERVICE_ROLE_KEY`.
   - `supabase db push` from this workspace is currently blocked by hosted DB DNS resolution, so new SQL migrations should be run in the Supabase SQL editor
 
 ## Conditional submission requirements (migration `20260620120000`)

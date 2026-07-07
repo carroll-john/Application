@@ -311,6 +311,17 @@ describe("saveRemoteApplication", () => {
     });
 
     const query = mockClient.fromCalls[0]?.query;
+    const insertCall = query?.calls.find((call) => call.method === "insert");
+    expect(insertCall?.args[0]).toMatchObject({
+      section2_submission_policy: {
+        educationEvidenceLabel: "a bachelor degree or higher qualification",
+        minimumEducation: "Bachelor degree",
+        minimumEducationRank: 3,
+        schemaVersion: 1,
+        supportsExperienceAlternative: false,
+        supportsSecondaryQualification: false,
+      },
+    });
     expect(query?.calls).toEqual(
       expect.arrayContaining([expect.objectContaining({ method: "insert", args: [expect.any(Object)] })]),
     );

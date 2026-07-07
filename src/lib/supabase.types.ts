@@ -114,6 +114,7 @@ export type Database = {
           intake_label: string
           personal_details: Json
           requires_english_proficiency: boolean
+          section2_submission_policy: Json | null
           status: Database["public"]["Enums"]["application_status"]
           submitted_at: string | null
           updated_at: string
@@ -135,6 +136,7 @@ export type Database = {
           intake_label: string
           personal_details?: Json
           requires_english_proficiency?: boolean
+          section2_submission_policy?: Json | null
           status?: Database["public"]["Enums"]["application_status"]
           submitted_at?: string | null
           updated_at?: string
@@ -156,6 +158,7 @@ export type Database = {
           intake_label?: string
           personal_details?: Json
           requires_english_proficiency?: boolean
+          section2_submission_policy?: Json | null
           status?: Database["public"]["Enums"]["application_status"]
           submitted_at?: string | null
           updated_at?: string
