@@ -292,6 +292,38 @@ describe("buildProgramEvidenceRows", () => {
       status: "possible_alternative",
     });
   });
+
+  it("prompts for employment details instead of another CV when CV evidence already exists", () => {
+    const course = {
+      code: "course-6",
+      title: "Master of Public Health",
+      requirements: [
+        {
+          id: "work-experience",
+          kind: "work_experience",
+          params: { minYears: 2 },
+          sourceText: "Applicants require two years of relevant work experience.",
+          weight: "mandatory",
+        },
+      ],
+    } as CourseCatalogEntry;
+
+    const rows = buildProgramEvidenceRows({
+      applicationData: application({
+        cvDocument: remoteDoc("cv"),
+        cvFileName: "cv.pdf",
+        cvUploaded: true,
+      }),
+      course,
+    });
+
+    expect(rows[0]).toMatchObject({
+      actionLabel: "Add employment experience",
+      actionPath: "/section2/add-employment?from=review",
+      isBlocking: true,
+      status: "needs_evidence",
+    });
+  });
 });
 
 describe("groupTranscriptVerifiableEvidenceRows", () => {

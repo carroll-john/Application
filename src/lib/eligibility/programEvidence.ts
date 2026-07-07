@@ -61,6 +61,7 @@ export const programEvidenceStatusCopy: Record<ProgramEvidenceStatus, string> = 
 };
 
 const tertiaryPath = "/section2/add-tertiary?from=review";
+const employmentPath = "/section2/add-employment?from=review";
 const languagePath = "/section2/add-language-test?from=review";
 const cvPath = "/section2/add-cv?from=review";
 
@@ -331,6 +332,16 @@ function workExperienceRow(
           : "Work experience added. A CV can strengthen your case.",
       isBlocking: false,
       status: "met",
+    };
+  }
+
+  if (data.cvUploaded) {
+    return {
+      actionLabel: "Add employment experience",
+      actionPath: employmentPath,
+      explanation: `Add your employment history so admissions can assess ${instance.params.minYears}+ years' relevant experience.`,
+      isBlocking: true,
+      status: "needs_evidence",
     };
   }
 

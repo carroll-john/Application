@@ -247,47 +247,73 @@ function CalendarHeader({
   changeYear,
   date,
   decreaseMonth,
+  decreaseYear,
   increaseMonth,
+  increaseYear,
   maxYear,
   minYear = 1900,
+  mode = "date",
   nextMonthButtonDisabled,
+  nextYearButtonDisabled,
   prevMonthButtonDisabled,
+  prevYearButtonDisabled,
 }: {
   changeMonth: (month: number) => void;
   changeYear: (year: number) => void;
   date: Date;
   decreaseMonth: () => void;
+  decreaseYear: () => void;
   increaseMonth: () => void;
+  increaseYear: () => void;
   maxYear: number;
   minYear?: number;
+  mode?: "date" | "month-year";
   nextMonthButtonDisabled: boolean;
+  nextYearButtonDisabled: boolean;
   prevMonthButtonDisabled: boolean;
+  prevYearButtonDisabled: boolean;
 }) {
   const years = useMemo(() => getYearRange(maxYear, minYear), [maxYear, minYear]);
+  const isMonthYearMode = mode === "month-year";
+  const selectedYear = date.getFullYear();
+  const isPreviousDisabled = isMonthYearMode
+    ? prevYearButtonDisabled || selectedYear <= minYear
+    : prevMonthButtonDisabled;
+  const isNextDisabled = isMonthYearMode
+    ? nextYearButtonDisabled || selectedYear >= maxYear
+    : nextMonthButtonDisabled;
 
   return (
     <div className="flex items-center gap-2 px-4 pb-2 pt-4">
       <button
+        aria-label={isMonthYearMode ? "Previous year" : "Previous month"}
         className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-        disabled={prevMonthButtonDisabled}
+        disabled={isPreviousDisabled}
         type="button"
-        onClick={decreaseMonth}
+        onClick={isMonthYearMode ? decreaseYear : decreaseMonth}
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
 
-      <div className="grid flex-1 gap-2 min-[480px]:grid-cols-[minmax(8.5rem,1fr)_7rem]">
-        <NativeSelect
-          className="h-10 min-w-[8.5rem] rounded-xl px-3 py-2 text-sm"
-          value={monthNames[date.getMonth()]}
-          onChange={(event) => changeMonth(monthNames.indexOf(event.target.value))}
-        >
-          {monthNames.map((monthName) => (
-            <option key={monthName} value={monthName}>
-              {monthName}
-            </option>
-          ))}
-        </NativeSelect>
+      <div
+        className={cn(
+          "grid flex-1 gap-2",
+          !isMonthYearMode && "min-[480px]:grid-cols-[minmax(8.5rem,1fr)_7rem]",
+        )}
+      >
+        {isMonthYearMode ? null : (
+          <NativeSelect
+            className="h-10 min-w-[8.5rem] rounded-xl px-3 py-2 text-sm"
+            value={monthNames[date.getMonth()]}
+            onChange={(event) => changeMonth(monthNames.indexOf(event.target.value))}
+          >
+            {monthNames.map((monthName) => (
+              <option key={monthName} value={monthName}>
+                {monthName}
+              </option>
+            ))}
+          </NativeSelect>
+        )}
         <NativeSelect
           className="h-10 min-w-[7rem] rounded-xl px-3 py-2 text-sm"
           value={String(date.getFullYear())}
@@ -302,10 +328,11 @@ function CalendarHeader({
       </div>
 
       <button
+        aria-label={isMonthYearMode ? "Next year" : "Next month"}
         className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-        disabled={nextMonthButtonDisabled}
+        disabled={isNextDisabled}
         type="button"
-        onClick={increaseMonth}
+        onClick={isMonthYearMode ? increaseYear : increaseMonth}
       >
         <ChevronRight className="h-4 w-4" />
       </button>
@@ -384,7 +411,13 @@ function ResponsiveDatePickerField({
       popperPlacement="bottom-start"
       renderCustomHeader={
         maxYear
-          ? (props) => <CalendarHeader {...props} maxYear={maxYear} />
+          ? (props) => (
+              <CalendarHeader
+                {...props}
+                maxYear={maxYear}
+                mode={showMonthYearPicker ? "month-year" : "date"}
+              />
+            )
           : undefined
       }
       ref={pickerRef}

@@ -213,6 +213,30 @@ describe("buildSection2EvidencePlan in requirements mode", () => {
     expect(openPlan.visibleSections.has("cv")).toBe(false);
     expect(openPlan.visibleSections.has("tertiary")).toBe(true);
   });
+
+  it("hides a possible-alternative suggestion once its evidence section has data", () => {
+    const cvAlternativeRow = evidenceRow({
+      actionLabel: "Add CV",
+      actionPath: "/section2/add-cv?from=review",
+      heading: "Minimum WAM of 65",
+      id: "row-alt",
+      isBlocking: false,
+      status: "possible_alternative",
+    });
+
+    const plan = buildSection2EvidencePlan({
+      data: application({
+        cvUploaded: true,
+        tertiaryQualifications: [tertiaryQualification()],
+      }),
+      groupedRows: [cvAlternativeRow],
+      hasPublishedRequirements: true,
+      skippedSections: noSkips,
+    });
+
+    expect(plan.suggestion).toBeNull();
+    expect(plan.visibleSections.has("cv")).toBe(true);
+  });
 });
 
 describe("buildSection2EvidencePlan in generic mode", () => {

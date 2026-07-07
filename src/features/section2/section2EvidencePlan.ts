@@ -183,7 +183,9 @@ export function buildSection2EvidencePlan(options: {
     const alternativeRow = groupedRows.find((row) => row.status === "possible_alternative");
     const alternativePrompt = alternativeRow ? promptFromRow(alternativeRow) : null;
     suggestion =
-      alternativePrompt && !skippedSections.has(alternativePrompt.sectionKey)
+      alternativePrompt &&
+      !skippedSections.has(alternativePrompt.sectionKey) &&
+      !sectionHasData(data, alternativePrompt.sectionKey)
         ? alternativePrompt
         : null;
   }
