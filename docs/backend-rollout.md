@@ -184,6 +184,45 @@ a street address, and confirm a suggestions dropdown appears; selecting one
 should populate the suburb/state/postcode meta line below the field. Region
 scoping is owned by `suggest-service`.
 
+## Render Service Observability
+
+The Applications runtime depends on two Render services:
+
+- `eligibility-service` - transcript evidence extraction at
+  `https://eligibility-service-dqks.onrender.com`
+- `suggest-service` - institution/address suggest at
+  `https://suggest-service-sm3b.onrender.com`
+
+Run the public health smoke after service or app deploys:
+
+```bash
+npm run services:health
+```
+
+The command checks both Render `/healthz` endpoints and the deployed app's
+`/api/suggest/institutions` proxy. Override targets when checking preview or
+replacement services:
+
+```bash
+APP_BASE_URL=https://application-prototype.vercel.app \
+ELIGIBILITY_SERVICE_HEALTH_URL=https://eligibility-service-dqks.onrender.com/healthz \
+SUGGEST_SERVICE_HEALTH_URL=https://suggest-service-sm3b.onrender.com/healthz \
+npm run services:health
+```
+
+Full Render deploy status, logs, and metrics require authenticated Render API
+access. Configure a Render API key before expecting agents or CI to inspect
+logs:
+
+```bash
+export RENDER_API_KEY="<render api key>"
+codex mcp add render --url https://mcp.render.com/mcp --bearer-token-env-var RENDER_API_KEY
+```
+
+Then restart Codex and verify the active Render workspace before checking
+service deploys, error logs, CPU/memory, or HTTP latency. Without Render API
+auth, only public health checks are available.
+
 ## Restore a paused or inactive hosted project
 Free-tier Supabase projects auto-pause after inactivity. While paused, the project API hostname does not resolve (`NXDOMAIN` / `Failed to fetch`), so hosted auth and `supabase db push` both fail until the project is restored.
 
