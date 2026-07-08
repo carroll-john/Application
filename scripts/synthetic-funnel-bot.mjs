@@ -566,7 +566,7 @@ async function signIn(page) {
     log("✓ Signed in.");
   } else {
     const msg = await page
-      .evaluate(() => document.body.innerText.replace(/\s+/g, " ").trim().slice(0, 300))
+      .evaluate(() => document.body.innerText.replace(/\s+/g, " ").trim().slice(0, 800))
       .catch(() => "");
     warn(`Sign-in did not complete (still on /sign-in). Page text: "${msg}"`);
   }
@@ -1150,6 +1150,12 @@ async function run() {
   for (let i = 0; i < ITERATIONS; i += 1) {
     console.log(`\n— iteration ${i + 1}/${ITERATIONS} —`);
     if (!authed) {
+      if (!ALLOW_CATALOG_ONLY) {
+        throw new Error(
+          "Sign-in failed, so auth-gated synthetic paths were not exercised. " +
+            "Fix TEST_EMAIL/TEST_PASSWORD or set ALLOW_CATALOG_ONLY=1 for a catalog-only run.",
+        );
+      }
       warn("Skipping auth-gated paths (no sign-in). Only catalog events fired.");
       break;
     }
