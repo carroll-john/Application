@@ -305,6 +305,8 @@ Notes:
 
 ## Storage Convention
 - Bucket: `application-documents`
+- Allowed MIME types include applicant document uploads plus
+  `application/json` for `eligibility_feedback` artifacts.
 - Recommended path format:
   - `{auth.uid()}/{application_id}/{kind}/{document_id}-{file_name}`
 - This aligns with the storage policy in the migration, which expects the first folder segment to be the current user's auth ID.
