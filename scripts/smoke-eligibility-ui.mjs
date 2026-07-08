@@ -78,6 +78,22 @@ async function pickMonthYear(page, trigger, year, monthName) {
     .click();
 }
 
+async function waitForSaveAndContinueEnabled(page) {
+  const saveButton = page.getByRole("button", { name: "Save & Continue" });
+  await saveButton.waitFor({ state: "visible", timeout: 15000 });
+  await page.waitForFunction(
+    () =>
+      [...document.querySelectorAll("button")].some(
+        (button) =>
+          button.textContent?.trim() === "Save & Continue" &&
+          !button.disabled,
+      ),
+    null,
+    { timeout: 120000 },
+  );
+  return saveButton;
+}
+
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 let latestRulesVersion = null;
@@ -115,7 +131,9 @@ try {
   await page.locator('input[type="file"]').first().setInputFiles(pdfPath);
   console.log("OK transcript file attached (parse-first):", path.basename(pdfPath));
 
-  await page.getByRole("button", { name: "Save & Continue" }).click();
+  const saveTertiary = await waitForSaveAndContinueEnabled(page);
+  console.log("OK transcript parser drafted required qualification fields");
+  await saveTertiary.click();
   await page.waitForURL("**/section2/qualifications**", { timeout: 120000 });
   console.log("OK saved tertiary via parse-first ->", page.url());
 
@@ -137,11 +155,12 @@ try {
   await tertiaryItem.waitFor({ timeout: 15000 });
   console.log("OK tertiary list item visible after parse-first save");
 
-  await page.getByRole("heading", { name: "Transcript eligibility check" }).waitFor({
+  await page.getByRole("heading", { name: "Supporting Eligibility Documentation" }).waitFor({
     timeout: 30000,
   });
+  await page.getByText("Evidence ready").waitFor({ timeout: 30000 });
 
-  const rows = page.locator('[aria-label="Eligibility requirements"] li');
+  const rows = page.locator('[aria-label="Evidence satisfied"] li');
   const count = await rows.count();
   console.log("Eligibility rows:", count);
 
@@ -153,12 +172,12 @@ try {
     }
     console.log("OK legacy rules:", latestRulesVersion);
   } else {
-    if (!latestRulesVersion?.includes("matcher")) {
+    if (!latestRulesVersion?.includes("rules-v2")) {
       throw new Error(
-        `Expected matcher rules, got rulesVersion=${latestRulesVersion ?? "(missing)"}`,
+        `Expected rules-v2 matcher rules, got rulesVersion=${latestRulesVersion ?? "(missing)"}`,
       );
     }
-    console.log("OK matcher rules:", latestRulesVersion);
+    console.log("OK rules-v2 matcher rules:", latestRulesVersion);
   }
 
   if (count < 1) {
@@ -175,9 +194,15 @@ try {
       .first();
     if (await feedbackBtn.isVisible()) {
       await feedbackBtn.click();
-      const feedbackForm = page.locator("fieldset").filter({ hasText: "What should this be?" }).first();
-      await feedbackForm.getByRole("radio", { name: "Not met" }).click();
-      await page.getByLabel("Add details (optional)").fill("Post-merge smoke override");
+      const feedbackForm = page
+        .locator("fieldset")
+        .filter({ hasText: "Which results don't match your documents?" })
+        .first();
+      await feedbackForm.getByRole("checkbox").first().check();
+      await feedbackForm
+        .getByLabel("Your note (optional)")
+        .first()
+        .fill("Post-merge smoke correction");
       await page.getByRole("button", { name: "Save feedback" }).click();
       await page
         .getByText(/Thanks — we've saved your feedback for admissions review/)
