@@ -38,7 +38,7 @@
     "notion:publish-note": "node ./scripts/publish-stakeholder-note-to-notion.mjs"
   },
   "dependencies": {
-    "@johncarroll/eligibility-rules": "file:./eligibility-service/packages/eligibility-rules",
+    "@johncarroll/eligibility-rules": "file:./vendor/eligibility-rules",
     "@johncarroll/suggest-core": "^0.1.0",
     "@johncarroll/suggest-react": "^0.1.0",
     "@sentry/node": "^10.62.0",

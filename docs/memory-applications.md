@@ -83,9 +83,9 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   silently reverts both (a prod-breaking regression caught in PR #129).
 - **Eligibility rules package:** `@johncarroll/eligibility-rules` lives in the
   `eligibility-service` repo (`packages/eligibility-rules/`) and is linked from
-  this app via `file:./eligibility-service/packages/eligibility-rules` (git
-  submodule). A `preinstall` script symlinks a sibling checkout when present for
-  local monorepo layouts.
+  this app via `file:./vendor/eligibility-rules` (vendored snapshot). A
+  `preinstall` script can symlink a sibling eligibility-service checkout for live
+  rules development.
   proxy still owns final verdict assembly; the package owns matcher, requirement
   types, v2 pathway IR, evaluators, check copy, assessment resolution, and
   submit-policy constants. App shims under `src/lib/eligibility/*.ts` re-export

@@ -1,0 +1,16 @@
+{
+  "name": "@johncarroll/eligibility-rules",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared eligibility rules engine, requirement models, and submit-policy constants for the Applications app proxy.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}
