@@ -1,2306 +1,2452 @@
 {
-  "version": 1,
-  "generatedAt": "2026-05-24T01:53:28.270Z",
+  "version": 2,
+  "generatedAt": "2026-07-08T23:20:36.153Z",
   "model": "gpt-4.1-mini",
   "courses": {
-    "master-of-business-administration": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work-experience-3-years",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 3,
-          "relevantTo": "managerial"
-        },
-        "sourceText": "Three years relevant managerial experience.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "academic-threshold-wam-60",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 60,
-          "scale": 100
-        },
-        "sourceText": "WAM: Weighted Average Mark (WAM) 60%.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "university-of-southern-queensland-unisq-master-of-business-administration-mba": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completion of an Australian university 3-year bachelor degree (AQF Level 7 or recognised equivalent)",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "Completion of an Australian university 3-year bachelor degree (AQF Level 7 or recognised equivalent)",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "gpa-4-out-of-7",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "gpa",
-          "min": 4,
-          "scale": 7
-        },
-        "sourceText": "Completion of an Australian university 3-year bachelor degree (AQF Level 7 or recognised equivalent) with a GPA of at least 4.0 out of 7.0",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work-experience-3-years-management",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 3,
-          "relevantTo": "management or supervisory level"
-        },
-        "sourceText": "a minimum of 3 years' full-time relevant professional work experience, post degree, at a management or supervisory level",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
+    "master-of-business-administration": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
             {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
-            }
-          ]
-        },
-        "sourceText": "IELTS (Academic) - Minimum overall score of 6.5 and a minimum score of 6.0 in each of the four components (listening, reading, writing, and speaking)",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "mba-online": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "A 3-year Bachelor degree from any Australian university, or equivalent.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "A 3-year Bachelor degree from any Australian university, or equivalent.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": null
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
             },
             {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "Language requirements: IELTS Overall Score 6.5.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "master-of-business-administration-digital": [
-      {
-        "id": "qualification_level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
-        "weight": "mandatory",
-        "alternativeGroupId": null,
-        "pathwayBundleId": "mba-level-1"
-      },
-      {
-        "id": "academic_threshold-60",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 60,
-          "scale": 100
-        },
-        "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
-        "weight": "mandatory",
-        "alternativeGroupId": null,
-        "pathwayBundleId": "mba-level-1"
-      },
-      {
-        "id": "academic_threshold-60-gpa",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "gpa",
-          "min": 60,
-          "scale": null
-        },
-        "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
-        "weight": "alternative",
-        "alternativeGroupId": "level1-entry-acad-min",
-        "pathwayBundleId": "mba-level-1"
-      },
-      {
-        "id": "work_experience-3y-professional",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 3,
-          "relevantTo": "professional role"
-        },
-        "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
-        "weight": "alternative",
-        "alternativeGroupId": "level1-entry-acad-min",
-        "pathwayBundleId": "mba-level-1"
-      },
-      {
-        "id": "qualification_completed-gradcert-busadmin-digital",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Entry Level 2: Completion of a Monash University Graduate Certificate of Business Administration (Digital) with at least a credit average of 60%.",
-        "weight": "mandatory",
-        "alternativeGroupId": null,
-        "pathwayBundleId": "mba-level-2"
-      },
-      {
-        "id": "academic_threshold-60-level2",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 60,
-          "scale": 100
-        },
-        "sourceText": "Entry Level 2: Completion of a Monash University Graduate Certificate of Business Administration (Digital) with at least a credit average of 60%.",
-        "weight": "mandatory",
-        "alternativeGroupId": null,
-        "pathwayBundleId": "mba-level-2"
-      }
-    ],
-    "master-of-digital-health": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "wam-65",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 65,
-          "scale": 100
-        },
-        "sourceText": "WAM - Weighted Average Mark (WAM) 65% or above.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-completion-in-country",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "uts-online-university-of-technology-sydney-master-of-business-administration-mba": [
-      {
-        "id": "completed-graduate-certificate-or-higher",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "1. Completed Australian graduate certificate or higher qualification, or overseas equivalent, with more than 75% of all subjects completed at pass level.",
-        "weight": "mandatory",
-        "alternativeGroupId": "alt-group-1"
-      },
-      {
-        "id": "qualification-level-graduate-certificate",
-        "kind": "qualification_level",
-        "params": {
-          "level": "masters"
-        },
-        "sourceText": "1. Completed Australian graduate certificate or higher qualification, or overseas equivalent, with more than 75% of all subjects completed at pass level.",
-        "weight": "mandatory",
-        "alternativeGroupId": "alt-group-1"
-      },
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "2. Completed Australian bachelor's degree, or overseas equivalent, with a minimum GPA of 5.25/7 and more than 90% of all subjects completed at pass level.",
-        "weight": "mandatory",
-        "alternativeGroupId": "alt-group-2"
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "2. Completed Australian bachelor's degree, or overseas equivalent, with a minimum GPA of 5.25/7 and more than 90% of all subjects completed at pass level.",
-        "weight": "mandatory",
-        "alternativeGroupId": "alt-group-2"
-      },
-      {
-        "id": "academic-threshold-gpa-5.25-7",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "gpa",
-          "min": 5.25,
-          "scale": 7
-        },
-        "sourceText": "2. Completed Australian bachelor's degree, or overseas equivalent, with a minimum GPA of 5.25/7 and more than 90% of all subjects completed at pass level.",
-        "weight": "mandatory",
-        "alternativeGroupId": "alt-group-2"
-      },
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "3. Completed Australian bachelor's degree, or overseas equivalent, with more than 75% of all subjects completed at pass level and one of the following: A minimum of 4 years' full-time or equivalent part-time, relevant professional experience OR GMAT overall minimum score of 550.",
-        "weight": "mandatory",
-        "alternativeGroupId": "alt-group-3"
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "3. Completed Australian bachelor's degree, or overseas equivalent, with more than 75% of all subjects completed at pass level and one of the following: A minimum of 4 years' full-time or equivalent part-time, relevant professional experience OR GMAT overall minimum score of 550.",
-        "weight": "mandatory",
-        "alternativeGroupId": "alt-group-3"
-      },
-      {
-        "id": "work-experience-4-years",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 4,
-          "relevantTo": "professional experience"
-        },
-        "sourceText": "A minimum of 4 years' full-time or equivalent part-time, relevant professional experience",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-3"
-      },
-      {
-        "id": "alternative-gmat-550",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "GMAT overall minimum score of 550",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-3"
-      },
-      {
-        "id": "english-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
-            }
-          ]
-        },
-        "sourceText": "English requirements: Academic IELTS 6.5 overall with writing 6.0",
-        "weight": "mandatory",
-        "alternativeGroupId": "alt-group-4"
-      },
-      {
-        "id": "english-toefl",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "TOEFL_iBT",
-              "minOverall": 79,
-              "minBand": 21
-            }
-          ]
-        },
-        "sourceText": "or TOEFL iBT 79-93 with writing 21",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-4"
-      },
-      {
-        "id": "english-pte",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "PTE",
-              "minOverall": 58,
-              "minBand": 50
-            }
-          ]
-        },
-        "sourceText": "or PTE 58-64 with writing 50",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-4"
-      }
-    ],
-    "master-of-business-management-with-discipline-studies-in-public-health": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "An Australian bachelor's degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "An Australian bachelor's degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "field-of-study-business-commerce-management",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "Business",
-            "Commerce",
-            "Management"
-          ]
-        },
-        "sourceText": "An Australian bachelor's degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "academic-threshold-wam-60",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 60,
-          "scale": 100
-        },
-        "sourceText": "with at least a credit (60%) average or an equivalent Grade Point Average",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work-experience-2-years",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": "business management or related"
-        },
-        "sourceText": "An Australian bachelor's degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-1-pathway"
-      },
-      {
-        "id": "english-proficiency",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "Applicants must also meet the English language requirements.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "master-of-health-management": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completion of a bachelor's degree or equivalent in a related discipline (e.g., Nursing, Allied Health) and at least two years full-time (or part-time equivalent) of relevant work experience (e.g., Health professional, medical administrator).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "field-related-discipline",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "Nursing",
-            "Allied Health"
-          ]
-        },
-        "sourceText": "Completion of a bachelor's degree or equivalent in a related discipline (e.g., Nursing, Allied Health) and at least two years full-time (or part-time equivalent) of relevant work experience (e.g., Health professional, medical administrator).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work-experience-2-years",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": "Health professional, medical administrator"
-        },
-        "sourceText": "Completion of a bachelor's degree or equivalent in a related discipline (e.g., Nursing, Allied Health) and at least two years full-time (or part-time equivalent) of relevant work experience (e.g., Health professional, medical administrator).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "completed-bachelor-any-discipline",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "2 years full-time (16 credit points): Completion of a bachelor's degree in any discipline.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-proficiency",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
+              "id": "work-experience-3-years",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 3,
+                "relevantTo": "managerial"
+              },
+              "sourceText": "Three years relevant managerial experience.",
+              "weight": "mandatory"
             },
             {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
+              "id": "academic-threshold-wam-60",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 60,
+                "scale": 100
+              },
+              "sourceText": "WAM: Weighted Average Mark (WAM) 60%.",
+              "weight": "mandatory"
             }
           ]
-        },
-        "sourceText": "English language proficiency: Bachelor degree from a recognised English-speaking country OR IELTS overall score of 6.5 (with no band score less than 6.0) OR other approved evidence.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "graduate-certificate-in-digital-health-management": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Applicants must normally hold a bachelor degree or equivalent qualification",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "Applicants must normally hold a bachelor degree or equivalent qualification",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work-experience-2",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": "health or aged care sector"
-        },
-        "sourceText": "must also have no less than two years postgraduate work experience in the health or aged care sector",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "la-trobe-university-master-of-information-technology": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent) and transcripts from all prior universities.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "completed-australian-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent) and transcripts from all prior universities.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-completion-in-country",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
+        }
+      ]
+    },
+    "university-of-southern-queensland-unisq-master-of-business-administration-mba": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
             {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "English language proficiency satisfied by completion of a qualification at an institution in Australia or another recognised English-medium country.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "master-of-health-management-and-policy-global": [
-      {
-        "id": "english-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
-            }
-          ]
-        },
-        "sourceText": "Applicants must demonstrate that they meet the University of Newcastle's English Language Proficiency requirements. English proficiency requirements: IELTS overall minimum - 6.5; IELTS section minimum - 6.0.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "university-of-southern-queensland-unisq-master-of-information-technology": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completion of an Australian university 3-year bachelor degree, or equivalent, in any area",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "Completion of an Australian university 3-year bachelor degree, or equivalent, in any area",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work-experience-5-years",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 5,
-          "relevantTo": null
-        },
-        "sourceText": "or a minimum of 5 years' professional work experience equivalent to a qualification at AQF Level 7 (bachelor)",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-pathway-1"
-      },
-      {
-        "id": "english-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6,
-              "minBand": 5.5
+              "id": "level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
             },
             {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "English language requirements: IELTS (Academic) - Minimum overall score of 6.0 and a minimum score of 5.5 in each of the four components - listening, reading, writing, and speaking.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "master-of-information-technology-mit": [
-      {
-        "id": "english-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
-            }
-          ]
-        },
-        "sourceText": "Applicants must demonstrate that they meet the University of Newcastle's English Language Proficiency requirements. For International students: IELTS overall minimum - 6.5, IELTS section minimum - 6.0.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "cquniversity-australia-master-of-information-technology": [],
-    "southern-cross-university-master-of-information-technology": [
-      {
-        "id": "english-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
-            }
-          ]
-        },
-        "sourceText": "Language requirements: IELTS Overall Score 6.5 (Listening: minimum 6.0, Speaking: minimum 6.0, Reading: minimum 6.0, Writing: minimum 6.0).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "unsw-online-university-of-new-south-wales-master-of-data-science": [
-      {
-        "id": "completed-grad-dip-data-science",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completed the online Graduate Diploma in Data Science (5646) with a weighted average mark (WAM) of 65 or higher",
-        "weight": "alternative",
-        "alternativeGroupId": "grp-1"
-      },
-      {
-        "id": "wam-65-grad-dip-data-science",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 65,
-          "scale": 100
-        },
-        "sourceText": "Completed the online Graduate Diploma in Data Science (5646) with a weighted average mark (WAM) of 65 or higher",
-        "weight": "alternative",
-        "alternativeGroupId": "grp-1"
-      },
-      {
-        "id": "completed-bachelor-data-science-or-cognate",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completed an undergraduate degree in data science or cognate discipline (e.g., computer science, economics, mathematics, statistics)",
-        "weight": "alternative",
-        "alternativeGroupId": "grp-2"
-      },
-      {
-        "id": "field-of-study-data-science-cognate",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "data science",
-            "computer science",
-            "economics",
-            "mathematics",
-            "statistics"
-          ]
-        },
-        "sourceText": "Completed an undergraduate degree in data science or cognate discipline (e.g., computer science, economics, mathematics, statistics)",
-        "weight": "alternative",
-        "alternativeGroupId": "grp-2"
-      },
-      {
-        "id": "wam-65-minimum-level-iii-math-stat-cs-econometrics",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 65,
-          "scale": 100
-        },
-        "sourceText": "have sufficient data science background as indicated by an average mark of 65 or above (FAQ section notes 70 or above) across a minimum of three Level III courses in mathematics and/or statistics and/or computer science and/or econometrics",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-proficiency",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": null
+              "id": "gpa-4-out-of-7",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "gpa",
+                "min": 4,
+                "scale": 7
+              },
+              "sourceText": "Completion of an Australian university 3-year bachelor degree (AQF Level 7 or recognised equivalent) with a GPA of at least 4.0 out of 7.0",
+              "weight": "mandatory"
             },
             {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "English language: Must provide evidence of English proficiency via tests, university courses, prior study in English, or other qualifications/waivers",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "university-of-southern-queensland-unisq-master-of-data-science": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completion of an Australian university 3-year bachelor degree, or equivalent, in any area",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "Completion of an Australian university 3-year bachelor degree, or equivalent, in any area",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work-experience-5-years",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 5,
-          "relevantTo": null
-        },
-        "sourceText": "a minimum of 5 years' professional work experience equivalent to an AQF Level 7 qualification (bachelor)",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-pathway-1"
-      },
-      {
-        "id": "english-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6,
-              "minBand": 5.5
-            }
-          ]
-        },
-        "sourceText": "English language requirements: IELTS (Academic) - Minimum overall score of 6.0 and a minimum score of 5.5 in each of the four components - listening, reading, writing, and speaking.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "master-of-data-analytics-online": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "To be eligible for admission, you are required to have: a three-year Australian bachelor's degree in a cognate discipline with a minimum credit average (65 percent)",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "To be eligible for admission, you are required to have: a three-year Australian bachelor's degree in a cognate discipline with a minimum credit average (65 percent)",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "academic-threshold-wam-65",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 65,
-          "scale": 100
-        },
-        "sourceText": "To be eligible for admission, you are required to have: a three-year Australian bachelor's degree in a cognate discipline with a minimum credit average (65 percent)",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "completed-graduate-diploma-data-analytics",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "To be eligible for admission, you are required to have: the University of Sydney Graduate Diploma in Data Analytics with a minimum credit average (65 percent)",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-1"
-      },
-      {
-        "id": "academic-threshold-graddip-wam-65",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 65,
-          "scale": 100
-        },
-        "sourceText": "To be eligible for admission, you are required to have: the University of Sydney Graduate Diploma in Data Analytics with a minimum credit average (65 percent)",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-1"
-      },
-      {
-        "id": "completed-24-credit-points-grad-dip-or-cert-data-analytics",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "completed 24 credit points of the University of Sydney Graduate Diploma in Data Analytics or Graduate Certificate in Data Analytics with a minimum credit average (65 percent)",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-1"
-      },
-      {
-        "id": "academic-threshold-24-credit-points-wam-65",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 65,
-          "scale": 100
-        },
-        "sourceText": "completed 24 credit points of the University of Sydney Graduate Diploma in Data Analytics or Graduate Certificate in Data Analytics with a minimum credit average (65 percent)",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-1"
-      },
-      {
-        "id": "field-of-study-cognate-discipline",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "Science",
-            "Engineering",
-            "Commerce",
-            "Economics"
-          ]
-        },
-        "sourceText": "Cognate disciplines include any major from a Science, Engineering, Commerce, or Economics degree, or other disciplines that are deemed cognate by the program directors",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "deakin-university-master-of-data-science": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "16-credit point entry: completion of a bachelor degree or higher in any discipline.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "16-credit point entry: completion of a bachelor degree or higher in any discipline.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "completed-bachelor-related",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "12-credit point entry: completion of a bachelor degree or higher in a related discipline",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-12-credit"
-      },
-      {
-        "id": "qualification-level-bachelor-related",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "12-credit point entry: completion of a bachelor degree or higher in a related discipline",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-12-credit"
-      },
-      {
-        "id": "completed-bachelor-any",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "12-credit point entry: completion of a bachelor degree or higher in any discipline",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-12-credit"
-      },
-      {
-        "id": "qualification-level-bachelor-any",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "12-credit point entry: completion of a bachelor degree or higher in any discipline",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-12-credit"
-      },
-      {
-        "id": "work-experience-2-years-12-credit",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": null
-        },
-        "sourceText": "12-credit point entry: completion of a bachelor degree or higher in any discipline and at least two years relevant work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-12-credit"
-      },
-      {
-        "id": "completed-grad-cert-dip-related",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "8-credit point entry: completion of a graduate certificate or graduate diploma in a related discipline",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-8-credit"
-      },
-      {
-        "id": "completed-bachelor-honours-related",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "8-credit point entry: completion of a bachelor honours degree in a related discipline",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-8-credit"
-      },
-      {
-        "id": "completed-bachelor-related-8-credit",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "8-credit point entry: completion of a bachelor degree in a related discipline and at least two years of relevant work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-8-credit"
-      },
-      {
-        "id": "work-experience-2-years-8-credit",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": null
-        },
-        "sourceText": "8-credit point entry: completion of a bachelor degree in a related discipline and at least two years of relevant work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-8-credit"
-      },
-      {
-        "id": "english-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
-            }
-          ]
-        },
-        "sourceText": "English proficiency: IELTS overall score of 6.5 (with no band score less than 6.0) or equivalent.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "la-trobe-university-master-of-data-science": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completion of an Australian bachelor degree or equivalent in any discipline; OR completion of the Postgraduate Qualifying Program (PPN001).",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-pathway-1"
-      },
-      {
-        "id": "completed-postgraduate-qualifying-program",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completion of an Australian bachelor degree or equivalent in any discipline; OR completion of the Postgraduate Qualifying Program (PPN001).",
-        "weight": "alternative",
-        "alternativeGroupId": "entry-pathway-1"
-      }
-    ],
-    "graduate-certificate-in-digital-health": [
-      {
-        "id": "completed-bachelor-of-nursing",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "hold a Bachelor of Nursing or registered nurse equivalent qualification",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-nursing-midwifery-board-standard",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "meet the Nursing and Midwifery Board of Australia English language skills registration standard (nursing and midwifery)",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work-experience-1-year-postgraduate",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 1,
-          "relevantTo": "postgraduate"
-        },
-        "sourceText": "have a minimum of one year of postgraduate experience",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "master-of-clinical-nursing-acu-online": [
-      {
-        "id": "completed-bachelor-of-nursing",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "To be eligible for admission to the Master of Clinical Nursing, an applicant must: a) have completed a Bachelor of Nursing degree or equivalent;",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "To be eligible for admission to the Master of Clinical Nursing, an applicant must: a) have completed a Bachelor of Nursing degree or equivalent;",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "university-of-melbourne-master-of-public-health": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.) OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health) OR A masters degree (by research or coursework) or PhD in health or public health.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "wam-65",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 65,
-          "scale": 100
-        },
-        "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.) OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health) OR A masters degree (by research or coursework) or PhD in health or public health.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work-experience-2-public-health",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": "public health setting"
-        },
-        "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.)",
-        "weight": "alternative",
-        "alternativeGroupId": "work-experience-or-healthcare"
-      },
-      {
-        "id": "work-experience-2-healthcare",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": "professional healthcare setting"
-        },
-        "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health)",
-        "weight": "alternative",
-        "alternativeGroupId": "work-experience-or-healthcare"
-      },
-      {
-        "id": "completed-masters-or-phd-health",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: A masters degree (by research or coursework) or PhD in health or public health.",
-        "weight": "alternative",
-        "alternativeGroupId": "masters-or-phd-health"
-      },
-      {
-        "id": "qualification-level-master",
-        "kind": "qualification_level",
-        "params": {
-          "level": "masters"
-        },
-        "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: A masters degree (by research or coursework) or PhD in health or public health.",
-        "weight": "alternative",
-        "alternativeGroupId": "masters-or-phd-health"
-      },
-      {
-        "id": "qualification-level-phd",
-        "kind": "qualification_level",
-        "params": {
-          "level": "doctorate"
-        },
-        "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: A masters degree (by research or coursework) or PhD in health or public health.",
-        "weight": "alternative",
-        "alternativeGroupId": "masters-or-phd-health"
-      },
-      {
-        "id": "english-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
-            }
-          ]
-        },
-        "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-toefl-ibt",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "TOEFL_iBT",
-              "minOverall": 81,
-              "minBand": 16
-            }
-          ]
-        },
-        "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-pte",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "PTE",
-              "minOverall": 64,
-              "minBand": 60
-            }
-          ]
-        },
-        "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-cae",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "CAE",
-              "minOverall": 169,
-              "minBand": null
-            }
-          ]
-        },
-        "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "monash-university-monash-online-master-of-public-health": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "An Australian bachelor degree (or equivalent) in a relevant discipline with at least a Weighted Average Mark (WAM) of 60% and a minimum of two years of relevant work experience.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "An Australian bachelor degree (or equivalent) in a relevant discipline with at least a Weighted Average Mark (WAM) of 60% and a minimum of two years of relevant work experience.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "academic-threshold-wam-60",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 60,
-          "scale": 100
-        },
-        "sourceText": "An Australian bachelor degree (or equivalent) in a relevant discipline with at least a Weighted Average Mark (WAM) of 60% and a minimum of two years of relevant work experience.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work-experience-2-years-health",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": "health industry (eg. Government, policy, provider eg. hospital, clinic), non government organisation (NGO), academic or research institution, consulting, pharmaceutical company etc."
-        },
-        "sourceText": "An Australian bachelor degree (or equivalent) in a relevant discipline with at least a Weighted Average Mark (WAM) of 60% and a minimum of two years of relevant work experience.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "field-of-study-health-related",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "relevant discipline"
-          ]
-        },
-        "sourceText": "An Australian bachelor degree (or equivalent) in a relevant discipline with at least a Weighted Average Mark (WAM) of 60% and a minimum of two years of relevant work experience.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-proficiency",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "Applicants must also meet English language requirements.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "master-of-business-management-with-discipline-studies-in-project-management": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "An Australian bachelor degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average;",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "An Australian bachelor degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average;",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "field-of-study-business-commerce-management",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "Business",
-            "Commerce",
-            "Management"
-          ]
-        },
-        "sourceText": "An Australian bachelor degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average;",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "academic-threshold-credit-60",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 60,
-          "scale": 100
-        },
-        "sourceText": "An Australian bachelor degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average;",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "completed-bachelor-plus-work-exp",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "An Australian bachelor degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-1"
-      },
-      {
-        "id": "academic-threshold-credit-60-alt",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 60,
-          "scale": 100
-        },
-        "sourceText": "An Australian bachelor degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-1"
-      },
-      {
-        "id": "work-experience-2-years-relevant",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": null
-        },
-        "sourceText": "An Australian bachelor degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-1"
-      },
-      {
-        "id": "completed-graduate-certificate-business-management",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "A Monash University Graduate Certificate of Business Management with at least a credit (60%) average",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-2"
-      },
-      {
-        "id": "academic-threshold-credit-60-gcbm",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 60,
-          "scale": 100
-        },
-        "sourceText": "A Monash University Graduate Certificate of Business Management with at least a credit (60%) average",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-2"
-      },
-      {
-        "id": "completed-graduate-certificate-hr-management",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-3"
-      },
-      {
-        "id": "academic-threshold-credit-60-gchr",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 60,
-          "scale": 100
-        },
-        "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-3"
-      },
-      {
-        "id": "english-proficiency-monash-req",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "Applicants must also meet the English language requirements.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "uts-online-university-of-technology-sydney-master-of-public-health": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Applicants must have a completed Australian Bachelor's degree or higher qualification, or overseas equivalent.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "Applicants must have a completed Australian Bachelor's degree or higher qualification, or overseas equivalent.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-academic-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
-            }
-          ]
-        },
-        "sourceText": "English proficiency requirement for local applicants with international qualifications: Academic IELTS: 6.5 overall with a writing score of 6.0;",
-        "weight": "mandatory",
-        "alternativeGroupId": "eng-proficiency-1"
-      },
-      {
-        "id": "english-toefl-paper",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "TOEFL_iBT",
-              "minOverall": 79,
-              "minBand": 21
-            }
-          ]
-        },
-        "sourceText": "English proficiency requirement for local applicants with international qualifications: Academic IELTS: 6.5 overall with a writing score of 6.0; or TOEFL: paper-based: 550-583 overall with TWE of 4.5, internet-based: 79-93 overall with a writing score of 21;",
-        "weight": "mandatory",
-        "alternativeGroupId": "eng-proficiency-1"
-      },
-      {
-        "id": "english-toefl-paper-based",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "TOEFL_iBT",
-              "minOverall": 550,
-              "minBand": 4.5
-            }
-          ]
-        },
-        "sourceText": "English proficiency requirement for local applicants with international qualifications: Academic IELTS: 6.5 overall with a writing score of 6.0; or TOEFL: paper-based: 550-583 overall with TWE of 4.5, internet-based: 79-93 overall with a writing score of 21;",
-        "weight": "mandatory",
-        "alternativeGroupId": "eng-proficiency-1"
-      },
-      {
-        "id": "english-pte",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "PTE",
-              "minOverall": 58,
-              "minBand": 50
-            }
-          ]
-        },
-        "sourceText": "or PTE: 58-64 with a writing score of 50;",
-        "weight": "mandatory",
-        "alternativeGroupId": "eng-proficiency-1"
-      },
-      {
-        "id": "english-c1a-c2p",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "CAE",
-              "minOverall": 176,
-              "minBand": 169
-            }
-          ]
-        },
-        "sourceText": "or C1A/C2P: 176-184 with a writing score of 169.",
-        "weight": "mandatory",
-        "alternativeGroupId": "eng-proficiency-1"
-      }
-    ],
-    "graduate-certificate-in-public-health": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Applicants must normally hold a degree or equivalent qualification from an approved tertiary institution and have their candidature approved by the Dean (Education).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work-experience-2-years",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": "public health sector"
-        },
-        "sourceText": "Applicants who do not hold a bachelor's degree but have relevant professional experience in the sector should provide employment experience information in their application. Also summarized as: Bachelor's degree or equivalent or 2+ years professional work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-1"
-      },
-      {
-        "id": "completed-bachelor-alt",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Also summarized as: Bachelor's degree or equivalent or 2+ years professional work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-group-1"
-      }
-    ],
-    "master-of-cybersecurity": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent)",
-        "weight": "alternative",
-        "alternativeGroupId": "pathway-1"
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent)",
-        "weight": "alternative",
-        "alternativeGroupId": "pathway-1"
-      },
-      {
-        "id": "completed-postgraduate-qualifying-program",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completion of the Postgraduate Qualifying Program",
-        "weight": "alternative",
-        "alternativeGroupId": "pathway-1"
-      },
-      {
-        "id": "completed-bachelor-cognate",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent) in computer science, information technology, or information systems",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor-cognate",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent) in computer science, information technology, or information systems",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "field-of-study-cognate",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "computer science",
-            "information technology",
-            "information systems"
-          ]
-        },
-        "sourceText": "Successful completion of an Australian bachelor degree (or equivalent) in computer science, information technology, or information systems",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "deakin-university-master-of-cyber-security": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "16-credit point entry: Completion of a bachelor degree or higher in any discipline.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "16-credit point entry: Completion of a bachelor degree or higher in any discipline.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "12-credit point entry: Completion of a bachelor degree or higher in a related discipline (e.g., IT);",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-12-credit-requirement"
-      },
-      {
-        "id": "field-of-study-related-discipline",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "related discipline",
-            "IT"
-          ]
-        },
-        "sourceText": "12-credit point entry: Completion of a bachelor degree or higher in a related discipline (e.g., IT);",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-12-credit-requirement"
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "12-credit point entry: or a bachelor degree in any discipline plus at least two years' relevant work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-12-credit-requirement"
-      },
-      {
-        "id": "work-experience-2-years",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": null
-        },
-        "sourceText": "12-credit point entry: or a bachelor degree in any discipline plus at least two years' relevant work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-12-credit-requirement"
-      },
-      {
-        "id": "qualification_completed-graduate-certificate-diploma",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "8-credit point entry: Completion of a graduate certificate/diploma or bachelor honours degree in a related discipline;",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-8-credit-entry-1"
-      },
-      {
-        "id": "field-of-study-related-discipline",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "related discipline"
-          ]
-        },
-        "sourceText": "8-credit point entry: Completion of a graduate certificate/diploma or bachelor honours degree in a related discipline;",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-8-credit-entry-1"
-      },
-      {
-        "id": "qualification_completed-bachelor-honours",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "8-credit point entry: Completion of a graduate certificate/diploma or bachelor honours degree in a related discipline;",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-8-credit-entry-1"
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "8-credit point entry: or a bachelor degree in a related discipline plus at least two years' relevant work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-8-credit-entry-2"
-      },
-      {
-        "id": "field-of-study-related-discipline",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "related discipline"
-          ]
-        },
-        "sourceText": "8-credit point entry: or a bachelor degree in a related discipline plus at least two years' relevant work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-8-credit-entry-2"
-      },
-      {
-        "id": "work-experience-2-years",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": null
-        },
-        "sourceText": "8-credit point entry: or a bachelor degree in a related discipline plus at least two years' relevant work experience.",
-        "weight": "alternative",
-        "alternativeGroupId": "alt-8-credit-entry-2"
-      },
-      {
-        "id": "english-ielts",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
+              "id": "work-experience-3-years-management",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 3,
+                "relevantTo": "management or supervisory level"
+              },
+              "sourceText": "a minimum of 3 years' full-time relevant professional work experience, post degree, at a management or supervisory level",
+              "weight": "mandatory"
             },
             {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
+              "id": "english-ielts",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "IELTS",
+                    "minOverall": 6.5,
+                    "minBand": 6
+                  }
+                ]
+              },
+              "sourceText": "IELTS (Academic) - Minimum overall score of 6.5 and a minimum score of 6.0 in each of the four components (listening, reading, writing, and speaking)",
+              "weight": "mandatory"
             }
           ]
-        },
-        "sourceText": "English Language: IELTS overall score of 6.5 (no band less than 6.0) or bachelor degree from a recognised English-speaking country.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "charles-sturt-university-in-partnership-with-it-masters-master-of-cyber-security": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Bachelor degree in a related area from a recognised tertiary institution OR Graduate Certificate in a related area.",
-        "weight": "alternative",
-        "alternativeGroupId": "degree-or-grad-cert"
-      },
-      {
-        "id": "field-of-study-related",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "related area"
-          ]
-        },
-        "sourceText": "Bachelor degree in a related area from a recognised tertiary institution OR Graduate Certificate in a related area.",
-        "weight": "alternative",
-        "alternativeGroupId": "degree-or-grad-cert"
-      },
-      {
-        "id": "completed-graduate-certificate",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Bachelor degree in a related area from a recognised tertiary institution OR Graduate Certificate in a related area.",
-        "weight": "alternative",
-        "alternativeGroupId": "degree-or-grad-cert"
-      },
-      {
-        "id": "field-of-study-related-2",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "related area"
-          ]
-        },
-        "sourceText": "Bachelor degree in a related area from a recognised tertiary institution OR Graduate Certificate in a related area.",
-        "weight": "alternative",
-        "alternativeGroupId": "degree-or-grad-cert"
-      },
-      {
-        "id": "english-standard-elp",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
+        }
+      ]
+    },
+    "mba-online": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
             {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "Standard English Language Proficiency (ELP) requirements apply.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "monash-online-monash-university-master-of-human-resource-management": [
-      {
-        "id": "qualification_completed",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "An Australian bachelors degree, or an equivalent qualification, with at least a credit (60%) average, or an equivalent Grade Point Average, plus two years relevant work experience.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification_level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "An Australian bachelors degree, or an equivalent qualification, with at least a credit (60%) average, or an equivalent Grade Point Average, plus two years relevant work experience.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "academic_threshold-wam-60",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 60,
-          "scale": 100
-        },
-        "sourceText": "An Australian bachelors degree, or an equivalent qualification, with at least a credit (60%) average, or an equivalent Grade Point Average, plus two years relevant work experience.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work_experience-2",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": "human resource management"
-        },
-        "sourceText": "An Australian bachelors degree, or an equivalent qualification, with at least a credit (60%) average, or an equivalent Grade Point Average, plus two years relevant work experience.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification_completed-graduate-certificate-hrm",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "academic_threshold-wam-60-graduate-certificate",
-        "kind": "academic_threshold",
-        "params": {
-          "metric": "wam",
-          "min": 60,
-          "scale": 100
-        },
-        "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-proficiency",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "Applicants must meet the English language requirements.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "master-of-human-resource-management-with-specialisations": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "An undergraduate degree from a recognised Australian tertiary institution (or equivalent).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification-level-bachelor",
-        "kind": "qualification_level",
-        "params": {
-          "level": "bachelor"
-        },
-        "sourceText": "An undergraduate degree from a recognised Australian tertiary institution (or equivalent).",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-proficiency-standard",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
-            }
-          ]
-        },
-        "sourceText": "Standard English Language Proficiency (ELP) requirements apply.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "deakin-university-master-of-human-resource-management": [
-      {
-        "id": "completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completion of a bachelor degree or higher in any discipline and at least two years' relevant work experience (or part-time equivalent); OR completion of a graduate certificate or higher in a related discipline and at least two years' relevant work experience (or part-time equivalent).",
-        "weight": "alternative",
-        "alternativeGroupId": "admission-pathway-1"
-      },
-      {
-        "id": "completed-graduate-certificate",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Completion of a bachelor degree or higher in any discipline and at least two years' relevant work experience (or part-time equivalent); OR completion of a graduate certificate or higher in a related discipline and at least two years' relevant work experience (or part-time equivalent).",
-        "weight": "alternative",
-        "alternativeGroupId": "admission-pathway-1"
-      },
-      {
-        "id": "work-experience-2-years-hrm",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": "managerial role with people management responsibilities or in a human resource professional role"
-        },
-        "sourceText": "Completion of a bachelor degree or higher in any discipline and at least two years' relevant work experience (or part-time equivalent); OR completion of a graduate certificate or higher in a related discipline and at least two years' relevant work experience (or part-time equivalent). Relevant work experience includes at least two years in a managerial role with people management responsibilities or in a human resource professional role.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english-ielts-6.5",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
-            }
-          ]
-        },
-        "sourceText": "English language proficiency: IELTS overall score of 6.5 (no band score less than 6.0) or equivalent.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ],
-    "master-of-business-marketing": [
-      {
-        "id": "qualification_completed-bachelor-honours",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Bachelor honours (AQF8) degree in a related discipline",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "field-of-study-related-discipline-1",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "related discipline"
-          ]
-        },
-        "sourceText": "Bachelor honours (AQF8) degree in a related discipline",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification_completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "bachelor degree in a related discipline, plus two years relevant work experience",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "field-of-study-related-discipline-2",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "related discipline"
-          ]
-        },
-        "sourceText": "bachelor degree in a related discipline, plus two years relevant work experience",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work_experience-2-years-related",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": "related discipline"
-        },
-        "sourceText": "bachelor degree in a related discipline, plus two years relevant work experience",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification_completed-graduate-certificate",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "graduate certificate or graduate diploma in a related discipline",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification_completed-graduate-diploma",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "graduate certificate or graduate diploma in a related discipline",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "field-of-study-related-discipline-3",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "related discipline"
-          ]
-        },
-        "sourceText": "graduate certificate or graduate diploma in a related discipline",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification_completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Bachelor degree or higher in a related discipline",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "field-of-study-related-discipline-4",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "related discipline"
-          ]
-        },
-        "sourceText": "Bachelor degree or higher in a related discipline",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification_completed-bachelor",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "bachelor degree in any discipline, plus two years relevant work experience",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "work_experience-2-years",
-        "kind": "work_experience",
-        "params": {
-          "minYears": 2,
-          "relevantTo": null
-        },
-        "sourceText": "bachelor degree in any discipline, plus two years relevant work experience",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "qualification_completed-bachelor-higher",
-        "kind": "qualification_completed",
-        "params": {},
-        "sourceText": "Bachelor degree or other qualification at a higher AQF level in any discipline",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "field-of-study-any",
-        "kind": "field_of_study",
-        "params": {
-          "acceptedAreas": [
-            "any discipline"
-          ]
-        },
-        "sourceText": "Bachelor degree or other qualification at a higher AQF level in any discipline",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      },
-      {
-        "id": "english_proficiency",
-        "kind": "english_proficiency",
-        "params": {
-          "acceptedPathways": [
-            {
-              "type": "english_test",
-              "test": "IELTS",
-              "minOverall": 6.5,
-              "minBand": 6
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
             },
             {
-              "type": "completion_in_country",
-              "countries": [
-                "AU",
-                "NZ",
-                "UK",
-                "IE",
-                "US",
-                "CA",
-                "ZA"
-              ]
+              "id": "english-ielts",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "IELTS",
+                    "minOverall": 6.5,
+                    "minBand": null
+                  },
+                  {
+                    "type": "completion_in_country",
+                    "countries": [
+                      "AU",
+                      "NZ",
+                      "UK",
+                      "IE",
+                      "US",
+                      "CA",
+                      "ZA"
+                    ]
+                  }
+                ]
+              },
+              "sourceText": "Language requirements: IELTS Overall Score 6.5.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-business-administration-digital": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "mba-level-1",
+          "label": "Entry Level 1",
+          "requirements": [
+            {
+              "id": "qualification_level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
+              "weight": "mandatory"
+            },
+            {
+              "id": "academic_threshold-60",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 60,
+                "scale": 100
+              },
+              "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
+              "weight": "mandatory"
+            },
+            {
+              "id": "academic_threshold-60-gpa",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "gpa",
+                "min": 60
+              },
+              "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
+              "weight": "alternative",
+              "alternativeGroupId": "level1-entry-acad-min"
+            },
+            {
+              "id": "work_experience-3y-professional",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 3,
+                "relevantTo": "professional role"
+              },
+              "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
+              "weight": "alternative",
+              "alternativeGroupId": "level1-entry-acad-min"
             }
           ]
         },
-        "sourceText": "IELTS overall score of 6.5 (with no band score less than 6.0) or equivalent; or a bachelor degree from a recognised English-speaking country.",
-        "weight": "mandatory",
-        "alternativeGroupId": null
-      }
-    ]
+        {
+          "id": "mba-level-2",
+          "label": "Entry Level 2",
+          "requirements": [
+            {
+              "id": "qualification_completed-gradcert-busadmin-digital",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Entry Level 2: Completion of a Monash University Graduate Certificate of Business Administration (Digital) with at least a credit average of 60%.",
+              "weight": "mandatory"
+            },
+            {
+              "id": "academic_threshold-60-level2",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 60,
+                "scale": 100
+              },
+              "sourceText": "Entry Level 2: Completion of a Monash University Graduate Certificate of Business Administration (Digital) with at least a credit average of 60%.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-digital-health": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "wam-65",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 65,
+                "scale": 100
+              },
+              "sourceText": "WAM - Weighted Average Mark (WAM) 65% or above.",
+              "weight": "mandatory"
+            },
+            {
+              "id": "english-completion-in-country",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "completion_in_country",
+                    "countries": [
+                      "AU",
+                      "NZ",
+                      "UK",
+                      "IE",
+                      "US",
+                      "CA",
+                      "ZA"
+                    ]
+                  }
+                ]
+              },
+              "sourceText": "Successful completion of an Australian bachelor degree (or equivalent).",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "uts-online-university-of-technology-sydney-master-of-business-administration-mba": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "alt-group-1",
+          "label": "Entry pathway 1",
+          "requirements": [
+            {
+              "id": "completed-graduate-certificate-or-higher",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "1. Completed Australian graduate certificate or higher qualification, or overseas equivalent, with more than 75% of all subjects completed at pass level.",
+              "weight": "mandatory",
+              "alternativeGroupId": "alt-group-1"
+            },
+            {
+              "id": "qualification-level-graduate-certificate",
+              "kind": "qualification_level",
+              "params": {
+                "level": "masters"
+              },
+              "sourceText": "1. Completed Australian graduate certificate or higher qualification, or overseas equivalent, with more than 75% of all subjects completed at pass level.",
+              "weight": "mandatory",
+              "alternativeGroupId": "alt-group-1"
+            }
+          ]
+        },
+        {
+          "id": "alt-group-2",
+          "label": "Entry pathway 2",
+          "requirements": [
+            {
+              "id": "completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "2. Completed Australian bachelor's degree, or overseas equivalent, with a minimum GPA of 5.25/7 and more than 90% of all subjects completed at pass level.",
+              "weight": "mandatory",
+              "alternativeGroupId": "alt-group-2"
+            },
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "2. Completed Australian bachelor's degree, or overseas equivalent, with a minimum GPA of 5.25/7 and more than 90% of all subjects completed at pass level.",
+              "weight": "mandatory",
+              "alternativeGroupId": "alt-group-2"
+            },
+            {
+              "id": "academic-threshold-gpa-5.25-7",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "gpa",
+                "min": 5.25,
+                "scale": 7
+              },
+              "sourceText": "2. Completed Australian bachelor's degree, or overseas equivalent, with a minimum GPA of 5.25/7 and more than 90% of all subjects completed at pass level.",
+              "weight": "mandatory",
+              "alternativeGroupId": "alt-group-2"
+            }
+          ]
+        },
+        {
+          "id": "alt-group-3",
+          "label": "Entry pathway 3",
+          "requirements": [
+            {
+              "id": "completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "3. Completed Australian bachelor's degree, or overseas equivalent, with more than 75% of all subjects completed at pass level and one of the following: A minimum of 4 years' full-time or equivalent part-time, relevant professional experience OR GMAT overall minimum score of 550.",
+              "weight": "mandatory",
+              "alternativeGroupId": "alt-group-3"
+            },
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "3. Completed Australian bachelor's degree, or overseas equivalent, with more than 75% of all subjects completed at pass level and one of the following: A minimum of 4 years' full-time or equivalent part-time, relevant professional experience OR GMAT overall minimum score of 550.",
+              "weight": "mandatory",
+              "alternativeGroupId": "alt-group-3"
+            },
+            {
+              "id": "work-experience-4-years",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 4,
+                "relevantTo": "professional experience"
+              },
+              "sourceText": "A minimum of 4 years' full-time or equivalent part-time, relevant professional experience",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-3"
+            },
+            {
+              "id": "alternative-gmat-550",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "GMAT overall minimum score of 550",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-3"
+            }
+          ]
+        },
+        {
+          "id": "alt-group-4",
+          "label": "Entry pathway 4",
+          "requirements": [
+            {
+              "id": "english-ielts",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "IELTS",
+                    "minOverall": 6.5,
+                    "minBand": 6
+                  }
+                ]
+              },
+              "sourceText": "English requirements: Academic IELTS 6.5 overall with writing 6.0",
+              "weight": "mandatory",
+              "alternativeGroupId": "alt-group-4"
+            },
+            {
+              "id": "english-toefl",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "TOEFL_iBT",
+                    "minOverall": 79,
+                    "minBand": 21
+                  }
+                ]
+              },
+              "sourceText": "or TOEFL iBT 79-93 with writing 21",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-4"
+            },
+            {
+              "id": "english-pte",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "PTE",
+                    "minOverall": 58,
+                    "minBand": 50
+                  }
+                ]
+              },
+              "sourceText": "or PTE 58-64 with writing 50",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-4"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-business-management-with-discipline-studies-in-public-health": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "field-of-study-business-commerce-management",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "Business",
+                  "Commerce",
+                  "Management"
+                ]
+              },
+              "sourceText": "An Australian bachelor's degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification",
+              "weight": "mandatory"
+            },
+            {
+              "id": "academic-threshold-wam-60",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 60,
+                "scale": 100
+              },
+              "sourceText": "with at least a credit (60%) average or an equivalent Grade Point Average",
+              "weight": "mandatory"
+            },
+            {
+              "id": "work-experience-2-years",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2,
+                "relevantTo": "business management or related"
+              },
+              "sourceText": "An Australian bachelor's degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-1-pathway"
+            },
+            {
+              "id": "english-proficiency",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "completion_in_country",
+                    "countries": [
+                      "AU",
+                      "NZ",
+                      "UK",
+                      "IE",
+                      "US",
+                      "CA",
+                      "ZA"
+                    ]
+                  }
+                ]
+              },
+              "sourceText": "Applicants must also meet the English language requirements.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-health-management": {
+      "version": 2,
+      "global": [
+        {
+          "id": "english-proficiency",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "completion_in_country",
+                "countries": [
+                  "AU",
+                  "NZ",
+                  "UK",
+                  "IE",
+                  "US",
+                  "CA",
+                  "ZA"
+                ]
+              },
+              {
+                "type": "english_test",
+                "test": "IELTS",
+                "minOverall": 6.5,
+                "minBand": 6
+              }
+            ]
+          },
+          "sourceText": "English language proficiency: Bachelor degree from a recognised English-speaking country OR IELTS overall score of 6.5 (with no band score less than 6.0) OR other approved evidence.",
+          "weight": "mandatory"
+        }
+      ],
+      "pathways": [
+        {
+          "id": "pathway-12cp",
+          "label": "1.5 years full-time (12 credit points)",
+          "requirements": [
+            {
+              "id": "completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Completion of a bachelor's degree or equivalent in a related discipline (e.g., Nursing, Allied Health) and at least two years full-time (or part-time equivalent) of relevant work experience (e.g., Health professional, medical administrator).",
+              "weight": "mandatory"
+            },
+            {
+              "id": "field-related-discipline",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "Nursing",
+                  "Allied Health"
+                ]
+              },
+              "sourceText": "Completion of a bachelor's degree or equivalent in a related discipline (e.g., Nursing, Allied Health) and at least two years full-time (or part-time equivalent) of relevant work experience (e.g., Health professional, medical administrator).",
+              "weight": "mandatory"
+            },
+            {
+              "id": "work-experience-2-years",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2,
+                "relevantTo": "Health professional, medical administrator"
+              },
+              "sourceText": "Completion of a bachelor's degree or equivalent in a related discipline (e.g., Nursing, Allied Health) and at least two years full-time (or part-time equivalent) of relevant work experience (e.g., Health professional, medical administrator).",
+              "weight": "mandatory"
+            }
+          ]
+        },
+        {
+          "id": "pathway-16cp",
+          "label": "2 years full-time (16 credit points)",
+          "requirements": [
+            {
+              "id": "completed-bachelor-any-discipline",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "2 years full-time (16 credit points): Completion of a bachelor's degree in any discipline.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "graduate-certificate-in-digital-health-management": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "work-experience-2",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2,
+                "relevantTo": "health or aged care sector"
+              },
+              "sourceText": "must also have no less than two years postgraduate work experience in the health or aged care sector",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "la-trobe-university-master-of-information-technology": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "completed-australian-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "english-completion-in-country",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "completion_in_country",
+                    "countries": [
+                      "AU",
+                      "NZ",
+                      "UK",
+                      "IE",
+                      "US",
+                      "CA",
+                      "ZA"
+                    ]
+                  }
+                ]
+              },
+              "sourceText": "English language proficiency satisfied by completion of a qualification at an institution in Australia or another recognised English-medium country.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-health-management-and-policy-global": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "english-ielts",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "IELTS",
+                    "minOverall": 6.5,
+                    "minBand": 6
+                  }
+                ]
+              },
+              "sourceText": "Applicants must demonstrate that they meet the University of Newcastle's English Language Proficiency requirements. English proficiency requirements: IELTS overall minimum - 6.5; IELTS section minimum - 6.0.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "university-of-southern-queensland-unisq-master-of-information-technology": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "work-experience-5-years",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 5
+              },
+              "sourceText": "or a minimum of 5 years' professional work experience equivalent to a qualification at AQF Level 7 (bachelor)",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-pathway-1"
+            },
+            {
+              "id": "english-ielts",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "IELTS",
+                    "minOverall": 6,
+                    "minBand": 5.5
+                  },
+                  {
+                    "type": "completion_in_country",
+                    "countries": [
+                      "AU",
+                      "NZ",
+                      "UK",
+                      "IE",
+                      "US",
+                      "CA",
+                      "ZA"
+                    ]
+                  }
+                ]
+              },
+              "sourceText": "English language requirements: IELTS (Academic) - Minimum overall score of 6.0 and a minimum score of 5.5 in each of the four components - listening, reading, writing, and speaking.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-information-technology-mit": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "english-ielts",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "IELTS",
+                    "minOverall": 6.5,
+                    "minBand": 6
+                  }
+                ]
+              },
+              "sourceText": "Applicants must demonstrate that they meet the University of Newcastle's English Language Proficiency requirements. For International students: IELTS overall minimum - 6.5, IELTS section minimum - 6.0.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "cquniversity-australia-master-of-information-technology": {
+      "version": 2,
+      "global": [],
+      "pathways": []
+    },
+    "southern-cross-university-master-of-information-technology": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "english-ielts",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "IELTS",
+                    "minOverall": 6.5,
+                    "minBand": 6
+                  }
+                ]
+              },
+              "sourceText": "Language requirements: IELTS Overall Score 6.5 (Listening: minimum 6.0, Speaking: minimum 6.0, Reading: minimum 6.0, Writing: minimum 6.0).",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "unsw-online-university-of-new-south-wales-master-of-data-science": {
+      "version": 2,
+      "global": [
+        {
+          "id": "english-proficiency",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "IELTS",
+                "minOverall": 6.5,
+                "minBand": null
+              },
+              {
+                "type": "completion_in_country",
+                "countries": [
+                  "AU",
+                  "NZ",
+                  "UK",
+                  "IE",
+                  "US",
+                  "CA",
+                  "ZA"
+                ]
+              }
+            ]
+          },
+          "sourceText": "English language: Must provide evidence of English proficiency via tests, university courses, prior study in English, or other qualifications/waivers",
+          "weight": "mandatory"
+        }
+      ],
+      "pathways": [
+        {
+          "id": "pathway-grad-dip",
+          "label": "Graduate Diploma pathway",
+          "requirements": [
+            {
+              "id": "completed-grad-dip-data-science",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Completed the online Graduate Diploma in Data Science (5646) with a weighted average mark (WAM) of 65 or higher",
+              "weight": "alternative",
+              "alternativeGroupId": "grp-1"
+            },
+            {
+              "id": "wam-65-grad-dip-data-science",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 65,
+                "scale": 100
+              },
+              "sourceText": "Completed the online Graduate Diploma in Data Science (5646) with a weighted average mark (WAM) of 65 or higher",
+              "weight": "alternative",
+              "alternativeGroupId": "grp-1"
+            }
+          ]
+        },
+        {
+          "id": "pathway-undergrad",
+          "label": "Undergraduate degree pathway",
+          "requirements": [
+            {
+              "id": "completed-bachelor-data-science-or-cognate",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Completed an undergraduate degree in data science or cognate discipline (e.g., computer science, economics, mathematics, statistics)",
+              "weight": "alternative",
+              "alternativeGroupId": "grp-2"
+            },
+            {
+              "id": "field-of-study-data-science-cognate",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "data science",
+                  "computer science",
+                  "economics",
+                  "mathematics",
+                  "statistics"
+                ]
+              },
+              "sourceText": "Completed an undergraduate degree in data science or cognate discipline (e.g., computer science, economics, mathematics, statistics)",
+              "weight": "alternative",
+              "alternativeGroupId": "grp-2"
+            }
+          ]
+        }
+      ]
+    },
+    "university-of-southern-queensland-unisq-master-of-data-science": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "work-experience-5-years",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 5
+              },
+              "sourceText": "a minimum of 5 years' professional work experience equivalent to an AQF Level 7 qualification (bachelor)",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-pathway-1"
+            },
+            {
+              "id": "english-ielts",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "IELTS",
+                    "minOverall": 6,
+                    "minBand": 5.5
+                  }
+                ]
+              },
+              "sourceText": "English language requirements: IELTS (Academic) - Minimum overall score of 6.0 and a minimum score of 5.5 in each of the four components - listening, reading, writing, and speaking.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-data-analytics-online": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "academic-threshold-wam-65",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 65,
+                "scale": 100
+              },
+              "sourceText": "To be eligible for admission, you are required to have: a three-year Australian bachelor's degree in a cognate discipline with a minimum credit average (65 percent)",
+              "weight": "mandatory"
+            },
+            {
+              "id": "completed-graduate-diploma-data-analytics",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "To be eligible for admission, you are required to have: the University of Sydney Graduate Diploma in Data Analytics with a minimum credit average (65 percent)",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-1"
+            },
+            {
+              "id": "academic-threshold-graddip-wam-65",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 65,
+                "scale": 100
+              },
+              "sourceText": "To be eligible for admission, you are required to have: the University of Sydney Graduate Diploma in Data Analytics with a minimum credit average (65 percent)",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-1"
+            },
+            {
+              "id": "completed-24-credit-points-grad-dip-or-cert-data-analytics",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "completed 24 credit points of the University of Sydney Graduate Diploma in Data Analytics or Graduate Certificate in Data Analytics with a minimum credit average (65 percent)",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-1"
+            },
+            {
+              "id": "academic-threshold-24-credit-points-wam-65",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 65,
+                "scale": 100
+              },
+              "sourceText": "completed 24 credit points of the University of Sydney Graduate Diploma in Data Analytics or Graduate Certificate in Data Analytics with a minimum credit average (65 percent)",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-1"
+            },
+            {
+              "id": "field-of-study-cognate-discipline",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "Science",
+                  "Engineering",
+                  "Commerce",
+                  "Economics"
+                ]
+              },
+              "sourceText": "Cognate disciplines include any major from a Science, Engineering, Commerce, or Economics degree, or other disciplines that are deemed cognate by the program directors",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "deakin-university-master-of-data-science": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "entry-16cp",
+          "label": "16-credit point entry",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            }
+          ]
+        },
+        {
+          "id": "entry-12cp",
+          "label": "12-credit point entry",
+          "requirements": [
+            {
+              "id": "completed-bachelor-related",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "12-credit point entry: completion of a bachelor degree or higher in a related discipline",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-12-credit"
+            },
+            {
+              "id": "qualification-level-bachelor-related",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "12-credit point entry: completion of a bachelor degree or higher in a related discipline",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-12-credit"
+            },
+            {
+              "id": "completed-bachelor-any",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "12-credit point entry: completion of a bachelor degree or higher in any discipline",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-12-credit"
+            },
+            {
+              "id": "qualification-level-bachelor-any",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "12-credit point entry: completion of a bachelor degree or higher in any discipline",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-12-credit"
+            },
+            {
+              "id": "work-experience-2-years-12-credit",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2
+              },
+              "sourceText": "12-credit point entry: completion of a bachelor degree or higher in any discipline and at least two years relevant work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-12-credit"
+            }
+          ]
+        },
+        {
+          "id": "entry-8cp",
+          "label": "8-credit point entry",
+          "requirements": [
+            {
+              "id": "completed-grad-cert-dip-related",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "8-credit point entry: completion of a graduate certificate or graduate diploma in a related discipline",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-8-credit"
+            },
+            {
+              "id": "completed-bachelor-honours-related",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "8-credit point entry: completion of a bachelor honours degree in a related discipline",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-8-credit"
+            },
+            {
+              "id": "completed-bachelor-related-8-credit",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "8-credit point entry: completion of a bachelor degree in a related discipline and at least two years of relevant work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-8-credit"
+            },
+            {
+              "id": "work-experience-2-years-8-credit",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2
+              },
+              "sourceText": "8-credit point entry: completion of a bachelor degree in a related discipline and at least two years of relevant work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-8-credit"
+            }
+          ]
+        }
+      ]
+    },
+    "la-trobe-university-master-of-data-science": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Completion of an Australian bachelor degree or equivalent in any discipline; OR completion of the Postgraduate Qualifying Program (PPN001).",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-pathway-1"
+            },
+            {
+              "id": "completed-postgraduate-qualifying-program",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Completion of an Australian bachelor degree or equivalent in any discipline; OR completion of the Postgraduate Qualifying Program (PPN001).",
+              "weight": "alternative",
+              "alternativeGroupId": "entry-pathway-1"
+            }
+          ]
+        }
+      ]
+    },
+    "graduate-certificate-in-digital-health": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "completed-bachelor-of-nursing",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "hold a Bachelor of Nursing or registered nurse equivalent qualification",
+              "weight": "mandatory"
+            },
+            {
+              "id": "english-nursing-midwifery-board-standard",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "completion_in_country",
+                    "countries": [
+                      "AU",
+                      "NZ",
+                      "UK",
+                      "IE",
+                      "US",
+                      "CA",
+                      "ZA"
+                    ]
+                  }
+                ]
+              },
+              "sourceText": "meet the Nursing and Midwifery Board of Australia English language skills registration standard (nursing and midwifery)",
+              "weight": "mandatory"
+            },
+            {
+              "id": "work-experience-1-year-postgraduate",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 1,
+                "relevantTo": "postgraduate"
+              },
+              "sourceText": "have a minimum of one year of postgraduate experience",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-clinical-nursing-acu-online": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "university-of-melbourne-master-of-public-health": {
+      "version": 2,
+      "global": [
+        {
+          "id": "wam-65",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 65,
+            "scale": 100
+          },
+          "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.) OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health) OR A masters degree (by research or coursework) or PhD in health or public health.",
+          "weight": "mandatory"
+        },
+        {
+          "id": "english-ielts",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "IELTS",
+                "minOverall": 6.5,
+                "minBand": 6
+              }
+            ]
+          },
+          "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
+          "weight": "mandatory"
+        },
+        {
+          "id": "english-toefl-ibt",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "TOEFL_iBT",
+                "minOverall": 81,
+                "minBand": 16
+              }
+            ]
+          },
+          "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
+          "weight": "mandatory"
+        },
+        {
+          "id": "english-pte",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "PTE",
+                "minOverall": 64,
+                "minBand": 60
+              }
+            ]
+          },
+          "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
+          "weight": "mandatory"
+        },
+        {
+          "id": "english-cae",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "CAE",
+                "minOverall": 169,
+                "minBand": null
+              }
+            ]
+          },
+          "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
+          "weight": "mandatory"
+        }
+      ],
+      "pathways": [
+        {
+          "id": "undergrad-public-health",
+          "label": "Undergraduate public health or equivalent",
+          "requirements": [
+            {
+              "id": "completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.) OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health) OR A masters degree (by research or coursework) or PhD in health or public health.",
+              "weight": "mandatory"
+            },
+            {
+              "id": "wam-65",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 65,
+                "scale": 100
+              },
+              "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.) OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health) OR A masters degree (by research or coursework) or PhD in health or public health.",
+              "weight": "mandatory"
+            }
+          ]
+        },
+        {
+          "id": "work-or-healthcare",
+          "label": "Degree plus work experience or healthcare qualification",
+          "requirements": [
+            {
+              "id": "work-experience-2-public-health",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2,
+                "relevantTo": "public health setting"
+              },
+              "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.)",
+              "weight": "alternative",
+              "alternativeGroupId": "work-experience-or-healthcare"
+            },
+            {
+              "id": "work-experience-2-healthcare",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2,
+                "relevantTo": "professional healthcare setting"
+              },
+              "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health)",
+              "weight": "alternative",
+              "alternativeGroupId": "work-experience-or-healthcare"
+            }
+          ]
+        },
+        {
+          "id": "masters-or-phd",
+          "label": "Masters or PhD in health",
+          "requirements": [
+            {
+              "id": "completed-masters-or-phd-health",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: A masters degree (by research or coursework) or PhD in health or public health.",
+              "weight": "alternative",
+              "alternativeGroupId": "masters-or-phd-health"
+            },
+            {
+              "id": "qualification-level-master",
+              "kind": "qualification_level",
+              "params": {
+                "level": "masters"
+              },
+              "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: A masters degree (by research or coursework) or PhD in health or public health.",
+              "weight": "alternative",
+              "alternativeGroupId": "masters-or-phd-health"
+            },
+            {
+              "id": "qualification-level-phd",
+              "kind": "qualification_level",
+              "params": {
+                "level": "doctorate"
+              },
+              "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: A masters degree (by research or coursework) or PhD in health or public health.",
+              "weight": "alternative",
+              "alternativeGroupId": "masters-or-phd-health"
+            }
+          ]
+        }
+      ]
+    },
+    "monash-university-monash-online-master-of-public-health": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "academic-threshold-wam-60",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 60,
+                "scale": 100
+              },
+              "sourceText": "An Australian bachelor degree (or equivalent) in a relevant discipline with at least a Weighted Average Mark (WAM) of 60% and a minimum of two years of relevant work experience.",
+              "weight": "mandatory"
+            },
+            {
+              "id": "work-experience-2-years-health",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2,
+                "relevantTo": "health industry (eg. Government, policy, provider eg. hospital, clinic), non government organisation (NGO), academic or research institution, consulting, pharmaceutical company etc."
+              },
+              "sourceText": "An Australian bachelor degree (or equivalent) in a relevant discipline with at least a Weighted Average Mark (WAM) of 60% and a minimum of two years of relevant work experience.",
+              "weight": "mandatory"
+            },
+            {
+              "id": "field-of-study-health-related",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "relevant discipline"
+                ]
+              },
+              "sourceText": "An Australian bachelor degree (or equivalent) in a relevant discipline with at least a Weighted Average Mark (WAM) of 60% and a minimum of two years of relevant work experience.",
+              "weight": "mandatory"
+            },
+            {
+              "id": "english-proficiency",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "completion_in_country",
+                    "countries": [
+                      "AU",
+                      "NZ",
+                      "UK",
+                      "IE",
+                      "US",
+                      "CA",
+                      "ZA"
+                    ]
+                  }
+                ]
+              },
+              "sourceText": "Applicants must also meet English language requirements.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-business-management-with-discipline-studies-in-project-management": {
+      "version": 2,
+      "global": [
+        {
+          "id": "english-proficiency-monash-req",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "completion_in_country",
+                "countries": [
+                  "AU",
+                  "NZ",
+                  "UK",
+                  "IE",
+                  "US",
+                  "CA",
+                  "ZA"
+                ]
+              }
+            ]
+          },
+          "sourceText": "Applicants must also meet the English language requirements.",
+          "weight": "mandatory"
+        }
+      ],
+      "pathways": [
+        {
+          "id": "entry-level-1",
+          "label": "Entry level 1 (72 points)",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "field-of-study-business-commerce-management",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "Business",
+                  "Commerce",
+                  "Management"
+                ]
+              },
+              "sourceText": "An Australian bachelor degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average;",
+              "weight": "mandatory"
+            },
+            {
+              "id": "academic-threshold-credit-60",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 60,
+                "scale": 100
+              },
+              "sourceText": "An Australian bachelor degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average;",
+              "weight": "mandatory"
+            }
+          ]
+        },
+        {
+          "id": "alt-group-1",
+          "label": "Alternative entry pathway 1",
+          "requirements": [
+            {
+              "id": "completed-bachelor-plus-work-exp",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "An Australian bachelor degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-1"
+            },
+            {
+              "id": "academic-threshold-credit-60-alt",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 60,
+                "scale": 100
+              },
+              "sourceText": "An Australian bachelor degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-1"
+            },
+            {
+              "id": "work-experience-2-years-relevant",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2
+              },
+              "sourceText": "An Australian bachelor degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-1"
+            }
+          ]
+        },
+        {
+          "id": "alt-group-2",
+          "label": "Alternative entry pathway 2",
+          "requirements": [
+            {
+              "id": "completed-graduate-certificate-business-management",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "A Monash University Graduate Certificate of Business Management with at least a credit (60%) average",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-2"
+            },
+            {
+              "id": "academic-threshold-credit-60-gcbm",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 60,
+                "scale": 100
+              },
+              "sourceText": "A Monash University Graduate Certificate of Business Management with at least a credit (60%) average",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-2"
+            }
+          ]
+        },
+        {
+          "id": "alt-group-3",
+          "label": "Alternative entry pathway 3",
+          "requirements": [
+            {
+              "id": "completed-graduate-certificate-hr-management",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-3"
+            },
+            {
+              "id": "academic-threshold-credit-60-gchr",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 60,
+                "scale": 100
+              },
+              "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-3"
+            }
+          ]
+        }
+      ]
+    },
+    "uts-online-university-of-technology-sydney-master-of-public-health": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "english-academic-ielts",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "IELTS",
+                    "minOverall": 6.5,
+                    "minBand": 6
+                  }
+                ]
+              },
+              "sourceText": "English proficiency requirement for local applicants with international qualifications: Academic IELTS: 6.5 overall with a writing score of 6.0;",
+              "weight": "mandatory",
+              "alternativeGroupId": "eng-proficiency-1"
+            },
+            {
+              "id": "english-toefl-paper",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "TOEFL_iBT",
+                    "minOverall": 79,
+                    "minBand": 21
+                  }
+                ]
+              },
+              "sourceText": "English proficiency requirement for local applicants with international qualifications: Academic IELTS: 6.5 overall with a writing score of 6.0; or TOEFL: paper-based: 550-583 overall with TWE of 4.5, internet-based: 79-93 overall with a writing score of 21;",
+              "weight": "mandatory",
+              "alternativeGroupId": "eng-proficiency-1"
+            },
+            {
+              "id": "english-toefl-paper-based",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "TOEFL_iBT",
+                    "minOverall": 550,
+                    "minBand": 4.5
+                  }
+                ]
+              },
+              "sourceText": "English proficiency requirement for local applicants with international qualifications: Academic IELTS: 6.5 overall with a writing score of 6.0; or TOEFL: paper-based: 550-583 overall with TWE of 4.5, internet-based: 79-93 overall with a writing score of 21;",
+              "weight": "mandatory",
+              "alternativeGroupId": "eng-proficiency-1"
+            },
+            {
+              "id": "english-pte",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "PTE",
+                    "minOverall": 58,
+                    "minBand": 50
+                  }
+                ]
+              },
+              "sourceText": "or PTE: 58-64 with a writing score of 50;",
+              "weight": "mandatory",
+              "alternativeGroupId": "eng-proficiency-1"
+            },
+            {
+              "id": "english-c1a-c2p",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "CAE",
+                    "minOverall": 176,
+                    "minBand": 169
+                  }
+                ]
+              },
+              "sourceText": "or C1A/C2P: 176-184 with a writing score of 169.",
+              "weight": "mandatory",
+              "alternativeGroupId": "eng-proficiency-1"
+            }
+          ]
+        }
+      ]
+    },
+    "graduate-certificate-in-public-health": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Applicants must normally hold a degree or equivalent qualification from an approved tertiary institution and have their candidature approved by the Dean (Education).",
+              "weight": "mandatory"
+            },
+            {
+              "id": "work-experience-2-years",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2,
+                "relevantTo": "public health sector"
+              },
+              "sourceText": "Applicants who do not hold a bachelor's degree but have relevant professional experience in the sector should provide employment experience information in their application. Also summarized as: Bachelor's degree or equivalent or 2+ years professional work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-1"
+            },
+            {
+              "id": "completed-bachelor-alt",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Also summarized as: Bachelor's degree or equivalent or 2+ years professional work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-group-1"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-cybersecurity": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Successful completion of an Australian bachelor degree (or equivalent)",
+              "weight": "alternative",
+              "alternativeGroupId": "pathway-1"
+            },
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Successful completion of an Australian bachelor degree (or equivalent)",
+              "weight": "alternative",
+              "alternativeGroupId": "pathway-1"
+            },
+            {
+              "id": "completed-postgraduate-qualifying-program",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Completion of the Postgraduate Qualifying Program",
+              "weight": "alternative",
+              "alternativeGroupId": "pathway-1"
+            },
+            {
+              "id": "qualification-level-bachelor-cognate",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "field-of-study-cognate",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "computer science",
+                  "information technology",
+                  "information systems"
+                ]
+              },
+              "sourceText": "Successful completion of an Australian bachelor degree (or equivalent) in computer science, information technology, or information systems",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "deakin-university-master-of-cyber-security": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "entry-16cp",
+          "label": "16-credit point entry",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            }
+          ]
+        },
+        {
+          "id": "entry-12cp",
+          "label": "12-credit point entry",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "12-credit point entry: Completion of a bachelor degree or higher in a related discipline (e.g., IT);",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-12-credit-requirement"
+            },
+            {
+              "id": "field-of-study-related-discipline",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "related discipline",
+                  "IT"
+                ]
+              },
+              "sourceText": "12-credit point entry: Completion of a bachelor degree or higher in a related discipline (e.g., IT);",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-12-credit-requirement"
+            },
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "12-credit point entry: or a bachelor degree in any discipline plus at least two years' relevant work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-12-credit-requirement"
+            },
+            {
+              "id": "work-experience-2-years",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2
+              },
+              "sourceText": "12-credit point entry: or a bachelor degree in any discipline plus at least two years' relevant work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-12-credit-requirement"
+            }
+          ]
+        },
+        {
+          "id": "entry-8cp-a",
+          "label": "8-credit point entry (graduate qualification)",
+          "requirements": [
+            {
+              "id": "qualification_completed-graduate-certificate-diploma",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "8-credit point entry: Completion of a graduate certificate/diploma or bachelor honours degree in a related discipline;",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-8-credit-entry-1"
+            },
+            {
+              "id": "field-of-study-related-discipline",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "related discipline"
+                ]
+              },
+              "sourceText": "8-credit point entry: Completion of a graduate certificate/diploma or bachelor honours degree in a related discipline;",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-8-credit-entry-1"
+            },
+            {
+              "id": "qualification_completed-bachelor-honours",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "8-credit point entry: Completion of a graduate certificate/diploma or bachelor honours degree in a related discipline;",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-8-credit-entry-1"
+            }
+          ]
+        },
+        {
+          "id": "entry-8cp-b",
+          "label": "8-credit point entry (honours)",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "8-credit point entry: or a bachelor degree in a related discipline plus at least two years' relevant work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-8-credit-entry-2"
+            },
+            {
+              "id": "field-of-study-related-discipline",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "related discipline"
+                ]
+              },
+              "sourceText": "8-credit point entry: or a bachelor degree in a related discipline plus at least two years' relevant work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-8-credit-entry-2"
+            },
+            {
+              "id": "work-experience-2-years",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2
+              },
+              "sourceText": "8-credit point entry: or a bachelor degree in a related discipline plus at least two years' relevant work experience.",
+              "weight": "alternative",
+              "alternativeGroupId": "alt-8-credit-entry-2"
+            }
+          ]
+        }
+      ]
+    },
+    "charles-sturt-university-in-partnership-with-it-masters-master-of-cyber-security": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Bachelor degree in a related area from a recognised tertiary institution OR Graduate Certificate in a related area.",
+              "weight": "alternative",
+              "alternativeGroupId": "degree-or-grad-cert"
+            },
+            {
+              "id": "field-of-study-related",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "related area"
+                ]
+              },
+              "sourceText": "Bachelor degree in a related area from a recognised tertiary institution OR Graduate Certificate in a related area.",
+              "weight": "alternative",
+              "alternativeGroupId": "degree-or-grad-cert"
+            },
+            {
+              "id": "completed-graduate-certificate",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Bachelor degree in a related area from a recognised tertiary institution OR Graduate Certificate in a related area.",
+              "weight": "alternative",
+              "alternativeGroupId": "degree-or-grad-cert"
+            },
+            {
+              "id": "field-of-study-related-2",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "related area"
+                ]
+              },
+              "sourceText": "Bachelor degree in a related area from a recognised tertiary institution OR Graduate Certificate in a related area.",
+              "weight": "alternative",
+              "alternativeGroupId": "degree-or-grad-cert"
+            },
+            {
+              "id": "english-standard-elp",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "completion_in_country",
+                    "countries": [
+                      "AU",
+                      "NZ",
+                      "UK",
+                      "IE",
+                      "US",
+                      "CA",
+                      "ZA"
+                    ]
+                  }
+                ]
+              },
+              "sourceText": "Standard English Language Proficiency (ELP) requirements apply.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "monash-online-monash-university-master-of-human-resource-management": {
+      "version": 2,
+      "global": [
+        {
+          "id": "english-proficiency",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "completion_in_country",
+                "countries": [
+                  "AU",
+                  "NZ",
+                  "UK",
+                  "IE",
+                  "US",
+                  "CA",
+                  "ZA"
+                ]
+              }
+            ]
+          },
+          "sourceText": "Applicants must meet the English language requirements.",
+          "weight": "mandatory"
+        }
+      ],
+      "pathways": [
+        {
+          "id": "entry-level-1",
+          "label": "Entry level 1 (72 points)",
+          "requirements": [
+            {
+              "id": "qualification_level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+              "weight": "mandatory"
+            },
+            {
+              "id": "academic_threshold-wam-60",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 60,
+                "scale": 100
+              },
+              "sourceText": "An Australian bachelors degree, or an equivalent qualification, with at least a credit (60%) average, or an equivalent Grade Point Average, plus two years relevant work experience.",
+              "weight": "mandatory"
+            },
+            {
+              "id": "work_experience-2",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2,
+                "relevantTo": "human resource management"
+              },
+              "sourceText": "An Australian bachelors degree, or an equivalent qualification, with at least a credit (60%) average, or an equivalent Grade Point Average, plus two years relevant work experience.",
+              "weight": "mandatory"
+            }
+          ]
+        },
+        {
+          "id": "entry-level-2",
+          "label": "Entry level 2",
+          "requirements": [
+            {
+              "id": "qualification_completed-graduate-certificate-hrm",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average.",
+              "weight": "mandatory"
+            },
+            {
+              "id": "academic_threshold-wam-60-graduate-certificate",
+              "kind": "academic_threshold",
+              "params": {
+                "metric": "wam",
+                "min": 60,
+                "scale": 100
+              },
+              "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-human-resource-management-with-specialisations": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "qualification-level-bachelor",
+              "kind": "qualification_level",
+              "params": {
+                "level": "bachelor"
+              },
+              "sourceText": "An undergraduate degree from a recognised Australian tertiary institution (or equivalent).",
+              "weight": "mandatory"
+            },
+            {
+              "id": "english-proficiency-standard",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "completion_in_country",
+                    "countries": [
+                      "AU",
+                      "NZ",
+                      "UK",
+                      "IE",
+                      "US",
+                      "CA",
+                      "ZA"
+                    ]
+                  }
+                ]
+              },
+              "sourceText": "Standard English Language Proficiency (ELP) requirements apply.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "deakin-university-master-of-human-resource-management": {
+      "version": 2,
+      "global": [],
+      "pathways": [
+        {
+          "id": "default",
+          "requirements": [
+            {
+              "id": "completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Completion of a bachelor degree or higher in any discipline and at least two years' relevant work experience (or part-time equivalent); OR completion of a graduate certificate or higher in a related discipline and at least two years' relevant work experience (or part-time equivalent).",
+              "weight": "alternative",
+              "alternativeGroupId": "admission-pathway-1"
+            },
+            {
+              "id": "completed-graduate-certificate",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Completion of a bachelor degree or higher in any discipline and at least two years' relevant work experience (or part-time equivalent); OR completion of a graduate certificate or higher in a related discipline and at least two years' relevant work experience (or part-time equivalent).",
+              "weight": "alternative",
+              "alternativeGroupId": "admission-pathway-1"
+            },
+            {
+              "id": "work-experience-2-years-hrm",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2,
+                "relevantTo": "managerial role with people management responsibilities or in a human resource professional role"
+              },
+              "sourceText": "Completion of a bachelor degree or higher in any discipline and at least two years' relevant work experience (or part-time equivalent); OR completion of a graduate certificate or higher in a related discipline and at least two years' relevant work experience (or part-time equivalent). Relevant work experience includes at least two years in a managerial role with people management responsibilities or in a human resource professional role.",
+              "weight": "mandatory"
+            },
+            {
+              "id": "english-ielts-6.5",
+              "kind": "english_proficiency",
+              "params": {
+                "acceptedPathways": [
+                  {
+                    "type": "english_test",
+                    "test": "IELTS",
+                    "minOverall": 6.5,
+                    "minBand": 6
+                  }
+                ]
+              },
+              "sourceText": "English language proficiency: IELTS overall score of 6.5 (no band score less than 6.0) or equivalent.",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    },
+    "master-of-business-marketing": {
+      "version": 2,
+      "global": [
+        {
+          "id": "english_proficiency",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "IELTS",
+                "minOverall": 6.5,
+                "minBand": 6
+              },
+              {
+                "type": "completion_in_country",
+                "countries": [
+                  "AU",
+                  "NZ",
+                  "UK",
+                  "IE",
+                  "US",
+                  "CA",
+                  "ZA"
+                ]
+              }
+            ]
+          },
+          "sourceText": "IELTS overall score of 6.5 (with no band score less than 6.0) or equivalent; or a bachelor degree from a recognised English-speaking country.",
+          "weight": "mandatory"
+        }
+      ],
+      "pathways": [
+        {
+          "id": "pathway-1",
+          "label": "Bachelor honours (AQF8) degree in a related discipline",
+          "requirements": [
+            {
+              "id": "qualification_completed-bachelor-honours",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Bachelor honours (AQF8) degree in a related discipline",
+              "weight": "mandatory"
+            },
+            {
+              "id": "field-of-study-related-discipline-1",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "related discipline"
+                ]
+              },
+              "sourceText": "Bachelor honours (AQF8) degree in a related discipline",
+              "weight": "mandatory"
+            }
+          ]
+        },
+        {
+          "id": "pathway-2",
+          "label": "bachelor degree in a related discipline, plus two years relevant work experience",
+          "requirements": [
+            {
+              "id": "qualification_completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "bachelor degree in a related discipline, plus two years relevant work experience",
+              "weight": "mandatory"
+            },
+            {
+              "id": "field-of-study-related-discipline-2",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "related discipline"
+                ]
+              },
+              "sourceText": "bachelor degree in a related discipline, plus two years relevant work experience",
+              "weight": "mandatory"
+            },
+            {
+              "id": "work_experience-2-years-related",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2,
+                "relevantTo": "related discipline"
+              },
+              "sourceText": "bachelor degree in a related discipline, plus two years relevant work experience",
+              "weight": "mandatory"
+            }
+          ]
+        },
+        {
+          "id": "pathway-3",
+          "label": "graduate certificate or graduate diploma in a related discipline",
+          "requirements": [
+            {
+              "id": "qualification_completed-graduate-certificate",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "graduate certificate or graduate diploma in a related discipline",
+              "weight": "alternative",
+              "alternativeGroupId": "grad-qual-or"
+            },
+            {
+              "id": "qualification_completed-graduate-diploma",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "graduate certificate or graduate diploma in a related discipline",
+              "weight": "alternative",
+              "alternativeGroupId": "grad-qual-or"
+            },
+            {
+              "id": "field-of-study-related-discipline-3",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "related discipline"
+                ]
+              },
+              "sourceText": "graduate certificate or graduate diploma in a related discipline",
+              "weight": "mandatory"
+            }
+          ]
+        },
+        {
+          "id": "pathway-4",
+          "label": "Bachelor degree or higher in a related discipline",
+          "requirements": [
+            {
+              "id": "qualification_completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Bachelor degree or higher in a related discipline",
+              "weight": "mandatory"
+            },
+            {
+              "id": "field-of-study-related-discipline-4",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "related discipline"
+                ]
+              },
+              "sourceText": "Bachelor degree or higher in a related discipline",
+              "weight": "mandatory"
+            }
+          ]
+        },
+        {
+          "id": "pathway-5",
+          "label": "bachelor degree in any discipline, plus two years relevant work experience",
+          "requirements": [
+            {
+              "id": "qualification_completed-bachelor",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "bachelor degree in any discipline, plus two years relevant work experience",
+              "weight": "mandatory"
+            },
+            {
+              "id": "work_experience-2-years",
+              "kind": "work_experience",
+              "params": {
+                "minYears": 2
+              },
+              "sourceText": "bachelor degree in any discipline, plus two years relevant work experience",
+              "weight": "mandatory"
+            }
+          ]
+        },
+        {
+          "id": "pathway-6",
+          "label": "Bachelor degree or other qualification at a higher AQF level in any discipline",
+          "requirements": [
+            {
+              "id": "qualification_completed-bachelor-higher",
+              "kind": "qualification_completed",
+              "params": {},
+              "sourceText": "Bachelor degree or other qualification at a higher AQF level in any discipline",
+              "weight": "mandatory"
+            },
+            {
+              "id": "field-of-study-any",
+              "kind": "field_of_study",
+              "params": {
+                "acceptedAreas": [
+                  "any discipline"
+                ]
+              },
+              "sourceText": "Bachelor degree or other qualification at a higher AQF level in any discipline",
+              "weight": "mandatory"
+            }
+          ]
+        }
+      ]
+    }
   }
 }

@@ -1,0 +1,57 @@
+{
+  "version": 2,
+  "global": [],
+  "pathways": [
+    {
+      "id": "default",
+      "requirements": [
+        {
+          "id": "level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+          "weight": "mandatory"
+        },
+        {
+          "id": "gpa-4-out-of-7",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "gpa",
+            "min": 4,
+            "scale": 7
+          },
+          "sourceText": "Completion of an Australian university 3-year bachelor degree (AQF Level 7 or recognised equivalent) with a GPA of at least 4.0 out of 7.0",
+          "weight": "mandatory"
+        },
+        {
+          "id": "work-experience-3-years-management",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 3,
+            "relevantTo": "management or supervisory level"
+          },
+          "sourceText": "a minimum of 3 years' full-time relevant professional work experience, post degree, at a management or supervisory level",
+          "weight": "mandatory"
+        },
+        {
+          "id": "english-ielts",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "IELTS",
+                "minOverall": 6.5,
+                "minBand": 6
+              }
+            ]
+          },
+          "sourceText": "IELTS (Academic) - Minimum overall score of 6.5 and a minimum score of 6.0 in each of the four components (listening, reading, writing, and speaking)",
+          "weight": "mandatory"
+        }
+      ]
+    }
+  ]
+}

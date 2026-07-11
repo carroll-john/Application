@@ -1,0 +1,48 @@
+{
+  "version": 2,
+  "global": [],
+  "pathways": [
+    {
+      "id": "default",
+      "requirements": [
+        {
+          "id": "qualification-level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+          "weight": "mandatory"
+        },
+        {
+          "id": "english-ielts",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "IELTS",
+                "minOverall": 6.5,
+                "minBand": null
+              },
+              {
+                "type": "completion_in_country",
+                "countries": [
+                  "AU",
+                  "NZ",
+                  "UK",
+                  "IE",
+                  "US",
+                  "CA",
+                  "ZA"
+                ]
+              }
+            ]
+          },
+          "sourceText": "Language requirements: IELTS Overall Score 6.5.",
+          "weight": "mandatory"
+        }
+      ]
+    }
+  ]
+}

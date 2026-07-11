@@ -100,6 +100,29 @@ server `submit_application` RPC enforces the same conditions (see Submission).
 - Implementation lives in `src/lib/courseCatalog/`: `buildCatalog.ts` (catalog assembly), `normalize.ts` (orchestrator mapping a raw entry to a `CourseCatalogEntry`), and focused parsers — `fees.ts`, `duration.ts`, `intake.ts`, `inference.ts`, `entryRequirements.ts`, `text.ts`. Behavior is locked by `normalize.test.ts`.
 - Preserve raw academic fields; normalize display labels per `project-memory.md`.
 
+### Course eligibility requirements (offline parser)
+
+- **Source text:** `entry_requirements` in `courses.raw.json`.
+- **Structured IR:** `CourseRequirementsV2` (`global` + `pathways[]`) in
+  `src/lib/eligibility/courseRequirementsV2.ts`; flattened to `RequirementInstance[]`
+  with `pathwayBundleId` at runtime via `requirementsLoader.ts`.
+- **Generated artifact:** `src/lib/courseCatalog/requirements.generated.json` (committed,
+  PR-reviewed). v2 pathway IR replaces the old flat list for multi-pathway courses.
+- **Parser pipeline:** `scripts/courseRequirementsParser/pipeline.ts`
+  (segment → classify → structure → validate → repair). Entry point:
+  `npm run eligibility:parse-requirements`.
+- **Golden eval corpus:** `tests/fixtures/course-requirements/` + manifest.
+  CI gate: `npm run eligibility:parse-eval` (structure + safety; leaf recall ≥ 0.8).
+- **Human review pack:** `npm run eligibility:review:open` writes
+  `reports/course-requirements-review/index.html` — side-by-side “website text” vs
+  “how we interpreted it”, with per-course correction notes (saved in browser localStorage).
+- **Kind registry:** `src/lib/eligibility/requirementKindRegistry.ts` — single place
+  for parser prompt fragments, evidence source, and evaluator dispatch.
+- **Override improvement loop:** `npm run eligibility:dump-overrides` → review
+  PostHog `eligibility_check_override` events → promote disagreements to golden
+  fixtures (`npm run eligibility:build-golden`) → tune parser prompt/registry →
+  re-run `eligibility:parse-eval` before merging requirement changes.
+
 ## Key Files
 
 | File | Role |

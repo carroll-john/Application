@@ -1,8 +1,5 @@
 import type { RequirementInstance } from "./requirements.js";
-import {
-  evaluateOne,
-  type EvaluationContext,
-} from "./requirementEvaluators.js";
+import { evaluateRegisteredRequirement } from "./requirementKindRegistry.js";
 import type {
   EligibilityRequirementCheck,
   TranscriptEligibilityRequestContext,
@@ -181,7 +178,7 @@ export function evaluateRequirements(
   const standalone: Array<{ instance: RequirementInstance; check: EligibilityRequirementCheck }> = [];
 
   for (const instance of instances) {
-    const check = evaluateOne(instance, evalCtx);
+    const check = evaluateRegisteredRequirement(instance, evalCtx);
     // Only fold OR-groups. A mandatory requirement that happens to carry an alternativeGroupId is
     // treated as standalone — sharing an ID is necessary but not sufficient for fold behaviour.
     if (instance.alternativeGroupId && instance.weight === "alternative") {

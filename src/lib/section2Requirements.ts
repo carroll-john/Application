@@ -11,6 +11,7 @@ import {
   hasCourseExperienceAlternative,
   type CourseEducationLevel,
 } from "./courseEligibility";
+import type { QualificationLevel, RequirementInstance } from "./eligibility/requirements";
 
 const LEGACY_FIELDS = [
   "CV upload or a tertiary qualification",
@@ -120,6 +121,78 @@ function hasQualifyingTertiaryQualification(
   );
 }
 
+function mapQualificationLevelToCourseEducation(
+  level: QualificationLevel,
+): CourseEducationLevel {
+  switch (level) {
+    case "high_school":
+      return "High school";
+    case "diploma":
+      return "Diploma";
+    case "bachelor":
+    case "honours":
+      return "Bachelor degree";
+    case "masters":
+      return "Masters degree";
+    case "doctorate":
+      return "Doctorate";
+    default: {
+      const neverLevel: never = level;
+      return neverLevel;
+    }
+  }
+}
+
+function getMinimumEducationFromRequirements(
+  requirements: readonly RequirementInstance[],
+): CourseEducationLevel | null {
+  const levelRequirement = requirements.find(
+    (requirement): requirement is Extract<RequirementInstance, { kind: "qualification_level" }> =>
+      requirement.kind === "qualification_level",
+  );
+  if (levelRequirement) {
+    return mapQualificationLevelToCourseEducation(levelRequirement.params.level);
+  }
+
+  if (
+    requirements.some(
+      (requirement) =>
+        requirement.kind === "qualification_completed" ||
+        requirement.kind === "qualification_level",
+    )
+  ) {
+    return "Bachelor degree";
+  }
+
+  return null;
+}
+
+function supportsExperienceFromRequirements(
+  requirements: readonly RequirementInstance[],
+): boolean {
+  return requirements.some((requirement) => requirement.kind === "work_experience");
+}
+
+function resolveSection2ProfileFromCourse(
+  selectedCourse: CourseCatalogEntry,
+): Section2RequirementProfile {
+  const requirements = selectedCourse.requirements ?? [];
+  const minimumEducationFromRequirements = getMinimumEducationFromRequirements(requirements);
+  const minimumEducation =
+    minimumEducationFromRequirements ?? getCourseMinimumEducation(selectedCourse.eligibility);
+  const supportsExperienceAlternative =
+    requirements.length > 0
+      ? supportsExperienceFromRequirements(requirements)
+      : hasCourseExperienceAlternative(selectedCourse.eligibility);
+
+  return {
+    educationEvidenceLabel: getEducationEvidenceLabel(minimumEducation),
+    minimumEducation,
+    supportsExperienceAlternative,
+    supportsSecondaryQualification: minimumEducation === "High school",
+  };
+}
+
 export function getSection2RequirementProfile(
   selectedCourse: CourseCatalogEntry | null,
 ): Section2RequirementProfile | null {
@@ -127,16 +200,7 @@ export function getSection2RequirementProfile(
     return null;
   }
 
-  const minimumEducation = getCourseMinimumEducation(selectedCourse.eligibility);
-
-  return {
-    educationEvidenceLabel: getEducationEvidenceLabel(minimumEducation),
-    minimumEducation,
-    supportsExperienceAlternative: hasCourseExperienceAlternative(
-      selectedCourse.eligibility,
-    ),
-    supportsSecondaryQualification: minimumEducation === "High school",
-  };
+  return resolveSection2ProfileFromCourse(selectedCourse);
 }
 
 export function buildSection2SubmissionPolicy(

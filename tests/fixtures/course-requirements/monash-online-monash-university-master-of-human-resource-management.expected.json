@@ -1,0 +1,89 @@
+{
+  "version": 2,
+  "global": [
+    {
+      "id": "english-proficiency",
+      "kind": "english_proficiency",
+      "params": {
+        "acceptedPathways": [
+          {
+            "type": "completion_in_country",
+            "countries": [
+              "AU",
+              "NZ",
+              "UK",
+              "IE",
+              "US",
+              "CA",
+              "ZA"
+            ]
+          }
+        ]
+      },
+      "sourceText": "Applicants must meet the English language requirements.",
+      "weight": "mandatory"
+    }
+  ],
+  "pathways": [
+    {
+      "id": "entry-level-1",
+      "label": "Entry level 1 (72 points)",
+      "requirements": [
+        {
+          "id": "qualification_level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+          "weight": "mandatory"
+        },
+        {
+          "id": "academic_threshold-wam-60",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 60,
+            "scale": 100
+          },
+          "sourceText": "An Australian bachelors degree, or an equivalent qualification, with at least a credit (60%) average, or an equivalent Grade Point Average, plus two years relevant work experience.",
+          "weight": "mandatory"
+        },
+        {
+          "id": "work_experience-2",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 2,
+            "relevantTo": "human resource management"
+          },
+          "sourceText": "An Australian bachelors degree, or an equivalent qualification, with at least a credit (60%) average, or an equivalent Grade Point Average, plus two years relevant work experience.",
+          "weight": "mandatory"
+        }
+      ]
+    },
+    {
+      "id": "entry-level-2",
+      "label": "Entry level 2",
+      "requirements": [
+        {
+          "id": "qualification_completed-graduate-certificate-hrm",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average.",
+          "weight": "mandatory"
+        },
+        {
+          "id": "academic_threshold-wam-60-graduate-certificate",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 60,
+            "scale": 100
+          },
+          "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average.",
+          "weight": "mandatory"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "version": 2,
+  "global": [],
+  "pathways": [
+    {
+      "id": "mba-level-1",
+      "label": "Entry Level 1",
+      "requirements": [
+        {
+          "id": "qualification_level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
+          "weight": "mandatory"
+        },
+        {
+          "id": "academic_threshold-60",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 60,
+            "scale": 100
+          },
+          "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
+          "weight": "mandatory"
+        },
+        {
+          "id": "academic_threshold-60-gpa",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "gpa",
+            "min": 60
+          },
+          "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
+          "weight": "alternative",
+          "alternativeGroupId": "level1-entry-acad-min"
+        },
+        {
+          "id": "work_experience-3y-professional",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 3,
+            "relevantTo": "professional role"
+          },
+          "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
+          "weight": "alternative",
+          "alternativeGroupId": "level1-entry-acad-min"
+        }
+      ]
+    },
+    {
+      "id": "mba-level-2",
+      "label": "Entry Level 2",
+      "requirements": [
+        {
+          "id": "qualification_completed-gradcert-busadmin-digital",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "Entry Level 2: Completion of a Monash University Graduate Certificate of Business Administration (Digital) with at least a credit average of 60%.",
+          "weight": "mandatory"
+        },
+        {
+          "id": "academic_threshold-60-level2",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 60,
+            "scale": 100
+          },
+          "sourceText": "Entry Level 2: Completion of a Monash University Graduate Certificate of Business Administration (Digital) with at least a credit average of 60%.",
+          "weight": "mandatory"
+        }
+      ]
+    }
+  ]
+}

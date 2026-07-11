@@ -16,7 +16,14 @@ on:
       - "src/lib/courseCatalog/requirementsLoader.test.ts"
       - "src/lib/eligibility/**"
       - "scripts/eligibility-eval.ts"
-      - "scripts/parse-course-requirements.ts"
+      - "scripts/parse-course-requirements-eval.ts"
+      - "scripts/build-course-requirements-golden.ts"
+      - "scripts/courseRequirementsParser/**"
+      - "tests/fixtures/course-requirements/**"
+      - "src/lib/eligibility/courseRequirementsV2.ts"
+      - "src/lib/eligibility/courseRequirementsEval.ts"
+      - "src/lib/eligibility/courseRequirementsGolden.ts"
+      - "src/lib/eligibility/requirementKindRegistry.ts"
       - "scripts/dump-eligibility-overrides.ts"
       - "package.json"
       - "package-lock.json"
@@ -37,7 +44,14 @@ on:
       - "src/lib/courseCatalog/requirementsLoader.test.ts"
       - "src/lib/eligibility/**"
       - "scripts/eligibility-eval.ts"
-      - "scripts/parse-course-requirements.ts"
+      - "scripts/parse-course-requirements-eval.ts"
+      - "scripts/build-course-requirements-golden.ts"
+      - "scripts/courseRequirementsParser/**"
+      - "tests/fixtures/course-requirements/**"
+      - "src/lib/eligibility/courseRequirementsV2.ts"
+      - "src/lib/eligibility/courseRequirementsEval.ts"
+      - "src/lib/eligibility/courseRequirementsGolden.ts"
+      - "src/lib/eligibility/requirementKindRegistry.ts"
       - "scripts/dump-eligibility-overrides.ts"
       - "package.json"
       - "package-lock.json"
@@ -68,3 +82,6 @@ jobs:
 
       - name: Run eligibility matcher eval
         run: npm run eligibility:eval
+
+      - name: Run course requirements parser eval
+        run: npm run eligibility:parse-eval

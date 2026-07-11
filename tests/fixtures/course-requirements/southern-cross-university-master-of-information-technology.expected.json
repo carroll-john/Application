@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "global": [],
+  "pathways": [
+    {
+      "id": "default",
+      "requirements": [
+        {
+          "id": "english-ielts",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "IELTS",
+                "minOverall": 6.5,
+                "minBand": 6
+              }
+            ]
+          },
+          "sourceText": "Language requirements: IELTS Overall Score 6.5 (Listening: minimum 6.0, Speaking: minimum 6.0, Reading: minimum 6.0, Writing: minimum 6.0).",
+          "weight": "mandatory"
+        }
+      ]
+    }
+  ]
+}

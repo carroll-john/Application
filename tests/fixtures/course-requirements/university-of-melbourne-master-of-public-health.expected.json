@@ -1,0 +1,168 @@
+{
+  "version": 2,
+  "global": [
+    {
+      "id": "wam-65",
+      "kind": "academic_threshold",
+      "params": {
+        "metric": "wam",
+        "min": 65,
+        "scale": 100
+      },
+      "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.) OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health) OR A masters degree (by research or coursework) or PhD in health or public health.",
+      "weight": "mandatory"
+    },
+    {
+      "id": "english-ielts",
+      "kind": "english_proficiency",
+      "params": {
+        "acceptedPathways": [
+          {
+            "type": "english_test",
+            "test": "IELTS",
+            "minOverall": 6.5,
+            "minBand": 6
+          }
+        ]
+      },
+      "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
+      "weight": "mandatory"
+    },
+    {
+      "id": "english-toefl-ibt",
+      "kind": "english_proficiency",
+      "params": {
+        "acceptedPathways": [
+          {
+            "type": "english_test",
+            "test": "TOEFL_iBT",
+            "minOverall": 81,
+            "minBand": 16
+          }
+        ]
+      },
+      "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
+      "weight": "mandatory"
+    },
+    {
+      "id": "english-pte",
+      "kind": "english_proficiency",
+      "params": {
+        "acceptedPathways": [
+          {
+            "type": "english_test",
+            "test": "PTE",
+            "minOverall": 64,
+            "minBand": 60
+          }
+        ]
+      },
+      "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
+      "weight": "mandatory"
+    },
+    {
+      "id": "english-cae",
+      "kind": "english_proficiency",
+      "params": {
+        "acceptedPathways": [
+          {
+            "type": "english_test",
+            "test": "CAE",
+            "minOverall": 169,
+            "minBand": null
+          }
+        ]
+      },
+      "sourceText": "English language requirements: IELTS: 6.5 (no band less than 6.0); TOEFL: 81 (W19, S19, R16, L16); Pearson: 64 (no skill below 60); Cambridge C1 Advanced: 169; LanguageCert Academic: 67; MET: 58.",
+      "weight": "mandatory"
+    }
+  ],
+  "pathways": [
+    {
+      "id": "undergrad-public-health",
+      "label": "Undergraduate public health or equivalent",
+      "requirements": [
+        {
+          "id": "completed-bachelor",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.) OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health) OR A masters degree (by research or coursework) or PhD in health or public health.",
+          "weight": "mandatory"
+        },
+        {
+          "id": "wam-65",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 65,
+            "scale": 100
+          },
+          "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.) OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health) OR A masters degree (by research or coursework) or PhD in health or public health.",
+          "weight": "mandatory"
+        }
+      ]
+    },
+    {
+      "id": "work-or-healthcare",
+      "label": "Degree plus work experience or healthcare qualification",
+      "requirements": [
+        {
+          "id": "work-experience-2-public-health",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 2,
+            "relevantTo": "public health setting"
+          },
+          "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree in public health OR An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a public health setting (health policy, health economics, health planning, epidemiology research, etc.)",
+          "weight": "alternative",
+          "alternativeGroupId": "work-experience-or-healthcare"
+        },
+        {
+          "id": "work-experience-2-healthcare",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 2,
+            "relevantTo": "professional healthcare setting"
+          },
+          "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: An undergraduate degree and at least two years appropriate full-time work experience (or equivalent) in a professional healthcare setting (medical, nursing, AHPRA-registered allied health)",
+          "weight": "alternative",
+          "alternativeGroupId": "work-experience-or-healthcare"
+        }
+      ]
+    },
+    {
+      "id": "masters-or-phd",
+      "label": "Masters or PhD in health",
+      "requirements": [
+        {
+          "id": "completed-masters-or-phd-health",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: A masters degree (by research or coursework) or PhD in health or public health.",
+          "weight": "alternative",
+          "alternativeGroupId": "masters-or-phd-health"
+        },
+        {
+          "id": "qualification-level-master",
+          "kind": "qualification_level",
+          "params": {
+            "level": "masters"
+          },
+          "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: A masters degree (by research or coursework) or PhD in health or public health.",
+          "weight": "alternative",
+          "alternativeGroupId": "masters-or-phd-health"
+        },
+        {
+          "id": "qualification-level-phd",
+          "kind": "qualification_level",
+          "params": {
+            "level": "doctorate"
+          },
+          "sourceText": "Completion of one of the following with a weighted average mark of at least 65%: A masters degree (by research or coursework) or PhD in health or public health.",
+          "weight": "alternative",
+          "alternativeGroupId": "masters-or-phd-health"
+        }
+      ]
+    }
+  ]
+}

@@ -130,8 +130,9 @@ describe("buildEligibilityDisplayRows", () => {
 
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({
-      id: "completed-bachelor",
-      kindLabel: "Completed qualification",
+      id: "completed-australian-bachelor",
+      sourceText: "Bachelor degree or higher",
+      kindLabel: "Minimum qualification level",
       status: "pass",
       explanation:
         'Qualification appears completed based on supplied evidence. Extracted level "Bachelor degree" meets the required bachelor level.',

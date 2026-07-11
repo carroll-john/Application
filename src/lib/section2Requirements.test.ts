@@ -163,4 +163,33 @@ describe("section2 submission requirements", () => {
       supportsSecondaryQualification: false,
     });
   });
+
+  it("prefers canonical requirements over legacy eligibility inference", () => {
+    const course = {
+      ...makeCourse({
+        rules: [{ type: "min_education", minEducation: "Bachelor degree" }],
+      }),
+      requirements: [
+        {
+          id: "level-masters",
+          kind: "qualification_level" as const,
+          params: { level: "masters" as const },
+          sourceText: "Masters degree required.",
+          weight: "mandatory" as const,
+        },
+        {
+          id: "work-3",
+          kind: "work_experience" as const,
+          params: { minYears: 3, relevantTo: "management" },
+          sourceText: "Three years management experience.",
+          weight: "mandatory" as const,
+        },
+      ],
+    };
+
+    expect(buildSection2SubmissionPolicy(course)).toMatchObject({
+      minimumEducation: "Masters degree",
+      supportsExperienceAlternative: true,
+    });
+  });
 });

@@ -1,0 +1,156 @@
+{
+  "version": 2,
+  "global": [
+    {
+      "id": "english-proficiency-monash-req",
+      "kind": "english_proficiency",
+      "params": {
+        "acceptedPathways": [
+          {
+            "type": "completion_in_country",
+            "countries": [
+              "AU",
+              "NZ",
+              "UK",
+              "IE",
+              "US",
+              "CA",
+              "ZA"
+            ]
+          }
+        ]
+      },
+      "sourceText": "Applicants must also meet the English language requirements.",
+      "weight": "mandatory"
+    }
+  ],
+  "pathways": [
+    {
+      "id": "entry-level-1",
+      "label": "Entry level 1 (72 points)",
+      "requirements": [
+        {
+          "id": "qualification-level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+          "weight": "mandatory"
+        },
+        {
+          "id": "field-of-study-business-commerce-management",
+          "kind": "field_of_study",
+          "params": {
+            "acceptedAreas": [
+              "Business",
+              "Commerce",
+              "Management"
+            ]
+          },
+          "sourceText": "An Australian bachelor degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average;",
+          "weight": "mandatory"
+        },
+        {
+          "id": "academic-threshold-credit-60",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 60,
+            "scale": 100
+          },
+          "sourceText": "An Australian bachelor degree in a relevant discipline (Business, Commerce, Management) or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average;",
+          "weight": "mandatory"
+        }
+      ]
+    },
+    {
+      "id": "alt-group-1",
+      "label": "Alternative entry pathway 1",
+      "requirements": [
+        {
+          "id": "completed-bachelor-plus-work-exp",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "An Australian bachelor degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience.",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-group-1"
+        },
+        {
+          "id": "academic-threshold-credit-60-alt",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 60,
+            "scale": 100
+          },
+          "sourceText": "An Australian bachelor degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience.",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-group-1"
+        },
+        {
+          "id": "work-experience-2-years-relevant",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 2
+          },
+          "sourceText": "An Australian bachelor degree or an equivalent qualification, with at least a credit (60%) average or an equivalent Grade Point Average plus at least two years relevant work experience.",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-group-1"
+        }
+      ]
+    },
+    {
+      "id": "alt-group-2",
+      "label": "Alternative entry pathway 2",
+      "requirements": [
+        {
+          "id": "completed-graduate-certificate-business-management",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "A Monash University Graduate Certificate of Business Management with at least a credit (60%) average",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-group-2"
+        },
+        {
+          "id": "academic-threshold-credit-60-gcbm",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 60,
+            "scale": 100
+          },
+          "sourceText": "A Monash University Graduate Certificate of Business Management with at least a credit (60%) average",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-group-2"
+        }
+      ]
+    },
+    {
+      "id": "alt-group-3",
+      "label": "Alternative entry pathway 3",
+      "requirements": [
+        {
+          "id": "completed-graduate-certificate-hr-management",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-group-3"
+        },
+        {
+          "id": "academic-threshold-credit-60-gchr",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 60,
+            "scale": 100
+          },
+          "sourceText": "A Monash University Graduate Certificate of Human Resource Management with at least a credit (60%) average",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-group-3"
+        }
+      ]
+    }
+  ]
+}

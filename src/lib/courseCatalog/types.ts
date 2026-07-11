@@ -53,9 +53,9 @@ export interface CourseCatalogEntry {
   eligibility: CourseEligibilityConfig;
   /**
    * Canonical eligibility requirements parsed from the course's `entry_requirements` text by the
-   * offline `scripts/parse-course-requirements.ts` pipeline. Optional during the migration: when
-   * absent, the runtime falls back to the legacy `eligibility` rules and the deterministic regex
-   * thresholds from `parseEntryRequirementThresholds`.
+   * offline parser pipeline (`scripts/parse-course-requirements.ts`). Stored as v2 pathway IR in
+   * `requirements.generated.json` and flattened at load time. When absent or matcher-unsafe,
+   * the runtime falls back to legacy `eligibility` rules and regex thresholds.
    */
   requirements?: RequirementInstance[];
 }

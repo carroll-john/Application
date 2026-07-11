@@ -1,8 +1,10 @@
-import type {
-  RequirementInstance,
-  RequirementKind,
+import {
+  formatMergedQualificationHeading,
+} from "./requirementPresentation";
+import {
+  requirementKindLabel,
+  type RequirementInstance,
 } from "./requirements";
-import { requirementKindLabel } from "./requirements";
 import type {
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
@@ -155,9 +157,9 @@ export function buildEligibilityDisplayRows(
         const completionCheck = checksById.get(instance.id);
         const levelCheck = checksById.get(levelPartner.id);
         rows.push({
-          id: instance.id,
-          sourceText: instance.sourceText,
-          kindLabel: kindLabelFor("qualification_completed"),
+          id: levelPartner.id,
+          sourceText: formatMergedQualificationHeading(levelPartner.params.level),
+          kindLabel: kindLabelFor("qualification_level"),
           status: combineRequirementStatuses(completionCheck?.status, levelCheck?.status),
           explanation:
             combineExplanations(completionCheck?.explanation, levelCheck?.explanation) ||
@@ -180,6 +182,6 @@ export function buildEligibilityDisplayRows(
   return rows;
 }
 
-function kindLabelFor(kind: RequirementKind): string {
+function kindLabelFor(kind: RequirementInstance["kind"]): string {
   return requirementKindLabel(kind);
 }

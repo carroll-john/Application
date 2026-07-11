@@ -277,3 +277,20 @@
 - Section 2 review cards: prefer **item-level Edit** (tertiary, employment) or
   document-row Edit (CV); avoid duplicate card-level Edit where item edits suffice.
   Multi-record sections may still expose a hub-level Edit to `/section2/qualifications`.
+
+## 2026-07-09
+
+### Pathway-first course requirements IR (v2)
+- Replace single-shot flat LLM parsing with a multi-stage pipeline
+  (segment → classify → structure → validate → repair) producing
+  `CourseRequirementsV2` (`global` + `pathways[]`).
+- Flatten to legacy `RequirementInstance[]` with `pathwayBundleId` for the existing
+  matcher; update `isMatcherUnsafe()` to validate per-pathway buckets so multi-pathway
+  courses route to the matcher instead of `deterministicRules`.
+- Gate parser output with a golden corpus (`tests/fixtures/course-requirements/`) and
+  `npm run eligibility:parse-eval` in the eligibility-contract CI workflow.
+- Consolidate requirement-kind extensibility in `requirementKindRegistry.ts` (prompt
+  fragment, evidence source, evaluator dispatch).
+- Continuous improvement: mine PostHog `eligibility_check_override` via
+  `eligibility:dump-overrides`, promote to golden fixtures, human-review PRs — no
+  auto-merge of override-suggested rules.
