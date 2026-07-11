@@ -305,6 +305,14 @@ function getKnownDocumentUploadErrorMessage(error: unknown): string | null {
   }
 
   if (
+    normalizedMessage.includes("applicant_profiles_owner_user_id_fkey") ||
+    (normalizedMessage.includes("owner_user_id") &&
+      normalizedMessage.includes("foreign key"))
+  ) {
+    return "We couldn't save your details because your session has expired. Sign out and back in, then try again.";
+  }
+
+  if (
     normalizedMessage.includes("foreign key constraint") ||
     code === "23503"
   ) {

@@ -164,4 +164,14 @@ describe("getDocumentUploadErrorMessage", () => {
       }),
     ).toContain("previous file reference is out of date");
   });
+
+  it("asks the user to re-authenticate when the applicant profile owner FK fails", () => {
+    expect(
+      getDocumentUploadErrorMessage({
+        code: "23503",
+        message:
+          'insert or update on table "applicant_profiles" violates foreign key constraint "applicant_profiles_owner_user_id_fkey"',
+      }),
+    ).toContain("session has expired");
+  });
 });
