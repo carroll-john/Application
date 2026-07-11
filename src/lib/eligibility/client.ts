@@ -1,4 +1,5 @@
 import { normalizeTranscriptEligibilityAssessment } from "./normalize";
+import { serializeTranscriptEligibilityContext } from "./contextSchema";
 import type {
   TranscriptEligibilityAssessment,
   TranscriptEligibilityRequestContext,
@@ -43,7 +44,7 @@ export async function evaluateTranscriptEligibility(
 ): Promise<TranscriptEligibilityAssessment> {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("context", JSON.stringify(context));
+  formData.append("context", serializeTranscriptEligibilityContext(context));
 
   const response = await fetch("/api/evaluate-transcript-eligibility", {
     body: formData,

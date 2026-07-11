@@ -1,0 +1,26 @@
+/** Recognised Australian tertiary institutions for deterministic English inference. */
+export const AU_TERTIARY_INSTITUTION_NAMES: readonly string[] = [
+  "Australian Catholic University",
+  "Bond University",
+  "Charles Sturt University",
+  "CQUniversity Australia",
+  "Curtin University",
+  "Deakin University",
+  "Griffith University",
+  "La Trobe University",
+  "Macquarie University",
+  "Monash University",
+  "Queensland University of Technology",
+  "RMIT University",
+  "The University of Melbourne",
+  "The University of Queensland",
+  "The University of Sydney",
+  "UNSW Sydney",
+  "University of Technology Sydney",
+  "Universitas Indonesia",
+  "Universitas Gadjah Mada",
+  "Harvard University",
+  "Massachusetts Institute of Technology",
+  "University of Oxford",
+  "University of Cambridge"
+] as const;
