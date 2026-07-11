@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { ApplicationData } from "../../lib/applicationData";
 import {
   isEmploymentExperienceSubmissionReady,
   isTertiaryQualificationSubmissionReady,
 } from "../../lib/applicationValidationSchema";
+import { getDocumentUploadErrorMessage } from "../../lib/documentStorage";
+import { captureSentryException } from "../../lib/sentry";
 import type { ProgramEvidenceRow } from "../../lib/eligibility/programEvidence";
 import {
   trackEvidencePromptViewed,
@@ -165,6 +167,34 @@ export function useSection2QualificationsFlow({
     });
   }
 
+  // Deletes and other edits triggered directly from the hub (removing a
+  // qualification, CV, employment row, etc.) persist the whole application via
+  // the storage adapter. Those calls used to be fire-and-forget, so a rejected
+  // save (e.g. a Postgres 42703 "column does not exist" error) failed silently
+  // and the applicant saw nothing. Route them through here so any failure is
+  // reported to Sentry and surfaced in the visible StatusMessage banner, reusing
+  // the same error copy the add/edit record pages use.
+  const runQualificationSave = useCallback(
+    async (action: () => Promise<unknown>) => {
+      setStatusMessage(null);
+
+      try {
+        await action();
+      } catch (error) {
+        captureSentryException(error, {
+          tags: { flow: "section2_qualifications_save" },
+        });
+        setStatusMessage({
+          type: "error",
+          message:
+            getDocumentUploadErrorMessage(error) ??
+            "We couldn't save your changes right now. Please try again.",
+        });
+      }
+    },
+    [],
+  );
+
   async function handleSaveAndContinue() {
     setIsSaving(true);
     await import("../../pages/ReviewAndSubmit");
@@ -184,6 +214,7 @@ export function useSection2QualificationsFlow({
     handleSkipSection,
     handleUnskipSection,
     isSaving,
+    runQualificationSave,
     sectionStates,
     setStatusMessage,
     statusMessage,

@@ -43,9 +43,14 @@ export function StatusMessage({
   onDismiss: () => void;
 }) {
   const Icon = config[type].icon;
+  // Errors and warnings interrupt (assertive) so a failed save is announced the
+  // moment the banner appears; success/status updates announce politely.
+  const isUrgent = type === "error" || type === "warning";
 
   return (
     <div
+      role={isUrgent ? "alert" : "status"}
+      aria-live={isUrgent ? "assertive" : "polite"}
       className={`flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg ${config[type].wrapper}`}
     >
       <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${config[type].iconClass}`} />

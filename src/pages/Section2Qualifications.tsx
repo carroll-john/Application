@@ -85,6 +85,7 @@ export default function Section2Qualifications() {
     handleSkipSection,
     handleUnskipSection,
     isSaving,
+    runQualificationSave,
     sectionStates,
     setStatusMessage,
     statusMessage,
@@ -200,7 +201,11 @@ export default function Section2Qualifications() {
                   qualification.transcriptDocumentName,
                   qualification.certificateDocumentName,
                 ].filter(Boolean) as string[]}
-                onDelete={() => removeTertiaryQualification(qualification.id)}
+                onDelete={() =>
+                  void runQualificationSave(() =>
+                    removeTertiaryQualification(qualification.id),
+                  )
+                }
                 onEdit={() =>
                   navigate(`${getSection2EditPath("tertiary", qualification.id)}${reviewSuffix}`)
                 }
@@ -236,7 +241,7 @@ export default function Section2Qualifications() {
               <QualificationsListItem
                 key={item.id}
                 attachment={item.name}
-                onDelete={() => void removeCV()}
+                onDelete={() => void runQualificationSave(() => removeCV())}
                 onEdit={() => navigate(section2AddPath("cv"))}
               />
             )}
@@ -274,7 +279,11 @@ export default function Section2Qualifications() {
                   }
                   subtitle={experience.company}
                   title={experience.position || "Position"}
-                  onDelete={() => removeEmploymentExperience(experience.id)}
+                  onDelete={() =>
+                    void runQualificationSave(() =>
+                      removeEmploymentExperience(experience.id),
+                    )
+                  }
                   onEdit={() =>
                     navigate(
                       `${getSection2EditPath("employment", experience.id)}${reviewSuffix}`,
@@ -303,7 +312,11 @@ export default function Section2Qualifications() {
                 subtitle={accreditation.status}
                 title={accreditation.name || "Accreditation"}
                 attachment={accreditation.documentName}
-                onDelete={() => removeProfessionalAccreditation(accreditation.id)}
+                onDelete={() =>
+                  void runQualificationSave(() =>
+                    removeProfessionalAccreditation(accreditation.id),
+                  )
+                }
                 onEdit={() =>
                   navigate(
                     `${getSection2EditPath("accreditation", accreditation.id)}${reviewSuffix}`,
@@ -331,7 +344,11 @@ export default function Section2Qualifications() {
                 key={qualification.id}
                 subtitle={qualification.school}
                 title={qualification.qualification || "Secondary Qualification"}
-                onDelete={() => removeSecondaryQualification(qualification.id)}
+                onDelete={() =>
+                  void runQualificationSave(() =>
+                    removeSecondaryQualification(qualification.id),
+                  )
+                }
                 onEdit={() =>
                   navigate(
                     `${getSection2EditPath("secondary", qualification.id)}${reviewSuffix}`,
@@ -360,7 +377,9 @@ export default function Section2Qualifications() {
                 subtitle={`${test.type} - ${test.year}`}
                 title={test.name || "Language Test"}
                 attachment={test.documentName}
-                onDelete={() => removeLanguageTest(test.id)}
+                onDelete={() =>
+                  void runQualificationSave(() => removeLanguageTest(test.id))
+                }
                 onEdit={() =>
                   navigate(`${getSection2EditPath("language-test", test.id)}${reviewSuffix}`)
                 }
