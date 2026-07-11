@@ -1,11 +1,10 @@
-import { createHash } from "node:crypto";
 import {
   flattenCourseRequirementsV2,
   isCourseRequirementsV2,
   isMatcherUnsafe,
   type CourseRequirementsV2,
 } from "./courseRequirementsV2";
-import type { RequirementKind } from "./requirements";
+import type { RequirementInstance, RequirementKind } from "./requirements";
 
 export interface CourseRequirementsEvalScores {
   leafRecall: number;
@@ -135,7 +134,13 @@ function compareParams(
 }
 
 export function hashEntryRequirementsText(text: string): string {
-  return createHash("sha256").update(text.trim()).digest("hex").slice(0, 16);
+  const normalized = text.trim();
+  let hash = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash = (hash << 5) - hash + normalized.charCodeAt(index);
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16).padStart(16, "0").slice(0, 16);
 }
 
 export function evaluateCourseRequirements(

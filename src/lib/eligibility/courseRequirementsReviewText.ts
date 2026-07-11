@@ -61,10 +61,6 @@ function summarizeRequirement(
     case "qualification_completed":
       summary = "Must have completed the required prior qualification";
       break;
-    default: {
-      const neverKind: never = requirement.kind;
-      summary = String(neverKind);
-    }
   }
 
   return {

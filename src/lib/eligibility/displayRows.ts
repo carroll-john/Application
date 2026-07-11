@@ -50,21 +50,27 @@ function combineExplanations(...parts: Array<string | undefined>) {
     .join(" ");
 }
 
+type QualificationLevelRequirement = Extract<
+  RequirementInstance,
+  { kind: "qualification_level" }
+>;
+
 function findQualificationLevelPartner(
   requirements: readonly RequirementInstance[],
   completion: RequirementInstance,
-) {
+): QualificationLevelRequirement | undefined {
   if (completion.kind !== "qualification_completed" || completion.alternativeGroupId) {
     return undefined;
   }
 
-  return requirements.find(
+  const match = requirements.find(
     (candidate) =>
       candidate.kind === "qualification_level" &&
       !candidate.alternativeGroupId &&
       candidate.weight === completion.weight &&
       candidate.sourceText === completion.sourceText,
   );
+  return match?.kind === "qualification_level" ? match : undefined;
 }
 
 /**
