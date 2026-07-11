@@ -36,6 +36,7 @@ export {
   isPostHogEnabled,
   isPublicAutocaptureRoute,
   isReplayPiiRoute,
+  isSyntheticTestSession,
   syncPostHogUser,
   syncReplayRoutePrivacy,
 } from "./analytics/posthogClient";

@@ -101,6 +101,45 @@ describe("capture-auth-sign-up-succeeded api route", () => {
     expect(event.properties.email_domain).toBe("example.com");
     expect(event.properties.auth_context).toBe("modal");
     expect(event.properties.$insert_id).toBe(`auth-sign-up-succeeded:${userId}`);
+    expect(event.properties).not.toHaveProperty("synthetic_test");
+  });
+
+  it("tags the capture with synthetic_test for authorised QA sessions", async () => {
+    process.env.POSTHOG_PROJECT_API_KEY = "test-key";
+
+    const response = await signUpRoute.fetch(
+      makeRequest({
+        userId: "550e8400-e29b-41d4-a716-446655440000",
+        signupMethod: "email",
+        syntheticTest: true,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(captureImmediate).toHaveBeenCalledTimes(1);
+    const event = captureImmediate.mock.calls[0][0] as {
+      properties: Record<string, unknown>;
+    };
+    expect(event.properties.synthetic_test).toBe(true);
+  });
+
+  it("ignores non-boolean syntheticTest values", async () => {
+    process.env.POSTHOG_PROJECT_API_KEY = "test-key";
+
+    const response = await signUpRoute.fetch(
+      makeRequest({
+        userId: "550e8400-e29b-41d4-a716-446655440000",
+        signupMethod: "email",
+        syntheticTest: "yes",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(captureImmediate).toHaveBeenCalledTimes(1);
+    const event = captureImmediate.mock.calls[0][0] as {
+      properties: Record<string, unknown>;
+    };
+    expect(event.properties).not.toHaveProperty("synthetic_test");
   });
 
   it("waits for PostHog capture before returning", async () => {

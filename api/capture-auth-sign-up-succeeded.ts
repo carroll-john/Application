@@ -92,6 +92,7 @@ async function handleWebRequest(request: Request) {
     signupMethod,
     emailDomain: readString(candidate.emailDomain, 200),
     authContext: readString(candidate.authContext, 32),
+    syntheticTest: candidate.syntheticTest === true,
   });
 
   return jsonResponse({ ok: true }, 200);

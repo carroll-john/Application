@@ -292,6 +292,10 @@ Application-step events also include:
 Server-side analytics events (`auth_sign_up_succeeded`,
 `eligibility_check_override`, `$ai_generation`) include `app_environment`, so
 they can be filtered alongside browser events from the same deployment class.
+`auth_sign_up_succeeded` also carries `synthetic_test: true` when the sign-up
+came from an authorised QA session (see Synthetic Test Traffic below) — the
+flag is forwarded through `/api/capture-auth-sign-up-succeeded` because server
+captures don't inherit the client's super-properties.
 
 ## Feature Flags
 
@@ -343,6 +347,10 @@ deliberate, gated doorway:
   accounts** filter (`synthetic_test is_not_set`), so turning on "filter test
   accounts" on any insight/dashboard excludes the synthetic run. Toggle it off to
   *see* the synthetic data (useful for validating the funnel / blocker tiles).
+- The server-side `auth_sign_up_succeeded` capture doesn't see the client's
+  super-properties, so `reportAuthSignUpSucceeded` forwards `syntheticTest`
+  from the same doorway check and the API stamps `synthetic_test: true` on the
+  event — QA-bot sign-ups stay excluded from the "Sign ups" metric.
 - Driver script: `scripts/synthetic-funnel-bot.mjs` (Playwright). It activates
   the doorway, signs in (`TEST_EMAIL`/`TEST_PASSWORD`), tallies `/ingest/*` POSTs
   as proof of capture, and drives the full journey — eligibility → start → the six

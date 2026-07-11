@@ -11,6 +11,7 @@ export type AuthSignUpSucceededOptions = {
   signupMethod: string;
   emailDomain?: string;
   authContext?: string;
+  syntheticTest?: boolean;
 };
 
 export function isAllowedSignupMethod(value: string) {
@@ -45,6 +46,10 @@ export async function captureAuthSignUpSucceeded(
         email_domain: options.emailDomain ?? null,
         auth_context: options.authContext ?? null,
         $insert_id: buildSignUpSucceededInsertId(options.userId),
+        // Only set for authorised QA sessions: the project's internal-and-test
+        // accounts filter is `synthetic_test is_not_set`, so real sign-ups must
+        // not carry the property at all.
+        ...(options.syntheticTest ? { synthetic_test: true } : {}),
       },
     });
   } catch {

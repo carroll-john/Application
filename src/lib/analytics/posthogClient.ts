@@ -96,8 +96,10 @@ function readQuerySyntheticToken(): string | null {
 
 // Is this an authorised synthetic-test session? True when the matching token is
 // present in localStorage (sticky once activated) or in the current URL's query
-// string (which we then persist so it survives SPA navigation).
-function isSyntheticTestSession(): boolean {
+// string (which we then persist so it survives SPA navigation). Exported so
+// server-bound captures (e.g. reportAuthSignUpSucceeded) can carry the same
+// synthetic_test flag as browser events.
+export function isSyntheticTestSession(): boolean {
   if (!SYNTHETIC_TEST_TOKEN || typeof window === "undefined") {
     return false;
   }
