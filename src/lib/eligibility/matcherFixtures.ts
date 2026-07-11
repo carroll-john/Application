@@ -283,7 +283,6 @@ export const matcherFixtures: MatcherFixture[] = [
     },
     requirements: realCourseRequirements("la-trobe-university-master-of-information-technology"),
     expectedStatusById: {
-      "completed-bachelor": "pass",
       "completed-australian-bachelor": "pass",
       "english-completion-in-country": "pass",
     },
@@ -309,7 +308,6 @@ export const matcherFixtures: MatcherFixture[] = [
     },
     requirements: realCourseRequirements("mba-online"),
     expectedStatusById: {
-      "completed-bachelor": "pass",
       "qualification-level-bachelor": "pass",
       "english-ielts": "pass",
     },
@@ -335,7 +333,6 @@ export const matcherFixtures: MatcherFixture[] = [
     },
     requirements: realCourseRequirements("mba-online"),
     expectedStatusById: {
-      "completed-bachelor": "pass",
       "qualification-level-bachelor": "pass",
       "english-ielts": "unknown",
     },

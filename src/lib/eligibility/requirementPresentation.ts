@@ -8,21 +8,27 @@ import {
 export const BACHELOR_QUALIFICATION_DETAIL_TEXT =
   "Completion of a 3-year Australian bachelor's degree or recognised equivalent";
 
+type QualificationLevelRequirement = Extract<
+  RequirementInstance,
+  { kind: "qualification_level" }
+>;
+
 export function findPairedQualificationLevel(
   requirements: readonly RequirementInstance[],
   instance: RequirementInstance,
-): RequirementInstance | undefined {
+): QualificationLevelRequirement | undefined {
   if (instance.kind !== "qualification_completed" || instance.alternativeGroupId) {
     return undefined;
   }
 
-  return requirements.find(
+  const match = requirements.find(
     (candidate) =>
       candidate.kind === "qualification_level" &&
       !candidate.alternativeGroupId &&
       candidate.weight === instance.weight &&
       candidate.sourceText === instance.sourceText,
   );
+  return match?.kind === "qualification_level" ? match : undefined;
 }
 
 export function findPairedQualificationCompleted(

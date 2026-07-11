@@ -1,5 +1,6 @@
 import type { RequirementInstance } from "./requirements.js";
 import { evaluateRegisteredRequirement } from "./requirementKindRegistry.js";
+import type { EvaluationContext } from "./requirementEvaluators.js";
 import type {
   EligibilityRequirementCheck,
   TranscriptEligibilityRequestContext,

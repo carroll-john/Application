@@ -4,7 +4,7 @@ import {
   requirementKindLabels,
   type EvidenceSource,
   type RequirementKind,
-} from "./requirements";
+} from "./requirements.js";
 import { evaluateOne } from "./requirementEvaluators.js";
 import type { EvaluationContext } from "./requirementEvaluators.js";
 

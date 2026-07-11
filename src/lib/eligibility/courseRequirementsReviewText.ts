@@ -61,10 +61,6 @@ function summarizeRequirement(
     case "qualification_completed":
       summary = "Must have completed the required prior qualification";
       break;
-    default: {
-      const neverKind: never = requirement.kind;
-      summary = String(neverKind);
-    }
   }
 
   return {
@@ -138,8 +134,8 @@ export function buildCourseRequirementsPlainReview(
   options?: { usesMatcher?: boolean; rawRequirements?: unknown },
 ): CourseRequirementsPlainReview {
   const raw = options?.rawRequirements ?? course.requirements ?? [];
-  let globalRequirements: RequirementPlainSummary[] = [];
-  let pathways: PathwayPlainSummary[] = [];
+  let globalRequirements: RequirementPlainSummary[];
+  let pathways: PathwayPlainSummary[];
 
   if (isCourseRequirementsV2(raw as unknown as CourseRequirementsV2)) {
     const v2 = raw as unknown as CourseRequirementsV2;
