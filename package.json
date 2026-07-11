@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "preinstall": "node ./scripts/ensure-eligibility-rules.mjs",
+    "prepare": "npm run build:eligibility-rules",
     "dev": "vite",
     "sync-supabase-env": "node ./scripts/sync-supabase-env.mjs",
     "verify-resend": "node ./scripts/verify-resend.mjs",
