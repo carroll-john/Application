@@ -5,7 +5,10 @@
   "type": "module",
   "description": "Shared eligibility rules engine, requirement models, and submit-policy constants for the Applications app proxy.",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
   },
   "files": [
     "dist",
