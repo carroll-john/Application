@@ -129,12 +129,38 @@ Options:
 `);
 }
 
+function toRequirementArray(rawCourse) {
+  if (Array.isArray(rawCourse)) {
+    return rawCourse;
+  }
+
+  if (
+    rawCourse &&
+    typeof rawCourse === "object" &&
+    rawCourse.version === 2 &&
+    Array.isArray(rawCourse.global) &&
+    Array.isArray(rawCourse.pathways)
+  ) {
+    const global = rawCourse.global;
+    const pathwayRequirements = rawCourse.pathways.flatMap((pathway) =>
+      (pathway.requirements ?? []).map((requirement) => ({
+        ...requirement,
+        pathwayBundleId: requirement.pathwayBundleId ?? pathway.id,
+      })),
+    );
+    return [...global, ...pathwayRequirements];
+  }
+
+  return [];
+}
+
 function normalizeRequirements(rawCourse) {
-  if (!Array.isArray(rawCourse)) {
+  const entries = toRequirementArray(rawCourse);
+  if (entries.length === 0) {
     return [];
   }
 
-  return rawCourse.map((entry) => {
+  return entries.map((entry) => {
     const normalized = { ...entry };
     if (normalized.alternativeGroupId === null) {
       delete normalized.alternativeGroupId;

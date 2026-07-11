@@ -134,8 +134,8 @@ export function buildCourseRequirementsPlainReview(
   options?: { usesMatcher?: boolean; rawRequirements?: unknown },
 ): CourseRequirementsPlainReview {
   const raw = options?.rawRequirements ?? course.requirements ?? [];
-  let globalRequirements: RequirementPlainSummary[] = [];
-  let pathways: PathwayPlainSummary[] = [];
+  let globalRequirements: RequirementPlainSummary[];
+  let pathways: PathwayPlainSummary[];
 
   if (isCourseRequirementsV2(raw as unknown as CourseRequirementsV2)) {
     const v2 = raw as unknown as CourseRequirementsV2;
