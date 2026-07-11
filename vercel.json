@@ -1,5 +1,4 @@
 {
-  "installCommand": "ELIGIBILITY_SERVICE_REF=${ELIGIBILITY_SERVICE_REF:-codex/eligibility-rules-package} node ./scripts/ensure-eligibility-rules.mjs && npm ci",
   "functions": {
     "api/**/*.ts": {
       "includeFiles": "api/_ai/**,api/_cvParser/**,api/_documentParser/**,api/_shared/**,api/_suggest/**"

@@ -1,0 +1,4 @@
+[submodule "eligibility-service"]
+	path = eligibility-service
+	url = https://github.com/carroll-john/eligibility-service.git
+	branch = codex/eligibility-rules-package
