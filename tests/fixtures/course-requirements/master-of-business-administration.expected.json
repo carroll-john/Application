@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "global": [],
+  "pathways": [
+    {
+      "id": "default",
+      "requirements": [
+        {
+          "id": "qualification-level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+          "weight": "mandatory"
+        },
+        {
+          "id": "work-experience-3-years",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 3,
+            "relevantTo": "managerial"
+          },
+          "sourceText": "Three years relevant managerial experience.",
+          "weight": "mandatory"
+        },
+        {
+          "id": "academic-threshold-wam-60",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 60,
+            "scale": 100
+          },
+          "sourceText": "WAM: Weighted Average Mark (WAM) 60%.",
+          "weight": "mandatory"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,166 @@
+{
+  "version": 2,
+  "global": [],
+  "pathways": [
+    {
+      "id": "alt-group-1",
+      "label": "Entry pathway 1",
+      "requirements": [
+        {
+          "id": "completed-graduate-certificate-or-higher",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "1. Completed Australian graduate certificate or higher qualification, or overseas equivalent, with more than 75% of all subjects completed at pass level.",
+          "weight": "mandatory",
+          "alternativeGroupId": "alt-group-1"
+        },
+        {
+          "id": "qualification-level-graduate-certificate",
+          "kind": "qualification_level",
+          "params": {
+            "level": "masters"
+          },
+          "sourceText": "1. Completed Australian graduate certificate or higher qualification, or overseas equivalent, with more than 75% of all subjects completed at pass level.",
+          "weight": "mandatory",
+          "alternativeGroupId": "alt-group-1"
+        }
+      ]
+    },
+    {
+      "id": "alt-group-2",
+      "label": "Entry pathway 2",
+      "requirements": [
+        {
+          "id": "completed-bachelor",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "2. Completed Australian bachelor's degree, or overseas equivalent, with a minimum GPA of 5.25/7 and more than 90% of all subjects completed at pass level.",
+          "weight": "mandatory",
+          "alternativeGroupId": "alt-group-2"
+        },
+        {
+          "id": "qualification-level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "2. Completed Australian bachelor's degree, or overseas equivalent, with a minimum GPA of 5.25/7 and more than 90% of all subjects completed at pass level.",
+          "weight": "mandatory",
+          "alternativeGroupId": "alt-group-2"
+        },
+        {
+          "id": "academic-threshold-gpa-5.25-7",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "gpa",
+            "min": 5.25,
+            "scale": 7
+          },
+          "sourceText": "2. Completed Australian bachelor's degree, or overseas equivalent, with a minimum GPA of 5.25/7 and more than 90% of all subjects completed at pass level.",
+          "weight": "mandatory",
+          "alternativeGroupId": "alt-group-2"
+        }
+      ]
+    },
+    {
+      "id": "alt-group-3",
+      "label": "Entry pathway 3",
+      "requirements": [
+        {
+          "id": "completed-bachelor",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "3. Completed Australian bachelor's degree, or overseas equivalent, with more than 75% of all subjects completed at pass level and one of the following: A minimum of 4 years' full-time or equivalent part-time, relevant professional experience OR GMAT overall minimum score of 550.",
+          "weight": "mandatory",
+          "alternativeGroupId": "alt-group-3"
+        },
+        {
+          "id": "qualification-level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "3. Completed Australian bachelor's degree, or overseas equivalent, with more than 75% of all subjects completed at pass level and one of the following: A minimum of 4 years' full-time or equivalent part-time, relevant professional experience OR GMAT overall minimum score of 550.",
+          "weight": "mandatory",
+          "alternativeGroupId": "alt-group-3"
+        },
+        {
+          "id": "work-experience-4-years",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 4,
+            "relevantTo": "professional experience"
+          },
+          "sourceText": "A minimum of 4 years' full-time or equivalent part-time, relevant professional experience",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-group-3"
+        },
+        {
+          "id": "alternative-gmat-550",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "GMAT overall minimum score of 550",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-group-3"
+        }
+      ]
+    },
+    {
+      "id": "alt-group-4",
+      "label": "Entry pathway 4",
+      "requirements": [
+        {
+          "id": "english-ielts",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "IELTS",
+                "minOverall": 6.5,
+                "minBand": 6
+              }
+            ]
+          },
+          "sourceText": "English requirements: Academic IELTS 6.5 overall with writing 6.0",
+          "weight": "mandatory",
+          "alternativeGroupId": "alt-group-4"
+        },
+        {
+          "id": "english-toefl",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "TOEFL_iBT",
+                "minOverall": 79,
+                "minBand": 21
+              }
+            ]
+          },
+          "sourceText": "or TOEFL iBT 79-93 with writing 21",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-group-4"
+        },
+        {
+          "id": "english-pte",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {
+                "type": "english_test",
+                "test": "PTE",
+                "minOverall": 58,
+                "minBand": 50
+              }
+            ]
+          },
+          "sourceText": "or PTE 58-64 with writing 50",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-group-4"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "generatedAt": "2026-07-09T08:09:42.969Z",
+  "courses": [
+    {
+      "courseCode": "cquniversity-australia-master-of-information-technology",
+      "entryRequirementsHash": "e562f956b69106a3",
+      "expectedFile": "cquniversity-australia-master-of-information-technology.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "uts-online-university-of-technology-sydney-master-of-business-administration-mba",
+      "entryRequirementsHash": "18ad820d693cbea8",
+      "expectedFile": "uts-online-university-of-technology-sydney-master-of-business-administration-mba.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "master-of-health-management",
+      "entryRequirementsHash": "b2b885457eae3f14",
+      "expectedFile": "master-of-health-management.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "unsw-online-university-of-new-south-wales-master-of-data-science",
+      "entryRequirementsHash": "5d2bfececc713404",
+      "expectedFile": "unsw-online-university-of-new-south-wales-master-of-data-science.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "deakin-university-master-of-data-science",
+      "entryRequirementsHash": "ee3c206884920a5c",
+      "expectedFile": "deakin-university-master-of-data-science.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "university-of-melbourne-master-of-public-health",
+      "entryRequirementsHash": "934f25f052aa1d22",
+      "expectedFile": "university-of-melbourne-master-of-public-health.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "master-of-business-management-with-discipline-studies-in-project-management",
+      "entryRequirementsHash": "500b26d199eca545",
+      "expectedFile": "master-of-business-management-with-discipline-studies-in-project-management.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "deakin-university-master-of-cyber-security",
+      "entryRequirementsHash": "7bc219666a830931",
+      "expectedFile": "deakin-university-master-of-cyber-security.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "monash-online-monash-university-master-of-human-resource-management",
+      "entryRequirementsHash": "50393987865e0c20",
+      "expectedFile": "monash-online-monash-university-master-of-human-resource-management.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "master-of-business-marketing",
+      "entryRequirementsHash": "3f1478d37813d697",
+      "expectedFile": "master-of-business-marketing.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "master-of-business-administration",
+      "entryRequirementsHash": "30e240c529010973",
+      "expectedFile": "master-of-business-administration.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "master-of-business-administration-digital",
+      "entryRequirementsHash": "d572a9e546880952",
+      "expectedFile": "master-of-business-administration-digital.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "mba-online",
+      "entryRequirementsHash": "7a81517d7a3174a5",
+      "expectedFile": "mba-online.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "university-of-southern-queensland-unisq-master-of-business-administration-mba",
+      "entryRequirementsHash": "e30dc4538f3f5873",
+      "expectedFile": "university-of-southern-queensland-unisq-master-of-business-administration-mba.expected.json",
+      "hasEntryText": true
+    },
+    {
+      "courseCode": "southern-cross-university-master-of-information-technology",
+      "entryRequirementsHash": "41badb40217b5f8b",
+      "expectedFile": "southern-cross-university-master-of-information-technology.expected.json",
+      "hasEntryText": true
+    }
+  ]
+}

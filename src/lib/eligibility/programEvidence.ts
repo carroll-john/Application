@@ -17,6 +17,12 @@ import {
   type QualificationLevel,
   type RequirementInstance,
 } from "./requirements";
+import {
+  findPairedQualificationLevel,
+  formatMergedQualificationHeading,
+  formatRequirementDetailText,
+  shouldOmitPairedQualificationCompleted,
+} from "./requirementPresentation";
 import type {
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
@@ -77,28 +83,18 @@ function getCheckMap(checks: readonly EligibilityRequirementCheck[]) {
   return out;
 }
 
-function shouldSkipPairedQualificationLevel(
+function shouldSkipPairedQualificationCompleted(
   requirements: readonly RequirementInstance[],
   instance: RequirementInstance,
 ) {
-  return (
-    instance.kind === "qualification_level" &&
-    requirements.some(
-      (candidate) =>
-        candidate.kind === "qualification_completed" &&
-        !candidate.alternativeGroupId &&
-        !instance.alternativeGroupId &&
-        candidate.weight === instance.weight &&
-        candidate.sourceText === instance.sourceText,
-    )
-  );
+  return shouldOmitPairedQualificationCompleted(requirements, instance);
 }
 
 /**
  * The qualification level to summarize for a `qualification_completed`/`qualification_level`
  * card. `qualification_completed` params never carry a level (see `QualificationCompletedParams`),
- * so when the rendered instance is the "completed" side of a deduped pair
- * (`shouldSkipPairedQualificationLevel`), look up the level from its sibling
+ * so when the rendered instance is the level side of a deduped pair
+ * (`shouldSkipPairedQualificationCompleted`), look up the level from its sibling
  * `qualification_level` instance in the same course's requirement list.
  */
 function findQualificationLevel(
@@ -145,6 +141,10 @@ function formatRequirementHeading(
   }
 
   if (instance.kind === "qualification_completed") {
+    const levelPartner = findPairedQualificationLevel(requirements, instance);
+    if (levelPartner) {
+      return formatMergedQualificationHeading(levelPartner.params.level);
+    }
     return requirementKindLabel("qualification_completed");
   }
 
@@ -374,7 +374,7 @@ export function buildProgramEvidenceRows(options: {
   const emittedAlternativeGroups = new Set<string>();
 
   for (const instance of requirements) {
-    if (shouldSkipPairedQualificationLevel(requirements, instance)) {
+    if (shouldSkipPairedQualificationCompleted(requirements, instance)) {
       continue;
     }
 
@@ -390,7 +390,7 @@ export function buildProgramEvidenceRows(options: {
       id: instance.alternativeGroupId ?? instance.id,
       kindLabel: requirementKindLabel(instance.kind),
       requirementId: instance.id,
-      sourceText: instance.sourceText,
+      sourceText: formatRequirementDetailText(instance, requirements),
     };
 
     const evidence =

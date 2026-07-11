@@ -1,0 +1,142 @@
+{
+  "version": 2,
+  "global": [],
+  "pathways": [
+    {
+      "id": "entry-16cp",
+      "label": "16-credit point entry",
+      "requirements": [
+        {
+          "id": "qualification-level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "Completion of a 3-year Australian bachelor's degree or recognised equivalent",
+          "weight": "mandatory"
+        }
+      ]
+    },
+    {
+      "id": "entry-12cp",
+      "label": "12-credit point entry",
+      "requirements": [
+        {
+          "id": "qualification-level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "12-credit point entry: Completion of a bachelor degree or higher in a related discipline (e.g., IT);",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-12-credit-requirement"
+        },
+        {
+          "id": "field-of-study-related-discipline",
+          "kind": "field_of_study",
+          "params": {
+            "acceptedAreas": [
+              "related discipline",
+              "IT"
+            ]
+          },
+          "sourceText": "12-credit point entry: Completion of a bachelor degree or higher in a related discipline (e.g., IT);",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-12-credit-requirement"
+        },
+        {
+          "id": "qualification-level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "12-credit point entry: or a bachelor degree in any discipline plus at least two years' relevant work experience.",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-12-credit-requirement"
+        },
+        {
+          "id": "work-experience-2-years",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 2
+          },
+          "sourceText": "12-credit point entry: or a bachelor degree in any discipline plus at least two years' relevant work experience.",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-12-credit-requirement"
+        }
+      ]
+    },
+    {
+      "id": "entry-8cp-a",
+      "label": "8-credit point entry (graduate qualification)",
+      "requirements": [
+        {
+          "id": "qualification_completed-graduate-certificate-diploma",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "8-credit point entry: Completion of a graduate certificate/diploma or bachelor honours degree in a related discipline;",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-8-credit-entry-1"
+        },
+        {
+          "id": "field-of-study-related-discipline",
+          "kind": "field_of_study",
+          "params": {
+            "acceptedAreas": [
+              "related discipline"
+            ]
+          },
+          "sourceText": "8-credit point entry: Completion of a graduate certificate/diploma or bachelor honours degree in a related discipline;",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-8-credit-entry-1"
+        },
+        {
+          "id": "qualification_completed-bachelor-honours",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "8-credit point entry: Completion of a graduate certificate/diploma or bachelor honours degree in a related discipline;",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-8-credit-entry-1"
+        }
+      ]
+    },
+    {
+      "id": "entry-8cp-b",
+      "label": "8-credit point entry (honours)",
+      "requirements": [
+        {
+          "id": "qualification-level-bachelor",
+          "kind": "qualification_level",
+          "params": {
+            "level": "bachelor"
+          },
+          "sourceText": "8-credit point entry: or a bachelor degree in a related discipline plus at least two years' relevant work experience.",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-8-credit-entry-2"
+        },
+        {
+          "id": "field-of-study-related-discipline",
+          "kind": "field_of_study",
+          "params": {
+            "acceptedAreas": [
+              "related discipline"
+            ]
+          },
+          "sourceText": "8-credit point entry: or a bachelor degree in a related discipline plus at least two years' relevant work experience.",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-8-credit-entry-2"
+        },
+        {
+          "id": "work-experience-2-years",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 2
+          },
+          "sourceText": "8-credit point entry: or a bachelor degree in a related discipline plus at least two years' relevant work experience.",
+          "weight": "alternative",
+          "alternativeGroupId": "alt-8-credit-entry-2"
+        }
+      ]
+    }
+  ]
+}

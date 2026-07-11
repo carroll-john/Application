@@ -12,7 +12,8 @@ import type {
  *   1. A new entry in this union and the matching params interface below.
  *   2. A matching evaluator in `src/lib/eligibility/matcher.ts`.
  *   3. A UI label entry in `requirementKindLabels`.
- *   4. Parser-side coverage in `scripts/parse-course-requirements.ts` so courses can declare it.
+ *   4. Parser-side coverage in `scripts/courseRequirementsParser/pipeline.ts` and
+ *      `requirementKindRegistry.ts` so courses can declare it.
  */
 export type RequirementKind =
   | "qualification_completed"

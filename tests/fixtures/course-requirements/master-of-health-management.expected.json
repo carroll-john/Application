@@ -1,0 +1,83 @@
+{
+  "version": 2,
+  "global": [
+    {
+      "id": "english-proficiency",
+      "kind": "english_proficiency",
+      "params": {
+        "acceptedPathways": [
+          {
+            "type": "completion_in_country",
+            "countries": [
+              "AU",
+              "NZ",
+              "UK",
+              "IE",
+              "US",
+              "CA",
+              "ZA"
+            ]
+          },
+          {
+            "type": "english_test",
+            "test": "IELTS",
+            "minOverall": 6.5,
+            "minBand": 6
+          }
+        ]
+      },
+      "sourceText": "English language proficiency: Bachelor degree from a recognised English-speaking country OR IELTS overall score of 6.5 (with no band score less than 6.0) OR other approved evidence.",
+      "weight": "mandatory"
+    }
+  ],
+  "pathways": [
+    {
+      "id": "pathway-12cp",
+      "label": "1.5 years full-time (12 credit points)",
+      "requirements": [
+        {
+          "id": "completed-bachelor",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "Completion of a bachelor's degree or equivalent in a related discipline (e.g., Nursing, Allied Health) and at least two years full-time (or part-time equivalent) of relevant work experience (e.g., Health professional, medical administrator).",
+          "weight": "mandatory"
+        },
+        {
+          "id": "field-related-discipline",
+          "kind": "field_of_study",
+          "params": {
+            "acceptedAreas": [
+              "Nursing",
+              "Allied Health"
+            ]
+          },
+          "sourceText": "Completion of a bachelor's degree or equivalent in a related discipline (e.g., Nursing, Allied Health) and at least two years full-time (or part-time equivalent) of relevant work experience (e.g., Health professional, medical administrator).",
+          "weight": "mandatory"
+        },
+        {
+          "id": "work-experience-2-years",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 2,
+            "relevantTo": "Health professional, medical administrator"
+          },
+          "sourceText": "Completion of a bachelor's degree or equivalent in a related discipline (e.g., Nursing, Allied Health) and at least two years full-time (or part-time equivalent) of relevant work experience (e.g., Health professional, medical administrator).",
+          "weight": "mandatory"
+        }
+      ]
+    },
+    {
+      "id": "pathway-16cp",
+      "label": "2 years full-time (16 credit points)",
+      "requirements": [
+        {
+          "id": "completed-bachelor-any-discipline",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "2 years full-time (16 credit points): Completion of a bachelor's degree in any discipline.",
+          "weight": "mandatory"
+        }
+      ]
+    }
+  ]
+}

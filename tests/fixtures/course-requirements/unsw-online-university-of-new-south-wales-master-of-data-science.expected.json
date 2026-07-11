@@ -1,0 +1,91 @@
+{
+  "version": 2,
+  "global": [
+    {
+      "id": "english-proficiency",
+      "kind": "english_proficiency",
+      "params": {
+        "acceptedPathways": [
+          {
+            "type": "english_test",
+            "test": "IELTS",
+            "minOverall": 6.5,
+            "minBand": null
+          },
+          {
+            "type": "completion_in_country",
+            "countries": [
+              "AU",
+              "NZ",
+              "UK",
+              "IE",
+              "US",
+              "CA",
+              "ZA"
+            ]
+          }
+        ]
+      },
+      "sourceText": "English language: Must provide evidence of English proficiency via tests, university courses, prior study in English, or other qualifications/waivers",
+      "weight": "mandatory"
+    }
+  ],
+  "pathways": [
+    {
+      "id": "pathway-grad-dip",
+      "label": "Graduate Diploma pathway",
+      "requirements": [
+        {
+          "id": "completed-grad-dip-data-science",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "Completed the online Graduate Diploma in Data Science (5646) with a weighted average mark (WAM) of 65 or higher",
+          "weight": "alternative",
+          "alternativeGroupId": "grp-1"
+        },
+        {
+          "id": "wam-65-grad-dip-data-science",
+          "kind": "academic_threshold",
+          "params": {
+            "metric": "wam",
+            "min": 65,
+            "scale": 100
+          },
+          "sourceText": "Completed the online Graduate Diploma in Data Science (5646) with a weighted average mark (WAM) of 65 or higher",
+          "weight": "alternative",
+          "alternativeGroupId": "grp-1"
+        }
+      ]
+    },
+    {
+      "id": "pathway-undergrad",
+      "label": "Undergraduate degree pathway",
+      "requirements": [
+        {
+          "id": "completed-bachelor-data-science-or-cognate",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "Completed an undergraduate degree in data science or cognate discipline (e.g., computer science, economics, mathematics, statistics)",
+          "weight": "alternative",
+          "alternativeGroupId": "grp-2"
+        },
+        {
+          "id": "field-of-study-data-science-cognate",
+          "kind": "field_of_study",
+          "params": {
+            "acceptedAreas": [
+              "data science",
+              "computer science",
+              "economics",
+              "mathematics",
+              "statistics"
+            ]
+          },
+          "sourceText": "Completed an undergraduate degree in data science or cognate discipline (e.g., computer science, economics, mathematics, statistics)",
+          "weight": "alternative",
+          "alternativeGroupId": "grp-2"
+        }
+      ]
+    }
+  ]
+}

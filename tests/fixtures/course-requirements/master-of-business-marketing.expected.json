@@ -1,0 +1,196 @@
+{
+  "version": 2,
+  "global": [
+    {
+      "id": "english_proficiency",
+      "kind": "english_proficiency",
+      "params": {
+        "acceptedPathways": [
+          {
+            "type": "english_test",
+            "test": "IELTS",
+            "minOverall": 6.5,
+            "minBand": 6
+          },
+          {
+            "type": "completion_in_country",
+            "countries": [
+              "AU",
+              "NZ",
+              "UK",
+              "IE",
+              "US",
+              "CA",
+              "ZA"
+            ]
+          }
+        ]
+      },
+      "sourceText": "IELTS overall score of 6.5 (with no band score less than 6.0) or equivalent; or a bachelor degree from a recognised English-speaking country.",
+      "weight": "mandatory"
+    }
+  ],
+  "pathways": [
+    {
+      "id": "pathway-1",
+      "label": "Bachelor honours (AQF8) degree in a related discipline",
+      "requirements": [
+        {
+          "id": "qualification_completed-bachelor-honours",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "Bachelor honours (AQF8) degree in a related discipline",
+          "weight": "mandatory"
+        },
+        {
+          "id": "field-of-study-related-discipline-1",
+          "kind": "field_of_study",
+          "params": {
+            "acceptedAreas": [
+              "related discipline"
+            ]
+          },
+          "sourceText": "Bachelor honours (AQF8) degree in a related discipline",
+          "weight": "mandatory"
+        }
+      ]
+    },
+    {
+      "id": "pathway-2",
+      "label": "bachelor degree in a related discipline, plus two years relevant work experience",
+      "requirements": [
+        {
+          "id": "qualification_completed-bachelor",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "bachelor degree in a related discipline, plus two years relevant work experience",
+          "weight": "mandatory"
+        },
+        {
+          "id": "field-of-study-related-discipline-2",
+          "kind": "field_of_study",
+          "params": {
+            "acceptedAreas": [
+              "related discipline"
+            ]
+          },
+          "sourceText": "bachelor degree in a related discipline, plus two years relevant work experience",
+          "weight": "mandatory"
+        },
+        {
+          "id": "work_experience-2-years-related",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 2,
+            "relevantTo": "related discipline"
+          },
+          "sourceText": "bachelor degree in a related discipline, plus two years relevant work experience",
+          "weight": "mandatory"
+        }
+      ]
+    },
+    {
+      "id": "pathway-3",
+      "label": "graduate certificate or graduate diploma in a related discipline",
+      "requirements": [
+        {
+          "id": "qualification_completed-graduate-certificate",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "graduate certificate or graduate diploma in a related discipline",
+          "weight": "alternative",
+          "alternativeGroupId": "grad-qual-or"
+        },
+        {
+          "id": "qualification_completed-graduate-diploma",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "graduate certificate or graduate diploma in a related discipline",
+          "weight": "alternative",
+          "alternativeGroupId": "grad-qual-or"
+        },
+        {
+          "id": "field-of-study-related-discipline-3",
+          "kind": "field_of_study",
+          "params": {
+            "acceptedAreas": [
+              "related discipline"
+            ]
+          },
+          "sourceText": "graduate certificate or graduate diploma in a related discipline",
+          "weight": "mandatory"
+        }
+      ]
+    },
+    {
+      "id": "pathway-4",
+      "label": "Bachelor degree or higher in a related discipline",
+      "requirements": [
+        {
+          "id": "qualification_completed-bachelor",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "Bachelor degree or higher in a related discipline",
+          "weight": "mandatory"
+        },
+        {
+          "id": "field-of-study-related-discipline-4",
+          "kind": "field_of_study",
+          "params": {
+            "acceptedAreas": [
+              "related discipline"
+            ]
+          },
+          "sourceText": "Bachelor degree or higher in a related discipline",
+          "weight": "mandatory"
+        }
+      ]
+    },
+    {
+      "id": "pathway-5",
+      "label": "bachelor degree in any discipline, plus two years relevant work experience",
+      "requirements": [
+        {
+          "id": "qualification_completed-bachelor",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "bachelor degree in any discipline, plus two years relevant work experience",
+          "weight": "mandatory"
+        },
+        {
+          "id": "work_experience-2-years",
+          "kind": "work_experience",
+          "params": {
+            "minYears": 2
+          },
+          "sourceText": "bachelor degree in any discipline, plus two years relevant work experience",
+          "weight": "mandatory"
+        }
+      ]
+    },
+    {
+      "id": "pathway-6",
+      "label": "Bachelor degree or other qualification at a higher AQF level in any discipline",
+      "requirements": [
+        {
+          "id": "qualification_completed-bachelor-higher",
+          "kind": "qualification_completed",
+          "params": {},
+          "sourceText": "Bachelor degree or other qualification at a higher AQF level in any discipline",
+          "weight": "mandatory"
+        },
+        {
+          "id": "field-of-study-any",
+          "kind": "field_of_study",
+          "params": {
+            "acceptedAreas": [
+              "any discipline"
+            ]
+          },
+          "sourceText": "Bachelor degree or other qualification at a higher AQF level in any discipline",
+          "weight": "mandatory"
+        }
+      ]
+    }
+  ]
+}
