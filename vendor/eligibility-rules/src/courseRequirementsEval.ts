@@ -3,8 +3,8 @@ import {
   isCourseRequirementsV2,
   isMatcherUnsafe,
   type CourseRequirementsV2,
-} from "./courseRequirementsV2";
-import type { RequirementInstance, RequirementKind } from "./requirements";
+} from "./courseRequirementsV2.js";
+import type { RequirementInstance, RequirementKind } from "./requirements.js";
 
 export interface CourseRequirementsEvalScores {
   leafRecall: number;

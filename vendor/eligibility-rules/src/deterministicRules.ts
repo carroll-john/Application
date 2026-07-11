@@ -14,7 +14,7 @@ import type {
   EligibilityRequirementStatus,
   RequirementReasonCode,
   TranscriptEligibilityRequestContext,
-} from "./types";
+} from "./types.js";
 
 const AU_UNIVERSITIES = new Set(
   AU_TERTIARY_INSTITUTION_NAMES.map((item) => item.trim().toLowerCase()),

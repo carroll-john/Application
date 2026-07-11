@@ -5,11 +5,15 @@
   "type": "module",
   "description": "Shared eligibility rules engine, requirement models, and submit-policy constants for the Applications app proxy.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./dist/index.js"
   },
   "files": [
+    "dist",
     "src"
   ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
   "engines": {
     "node": ">=22"
   }
