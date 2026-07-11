@@ -17,3 +17,4 @@ supabase/.branches/
 .api-runtime-check/
 .tmp/
 reports/
+eligibility-service/

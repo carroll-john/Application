@@ -71,14 +71,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Checkout shared eligibility rules package
-        run: |
-          git clone --depth 1 --branch "${ELIGIBILITY_SERVICE_REF}" \
-            https://github.com/carroll-john/eligibility-service.git \
-            ../eligibility-service
-        env:
-          ELIGIBILITY_SERVICE_REF: codex/eligibility-rules-package
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -87,6 +79,8 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+        env:
+          ELIGIBILITY_SERVICE_REF: codex/eligibility-rules-package
 
       - name: Run eligibility matcher eval
         run: npm run eligibility:eval
