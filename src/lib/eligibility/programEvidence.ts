@@ -1,13 +1,14 @@
 import type { ApplicationData } from "../applicationData";
 import type { CourseCatalogEntry } from "../courseCatalog";
 import { isSubmissionReadyDocument } from "../documentAttachment";
-import { requirementCheckDisplayCopy } from "./checkCopy";
 import {
-  getAcceptedEnglishCompletionCountries,
-  hasCurrentAhpraRegistrationEvidence,
-  isEnglishMediumQualification,
-  languageTestSatisfiesEnglishRequirement,
-} from "./englishProficiencyEvidence";
+  buildRequirementCheckMap,
+  classifyEnglishProficiencyEvidence,
+  classifyTranscriptCheckEvidence,
+  classifyWorkExperienceEvidence,
+  type ProgramEvidenceClassification,
+  type ProgramEvidenceStatus,
+} from "./programEvidenceClassification";
 import {
   ALL_REQUIREMENT_KINDS,
   formatAcademicThreshold,
@@ -17,6 +18,7 @@ import {
   type QualificationLevel,
   type RequirementInstance,
 } from "./requirements";
+import { requirementCheckDisplayCopy } from "./checkCopy";
 import {
   findPairedQualificationLevel,
   formatMergedQualificationHeading,
@@ -30,12 +32,7 @@ import type {
   TranscriptEligibilityAssessment,
 } from "./types";
 
-export type ProgramEvidenceStatus =
-  | "met"
-  | "needs_evidence"
-  | "needs_details"
-  | "needs_review"
-  | "possible_alternative";
+export type { ProgramEvidenceStatus } from "./programEvidenceClassification";
 
 export interface ProgramEvidenceRow {
   actionLabel?: string;
@@ -71,18 +68,6 @@ const employmentPath = "/section2/add-employment?from=review";
 const languagePath = "/section2/add-language-test?from=review";
 const cvPath = "/section2/add-cv?from=review";
 
-function getCheckMap(checks: readonly EligibilityRequirementCheck[]) {
-  const out = new Map<string, EligibilityRequirementCheck>();
-  for (const check of checks) {
-    out.set(check.id, check);
-    const groupDelimiter = check.id.indexOf(":");
-    if (groupDelimiter > 0) {
-      out.set(check.id.slice(0, groupDelimiter), check);
-    }
-  }
-  return out;
-}
-
 function shouldSkipPairedQualificationCompleted(
   requirements: readonly RequirementInstance[],
   instance: RequirementInstance,
@@ -90,13 +75,6 @@ function shouldSkipPairedQualificationCompleted(
   return shouldOmitPairedQualificationCompleted(requirements, instance);
 }
 
-/**
- * The qualification level to summarize for a `qualification_completed`/`qualification_level`
- * card. `qualification_completed` params never carry a level (see `QualificationCompletedParams`),
- * so when the rendered instance is the level side of a deduped pair
- * (`shouldSkipPairedQualificationCompleted`), look up the level from its sibling
- * `qualification_level` instance in the same course's requirement list.
- */
 function findQualificationLevel(
   instance: RequirementInstance,
   requirements: readonly RequirementInstance[],
@@ -113,13 +91,6 @@ function findQualificationLevel(
   return undefined;
 }
 
-/**
- * Short, non-duplicated card title. Requirement sourceText is the verbatim published sentence,
- * which is often a compound clause that restates another requirement's wording (e.g. a GPA
- * requirement repeating the qualification-level sentence just to append the GPA figure, or
- * several requirements sharing one un-split published sentence) — build a heading from each
- * requirement's structured params instead.
- */
 function formatRequirementHeading(
   instance: RequirementInstance,
   requirements: readonly RequirementInstance[],
@@ -152,6 +123,87 @@ function formatRequirementHeading(
   return level ? formatQualificationLevel(level) : instance.sourceText;
 }
 
+function withEvidenceActions(
+  classification: ProgramEvidenceClassification,
+  actions: Pick<ProgramEvidenceRow, "actionLabel" | "actionPath">,
+): Pick<
+  ProgramEvidenceRow,
+  "actionLabel" | "actionPath" | "explanation" | "isBlocking" | "reasonCode" | "requirementStatus" | "status"
+> {
+  return {
+    ...classification,
+    ...actions,
+  };
+}
+
+function englishRequirementRow(
+  data: ApplicationData,
+  course: CourseCatalogEntry,
+  instance: Extract<RequirementInstance, { kind: "english_proficiency" }>,
+): Pick<
+  ProgramEvidenceRow,
+  "actionLabel" | "actionPath" | "explanation" | "isBlocking" | "status"
+> {
+  const classification = classifyEnglishProficiencyEvidence({
+    applicationData: data,
+    course,
+    instance,
+  });
+
+  if (classification.status === "met") {
+    return classification;
+  }
+
+  const firstLanguageTest = data.languageTests[0];
+  if (firstLanguageTest) {
+    return withEvidenceActions(classification, {
+      actionLabel: "Update English test",
+      actionPath: `/section2/edit-language-test/${firstLanguageTest.id}?from=review`,
+    });
+  }
+
+  const firstAhpraLikeAccreditation = data.professionalAccreditations.find((accreditation) =>
+    /ahpra|registered/i.test(accreditation.name),
+  );
+  if (firstAhpraLikeAccreditation && classification.status === "needs_details") {
+    return withEvidenceActions(classification, {
+      actionLabel: "Update registration",
+      actionPath: `/section2/edit-accreditation/${firstAhpraLikeAccreditation.id}?from=review`,
+    });
+  }
+
+  return withEvidenceActions(classification, {
+    actionLabel: "Add English evidence",
+    actionPath: languagePath,
+  });
+}
+
+function workExperienceRow(
+  data: ApplicationData,
+  instance: Extract<RequirementInstance, { kind: "work_experience" }>,
+): Pick<
+  ProgramEvidenceRow,
+  "actionLabel" | "actionPath" | "explanation" | "isBlocking" | "status"
+> {
+  const classification = classifyWorkExperienceEvidence({ applicationData: data, instance });
+
+  if (classification.status === "met") {
+    return classification;
+  }
+
+  if (data.cvUploaded && data.employmentExperiences.length === 0) {
+    return withEvidenceActions(classification, {
+      actionLabel: "Add employment experience",
+      actionPath: employmentPath,
+    });
+  }
+
+  return withEvidenceActions(classification, {
+    actionLabel: "Add CV",
+    actionPath: cvPath,
+  });
+}
+
 function statusFromCheck(
   instance: RequirementInstance,
   check: EligibilityRequirementCheck | undefined,
@@ -166,192 +218,33 @@ function statusFromCheck(
   | "requirementStatus"
   | "status"
 > {
-  if (!check) {
-    if (hasTranscriptEvidence) {
-      return {
-        explanation:
-          "We reviewed your transcript but could not confirm this requirement automatically. Admissions will verify it.",
-        isBlocking: false,
-        status: "needs_review",
-      };
-    }
+  const classification = classifyTranscriptCheckEvidence({
+    check,
+    hasTranscriptEvidence,
+    instance,
+  });
 
-    return {
-      actionLabel: "Add transcript",
-      actionPath: tertiaryPath,
-      explanation: "Add your transcript to verify this requirement.",
-      isBlocking: true,
-      status: "needs_evidence",
-    };
-  }
-
-  if (check.status === "pass") {
-    return {
-      explanation: requirementCheckDisplayCopy(check),
-      isBlocking: false,
-      reasonCode: check.reasonCode,
-      requirementStatus: check.status,
-      status: "met",
-    };
-  }
-
-  if (check.status === "unknown") {
-    if (hasTranscriptEvidence) {
-      return {
+  if (classification.status === "met" || classification.status === "needs_review") {
+    if (classification.isBlocking) {
+      return withEvidenceActions(classification, {
         actionLabel: "Review qualification",
         actionPath: tertiaryPath,
-        explanation: requirementCheckDisplayCopy(check),
-        isBlocking: false,
-        reasonCode: check.reasonCode,
-        requirementStatus: check.status,
-        status: "needs_review",
-      };
+      });
     }
-
-    return {
-      actionLabel: "Review qualification",
-      actionPath: tertiaryPath,
-      explanation: requirementCheckDisplayCopy(check),
-      isBlocking: true,
-      reasonCode: check.reasonCode,
-      requirementStatus: check.status,
-      status: "needs_evidence",
-    };
+    return classification;
   }
 
-  if (instance.kind === "academic_threshold") {
-    return {
+  if (classification.status === "possible_alternative") {
+    return withEvidenceActions(classification, {
       actionLabel: "Add CV",
       actionPath: cvPath,
-      explanation: `${requirementCheckDisplayCopy(check)} Add a CV for admissions to consider an alternate pathway.`,
-      isBlocking: false,
-      reasonCode: check.reasonCode,
-      requirementStatus: check.status,
-      status: "possible_alternative",
-    };
+    });
   }
 
-  return {
-    explanation: requirementCheckDisplayCopy(check),
-    isBlocking: false,
-    reasonCode: check.reasonCode,
-    requirementStatus: check.status,
-    status: "needs_review",
-  };
-}
-
-function englishRequirementRow(
-  data: ApplicationData,
-  course: CourseCatalogEntry,
-  instance: Extract<RequirementInstance, { kind: "english_proficiency" }>,
-): Pick<
-  ProgramEvidenceRow,
-  "actionLabel" | "actionPath" | "explanation" | "isBlocking" | "status"
-> {
-  const englishQualification = data.tertiaryQualifications.find((qualification) =>
-    isEnglishMediumQualification(qualification, course),
-  );
-  if (englishQualification) {
-    return {
-      explanation: `English evidence is satisfied by study in ${englishQualification.country}.`,
-      isBlocking: false,
-      status: "met",
-    };
-  }
-
-  const matchingTest = data.languageTests.find((test) =>
-    languageTestSatisfiesEnglishRequirement(test, instance),
-  );
-  if (matchingTest) {
-    return {
-      explanation: `${matchingTest.type} evidence meets the score and document requirements for this program.`,
-      isBlocking: false,
-      status: "met",
-    };
-  }
-
-  if (hasCurrentAhpraRegistrationEvidence(data.professionalAccreditations)) {
-    return {
-      explanation: "English evidence is satisfied by current documented AHPRA registration.",
-      isBlocking: false,
-      status: "met",
-    };
-  }
-
-  const firstLanguageTest = data.languageTests[0];
-  if (firstLanguageTest) {
-    const hasDocument = isSubmissionReadyDocument(firstLanguageTest.document);
-    const hasOverallScore = Boolean(firstLanguageTest.overallScore?.trim());
-    return {
-      actionLabel: "Update English test",
-      actionPath: `/section2/edit-language-test/${firstLanguageTest.id}?from=review`,
-      explanation: hasDocument && hasOverallScore
-        ? "Your English test doesn't meet this program's required scores. Add another approved test or AHPRA registration."
-        : "Add your official score report so this requirement can be checked.",
-      isBlocking: true,
-      status: hasDocument && hasOverallScore ? "needs_evidence" : "needs_details",
-    };
-  }
-
-  const firstAhpraLikeAccreditation = data.professionalAccreditations.find((accreditation) =>
-    /ahpra|registered/i.test(accreditation.name),
-  );
-  if (firstAhpraLikeAccreditation) {
-    return {
-      actionLabel: "Update registration",
-      actionPath: `/section2/edit-accreditation/${firstAhpraLikeAccreditation.id}?from=review`,
-      explanation:
-        "Mark your AHPRA registration active and attach the supporting document.",
-      isBlocking: true,
-      status: "needs_details",
-    };
-  }
-
-  const acceptedCountries = getAcceptedEnglishCompletionCountries(course).join(", ");
-  return {
-    actionLabel: "Add English evidence",
-    actionPath: languagePath,
-    explanation: `Add an approved English test, AHPRA registration, or a qualification from an accepted English-speaking country (${acceptedCountries}).`,
-    isBlocking: true,
-    status: "needs_evidence",
-  };
-}
-
-function workExperienceRow(
-  data: ApplicationData,
-  instance: Extract<RequirementInstance, { kind: "work_experience" }>,
-): Pick<
-  ProgramEvidenceRow,
-  "actionLabel" | "actionPath" | "explanation" | "isBlocking" | "status"
-> {
-  if (data.employmentExperiences.length > 0) {
-    return {
-      explanation:
-        data.cvUploaded
-          ? "Work experience and CV added for admissions review."
-          : "Work experience added. A CV can strengthen your case.",
-      isBlocking: false,
-      status: "met",
-    };
-  }
-
-  if (data.cvUploaded) {
-    return {
-      actionLabel: "Add employment experience",
-      actionPath: employmentPath,
-      explanation: `Add your employment history so admissions can assess ${instance.params.minYears}+ years' relevant experience.`,
-      isBlocking: true,
-      status: "needs_evidence",
-    };
-  }
-
-  return {
-    actionLabel: "Add CV",
-    actionPath: cvPath,
-    explanation: `Add evidence of ${instance.params.minYears}+ years' relevant experience.`,
-    isBlocking: true,
-    status: "needs_evidence",
-  };
+  return withEvidenceActions(classification, {
+    actionLabel: classification.isBlocking ? "Add transcript" : "Review qualification",
+    actionPath: tertiaryPath,
+  });
 }
 
 export function buildProgramEvidenceRows(options: {
@@ -365,7 +258,7 @@ export function buildProgramEvidenceRows(options: {
     return [];
   }
 
-  const checkMap = getCheckMap(transcriptAssessment?.requirementsChecked ?? []);
+  const checkMap = buildRequirementCheckMap(transcriptAssessment?.requirementsChecked ?? []);
   const hasTranscriptEvidence = applicationData.tertiaryQualifications.some((qualification) =>
     isSubmissionReadyDocument(qualification.transcriptDocument),
   );

@@ -16,10 +16,8 @@ import {
   qualificationFieldDraftDiffers,
   type TertiaryQualificationFieldDraft,
 } from "../../lib/eligibility/mapToTertiaryQualification";
-import type {
-  TranscriptEligibilityAssessment,
-  TranscriptEligibilityRequestContext,
-} from "../../lib/eligibility/types";
+import type { TranscriptEligibilityRequestContext } from "../../lib/eligibility/contextSchema";
+import type { TranscriptEligibilityAssessment } from "../../lib/eligibility/types";
 import type { UploadedDocument } from "../../lib/documentStorage";
 
 export interface TertiaryTranscriptParseContext {

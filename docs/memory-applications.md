@@ -81,12 +81,24 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   `0002`. Later migrations dropped the `is_allowed_company_user()` guard and switched
   every document check to `application_document_is_ready()`; rebuilding from `0002`
   silently reverts both (a prod-breaking regression caught in PR #129).
-- **Gotcha — eligibility request context has two definitions** that must stay in
-  sync: the client builder `buildTranscriptEligibilityContext`
-  (`src/features/section2/tertiaryTranscriptParsePolicy.ts`) and the API whitelist
-  parser `parseContext` (`api/_eligibility/context.ts`). A field added to one but
-  not the other is silently dropped before reaching the evaluator in the real upload
-  flow (caught in PR #130).
+- **Eligibility rules package:** `@johncarroll/eligibility-rules` lives in the
+  `eligibility-service` repo (`packages/eligibility-rules/`) and is linked from
+  this app via `file:../eligibility-service/packages/eligibility-rules`. The app
+  proxy still owns final verdict assembly; the package owns matcher, requirement
+  types, v2 pathway IR, evaluators, check copy, assessment resolution, and
+  submit-policy constants. App shims under `src/lib/eligibility/*.ts` re-export
+  from the package so existing imports keep working.
+- **Transcript eligibility context:** one shared schema in the package
+  (`contextSchema.ts`: `parseTranscriptEligibilityContext`,
+  `serializeTranscriptEligibilityContext`). The Section 2 client builder
+  (`buildTranscriptEligibilityContext` in `tertiaryTranscriptParsePolicy.ts`) and
+  the API parser (`parseContext` in `api/_eligibility/context.ts`) must stay
+  aligned with that schema — add fields to the package parser first, then the
+  builder. Contract test: `src/lib/eligibility/contextSchema.test.ts`.
+- **Submit policy drift guard:** English-medium country aliases, AHPRA regex, and
+  transcript-completion patterns live in the package `submitPolicy.ts`. SQL RPC
+  checks in `20260707120000_section2_submission_policy.sql` must match — contract
+  test: `src/lib/eligibility/submitPolicyContract.test.ts`.
 - **Academic thresholds:** when a transcript has no aggregate WAM but exposes unit
   marks and credit points, calculate WAM deterministically from all counted unit
   rows (`sum(mark * creditPoints) / sum(creditPoints)`). Include failed subjects
@@ -104,7 +116,7 @@ server `submit_application` RPC enforces the same conditions (see Submission).
 
 - **Source text:** `entry_requirements` in `courses.raw.json`.
 - **Structured IR:** `CourseRequirementsV2` (`global` + `pathways[]`) in
-  `src/lib/eligibility/courseRequirementsV2.ts`; flattened to `RequirementInstance[]`
+  `@johncarroll/eligibility-rules` (re-exported from `src/lib/eligibility/courseRequirementsV2.ts`); flattened to `RequirementInstance[]`
   with `pathwayBundleId` at runtime via `requirementsLoader.ts`.
 - **Generated artifact:** `src/lib/courseCatalog/requirements.generated.json` (committed,
   PR-reviewed). v2 pathway IR replaces the old flat list for multi-pathway courses.

@@ -23,17 +23,9 @@ import type { EnglishPathway, RequirementInstance } from "./requirements";
  *   be satisfied by an English test OR an AHPRA registration.
  */
 
-/**
- * AHPRA (Australian Health Practitioner Regulation Agency) registrations are accepted
- * as English-proficiency evidence. Recognised from the free-text accreditation name —
- * either an explicit AHPRA mention or a registered health-practitioner title.
- */
-const AHPRA_REGISTRATION_PATTERN =
-  /\bahpra\b|australian health practitioner|nursing and midwifery board|medical board of australia|dental board of australia|registered\s+(nurse|midwife|midwifery|medical practitioner|pharmacist|physiotherapist|psychologist|dentist|optometrist|paramedic|occupational therapist|chiropractor|osteopath|podiatrist|radiographer)/i;
+import { isAhpraRegistration, TRANSCRIPT_COMPLETION_PATTERN } from "./submitPolicy";
 
-export function isAhpraRegistration(name: string | undefined): boolean {
-  return Boolean(name && AHPRA_REGISTRATION_PATTERN.test(name));
-}
+export { isAhpraRegistration } from "./submitPolicy";
 
 export function hasAhpraRegistration(
   accreditations: ProfessionalAccreditation[],
@@ -52,10 +44,6 @@ export function hasCurrentAhpraRegistrationEvidence(
   );
 }
 
-/** Transcript wording that indicates the qualification was completed / conferred. */
-const COMPLETION_PATTERN =
-  /complet|graduat|conferred|award(ed)?|finished|passed|degree (awarded|granted)/i;
-
 /** True when the parsed transcript states the qualification was completed. */
 export function transcriptConfirmsCompletion(
   qualification: TertiaryQualification,
@@ -64,7 +52,7 @@ export function transcriptConfirmsCompletion(
     qualification.transcriptEligibility?.extractedData.studyDetails?.completionStatus;
   if (status) {
     const value = status.normalizedValue ?? status.originalValue ?? "";
-    return COMPLETION_PATTERN.test(value);
+    return TRANSCRIPT_COMPLETION_PATTERN.test(value);
   }
   // No in-memory assessment (e.g. a draft reloaded from the store) — fall back to
   // the persisted snapshot of the transcript's completion signal.
