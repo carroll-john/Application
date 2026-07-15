@@ -1,5 +1,5 @@
-import { consolidatePairedQualificationRequirements } from "./requirementPresentation";
-import type { RequirementInstance } from "./requirements";
+import { consolidatePairedQualificationRequirements } from "./requirementPresentation.js";
+import type { RequirementInstance } from "./requirements.js";
 
 /** Pathway-first rules IR — expresses `(A AND B) OR (C AND D)` entry pathways. */
 export interface CourseRequirementsPathway {

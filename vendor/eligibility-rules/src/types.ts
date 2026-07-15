@@ -179,7 +179,7 @@ export interface TranscriptEligibilityAssessment {
   serviceVersion?: string;
 }
 
-import type { RequirementInstance } from "./requirements";
+import type { RequirementInstance } from "./requirements.js";
 
 export interface TranscriptEligibilityRequestContext {
   completed?: boolean;
