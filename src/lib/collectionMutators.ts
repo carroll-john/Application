@@ -12,6 +12,10 @@ interface CollectionMutatorConfig<EventName extends string> {
   collectionKey: keyof ApplicationData;
   savedEvent: EventName;
   removedEvent: EventName;
+  transformApplication?: (
+    application: ApplicationData,
+    previous: ApplicationData,
+  ) => ApplicationData;
 }
 
 type UpdateDataWithEvent<EventName extends string> = (
@@ -30,17 +34,18 @@ export function createCollectionMutators<
   updateDataWithEvent: UpdateDataWithEvent<EventName>,
 ) {
   const { collectionKey, savedEvent, removedEvent } = config;
+  const transform = config.transformApplication ?? ((application: ApplicationData) => application);
 
   return {
     add: (item: T) =>
       updateDataWithEvent(
-        (current) => ({
+        (current) => transform({
           ...current,
           [collectionKey]: [
             ...(current[collectionKey] as T[]),
             item,
           ],
-        }),
+        }, current),
         savedEvent,
         (nextData) => ({
           action: "created",
@@ -49,14 +54,14 @@ export function createCollectionMutators<
       ),
     update: (id: string, item: T) =>
       updateDataWithEvent(
-        (current) => ({
+        (current) => transform({
           ...current,
           [collectionKey]: replaceItemById(
             current[collectionKey] as T[],
             id,
             item,
           ),
-        }),
+        }, current),
         savedEvent,
         (nextData) => ({
           action: "updated",
@@ -65,12 +70,12 @@ export function createCollectionMutators<
       ),
     remove: (id: string) =>
       updateDataWithEvent(
-        (current) => ({
+        (current) => transform({
           ...current,
           [collectionKey]: (current[collectionKey] as T[]).filter(
             (entry) => entry.id !== id,
           ),
-        }),
+        }, current),
         removedEvent,
         (nextData) => ({
           total_count: (nextData[collectionKey] as T[]).length,

@@ -12,6 +12,16 @@ The system should extract and parse document data, evaluate program rules, and r
 - Added parse-first tertiary transcript UX: upload transcript → auto-fill qualification fields from the same eligibility extraction response → show combined hub review (drafted fields + advisory eligibility panel).
 - Reuses `api/evaluate-transcript-eligibility` for single-call extract + assess (no separate parse route).
 
+## Status Update (2026-07-16)
+- Added a separate, authenticated course-specific work-experience assessment beside the CV
+  parser. CV parsing still drafts editable roles; the new route classifies relevance and only
+  evaluates role level when the course explicitly requires it.
+- Added deterministic calendar-duration bounds, overlap merging, input fingerprints, and four
+  advisory statuses. Unsupported qualifiers and service failures route to manual review.
+- Added one optional employer letter per role through the shared document lifecycle. Letters
+  improve evidence readiness but are not parsed, verified, or required for submission.
+- Kept the pinned transcript eligibility service contract unchanged.
+
 ## Status Update (2026-05-23)
 - Landed app-to-service eligibility proxy contract at `api/evaluate-transcript-eligibility`.
 - Added four-status advisory outcome model to the app domain: `eligible`, `conditionally_eligible`, `ineligible`, `insufficient_data`.
@@ -47,6 +57,7 @@ The system should extract and parse document data, evaluate program rules, and r
 - `transcript`
 - `completion_certificate` (optional)
 - `cv`
+- `employment_letter` (optional, attached to one role for admissions review)
 
 ### Canonical profile fields
 - `educationRecords[]`
@@ -105,6 +116,12 @@ Use `npm run notion:publish-note -- --file <note-path>` with `NOTION_TOKEN` and 
 - Add contract tests for proxy forwarding, upstream error mapping, and fallback responses.
 - Validate synthetic transcript fixture coverage against expected four-status outcomes.
 - Align service response schema with app-rendered requirement checks and missing-evidence guidance.
+
+### Phase 2.2: Work Experience Evidence (Preview rollout)
+- Apply the additive database migration before enabling the application feature.
+- Smoke-test CV drafting, course/role reassessment, refresh persistence, letter delivery and
+  replacement/removal with synthetic data in Preview.
+- Confirm an application can still submit without an employer letter, then enable Production.
 
 ### Phase 3: Trust + Scale
 - Add user correction/override loop for extracted fields.

@@ -36,6 +36,20 @@ When gating passes, parse starts in parallel with document save. Upload failure 
 
 CV persist exception: after document save, call `uploadCV` / `removeCV` (app-scoped FK on `applications.cv_document_id`).
 
+### Course-specific work-experience assessment
+
+CV parsing remains responsible only for drafting editable employment rows. A separate
+authenticated `POST /api/evaluate-work-experience` request assesses those sanitised rows
+against the selected course's `work_experience` requirements after CV auto-fill and after
+employment or course changes. Applicant and employer names are never sent to the model.
+
+Duration is calculated deterministically in `@johncarroll/eligibility-rules`; the model
+classifies relevance and, only when the course explicitly declares it, the exact
+`qualifyingRoleCriteria`. The result is advisory, versioned, fingerprinted, and persisted in
+`applications.work_experience_assessments`. A model or service failure returns `needs_review`
+and never prevents submission. Employer letters use the upload layer but are not parsed in
+this release.
+
 ## Tertiary transcript kind (parse + program evidence review)
 
 Reuses `/api/evaluate-transcript-eligibility` as a single LLM call for field extraction plus app-side program requirement review — not a separate `documentParserRegistry` entry. Keep applicant-facing copy framed as **program evidence review**, not a final eligibility decision.
@@ -71,6 +85,8 @@ Do **not** copy upload hooks, storage paths, or save orchestration per kind.
 | `src/lib/documentParserClient.ts` | `requestParseDocument(file, kind)` |
 | `src/lib/documentParserRegistry.ts` | Kind → client config |
 | `api/_documentParser/*` | Shared auth, file policy, errors, Sentry |
+| `api/evaluate-work-experience.ts` | Course-specific advisory assessment route |
+| `src/features/application/hooks/useWorkExperienceAssessment.ts` | Fingerprint and reassessment orchestration |
 | `src/lib/documentFilePolicy.ts` | Shared MIME/size constants (client) |
 | `api/_shared/documentFilePolicy.ts` | Shared MIME/size constants (server) |
 

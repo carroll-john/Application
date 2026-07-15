@@ -9,6 +9,8 @@
 - `eligibilityFeedbackDocument` / `eligibilityFeedbackFileName` on `ApplicationData` —
   optional JSON feedback artifact; hydrate from latest `application_documents` row with
   `kind = eligibility_feedback` (see [memory-documents.md](memory-documents.md)).
+- `workExperienceAssessments` is a versioned map keyed by course requirement ID. Employment
+  roles may each reference one optional `employment_letter` document.
 
 ## State Layer
 
@@ -60,6 +62,21 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   documents query — do not assume `applications.eligibility_feedback_*` columns
   are populated on read.
 
+### Advisory work-experience evidence
+
+- CV parsing drafts editable employment rows; it does not decide whether a program's work
+  requirement is met. `useWorkExperienceAssessment` separately evaluates only courses that
+  declare a `work_experience` requirement and persists results by requirement ID.
+- `relevantTo` means field/type of work only. Course-specific managerial, supervisory,
+  professional, leadership, or people-management wording belongs in optional
+  `qualifyingRoleCriteria`; do not infer a universal role-level ladder.
+- Calendar duration is deterministic, overlapping roles are merged, current roles end in the
+  current month, and year-only dates yield minimum/maximum bounds. Part-time/FTE weighting is
+  deliberately out of scope.
+- Outcomes are conditional evidence signals (`provisionally_met`, `possibly_met`,
+  `not_demonstrated`, `needs_review`), never final admissions decisions. Employer letters are
+  optional corroborating evidence and never submission blockers.
+
 ## Submission
 
 - Server-backed submit via `submit_application` RPC (`0002_server_submit.sql`, `0004_submission_rpc_grants.sql`).
@@ -81,6 +98,9 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   `0002`. Later migrations dropped the `is_allowed_company_user()` guard and switched
   every document check to `application_document_is_ready()`; rebuilding from `0002`
   silently reverts both (a prod-breaking regression caught in PR #129).
+- Work-experience assessments and employer letters are deliberately absent from the submit
+  RPC. Do not add them to `application_submission_missing_fields` without a new product and
+  admissions policy decision.
 - **Eligibility rules package:** `@johncarroll/eligibility-rules` lives in the
   `eligibility-service` repo (`packages/eligibility-rules/`) and is linked from
   this app via `file:./vendor/eligibility-rules` (vendored snapshot). A

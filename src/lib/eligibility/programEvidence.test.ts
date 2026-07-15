@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type {
   ApplicationData,
+  EmploymentExperience,
   LanguageTest,
   ProfessionalAccreditation,
   TertiaryQualification,
@@ -9,6 +10,7 @@ import { initialApplicationData } from "../applicationData";
 import type { CourseCatalogEntry } from "../courseCatalog";
 import type { UploadedDocument } from "../documentStorage";
 import { normalizeTranscriptEligibilityAssessment } from "./normalize";
+import { buildWorkExperienceAssessment } from "./workExperience";
 import {
   buildAssessmentCheckEvidenceRows,
   buildProgramEvidenceRows,
@@ -77,6 +79,24 @@ function tertiaryQualification(
     completed: true,
     endMonth: "December",
     endYear: "2023",
+    ...overrides,
+  };
+}
+
+function employmentExperience(
+  overrides: Partial<EmploymentExperience> = {},
+): EmploymentExperience {
+  return {
+    id: "role-1",
+    company: "Example Company",
+    position: "Operations Lead",
+    type: "Full-time",
+    startMonth: "January",
+    startYear: "2021",
+    endMonth: "December",
+    endYear: "2023",
+    currentRole: false,
+    duties: "Led operational improvement projects and supervised a team.",
     ...overrides,
   };
 }
@@ -349,6 +369,88 @@ describe("buildProgramEvidenceRows", () => {
       isBlocking: true,
       status: "needs_evidence",
     });
+  });
+
+  it("shows a conditional result and requests an employer letter", () => {
+    const requirement = {
+      id: "work-experience",
+      kind: "work_experience" as const,
+      params: { minYears: 3 },
+      sourceText: "Three years relevant work experience.",
+      weight: "mandatory" as const,
+    };
+    const role = employmentExperience();
+    const assessment = buildWorkExperienceAssessment({
+      requirement,
+      roles: [role],
+      classifications: [{
+        employmentExperienceId: role.id,
+        relevanceStatus: "relevant",
+        roleCriteriaStatus: "not_required",
+        confidence: 0.9,
+        explanation: "The duties demonstrate relevant operations work.",
+        evidencePhrases: ["operational improvement projects"],
+      }],
+      checkedAt: "2026-07-16T00:00:00.000Z",
+      promptVersion: "test@v1",
+    });
+    const [row] = buildProgramEvidenceRows({
+      applicationData: application({
+        employmentExperiences: [role],
+        workExperienceAssessments: { [requirement.id]: assessment },
+      }),
+      course: { code: "work-course", title: "Work course", requirements: [requirement] } as CourseCatalogEntry,
+    });
+
+    expect(row).toMatchObject({
+      actionLabel: "Add employer letter",
+      actionPath: "/section2/edit-employment/role-1?from=review",
+      isBlocking: false,
+      status: "provisionally_met",
+      statusLabel: "Appears to meet",
+    });
+    expect(row.explanationItems).toEqual([
+      "Operations Lead: Included — The duties demonstrate relevant operations work.",
+    ]);
+  });
+
+  it("keeps employer confirmation subject to admissions review", () => {
+    const requirement = {
+      id: "work-experience",
+      kind: "work_experience" as const,
+      params: { minYears: 3 },
+      sourceText: "Three years relevant work experience.",
+      weight: "mandatory" as const,
+    };
+    const role = employmentExperience({
+      employerLetterDocument: remoteDoc("employer-letter"),
+      employerLetterDocumentName: "employer-letter.pdf",
+    });
+    const assessment = buildWorkExperienceAssessment({
+      requirement,
+      roles: [role],
+      classifications: [{
+        employmentExperienceId: role.id,
+        relevanceStatus: "relevant",
+        roleCriteriaStatus: "not_required",
+        confidence: 0.9,
+        explanation: "Relevant operations work.",
+        evidencePhrases: ["operational improvement projects"],
+      }],
+      checkedAt: "2026-07-16T00:00:00.000Z",
+      promptVersion: "test@v1",
+    });
+    const [row] = buildProgramEvidenceRows({
+      applicationData: application({
+        employmentExperiences: [role],
+        workExperienceAssessments: { [requirement.id]: assessment },
+      }),
+      course: { code: "work-course", title: "Work course", requirements: [requirement] } as CourseCatalogEntry,
+    });
+
+    expect(row).toMatchObject({ isBlocking: false, status: "needs_review" });
+    expect(row.explanation).toContain("Employer confirmation supplied");
+    expect(row.actionLabel).toBeUndefined();
   });
 });
 

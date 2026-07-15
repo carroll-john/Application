@@ -119,6 +119,7 @@ export type Database = {
           submitted_at: string | null
           updated_at: string
           user_id: string
+          work_experience_assessments: Json
         }
         Insert: {
           applicant_profile_id?: string | null
@@ -141,6 +142,7 @@ export type Database = {
           submitted_at?: string | null
           updated_at?: string
           user_id: string
+          work_experience_assessments?: Json
         }
         Update: {
           applicant_profile_id?: string | null
@@ -163,6 +165,7 @@ export type Database = {
           submitted_at?: string | null
           updated_at?: string
           user_id?: string
+          work_experience_assessments?: Json
         }
         Relationships: [
           {
@@ -219,6 +222,8 @@ export type Database = {
           created_at: string
           duties: string
           employment_type: string
+          employer_letter_document_id: string | null
+          employer_letter_document_name: string | null
           end_month: string | null
           end_year: string | null
           id: string
@@ -234,6 +239,8 @@ export type Database = {
           created_at?: string
           duties?: string
           employment_type: string
+          employer_letter_document_id?: string | null
+          employer_letter_document_name?: string | null
           end_month?: string | null
           end_year?: string | null
           id?: string
@@ -249,6 +256,8 @@ export type Database = {
           created_at?: string
           duties?: string
           employment_type?: string
+          employer_letter_document_id?: string | null
+          employer_letter_document_name?: string | null
           end_month?: string | null
           end_year?: string | null
           id?: string
@@ -264,6 +273,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employment_experiences_employer_letter_document_id_fkey"
+            columns: ["employer_letter_document_id"]
+            isOneToOne: false
+            referencedRelation: "application_documents"
             referencedColumns: ["id"]
           },
         ]
@@ -541,6 +557,7 @@ export type Database = {
         | "accreditation_document"
         | "language_test_document"
         | "eligibility_feedback"
+        | "employment_letter"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -676,6 +693,7 @@ export const Constants = {
         "accreditation_document",
         "language_test_document",
         "eligibility_feedback",
+        "employment_letter",
       ],
     },
   },

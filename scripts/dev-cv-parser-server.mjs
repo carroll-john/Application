@@ -10,6 +10,11 @@ if (!Number.isFinite(port) || port <= 0) {
 }
 
 const { default: parseCvHandler } = await import("../api/parse-cv.ts");
+const { default: workExperienceHandler } = await import("../api/evaluate-work-experience.ts");
+const handlers = new Map([
+  ["/api/parse-cv", parseCvHandler],
+  ["/api/evaluate-work-experience", workExperienceHandler],
+]);
 
 function toRequestHeaders(nodeHeaders) {
   const headers = new Headers();
@@ -57,7 +62,8 @@ const server = createServer(async (request, response) => {
     return;
   }
 
-  if (url.pathname !== "/api/parse-cv") {
+  const handler = handlers.get(url.pathname);
+  if (!handler) {
     sendJson(response, 404, { error: "Not found." });
     return;
   }
@@ -76,7 +82,7 @@ const server = createServer(async (request, response) => {
       method: request.method || "GET",
     });
 
-    const handlerResponse = await parseCvHandler.fetch(handlerRequest);
+    const handlerResponse = await handler.fetch(handlerRequest);
 
     response.statusCode = handlerResponse.status;
     handlerResponse.headers.forEach((value, key) => {
@@ -92,7 +98,7 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, host, () => {
-  process.stdout.write(`cv-parser-api listening on http://${host}:${port}\n`);
+  process.stdout.write(`document-and-work-assessment-api listening on http://${host}:${port}\n`);
 });
 
 function shutdown(signal) {

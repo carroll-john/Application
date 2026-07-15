@@ -15,6 +15,7 @@ import type {
   SecondaryQualification,
   TertiaryQualification,
 } from "../../../lib/applicationData";
+import type { WorkExperienceAssessment } from "../../../lib/eligibility/workExperience";
 import { normalizeConditionalContactDetails as normalizeContactDetails } from "../../../lib/applicationData";
 import {
   getNextIncompleteStep,
@@ -35,6 +36,16 @@ interface UseApplicationDataOptions {
       | Record<string, unknown>
       | ((application: ApplicationData) => Record<string, unknown>),
   ) => void;
+}
+
+function employmentEvidenceSignature(experiences: EmploymentExperience[]) {
+  return JSON.stringify(
+    experiences.map((role) => ({
+      ...role,
+      employerLetterDocument: undefined,
+      employerLetterDocumentName: undefined,
+    })),
+  );
 }
 
 export function useApplicationData({
@@ -96,6 +107,11 @@ export function useApplicationData({
           collectionKey: "employmentExperiences",
           savedEvent: "application_employment_experience_saved",
           removedEvent: "application_employment_experience_removed",
+          transformApplication: (application, previous) =>
+            employmentEvidenceSignature(application.employmentExperiences) ===
+            employmentEvidenceSignature(previous.employmentExperiences)
+              ? application
+              : { ...application, workExperienceAssessments: {} },
         },
         updateDataWithEvent,
       ),
@@ -215,6 +231,7 @@ export function useApplicationData({
           (current) => ({
             ...current,
             employmentExperiences: experiences,
+            workExperienceAssessments: {},
           }),
           "application_employment_experience_saved",
           {
@@ -222,6 +239,13 @@ export function useApplicationData({
             total_count: experiences.length,
           },
         ),
+      setWorkExperienceAssessments: (
+        assessments: Record<string, WorkExperienceAssessment>,
+      ) =>
+        updateData((current) => ({
+          ...current,
+          workExperienceAssessments: assessments,
+        })),
       addEmploymentExperience: employmentMutators.add,
       updateEmploymentExperience: employmentMutators.update,
       removeEmploymentExperience: employmentMutators.remove,

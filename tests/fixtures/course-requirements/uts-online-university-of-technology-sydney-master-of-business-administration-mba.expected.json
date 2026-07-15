@@ -89,7 +89,9 @@
           "kind": "work_experience",
           "params": {
             "minYears": 4,
-            "relevantTo": "professional experience"
+            "qualifyingRoleCriteria": {
+              "description": "professional experience"
+            }
           },
           "sourceText": "A minimum of 4 years' full-time or equivalent part-time, relevant professional experience",
           "weight": "alternative",

@@ -1,4 +1,4 @@
-import { Edit, Paperclip } from "lucide-react";
+import { Edit, Eye, Paperclip } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "../../components/ui/button";
 
@@ -72,13 +72,19 @@ export function ReviewDocumentRow({
 }
 
 export interface ReviewListItem {
-  attachments?: Array<{ fileName: string; label?: string }>;
+  attachments?: ReviewAttachment[];
   detail?: ReactNode;
   editPath: string;
   fallbackTitle: string;
   fields: Array<[string, string]>;
   id: string;
   title: string;
+}
+
+export interface ReviewAttachment {
+  fileName: string;
+  label?: string;
+  onView?: () => void;
 }
 
 export function ReviewList({
@@ -154,7 +160,7 @@ function ReviewField({ label, value }: { label: string; value: string }) {
 export function ReviewAttachments({
   attachments,
 }: {
-  attachments: Array<{ fileName: string; label?: string }>;
+  attachments: ReviewAttachment[];
 }) {
   if (attachments.length === 0) {
     return null;
@@ -165,13 +171,21 @@ export function ReviewAttachments({
       {attachments.map((attachment) => (
         <div
           key={`${attachment.label ?? "attachment"}-${attachment.fileName}`}
-          className="flex min-w-0 items-start gap-2"
+          className="flex min-w-0 items-center justify-between gap-3"
         >
-          <Paperclip className="h-4 w-4 text-green-600" />
-          <span className="min-w-0 break-all text-sm font-medium text-green-600">
-            {attachment.label ? `${attachment.label}: ` : ""}
-            {attachment.fileName}
-          </span>
+          <div className="flex min-w-0 items-start gap-2">
+            <Paperclip className="h-4 w-4 shrink-0 text-green-600" />
+            <span className="min-w-0 break-all text-sm font-medium text-green-600">
+              {attachment.label ? `${attachment.label}: ` : ""}
+              {attachment.fileName}
+            </span>
+          </div>
+          {attachment.onView ? (
+            <Button onClick={attachment.onView} size="sm" type="button" variant="outline">
+              <Eye className="h-3 w-3" />
+              View
+            </Button>
+          ) : null}
         </div>
       ))}
     </div>

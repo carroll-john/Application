@@ -25,7 +25,7 @@ function feedbackStatusFromRow(
   if (row.requirementStatus) {
     return row.requirementStatus;
   }
-  if (row.status === "met") {
+  if (row.status === "met" || row.status === "provisionally_met") {
     return "pass";
   }
   return "unknown";
@@ -259,7 +259,11 @@ export function SupportingEvidencePanel({
   const dedupedRows = dedupeProgramEvidenceRowsByHeading(sourceRows);
   const metRows = dedupedRows.filter((row) => row.status === "met");
   const reviewRows = dedupedRows.filter(
-    (row) => !row.isBlocking && row.status === "needs_review" && row.requirementStatus,
+    (row) =>
+      !row.isBlocking &&
+      (row.status === "needs_review" ||
+        row.status === "needs_details" ||
+        row.status === "provisionally_met"),
   );
   const alternativeRows = dedupedRows.filter(
     (row) => row.status === "possible_alternative" && row.requirementStatus,
@@ -271,7 +275,9 @@ export function SupportingEvidencePanel({
     ),
   ];
   const feedbackRows: EligibilityFeedbackRow[] = assessment
-    ? buildFeedbackRowsFromEvidenceRows([...metRows, ...reviewRows, ...alternativeRows])
+    ? buildFeedbackRowsFromEvidenceRows(
+        [...metRows, ...reviewRows, ...alternativeRows].filter((row) => row.requirementStatus),
+      )
     : [];
   // Manual-review flag derives from the same evidence rows that render the cards.
   const transcriptReviewSummary = assessment
@@ -298,7 +304,9 @@ export function SupportingEvidencePanel({
     : [];
 
   const hasReviewOutcome =
-    Boolean(transcriptReviewSummary?.manualReviewNeeded) || alternativeRows.length > 0;
+    Boolean(transcriptReviewSummary?.manualReviewNeeded) ||
+    reviewRows.length > 0 ||
+    alternativeRows.length > 0;
   const summary = hasReviewOutcome
     ? "Needs review"
     : plan.isEvidenceReady
@@ -363,7 +371,13 @@ export function SupportingEvidencePanel({
           {displayedReviewRows.map((row) => (
             <EvidenceReviewRow
               key={row.id}
+              action={row.actionLabel && row.actionPath ? (
+                <Button onClick={() => onNavigate(row.actionPath!)} type="button" variant="outline">
+                  {row.actionLabel}
+                </Button>
+              ) : undefined}
               explanation={row.explanation}
+              explanationItems={row.explanationItems}
               heading={row.heading}
             />
           ))}

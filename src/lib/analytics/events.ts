@@ -72,6 +72,10 @@ export const ANALYTICS_EVENT_NAMES = [
   "cv_parser_draft_empty",
   "cv_parser_draft_failed",
 
+  // Advisory work-experience assessment.
+  "work_experience_assessment_completed",
+  "work_experience_assessment_failed",
+
   // Tertiary transcript parser.
   "tertiary_transcript_parser_save_continue_clicked",
   "tertiary_transcript_parser_draft_succeeded",

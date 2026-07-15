@@ -27,6 +27,7 @@ import type { Section2EvidenceSectionKey } from "../features/section2/section2Ev
 import { usePendingTranscriptEligibility } from "../features/section2/usePendingTranscriptEligibility";
 import { useReviewReturn } from "../hooks/useReviewReturn";
 import { getCourseByCode } from "../lib/courseCatalog";
+import { deleteStoredDocument } from "../lib/documentStorage";
 import {
   buildProgramEvidenceRows,
   dedupeProgramEvidenceRowsByHeading,
@@ -278,11 +279,15 @@ export default function Section2Qualifications() {
                       : undefined
                   }
                   subtitle={experience.company}
+                  attachment={experience.employerLetterDocumentName}
                   title={experience.position || "Position"}
                   onDelete={() =>
-                    void runQualificationSave(() =>
-                      removeEmploymentExperience(experience.id),
-                    )
+                    void runQualificationSave(async () => {
+                      await removeEmploymentExperience(experience.id);
+                      if (experience.employerLetterDocument) {
+                        await deleteStoredDocument(experience.employerLetterDocument);
+                      }
+                    })
                   }
                   onEdit={() =>
                     navigate(

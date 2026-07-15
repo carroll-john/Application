@@ -75,6 +75,8 @@ Every client-side event, kept in sync with `src/lib/analytics/events.ts` by
 | `tertiary_transcript_parser_draft_succeeded` | Transcript parser |
 | `tertiary_transcript_parser_draft_empty` | Transcript parser |
 | `tertiary_transcript_parser_draft_failed` | Transcript parser |
+| `work_experience_assessment_completed` | Work experience assessment |
+| `work_experience_assessment_failed` | Work experience assessment |
 
 <!-- analytics-event-catalog:end -->
 
@@ -242,6 +244,16 @@ carry the standard application/course context plus `evidence_section_key`
 The hub's `Save & Continue` / `Save & Exit` CTAs still emit
 `application_step_completed` / `application_saved_for_later` via the shared
 `FormActionBar`, so the core funnel is unaffected by the redesign.
+
+### Work experience assessment
+
+| Event | Trigger and permitted properties |
+| --- | --- |
+| `work_experience_assessment_completed` | An advisory course-specific assessment completes. Records only assessment count/statuses, role count, coarse minimum/maximum duration bands, and latency. |
+| `work_experience_assessment_failed` | The advisory request fails. Records only role count, latency, and a stable error code. |
+
+Never attach employer names, role duties, supporting phrases, document filenames,
+or assessment free text to these events.
 
 ## Record Update Events
 

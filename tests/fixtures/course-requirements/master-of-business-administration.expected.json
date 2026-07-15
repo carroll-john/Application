@@ -19,7 +19,9 @@
           "kind": "work_experience",
           "params": {
             "minYears": 3,
-            "relevantTo": "managerial"
+            "qualifyingRoleCriteria": {
+              "description": "managerial"
+            }
           },
           "sourceText": "Three years relevant managerial experience.",
           "weight": "mandatory"

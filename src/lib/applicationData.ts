@@ -1,6 +1,10 @@
 import { createEmptyStructuredAddress, type StructuredAddress } from "./address";
 import type { UploadedDocument } from "./documentStorage";
 import type { TranscriptEligibilityAssessment } from "./eligibility/types";
+import {
+  WORK_EXPERIENCE_ASSESSMENT_SCHEMA_VERSION,
+  type WorkExperienceAssessment,
+} from "./eligibility/workExperience";
 
 export interface TertiaryQualification {
   id: string;
@@ -37,6 +41,8 @@ export interface EmploymentExperience {
   endYear: string;
   currentRole: boolean;
   duties: string;
+  employerLetterDocument?: UploadedDocument;
+  employerLetterDocumentName?: string;
 }
 
 export interface ProfessionalAccreditation {
@@ -141,6 +147,7 @@ export interface ApplicationData {
   cvFileName?: string;
   eligibilityFeedbackDocument?: UploadedDocument;
   eligibilityFeedbackFileName?: string;
+  workExperienceAssessments: Record<string, WorkExperienceAssessment>;
 }
 
 export const initialApplicationData: ApplicationData = {
@@ -181,6 +188,7 @@ export const initialApplicationData: ApplicationData = {
   secondaryQualifications: [],
   languageTests: [],
   cvUploaded: false,
+  workExperienceAssessments: {},
 };
 
 function isLegacyUnansweredSupportState(details: ContactDetails) {
@@ -194,6 +202,44 @@ function isLegacyUnansweredSupportState(details: ContactDetails) {
     !details.parent5Details &&
     !details.disabilityDetails
   );
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isWorkExperienceAssessment(value: unknown): value is WorkExperienceAssessment {
+  if (!value || typeof value !== "object") return false;
+  const assessment = value as Record<string, unknown>;
+  const validStatuses = new Set([
+    "provisionally_met", "possibly_met", "not_demonstrated", "needs_review",
+  ]);
+  const roleAssessments = assessment.roleAssessments;
+  return (
+    assessment.schemaVersion === WORK_EXPERIENCE_ASSESSMENT_SCHEMA_VERSION &&
+    typeof assessment.requirementId === "string" &&
+    validStatuses.has(String(assessment.status)) &&
+    isFiniteNumber(assessment.requiredMonths) &&
+    isFiniteNumber(assessment.qualifyingMonthsMinimum) &&
+    isFiniteNumber(assessment.qualifyingMonthsMaximum) &&
+    Array.isArray(roleAssessments) &&
+    roleAssessments.every((role) => role && typeof role === "object") &&
+    Array.isArray(assessment.unassessedConditions) &&
+    assessment.unassessedConditions.every((condition) => typeof condition === "string") &&
+    typeof assessment.inputFingerprint === "string" &&
+    typeof assessment.checkedAt === "string" &&
+    typeof assessment.promptVersion === "string"
+  );
+}
+
+function normalizeWorkExperienceAssessments(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(
+      ([requirementId, assessment]) =>
+        isWorkExperienceAssessment(assessment) && assessment.requirementId === requirementId,
+    ),
+  ) as Record<string, WorkExperienceAssessment>;
 }
 
 export function mergeStoredApplicationData(
@@ -250,6 +296,9 @@ export function mergeStoredApplicationData(
     employmentExperiences: Array.isArray(storedData?.employmentExperiences)
       ? storedData.employmentExperiences
       : initialApplicationData.employmentExperiences,
+    workExperienceAssessments: normalizeWorkExperienceAssessments(
+      storedData?.workExperienceAssessments,
+    ),
     professionalAccreditations: Array.isArray(
       storedData?.professionalAccreditations,
     )
@@ -313,6 +362,9 @@ export function mergeRemoteApplicationWithLocalDocuments(
   const localLanguageTestMap = new Map(
     localData.languageTests.map((test) => [test.id, test]),
   );
+  const localEmploymentMap = new Map(
+    localData.employmentExperiences.map((experience) => [experience.id, experience]),
+  );
 
   return {
     ...remoteData,
@@ -323,6 +375,16 @@ export function mergeRemoteApplicationWithLocalDocuments(
       remoteData.eligibilityFeedbackDocument ?? localData.eligibilityFeedbackDocument,
     eligibilityFeedbackFileName:
       remoteData.eligibilityFeedbackFileName ?? localData.eligibilityFeedbackFileName,
+    employmentExperiences: remoteData.employmentExperiences.map((experience) => {
+      const localExperience = localEmploymentMap.get(experience.id);
+      return {
+        ...experience,
+        employerLetterDocument:
+          experience.employerLetterDocument ?? localExperience?.employerLetterDocument,
+        employerLetterDocumentName:
+          experience.employerLetterDocumentName ?? localExperience?.employerLetterDocumentName,
+      };
+    }),
     tertiaryQualifications: remoteData.tertiaryQualifications.map((qualification) => {
       const localQualification = localTertiaryMap.get(qualification.id);
 

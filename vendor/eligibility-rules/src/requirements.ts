@@ -92,10 +92,19 @@ export interface EnglishProficiencyParams {
 export interface WorkExperienceParams {
   minYears: number;
   /**
-   * Optional natural-language description of which experience counts (used for UI copy only;
-   * the matcher does not currently filter on it).
+   * Optional natural-language description of the field or type of work that counts.
    */
   relevantTo?: string;
+  /**
+   * Optional course-specific responsibility or role-level requirement. This deliberately avoids
+   * a universal seniority ladder: universities publish criteria such as managerial,
+   * supervisory, professional, leadership, or people-management experience in different ways.
+   */
+  qualifyingRoleCriteria?: {
+    description: string;
+    /** Defaults to the overall minYears when omitted. */
+    minYears?: number;
+  };
 }
 
 export interface FieldOfStudyParams {

@@ -311,3 +311,28 @@
   with `completedRequired`, rather than separate completion and level cards.
 - Treat percentage/WAM wording followed by “or equivalent GPA” as one academic
   threshold unless the source includes a numeric GPA threshold and scale.
+
+## 2026-07-16
+
+### Work-experience eligibility is advisory, course-specific evidence
+- CV parsing owns editable employment-row drafting only. Assess selected-course work
+  requirements in the separate authenticated `/api/evaluate-work-experience` route and persist
+  a versioned, fingerprinted result keyed by requirement ID.
+- `relevantTo` describes the field/type of work. Put explicit managerial, supervisory,
+  professional, leadership, or people-management requirements in optional
+  `qualifyingRoleCriteria`; do not create or infer a universal seniority ladder.
+- Use deterministic calendar duration with overlap merging and min/max bounds for year-only
+  dates. Do not weight part-time/FTE, and do not treat a title alone as definite role-level
+  evidence.
+- Automated outcomes are conditional signals, not admissions decisions. Failures and
+  unmodelled qualifiers produce `needs_review`, never a negative or submission block.
+
+### Employer confirmation is optional, role-linked evidence
+- Allow one `employment_letter` document per employment role using shared upload, delivery,
+  replacement, and cleanup paths. Request a signed letter on company letterhead confirming
+  title, employment dates, and main responsibilities.
+- Do not parse or automatically verify letters in this release. Letter presence may change the
+  evidence card to “Employer confirmation supplied — admissions review required”, but never to
+  university-verified or finally eligible.
+- Keep work-experience results and letters out of `application_submission_missing_fields`; the
+  existing transcript service contract and submit RPC remain unchanged.

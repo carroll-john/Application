@@ -38,6 +38,7 @@ export type RemoteApplicationRow = Pick<
   | "status"
   | "submitted_at"
   | "updated_at"
+  | "work_experience_assessments"
 >;
 
 export type RemoteApplicationDocumentRow = Pick<
@@ -77,6 +78,8 @@ type EmploymentRow = Pick<
   | "company"
   | "duties"
   | "employment_type"
+  | "employer_letter_document_id"
+  | "employer_letter_document_name"
   | "end_month"
   | "end_year"
   | "id"
@@ -217,13 +220,21 @@ export function findEligibilityFeedbackDocument(
   return latest ? mapRemoteDocument(latest) : undefined;
 }
 
-export function mapEmploymentRow(experience: EmploymentRow): EmploymentExperience {
+export function mapEmploymentRow(
+  experience: EmploymentRow,
+  documentMap: Map<string, UploadedDocument> = new Map(),
+): EmploymentExperience {
   return {
     company: experience.company,
     currentRole: experience.is_current_role,
     duties: experience.duties,
     endMonth: experience.end_month ?? "",
     endYear: experience.end_year ?? "",
+    employerLetterDocument: experience.employer_letter_document_id
+      ? documentMap.get(experience.employer_letter_document_id)
+      : undefined,
+    employerLetterDocumentName:
+      experience.employer_letter_document_name ?? undefined,
     id: experience.id,
     position: experience.position,
     startMonth: experience.start_month,
@@ -348,6 +359,11 @@ export function toEmploymentInsert(
     company: experience.company,
     duties: experience.duties,
     employment_type: experience.type,
+    employer_letter_document_id: getRemoteDocumentId(
+      experience.employerLetterDocument,
+    ),
+    employer_letter_document_name:
+      experience.employerLetterDocumentName ?? null,
     end_month: experience.endMonth || null,
     end_year: experience.endYear || null,
     id: getRemoteUuid(experience.id),

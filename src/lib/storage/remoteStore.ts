@@ -59,7 +59,7 @@ type SavedApplicationRow = Pick<
 >;
 
 const APPLICATION_SELECT =
-  "id, applicant_profile_id, application_number, course_code, course_title, intake_label, personal_details, contact_details, cv_document_id, cv_file_name, status, submitted_at, created_at, updated_at";
+  "id, applicant_profile_id, application_number, course_code, course_title, intake_label, personal_details, contact_details, cv_document_id, cv_file_name, work_experience_assessments, status, submitted_at, created_at, updated_at";
 const SAVED_APPLICATION_SELECT =
   "id, applicant_profile_id, application_number, submitted_at, updated_at";
 
@@ -109,6 +109,7 @@ function mapApplicationSummary(row: RemoteApplicationRow): ApplicationSummary | 
       professionalAccreditations: [],
       secondaryQualifications: [],
       tertiaryQualifications: [],
+      workExperienceAssessments: {},
     } as ApplicationData),
   );
 }
@@ -198,7 +199,7 @@ export async function loadRemoteApplicationById(
     client
       .from("employment_experiences")
       .select(
-        "id, company, position, employment_type, start_month, start_year, end_month, end_year, is_current_role, duties",
+        "id, company, position, employment_type, start_month, start_year, end_month, end_year, is_current_role, duties, employer_letter_document_id, employer_letter_document_name",
       )
       .eq("application_id", applicationId)
       .order("created_at", { ascending: true }),
@@ -262,7 +263,9 @@ export async function loadRemoteApplicationById(
     cvUploaded: isSubmissionReadyDocument(cvDocument),
     eligibilityFeedbackDocument,
     eligibilityFeedbackFileName: eligibilityFeedbackDocument?.name,
-    employmentExperiences: (employmentExperiencesResponse.data ?? []).map(mapEmploymentRow),
+    employmentExperiences: (employmentExperiencesResponse.data ?? []).map((experience) =>
+      mapEmploymentRow(experience, documentMap),
+    ),
     languageTests: (languageTestsResponse.data ?? []).map((test) =>
       mapLanguageTestRow(test, documentMap),
     ),
@@ -276,6 +279,12 @@ export async function loadRemoteApplicationById(
     tertiaryQualifications: (tertiaryQualificationsResponse.data ?? []).map((qualification) =>
       mapTertiaryQualificationRow(qualification, documentMap),
     ),
+    workExperienceAssessments:
+      application.work_experience_assessments &&
+      typeof application.work_experience_assessments === "object" &&
+      !Array.isArray(application.work_experience_assessments)
+        ? application.work_experience_assessments as unknown as ApplicationData["workExperienceAssessments"]
+        : {},
   });
 }
 
@@ -337,6 +346,7 @@ function buildApplicationPayload(
     status: data.applicationMeta.submittedAt ? "submitted" : "draft",
     submitted_at: data.applicationMeta.submittedAt ?? null,
     user_id: session.user.id,
+    work_experience_assessments: toJsonValue(data.workExperienceAssessments),
   };
 }
 
