@@ -281,7 +281,9 @@ export function SupportingEvidencePanel({
     (row) => row.kindLabel === requirementKindLabel("academic_threshold"),
   );
   const hasQualificationCompletionRequirement = sourceRows.some(
-    (row) => row.kindLabel === requirementKindLabel("qualification_completed"),
+    (row) =>
+      row.requiresCompletedQualification ||
+      row.kindLabel === requirementKindLabel("qualification_completed"),
   );
   const assessmentEvidenceRows = assessment
     ? buildAssessmentEvidenceRows(assessment).filter((row) => {
