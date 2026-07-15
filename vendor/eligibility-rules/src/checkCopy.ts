@@ -4,7 +4,7 @@ import type {
   EligibilityPendingEvidence,
   EligibilityRequirementCheck,
   RequirementReasonCode,
-} from "./types";
+} from "./types.js";
 
 /**
  * Single source of applicant-facing copy for requirement checks, keyed on the durable

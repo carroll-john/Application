@@ -1,9 +1,9 @@
-import type { RequirementInstance } from "./requirements";
+import type { RequirementInstance } from "./requirements.js";
 import {
   formatAcademicThreshold,
   formatQualificationLevel,
   type QualificationLevel,
-} from "./requirements";
+} from "./requirements.js";
 
 export const BACHELOR_QUALIFICATION_DETAIL_TEXT =
   "Completion of a 3-year Australian bachelor's degree or recognised equivalent";

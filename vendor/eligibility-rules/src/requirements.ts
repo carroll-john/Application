@@ -3,7 +3,7 @@ import type {
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
   RequirementReasonCode,
-} from "./types";
+} from "./types.js";
 
 /**
  * The closed set of requirement kinds the eligibility matcher knows how to evaluate.
