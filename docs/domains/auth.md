@@ -1,6 +1,19 @@
-# Memory: Auth
+---
+schema_version: 1
+document_type: domain_contract
+domain: auth
+status: active
+owner: src/context/AuthContext.tsx
+---
 
-## Model
+# Auth Domain
+
+## Owner
+
+`src/context/AuthContext.tsx` owns the browser session, authentication actions,
+and password-recovery state. Shared route gates own access enforcement.
+
+## Current contract
 
 - Public applicant auth via Supabase email + password (`signInWithPassword` / `signUp`).
 - Same panel supports sign-in and create-account tabs. No company-domain gate. `VITE_ALLOWED_EMAIL_DOMAINS` is obsolete.
@@ -17,9 +30,11 @@
   enabled on the Supabase project; the section self-describes when it isn't.
 - Configured by `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - Local dev: `supabase start` + Mailpit at http://127.0.0.1:54324 (confirmation emails do not go to real inboxes).
-- Troubleshooting: [auth-password-troubleshooting.md](auth-password-troubleshooting.md)
+- Applications and applicant data require authentication. Signed-out visitors
+  may browse but cannot own drafts or applicant documents.
+- Troubleshooting: [auth-password.md](../runbooks/auth-password.md)
 
-## Entry Points
+## Approved entry points
 
 - Header sign-in
 - Eligibility completion (before showing result)
@@ -33,7 +48,7 @@
 - Password reset passes `redirectTo` to `/sign-in?recovery=1&redirect=…` so users return after choosing a new password.
 - Post-sign-in redirects use in-app navigation after `signInWithPassword` succeeds, after the confirmation link establishes a session on `/auth/callback`, or after password recovery completes.
 - Post-sign-in redirects must pass `sanitizeRedirectPath` (internal absolute paths only).
-- PostHog must not capture pageviews on `/auth/callback`; `$current_url` elsewhere is sanitized (no hash, no auth query params). See [analytics-events.md](analytics-events.md).
+- PostHog must not capture pageviews on `/auth/callback`; `$current_url` elsewhere is sanitized (no hash, no auth query params). See [analytics-events.md](../analytics-events.md).
 
 ## Password Recovery
 
@@ -63,7 +78,7 @@ Shared field UI: `features/auth/components/AuthEmailField.tsx`, `AuthPasswordPai
 
 | File | Role |
 |------|------|
-| `src/context/AuthContext.tsx` | Session, `storageMode`, `isPasswordRecovery`, auth actions |
+| `src/context/AuthContext.tsx` | Session, `isPasswordRecovery`, auth actions |
 | `src/lib/authPassword.ts` | Supabase calls, validation helpers, error mapping |
 | `src/lib/authCallback.ts` | Redirect sanitization, callback/reset URL builders, recovery token detection |
 | `src/features/auth/AuthPanel.tsx` | Thin screen router (~80 lines) |
@@ -74,13 +89,15 @@ Shared field UI: `features/auth/components/AuthEmailField.tsx`, `AuthPasswordPai
 | `src/pages/SignIn.tsx` | Full-page sign-in route |
 | `src/pages/AuthCallback.tsx` | Email confirmation callback handler |
 
-## Do Not Edit Casually
+## Forbidden shortcuts
 
 - `sanitizeRedirectPath` and redirect builders in `authCallback.ts` — security-sensitive.
 - `AuthContext` session listener (`getSession` + `onAuthStateChange`) — single session owner.
-- Supabase RLS migrations — coordinate with backend rollout.
+- Page-local `getSession`/`onAuthStateChange` ownership or recovery-token checks.
+- Anonymous application, profile, eligibility, or document persistence.
+- Supabase RLS migrations without coordination through the backend runbook.
 
-## Required Tests After Auth Changes
+## Required checks
 
 ```bash
 npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
@@ -93,16 +110,18 @@ npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
 - Enable **Confirm email** under Authentication → Providers → Email.
 - Confirm signup email template must include `{{ .ConfirmationURL }}`.
 - Configure **custom SMTP** for reliable hosted confirmation email delivery.
-- Production sender (Resend): `Applications <noreply@carroll.consulting>` — see [auth-password-troubleshooting.md](auth-password-troubleshooting.md) and `npm run verify-resend`.
+- Production sender (Resend): `Applications <noreply@carroll.consulting>` — see [auth-password.md](../runbooks/auth-password.md) and `npm run verify-resend`.
 - Site URL: `https://application-prototype.vercel.app`
 - Redirect URLs: production `/**`, localhost `http://localhost:5173/**`
-- Enable **leaked password protection** and **TOTP MFA** (Pro plan) — see [backend-rollout.md](backend-rollout.md) "Auth security hardening (DIS-119, DIS-123)".
+- Enable **leaked password protection** and **TOTP MFA** (Pro plan) — see [backend.md](../runbooks/backend.md) "Auth security hardening (DIS-119, DIS-123)".
 
-## Storage Mode
+## Applicant data access
 
-- `AuthContext.storageMode`: `remote` when session exists, `local` when signed out.
-- Signed-in users use Supabase-backed profile/application/document storage.
-- Offer one-time local draft import when a signed-in user has anonymous local drafts.
+- `ApplicationContext` passes the current session to
+  `createApplicationStorageAdapter`.
+- An authenticated session produces the remote Supabase adapter; no session
+  produces a no-write guest adapter.
+- There is no anonymous application draft or draft-import contract.
 
 ## Profile
 
@@ -112,3 +131,15 @@ npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
 ## OTP Migration
 
 - Accounts from the old email-code flow may lack passwords. Sign-in error copy directs users to **Forgot password** to set one.
+
+## Intentional mirrors
+
+- Supabase RLS is defense-in-depth for authenticated routes; it does not replace
+  shared browser route gates.
+- Password policy is shown in UI and enforced by auth actions. Shared helpers and
+  auth tests protect the mirror.
+
+## Related decisions
+
+- [ADR-0001: Authenticated Applicant Data](../decisions/0001-authenticated-applicant-data.md)
+- [ADR-0006: Repository Context Control Plane](../decisions/0006-context-control-plane.md)

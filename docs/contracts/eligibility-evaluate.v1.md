@@ -1,10 +1,13 @@
 # Eligibility Evaluate — Contract v1
 
-> **Status:** pinned (2026-06-03). This is the single source of truth for the HTTP
-> boundary between the app and the external eligibility service. The machine-checkable
+> **Status:** pinned consumer compatibility snapshot (2026-06-03). The provider
+> owns the published HTTP contract; until Phase 3 publication/pinning is complete,
+> this snapshot and its machine-checkable mirror protect the Applications caller. The
+> machine-checkable
 > mirror lives in [`api/_eligibility/contractV1.ts`](../../api/_eligibility/contractV1.ts);
 > [`api/_eligibility/contractV1.test.ts`](../../api/_eligibility/contractV1.test.ts)
-> asserts the proxy conforms to it. Change this doc, the constants, and the test together.
+> asserts the proxy conforms to it. During migration, change this snapshot, the
+> constants, and the test together only after the provider contract changes.
 
 ## Parties
 

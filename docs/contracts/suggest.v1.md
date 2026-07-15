@@ -1,7 +1,8 @@
 # Suggest — Contract v1
 
-> **Status:** pinned (2026-06-17). HTTP boundary between this app and the external
-> suggest service. Machine-checkable mirror:
+> **Status:** pinned consumer compatibility snapshot (2026-06-17). The suggest
+> service owns the published HTTP contract. Until Phase 3 publication/pinning is
+> complete, this snapshot protects the Applications caller. Machine-checkable mirror:
 > [`api/_suggest/contractV1.ts`](../../api/_suggest/contractV1.ts);
 > [`api/_suggest/contractV1.test.ts`](../../api/_suggest/contractV1.test.ts) asserts
 > proxy conformance. Service repo copy:

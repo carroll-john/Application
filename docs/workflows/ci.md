@@ -1,4 +1,4 @@
-# CI Notes
+# CI Workflow
 
 ## Main CI (`.github/workflows/ci.yml`)
 

@@ -1,4 +1,7 @@
-# Eligibility Service — Repo Extraction Plan
+# Archived Eligibility Service — Repo Extraction Plan
+
+> **Archived 2026-07-15.** The service has been extracted; current ownership is
+> defined in [`../system-context.md`](../system-context.md).
 
 > Status: **SHIPPED (2026-06-03).** The service now lives at
 > [github.com/carroll-john/eligibility-service](https://github.com/carroll-john/eligibility-service)
