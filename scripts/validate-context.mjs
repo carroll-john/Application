@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveRepositoryMarkdownLink } from "./contextLinkPolicy.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -124,7 +125,17 @@ function checkLinks(relativePath, content) {
       continue;
     }
 
-    const targetPath = resolve(dirname(absolute(relativePath)), target);
+    const { isRepositoryLocal, targetPath } = resolveRepositoryMarkdownLink({
+      repositoryRoot: root,
+      sourceFile: relativePath,
+      target,
+    });
+    if (!isRepositoryLocal) {
+      errors.push(
+        `${relativePath}: local link target must stay inside the repository; use an explicit web URL for external resources (${match[1]})`,
+      );
+      continue;
+    }
     if (!existsSync(targetPath)) {
       errors.push(`${relativePath}: broken link target ${match[1]}`);
     }

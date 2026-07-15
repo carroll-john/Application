@@ -235,24 +235,24 @@ Free-tier Supabase projects auto-pause after inactivity. While paused, the proje
 Projects paused longer than 90 days may lose one-click restore. Download backups from the project overview and follow [Supabase restore guidance](https://supabase.com/docs/guides/platform/upgrading#pause-and-restore) or create a new project and re-apply migrations from `supabase/migrations/`.
 
 ## Supabase Project Setup
-Run [supabase/migrations/0001_initial.sql](/Users/jc/Documents/Applications/supabase/migrations/0001_initial.sql) in the Supabase SQL editor.
+Run [supabase/migrations/0001_initial.sql](../../supabase/migrations/0001_initial.sql) in the Supabase SQL editor.
 
-Then run [supabase/migrations/0002_server_submit.sql](/Users/jc/Documents/Applications/supabase/migrations/0002_server_submit.sql) to add:
+Then run [supabase/migrations/0002_server_submit.sql](../../supabase/migrations/0002_server_submit.sql) to add:
 - server-side submission validation
 - server-side application number generation
 - the `submit_application` RPC used by the review screen
 
-Then run [supabase/migrations/0003_business_users_and_applicant_profiles.sql](/Users/jc/Documents/Applications/supabase/migrations/0003_business_users_and_applicant_profiles.sql) to add:
+Then run [supabase/migrations/0003_business_users_and_applicant_profiles.sql](../../supabase/migrations/0003_business_users_and_applicant_profiles.sql) to add:
 - `business_users`
 - `applicant_profiles`
 - `applications.applicant_profile_id`
 - the RLS foundation for separating internal site users from applicant records
 
-Then run [supabase/migrations/0004_submission_rpc_grants.sql](/Users/jc/Documents/Applications/supabase/migrations/0004_submission_rpc_grants.sql) to add:
+Then run [supabase/migrations/0004_submission_rpc_grants.sql](../../supabase/migrations/0004_submission_rpc_grants.sql) to add:
 - authenticated execute grants for `submit_application` and supporting RPC functions
 - authenticated sequence permissions for server-generated application numbers
 
-Then run [supabase/migrations/0005_document_upload_limits.sql](/Users/jc/Documents/Applications/supabase/migrations/0005_document_upload_limits.sql) to add:
+Then run [supabase/migrations/0005_document_upload_limits.sql](../../supabase/migrations/0005_document_upload_limits.sql) to add:
 - explicit application-document upload quotas and rate limits
 - indexes for user/rate-limit document checks
 
@@ -411,7 +411,7 @@ scan assessment survives reloads. It is additive and idempotent
 
 ## Clean Test Reset
 To reset hosted test data before a fresh run, execute:
-- [supabase/reset_test_data.sql](/Users/jc/Documents/Applications/supabase/reset_test_data.sql)
+- [supabase/reset_test_data.sql](../../supabase/reset_test_data.sql)
 
 This will:
 - delete all application records

@@ -6,7 +6,7 @@
 > [`api/_suggest/contractV1.ts`](../../api/_suggest/contractV1.ts);
 > [`api/_suggest/contractV1.test.ts`](../../api/_suggest/contractV1.test.ts) asserts
 > proxy conformance. Service repo copy:
-> [`suggest-service/docs/contracts/suggest.v1.md`](../../../suggest-service/docs/contracts/suggest.v1.md).
+> [`suggest-service/docs/contracts/suggest.v1.md`](https://github.com/carroll-john/suggest-service/blob/master/docs/contracts/suggest.v1.md).
 
 ## Parties
 
