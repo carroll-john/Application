@@ -1,5 +1,5 @@
-import { consolidatePairedQualificationRequirements } from "./requirementPresentation.js";
-import type { RequirementInstance } from "./requirements.js";
+import { consolidatePairedQualificationRequirements } from "./requirementPresentation";
+import type { RequirementInstance } from "./requirements";
 
 /** Pathway-first rules IR — expresses `(A AND B) OR (C AND D)` entry pathways. */
 export interface CourseRequirementsPathway {
@@ -126,6 +126,23 @@ export function validateCourseRequirementsV2(
   v2: CourseRequirementsV2,
 ): CourseRequirementsValidationIssue[] {
   const issues: CourseRequirementsValidationIssue[] = [];
+  const allRequirements = [
+    ...v2.global,
+    ...v2.pathways.flatMap((pathway) => pathway.requirements),
+  ];
+
+  for (const requirement of allRequirements) {
+    if (
+      requirement.kind === "academic_threshold" &&
+      requirement.params.metric === "gpa" &&
+      (requirement.params.scale == null || requirement.params.min > requirement.params.scale)
+    ) {
+      issues.push({
+        code: "GPA_SCALE_INVALID",
+        message: `GPA requirement "${requirement.id}" must declare a valid scale greater than or equal to its minimum.`,
+      });
+    }
+  }
 
   if (v2.pathways.length === 0 && v2.global.length === 0) {
     issues.push({

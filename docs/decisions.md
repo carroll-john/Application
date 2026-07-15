@@ -294,3 +294,20 @@
 - Continuous improvement: mine PostHog `eligibility_check_override` via
   `eligibility:dump-overrides`, promote to golden fixtures, human-review PRs — no
   auto-merge of override-suggested rules.
+
+## 2026-07-15
+
+### Eligibility assessment selects one entry pathway
+- Evaluate every published entry pathway independently, then return global checks
+  plus one selected pathway. A satisfied pathway wins; otherwise choose the closest
+  pathway deterministically so mutually exclusive entry levels do not leak into the
+  same applicant evidence list.
+- Persist additive `selectedPathwayId` and `pathwayResults` assessment metadata so
+  Section 2 renders and requests evidence for the same pathway the matcher assessed.
+- A named completed-award pathway must match both its published qualification and
+  provider when those constraints are present. A completed qualification from a
+  different institution cannot satisfy that pathway.
+- Model “completed bachelor degree or higher” as one qualification-level requirement
+  with `completedRequired`, rather than separate completion and level cards.
+- Treat percentage/WAM wording followed by “or equivalent GPA” as one academic
+  threshold unless the source includes a numeric GPA threshold and scale.

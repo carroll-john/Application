@@ -82,4 +82,29 @@ describe("courseRequirementsV2", () => {
     expect(isSinglePathwayUnsafe(requirements)).toBe(true);
     expect(isMatcherUnsafe(requirements)).toBe(true);
   });
+
+  it("rejects GPA thresholds without a plausible scale", () => {
+    const v2: CourseRequirementsV2 = {
+      version: 2,
+      global: [],
+      pathways: [
+        {
+          id: "entry",
+          requirements: [
+            {
+              id: "invalid-gpa",
+              kind: "academic_threshold",
+              params: { metric: "gpa", min: 60 },
+              sourceText: "Equivalent GPA.",
+              weight: "mandatory",
+            },
+          ],
+        },
+      ],
+    };
+
+    expect(validateCourseRequirementsV2(v2)).toContainEqual(
+      expect.objectContaining({ code: "GPA_SCALE_INVALID" }),
+    );
+  });
 });

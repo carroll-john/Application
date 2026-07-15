@@ -7,6 +7,7 @@ export {
   type EligibilityEnglishEvidence,
   type EligibilityExtractedField,
   type EligibilityOutcome,
+  type EligibilityPathwayResult,
   type EligibilityPendingEvidence,
   type EligibilityRequirementCheck,
   type EligibilityRequirementStatus,

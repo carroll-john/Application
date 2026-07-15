@@ -76,7 +76,9 @@ weak, otherwise `outcome=eligible`. The **app owns the requirement-by-requiremen
 
 - If `context.requirements` is present → the **matcher** recomputes `outcome`,
   `requirementsChecked`, and `manualReviewRequired` from the evidence groups, and stamps
-  `rulesVersion` with `+rules-v1`.
+  `rulesVersion` with `+rules-v1`. For multi-entry courses it also adds
+  `selectedPathwayId` and `pathwayResults`, and `requirementsChecked` contains global
+  requirements plus the selected pathway only.
 - Otherwise → the **legacy deterministic rules** run.
 
 So the **final** outcome the app returns to its client may differ from the service's raw

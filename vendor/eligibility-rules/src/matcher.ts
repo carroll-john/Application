@@ -2,6 +2,7 @@ import type { RequirementInstance } from "./requirements.js";
 import { evaluateRegisteredRequirement } from "./requirementKindRegistry.js";
 import type { EvaluationContext } from "./requirementEvaluators.js";
 import type {
+  EligibilityPathwayResult,
   EligibilityRequirementCheck,
   TranscriptEligibilityRequestContext,
   TranscriptExtractedData,
@@ -43,6 +44,9 @@ function pathwayBundleForCheck(
   instances: readonly RequirementInstance[],
   check: EligibilityRequirementCheck,
 ): string | undefined {
+  if (check.pathwayId) {
+    return check.pathwayId;
+  }
   const direct = pathwayBundleForInstance(instances, check.id);
   if (direct) {
     return direct;
@@ -56,30 +60,57 @@ function pathwayBundleForCheck(
   return undefined;
 }
 
-function isPathwayBundleSatisfied(checks: readonly EligibilityRequirementCheck[]): boolean {
-  return checks.length > 0 && !checks.some((check) => check.status === "fail");
+function summarizePathway(
+  id: string,
+  checks: EligibilityRequirementCheck[],
+): EligibilityPathwayResult {
+  const failCount = checks.filter((check) => check.status === "fail").length;
+  const passCount = checks.filter((check) => check.status === "pass").length;
+  const unknownCount = checks.filter((check) => check.status === "unknown").length;
+  const status =
+    failCount > 0
+      ? "not_satisfied"
+      : unknownCount > 0
+        ? "pending"
+        : "satisfied";
+
+  return { checks, failCount, id, passCount, status, unknownCount };
+}
+
+export interface RequirementEvaluationResult {
+  checks: EligibilityRequirementCheck[];
+  pathwayResults: EligibilityPathwayResult[];
+  selectedPathwayId?: string;
+}
+
+function pathwayStatusRank(status: EligibilityPathwayResult["status"]): number {
+  if (status === "satisfied") {
+    return 3;
+  }
+  if (status === "pending") {
+    return 2;
+  }
+  return 1;
 }
 
 /**
- * When a course declares multiple entry pathways, keep only checks from satisfied pathway bundles.
- * Global requirements (no pathwayBundleId) are always retained.
+ * Selects one coherent entry pathway. Fully satisfied pathways win, followed by pathways with
+ * unresolved evidence but no failures, then the closest failed pathway. Ties keep catalog order.
  */
-function applyPathwayOrFiltering(
+function selectPathwayChecks(
   instances: readonly RequirementInstance[],
   checks: readonly EligibilityRequirementCheck[],
-): EligibilityRequirementCheck[] {
+): RequirementEvaluationResult {
   const bundleIds = pathwayBundleIds(instances);
   if (bundleIds.length < 2) {
-    return [...checks];
+    return { checks: [...checks], pathwayResults: [] };
   }
 
   const checksByBundle = new Map<string, EligibilityRequirementCheck[]>();
-  const globalChecks: EligibilityRequirementCheck[] = [];
 
   for (const check of checks) {
     const bundleId = pathwayBundleForCheck(instances, check);
     if (!bundleId) {
-      globalChecks.push(check);
       continue;
     }
     const bucket = checksByBundle.get(bundleId) ?? [];
@@ -87,32 +118,41 @@ function applyPathwayOrFiltering(
     checksByBundle.set(bundleId, bucket);
   }
 
-  const satisfiedBundles = bundleIds.filter((bundleId) =>
-    isPathwayBundleSatisfied(checksByBundle.get(bundleId) ?? []),
+  const pathwayResults = bundleIds.map((bundleId) =>
+    summarizePathway(bundleId, checksByBundle.get(bundleId) ?? []),
   );
+  const selected = pathwayResults
+    .map((result, index) => ({ index, result }))
+    .sort((left, right) => {
+      const statusDifference =
+        pathwayStatusRank(right.result.status) - pathwayStatusRank(left.result.status);
+      if (statusDifference !== 0) {
+        return statusDifference;
+      }
+      if (left.result.failCount !== right.result.failCount) {
+        return left.result.failCount - right.result.failCount;
+      }
+      if (left.result.passCount !== right.result.passCount) {
+        return right.result.passCount - left.result.passCount;
+      }
+      if (left.result.unknownCount !== right.result.unknownCount) {
+        return left.result.unknownCount - right.result.unknownCount;
+      }
+      return left.index - right.index;
+    })[0]?.result;
 
-  if (satisfiedBundles.length === 0) {
-    return [...checks];
+  if (!selected) {
+    return { checks: [...checks], pathwayResults };
   }
 
-  const retainedBundles = new Set(satisfiedBundles);
-  const retained: EligibilityRequirementCheck[] = [...globalChecks];
-
-  for (const check of checks) {
-    const bundleId = pathwayBundleForCheck(instances, check);
-    if (!bundleId || !retainedBundles.has(bundleId)) {
-      continue;
-    }
-    const groupDelimiter = check.id.indexOf(":");
-    if (groupDelimiter > 0 && check.status === "unknown") {
-      // Supplementary OR-options (e.g. GPA vs experience) stay pending elsewhere when the
-      // mandatory pathway checks already passed.
-      continue;
-    }
-    retained.push(check);
-  }
-
-  return retained;
+  return {
+    checks: checks.filter((check) => {
+      const pathwayId = pathwayBundleForCheck(instances, check);
+      return !pathwayId || pathwayId === selected.id;
+    }),
+    pathwayResults,
+    selectedPathwayId: selected.id,
+  };
 }
 
 /**
@@ -130,6 +170,9 @@ function foldAlternativeGroup(
       requirement: group.map((entry) => entry.instance.sourceText).join(" — OR — "),
       status: "pass",
       reasonCode: "GROUP_SATISFIED",
+      ...(passEntry.instance.pathwayBundleId
+        ? { pathwayId: passEntry.instance.pathwayBundleId }
+        : {}),
       explanation: `One alternative satisfied: ${passEntry.check.explanation}`,
       ...(passEntry.check.details ? { details: passEntry.check.details } : {}),
     };
@@ -142,6 +185,9 @@ function foldAlternativeGroup(
       requirement: group.map((entry) => entry.instance.sourceText).join(" — OR — "),
       status: "unknown",
       reasonCode: "GROUP_UNCONFIRMED",
+      ...(unknownEntry.instance.pathwayBundleId
+        ? { pathwayId: unknownEntry.instance.pathwayBundleId }
+        : {}),
       explanation: `No alternative confirmed. ${unknownEntry.check.explanation}`,
       ...(unknownEntry.check.details ? { details: unknownEntry.check.details } : {}),
     };
@@ -152,6 +198,9 @@ function foldAlternativeGroup(
     requirement: group.map((entry) => entry.instance.sourceText).join(" — OR — "),
     status: "fail",
     reasonCode: "GROUP_UNSATISFIED",
+    ...(group[0]?.instance.pathwayBundleId
+      ? { pathwayId: group[0].instance.pathwayBundleId }
+      : {}),
     explanation: "None of the listed alternatives was satisfied by the supplied evidence.",
   };
 }
@@ -163,11 +212,11 @@ function foldAlternativeGroup(
  * Requirements sharing an `alternativeGroupId` are folded into a single OR-check that emits in place
  * of the first member of the group.
  */
-export function evaluateRequirements(
+export function evaluateRequirementsWithPathways(
   instances: readonly RequirementInstance[],
   evidence: TranscriptExtractedData,
   context: TranscriptEligibilityRequestContext,
-): EligibilityRequirementCheck[] {
+): RequirementEvaluationResult {
   const evalCtx: EvaluationContext = { context, evidence };
 
   // Group by alternativeGroupId. Emission order is driven by a second pass over
@@ -219,7 +268,15 @@ export function evaluateRequirements(
     }
   }
 
-  return applyPathwayOrFiltering(instances, out);
+  return selectPathwayChecks(instances, out);
+}
+
+export function evaluateRequirements(
+  instances: readonly RequirementInstance[],
+  evidence: TranscriptExtractedData,
+  context: TranscriptEligibilityRequestContext,
+): EligibilityRequirementCheck[] {
+  return evaluateRequirementsWithPathways(instances, evidence, context).checks;
 }
 
 /**

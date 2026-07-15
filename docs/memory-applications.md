@@ -90,6 +90,17 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   types, v2 pathway IR, evaluators, check copy, assessment resolution, and
   submit-policy constants. App shims under `src/lib/eligibility/*.ts` re-export
   from the package so existing imports keep working.
+- **Pathway result contract:** matcher assessments expose `selectedPathwayId` plus
+  per-pathway summaries. Applicant-facing evidence rows must render global
+  requirements and the selected pathway only; never combine failing checks from
+  mutually exclusive entry levels. When no pathway passes, select the closest
+  pathway deterministically (fewest failures, then most passes, then fewest
+  unknowns, then catalog order) so the next evidence request is actionable.
+- **Qualification identity:** `qualification_completed` may constrain
+  `requiredQualificationName` and `requiredProvider`. Use
+  `qualification_level.params.completedRequired = true` when the published rule
+  requires a completed degree at or above a level; this avoids a redundant generic
+  completion check while still enforcing completion.
 - **Transcript eligibility context:** one shared schema in the package
   (`contextSchema.ts`: `parseTranscriptEligibilityContext`,
   `serializeTranscriptEligibilityContext`). The Section 2 client builder
@@ -125,6 +136,9 @@ server `submit_application` RPC enforces the same conditions (see Submission).
 - **Parser pipeline:** `scripts/courseRequirementsParser/pipeline.ts`
   (segment → classify → structure → validate → repair). Entry point:
   `npm run eligibility:parse-requirements`.
+- **Academic metric safety:** a percentage threshold followed by “or equivalent
+  GPA” is one WAM/percentage requirement unless the source publishes a numeric GPA
+  value and scale. Never synthesize values such as `60 GPA`.
 - **Golden eval corpus:** `tests/fixtures/course-requirements/` + manifest.
   CI gate: `npm run eligibility:parse-eval` (structure + safety; leaf recall ≥ 0.8).
 - **Human review pack:** `npm run eligibility:review:open` writes

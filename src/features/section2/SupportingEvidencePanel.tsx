@@ -261,8 +261,17 @@ export function SupportingEvidencePanel({
   const reviewRows = dedupedRows.filter(
     (row) => !row.isBlocking && row.status === "needs_review" && row.requirementStatus,
   );
+  const alternativeRows = dedupedRows.filter(
+    (row) => row.status === "possible_alternative" && row.requirementStatus,
+  );
+  const displayedReviewRows = [
+    ...reviewRows,
+    ...alternativeRows.filter(
+      (row) => !plan.suggestion || row.heading !== plan.suggestion.heading,
+    ),
+  ];
   const feedbackRows: EligibilityFeedbackRow[] = assessment
-    ? buildFeedbackRowsFromEvidenceRows([...metRows, ...reviewRows])
+    ? buildFeedbackRowsFromEvidenceRows([...metRows, ...reviewRows, ...alternativeRows])
     : [];
   // Manual-review flag derives from the same evidence rows that render the cards.
   const transcriptReviewSummary = assessment
@@ -286,14 +295,18 @@ export function SupportingEvidencePanel({
       })
     : [];
 
-  const summary = plan.isEvidenceReady
+  const hasReviewOutcome =
+    Boolean(transcriptReviewSummary?.manualReviewNeeded) || alternativeRows.length > 0;
+  const summary = hasReviewOutcome
+    ? "Needs review"
+    : plan.isEvidenceReady
     ? "Evidence ready"
     : plan.remainingPromptCount > 0
       ? `${plan.remainingPromptCount} item${plan.remainingPromptCount === 1 ? "" : "s"} to add`
       : plan.skippedPrompts.length > 0
         ? `${plan.skippedPrompts.length} item${plan.skippedPrompts.length === 1 ? "" : "s"} skipped`
         : "Needs review";
-  const summaryTone = plan.isEvidenceReady
+  const summaryTone = plan.isEvidenceReady && !hasReviewOutcome
     ? "text-[var(--success-text)]"
     : "text-[var(--warning-text)]";
 
@@ -343,9 +356,9 @@ export function SupportingEvidencePanel({
           ))}
         </ul>
       ) : null}
-      {reviewRows.length > 0 ? (
+      {displayedReviewRows.length > 0 ? (
         <ul className="mt-3 space-y-2" aria-label="Evidence needing review">
-          {reviewRows.map((row) => (
+          {displayedReviewRows.map((row) => (
             <EvidenceReviewRow
               key={row.id}
               explanation={row.explanation}
