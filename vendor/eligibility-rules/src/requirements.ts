@@ -3,7 +3,7 @@ import type {
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
   RequirementReasonCode,
-} from "./types.js";
+} from "./types";
 
 /**
  * The closed set of requirement kinds the eligibility matcher knows how to evaluate.
@@ -37,7 +37,12 @@ export const ALL_REQUIREMENT_KINDS: readonly RequirementKind[] = [
  * alias (rather than an empty interface) to satisfy the no-empty-interface lint rule while keeping
  * the door open for future params.
  */
-export type QualificationCompletedParams = Record<string, never>;
+export interface QualificationCompletedParams {
+  /** Optional award name that must match the transcript's program name. */
+  requiredQualificationName?: string;
+  /** Optional provider that must match the transcript's institution. */
+  requiredProvider?: string;
+}
 
 export type QualificationLevel =
   | "high_school"
@@ -48,6 +53,8 @@ export type QualificationLevel =
   | "doctorate";
 
 export interface QualificationLevelParams {
+  /** When true, the level only passes when the transcript also confirms completion. */
+  completedRequired?: boolean;
   level: QualificationLevel;
 }
 
@@ -222,6 +229,7 @@ export function buildRequirementCheck(
     requirement: instance.sourceText,
     status,
     explanation,
+    ...(instance.pathwayBundleId ? { pathwayId: instance.pathwayBundleId } : {}),
     ...(reasonCode ? { reasonCode } : {}),
     ...(details ? { details } : {}),
   };

@@ -161,7 +161,8 @@
               "id": "qualification_level-bachelor",
               "kind": "qualification_level",
               "params": {
-                "level": "bachelor"
+                "level": "bachelor",
+                "completedRequired": true
               },
               "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
               "weight": "mandatory"
@@ -178,17 +179,6 @@
               "weight": "mandatory"
             },
             {
-              "id": "academic_threshold-60-gpa",
-              "kind": "academic_threshold",
-              "params": {
-                "metric": "gpa",
-                "min": 60
-              },
-              "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
-              "weight": "alternative",
-              "alternativeGroupId": "level1-entry-acad-min"
-            },
-            {
               "id": "work_experience-3y-professional",
               "kind": "work_experience",
               "params": {
@@ -196,8 +186,7 @@
                 "relevantTo": "professional role"
               },
               "sourceText": "Entry Level 1: An Australian bachelor degree or equivalent qualification with at least a credit (60%) average, or equivalent Grade Point Average (GPA) and three years relevant experience in a professional role.",
-              "weight": "alternative",
-              "alternativeGroupId": "level1-entry-acad-min"
+              "weight": "mandatory"
             }
           ]
         },
@@ -208,7 +197,10 @@
             {
               "id": "qualification_completed-gradcert-busadmin-digital",
               "kind": "qualification_completed",
-              "params": {},
+              "params": {
+                "requiredQualificationName": "Graduate Certificate of Business Administration (Digital)",
+                "requiredProvider": "Monash University"
+              },
               "sourceText": "Entry Level 2: Completion of a Monash University Graduate Certificate of Business Administration (Digital) with at least a credit average of 60%.",
               "weight": "mandatory"
             },

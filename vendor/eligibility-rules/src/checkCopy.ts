@@ -4,7 +4,7 @@ import type {
   EligibilityPendingEvidence,
   EligibilityRequirementCheck,
   RequirementReasonCode,
-} from "./types.js";
+} from "./types";
 
 /**
  * Single source of applicant-facing copy for requirement checks, keyed on the durable
@@ -24,6 +24,16 @@ export const checkCopyByReasonCode: Record<RequirementReasonCode, CopyBuilder> =
     "Your transcript shows this qualification as incomplete or withdrawn.",
   QUALIFICATION_COMPLETION_UNKNOWN: () =>
     "We couldn't confirm the completion status from your transcript.",
+  QUALIFICATION_IDENTITY_UNKNOWN: () =>
+    "We couldn't confirm the required qualification or institution from your transcript.",
+  QUALIFICATION_NAME_MISMATCH: (details) =>
+    details?.required
+      ? `Your qualification does not match the required ${details.required}.`
+      : "Your qualification does not match the specific award required for this pathway.",
+  QUALIFICATION_PROVIDER_MISMATCH: (details) =>
+    details?.required
+      ? `Your qualification was not awarded by the required provider (${details.required}).`
+      : "Your qualification was not awarded by the provider required for this pathway.",
   QUALIFICATION_LEVEL_MET: (details) =>
     details?.observed
       ? `Your qualification ("${details.observed}") meets the required level.`
@@ -97,6 +107,8 @@ export const missingInformationCopyByReasonCode: Partial<
 > = {
   QUALIFICATION_COMPLETION_UNKNOWN: () =>
     "Completion or conferral status is not clearly shown on the transcript.",
+  QUALIFICATION_IDENTITY_UNKNOWN: () =>
+    "The qualification name or awarding institution could not be confirmed from the transcript.",
   QUALIFICATION_LEVEL_UNKNOWN: () =>
     "The qualification level could not be read from the transcript.",
   ACADEMIC_EVIDENCE_MISSING: () => "A WAM or GPA could not be found on the transcript.",
@@ -109,6 +121,7 @@ export const missingInformationCopyByReasonCode: Partial<
 /** What the applicant should show more clearly on a re-uploaded transcript, per unknown reason. */
 const transcriptNextStepFragmentByReasonCode: Partial<Record<RequirementReasonCode, string>> = {
   QUALIFICATION_COMPLETION_UNKNOWN: "your completion or conferral status",
+  QUALIFICATION_IDENTITY_UNKNOWN: "the qualification name and awarding institution",
   QUALIFICATION_LEVEL_UNKNOWN: "your qualification level",
   ACADEMIC_EVIDENCE_MISSING: "your WAM or GPA",
   FIELD_PROGRAM_MISSING: "your program name",

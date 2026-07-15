@@ -4,6 +4,7 @@ import type {
   EligibilityAcademicUnitResult,
   EligibilityExtractedField,
   EligibilityOutcome,
+  EligibilityPathwayResult,
   EligibilityPendingEvidence,
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
@@ -271,11 +272,51 @@ function normalizeRequirementChecks(value: unknown): EligibilityRequirementCheck
             ? candidate.id.trim()
             : `requirement-${index + 1}`,
         ...(reasonCode ? { reasonCode } : {}),
+        ...(typeof candidate.pathwayId === "string" && candidate.pathwayId.trim()
+          ? { pathwayId: candidate.pathwayId.trim() }
+          : {}),
         requirement,
         status: normalizeRequirementStatus(candidate.status),
       };
     })
     .filter((entry): entry is EligibilityRequirementCheck => Boolean(entry));
+}
+
+function normalizePathwayResults(value: unknown): EligibilityPathwayResult[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const results = value
+    .map((entry): EligibilityPathwayResult | null => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+      const candidate = entry as Record<string, unknown>;
+      if (typeof candidate.id !== "string" || !candidate.id.trim()) {
+        return null;
+      }
+      const checks = normalizeRequirementChecks(candidate.checks);
+      const failCount = checks.filter((check) => check.status === "fail").length;
+      const passCount = checks.filter((check) => check.status === "pass").length;
+      const unknownCount = checks.filter((check) => check.status === "unknown").length;
+      return {
+        checks,
+        failCount,
+        id: candidate.id.trim(),
+        passCount,
+        status:
+          failCount > 0
+            ? "not_satisfied"
+            : unknownCount > 0
+              ? "pending"
+              : "satisfied",
+        unknownCount,
+      };
+    })
+    .filter((entry): entry is EligibilityPathwayResult => Boolean(entry));
+
+  return results.length > 0 ? results : undefined;
 }
 
 export function normalizeTranscriptEligibilityAssessment(
@@ -323,6 +364,7 @@ export function normalizeTranscriptEligibilityAssessment(
     modelId: normalizeOptionalString(candidate.modelId),
     outcome: normalizeOutcome(candidate.outcome),
     pendingEvidence: normalizePendingEvidence(candidate.pendingEvidence),
+    pathwayResults: normalizePathwayResults(candidate.pathwayResults),
     programCode:
       typeof candidate.programCode === "string" && candidate.programCode.trim()
         ? candidate.programCode.trim()
@@ -334,6 +376,7 @@ export function normalizeTranscriptEligibilityAssessment(
     promptVersion: normalizeOptionalString(candidate.promptVersion),
     recommendedNextStep,
     requirementsChecked: normalizeRequirementChecks(candidate.requirementsChecked),
+    selectedPathwayId: normalizeOptionalString(candidate.selectedPathwayId),
     rulesVersion:
       typeof candidate.rulesVersion === "string" && candidate.rulesVersion.trim()
         ? candidate.rulesVersion.trim()

@@ -1,1 +1,5 @@
-export { aggregateOutcome, evaluateRequirements } from "@johncarroll/eligibility-rules";
+export {
+  aggregateOutcome,
+  evaluateRequirements,
+  evaluateRequirementsWithPathways,
+} from "@johncarroll/eligibility-rules";

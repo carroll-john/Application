@@ -3,7 +3,10 @@ import { applyEligibilityResolution } from "../../../api/_eligibility/assessment
 import { buildSection2EvidencePlan } from "../../features/section2/section2EvidencePlan";
 import { initialApplicationData } from "../applicationData";
 import { getCourseByCode } from "../courseCatalog";
-import { aggregateOutcome, evaluateRequirements } from "./matcher";
+import {
+  aggregateOutcome,
+  evaluateRequirementsWithPathways,
+} from "./matcher";
 import {
   buildProgramEvidenceRows,
   dedupeProgramEvidenceRowsByHeading,
@@ -95,7 +98,7 @@ function buildMacquarieAssessment(
 }
 
 describe("MBA Digital + Macquarie transcript (AU-TX-V3-011)", () => {
-  it("does not prompt to add a transcript when one is already attached", () => {
+  it("moves from the attached transcript to the outstanding Level 1 work evidence", () => {
     const course = getCourseByCode("master-of-business-administration-digital");
     const assessment = buildMacquarieAssessment(course!.code, course!.requirements);
     const data = {
@@ -146,11 +149,15 @@ describe("MBA Digital + Macquarie transcript (AU-TX-V3-011)", () => {
     expect(grouped.some((row) => row.isBlocking && row.actionLabel === "Add transcript")).toBe(
       false,
     );
-    expect(plan.nextPrompt).toBeNull();
-    expect(rows.find((row) => row.id === "qualification_completed-gradcert-busadmin-digital")).toMatchObject({
-      heading: "Completed qualification",
-      status: "met",
+    expect(plan.nextPrompt).toMatchObject({
+      actionLabel: "Add CV",
+      sectionKey: "cv",
     });
+    expect(rows.some((row) => row.id === "qualification_completed-gradcert-busadmin-digital")).toBe(
+      false,
+    );
+    expect(rows.some((row) => row.heading === "Minimum 60 GPA")).toBe(false);
+    expect(rows.filter((row) => row.id === "qualification_level-bachelor")).toHaveLength(1);
   });
 
   it("uses calculated WAM 59 instead of the conflicting extracted aggregate", () => {
@@ -182,7 +189,8 @@ describe("MBA Digital + Macquarie transcript (AU-TX-V3-011)", () => {
       assessment.requirementsChecked?.some(
         (check) => check.id === "qualification_completed-gradcert-busadmin-digital",
       ),
-    ).toBe(true);
+    ).toBe(false);
+    expect(assessment.selectedPathwayId).toBe("mba-level-1");
   });
 
   it("does not let Level 2 requirements block when Level 1 pathway is fully satisfied", () => {
@@ -202,20 +210,21 @@ describe("MBA Digital + Macquarie transcript (AU-TX-V3-011)", () => {
       },
     };
 
-    const checks = evaluateRequirements(course!.requirements!, evidence, {
+    const result = evaluateRequirementsWithPathways(course!.requirements!, evidence, {
       completed: true,
       level: "Graduate Certificate",
     });
+    const checks = result.checks;
 
     expect(checks.map((check) => check.id).sort()).toEqual([
       "academic_threshold-60",
-      "academic_threshold-60-level2",
-      "qualification_completed-gradcert-busadmin-digital",
       "qualification_level-bachelor",
+      "work_experience-3y-professional",
     ]);
+    expect(result.selectedPathwayId).toBe("mba-level-1");
     expect(aggregateOutcome(checks)).toEqual({
-      outcome: "eligible",
-      manualReviewRequired: false,
+      outcome: "insufficient_data",
+      manualReviewRequired: true,
     });
   });
 });

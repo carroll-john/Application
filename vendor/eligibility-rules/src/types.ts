@@ -17,6 +17,9 @@ export const ALL_REQUIREMENT_REASON_CODES = [
   "QUALIFICATION_COMPLETE",
   "QUALIFICATION_INCOMPLETE",
   "QUALIFICATION_COMPLETION_UNKNOWN",
+  "QUALIFICATION_IDENTITY_UNKNOWN",
+  "QUALIFICATION_NAME_MISMATCH",
+  "QUALIFICATION_PROVIDER_MISMATCH",
   // qualification_level
   "QUALIFICATION_LEVEL_MET",
   "QUALIFICATION_LEVEL_BELOW",
@@ -124,6 +127,17 @@ export interface EligibilityRequirementCheck {
   reasonCode?: RequirementReasonCode;
   requirement: string;
   status: EligibilityRequirementStatus;
+  /** Entry pathway that produced this check. Omitted for global requirements. */
+  pathwayId?: string;
+}
+
+export interface EligibilityPathwayResult {
+  checks: EligibilityRequirementCheck[];
+  failCount: number;
+  id: string;
+  passCount: number;
+  status: "satisfied" | "pending" | "not_satisfied";
+  unknownCount: number;
 }
 
 /**
@@ -153,17 +167,19 @@ export interface TranscriptEligibilityAssessment {
   modelId?: string;
   outcome: EligibilityOutcome;
   pendingEvidence?: EligibilityPendingEvidence[];
+  pathwayResults?: EligibilityPathwayResult[];
   programCode?: string;
   programTitle?: string;
   promptVersion?: string;
   recommendedNextStep: string;
   requirementsChecked: EligibilityRequirementCheck[];
+  selectedPathwayId?: string;
   rulesVersion?: string;
   schemaVersion?: string;
   serviceVersion?: string;
 }
 
-import type { RequirementInstance } from "./requirements.js";
+import type { RequirementInstance } from "./requirements";
 
 export interface TranscriptEligibilityRequestContext {
   completed?: boolean;

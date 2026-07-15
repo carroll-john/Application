@@ -20,9 +20,9 @@ export interface RequirementKindRegistryEntry {
 
 const parserPromptFragments: Record<RequirementKind, string> = {
   qualification_completed:
-    "qualification_completed: applicant must have completed the prior qualification. params: {}.",
+    "qualification_completed: applicant must have completed the prior qualification. params: { requiredQualificationName?: string, requiredProvider?: string }. Preserve specific named awards/providers when the source requires them.",
   qualification_level:
-    'qualification_level: minimum prior qualification level. params: { level: "high_school" | "diploma" | "bachelor" | "honours" | "masters" | "doctorate" }.',
+    'qualification_level: minimum prior qualification level. params: { level: "high_school" | "diploma" | "bachelor" | "honours" | "masters" | "doctorate", completedRequired?: boolean }. Set completedRequired when the source requires a completed or awarded qualification.',
   academic_threshold:
     'academic_threshold: minimum WAM or GPA. params: { metric: "wam" | "gpa", min: number, scale?: number }.',
   english_proficiency:

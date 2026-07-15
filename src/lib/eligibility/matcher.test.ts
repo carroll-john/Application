@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { aggregateOutcome, evaluateRequirements } from "./matcher";
+import {
+  aggregateOutcome,
+  evaluateRequirements,
+  evaluateRequirementsWithPathways,
+} from "./matcher";
 import type { RequirementInstance } from "./requirements";
 import type { TranscriptEligibilityRequestContext, TranscriptExtractedData } from "./types";
 
@@ -369,7 +373,132 @@ describe("evaluateRequirements", () => {
     expect(check.reasonCode).toBe("QUALIFICATION_LEVEL_MET");
   });
 
-  it("suppresses unsatisfied pathway bundles when another pathway is fully met", () => {
+  it("requires completion when a consolidated qualification-level rule says so", () => {
+    const instances: RequirementInstance[] = [
+      {
+        id: "level-bachelor",
+        kind: "qualification_level",
+        params: { completedRequired: true, level: "bachelor" },
+        sourceText: "Completion of an Australian bachelor degree or equivalent.",
+        weight: "mandatory",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      studyDetails: {
+        completionStatus: { confidence: 0.9, normalizedValue: "in_progress" },
+        highestEducationLevel: {
+          confidence: 0.9,
+          normalizedValue: "Bachelor of Business",
+        },
+      },
+    };
+
+    const [check] = evaluateRequirements(instances, evidence, emptyContext());
+
+    expect(check.status).toBe("fail");
+    expect(check.reasonCode).toBe("QUALIFICATION_INCOMPLETE");
+  });
+
+  it("does not pass a pathway requiring a different named award and provider", () => {
+    const instances: RequirementInstance[] = [
+      {
+        id: "monash-grad-cert",
+        kind: "qualification_completed",
+        params: {
+          requiredQualificationName:
+            "Graduate Certificate of Business Administration (Digital)",
+          requiredProvider: "Monash University",
+        },
+        sourceText: "Completion of the Monash Graduate Certificate.",
+        weight: "mandatory",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      applicantDetails: {
+        institutionName: { confidence: 0.9, normalizedValue: "Macquarie University" },
+      },
+      studyDetails: {
+        completionStatus: { confidence: 0.9, normalizedValue: "completed" },
+        programName: {
+          confidence: 0.9,
+          normalizedValue: "Graduate Certificate of Business",
+        },
+      },
+    };
+
+    const [check] = evaluateRequirements(instances, evidence, emptyContext());
+
+    expect(check.status).toBe("fail");
+    expect(check.reasonCode).toBe("QUALIFICATION_NAME_MISMATCH");
+  });
+
+  it("requires the named award to come from the published provider", () => {
+    const instances: RequirementInstance[] = [
+      {
+        id: "monash-grad-cert",
+        kind: "qualification_completed",
+        params: {
+          requiredQualificationName:
+            "Graduate Certificate of Business Administration (Digital)",
+          requiredProvider: "Monash University",
+        },
+        sourceText: "Completion of the Monash Graduate Certificate.",
+        weight: "mandatory",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      applicantDetails: {
+        institutionName: { confidence: 0.9, normalizedValue: "Macquarie University" },
+      },
+      studyDetails: {
+        completionStatus: { confidence: 0.9, normalizedValue: "completed" },
+        programName: {
+          confidence: 0.9,
+          normalizedValue: "Graduate Certificate of Business Administration (Digital)",
+        },
+      },
+    };
+
+    const [check] = evaluateRequirements(instances, evidence, emptyContext());
+
+    expect(check.status).toBe("fail");
+    expect(check.reasonCode).toBe("QUALIFICATION_PROVIDER_MISMATCH");
+  });
+
+  it("passes the specifically named completed award from the required provider", () => {
+    const instances: RequirementInstance[] = [
+      {
+        id: "monash-grad-cert",
+        kind: "qualification_completed",
+        params: {
+          requiredQualificationName:
+            "Graduate Certificate of Business Administration (Digital)",
+          requiredProvider: "Monash University",
+        },
+        sourceText: "Completion of the Monash Graduate Certificate.",
+        weight: "mandatory",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      applicantDetails: {
+        institutionName: { confidence: 0.9, normalizedValue: "Monash University" },
+      },
+      studyDetails: {
+        completionStatus: { confidence: 0.9, normalizedValue: "completed" },
+        programName: {
+          confidence: 0.9,
+          normalizedValue: "Graduate Certificate of Business Administration (Digital)",
+        },
+      },
+    };
+
+    const [check] = evaluateRequirements(instances, evidence, emptyContext());
+
+    expect(check.status).toBe("pass");
+    expect(check.reasonCode).toBe("QUALIFICATION_COMPLETE");
+  });
+
+  it("selects one pathway when multiple pathway bundles are fully met", () => {
     const instances: RequirementInstance[] = [
       {
         id: "level1-qual",
@@ -419,16 +548,89 @@ describe("evaluateRequirements", () => {
 
     const checks = evaluateRequirements(instances, evidence, emptyContext());
 
-    expect(checks.map((check) => check.id).sort()).toEqual([
-      "level1-qual",
-      "level1-wam",
-      "level2-completion",
-      "level2-wam",
-    ]);
+    expect(checks.map((check) => check.id).sort()).toEqual(["level1-qual", "level1-wam"]);
     expect(aggregateOutcome(checks)).toEqual({
       outcome: "eligible",
       manualReviewRequired: false,
     });
+  });
+
+  it("selects the closest pathway when every pathway has a failing check", () => {
+    const instances: RequirementInstance[] = [
+      {
+        id: "level1-qual",
+        kind: "qualification_level",
+        params: { completedRequired: true, level: "bachelor" },
+        sourceText: "Entry Level 1: completed bachelor or equivalent.",
+        weight: "mandatory",
+        pathwayBundleId: "level-1",
+      },
+      {
+        id: "level1-wam",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 60 },
+        sourceText: "Entry Level 1: 60% average.",
+        weight: "mandatory",
+        pathwayBundleId: "level-1",
+      },
+      {
+        id: "level1-experience",
+        kind: "work_experience",
+        params: { minYears: 3 },
+        sourceText: "Entry Level 1: three years relevant experience.",
+        weight: "mandatory",
+        pathwayBundleId: "level-1",
+      },
+      {
+        id: "level2-completion",
+        kind: "qualification_completed",
+        params: {
+          requiredQualificationName:
+            "Graduate Certificate of Business Administration (Digital)",
+          requiredProvider: "Monash University",
+        },
+        sourceText: "Entry Level 2: Monash Graduate Certificate.",
+        weight: "mandatory",
+        pathwayBundleId: "level-2",
+      },
+      {
+        id: "level2-wam",
+        kind: "academic_threshold",
+        params: { metric: "wam", min: 60 },
+        sourceText: "Entry Level 2: 60% average.",
+        weight: "mandatory",
+        pathwayBundleId: "level-2",
+      },
+    ];
+    const evidence: TranscriptExtractedData = {
+      applicantDetails: {
+        institutionName: { confidence: 0.9, normalizedValue: "Macquarie University" },
+      },
+      academicPerformance: {
+        gradeAverageOrWam: { confidence: 0.9, normalizedValue: "59" },
+      },
+      studyDetails: {
+        completionStatus: { confidence: 0.9, normalizedValue: "completed" },
+        highestEducationLevel: {
+          confidence: 0.9,
+          normalizedValue: "Graduate Certificate of Business",
+        },
+        programName: {
+          confidence: 0.9,
+          normalizedValue: "Graduate Certificate of Business",
+        },
+      },
+    };
+
+    const result = evaluateRequirementsWithPathways(instances, evidence, emptyContext());
+
+    expect(result.selectedPathwayId).toBe("level-1");
+    expect(result.checks.map((check) => check.id)).toEqual([
+      "level1-qual",
+      "level1-wam",
+      "level1-experience",
+    ]);
+    expect(result.pathwayResults).toHaveLength(2);
   });
 
   it("drops unsatisfied pathway bundles when another pathway has no failing checks", () => {

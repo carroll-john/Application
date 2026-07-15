@@ -39,6 +39,7 @@ describe("requirementPresentation", () => {
     expect(consolidated[0]).toMatchObject({
       id: "level-bachelor",
       kind: "qualification_level",
+      params: { completedRequired: true, level: "bachelor" },
       sourceText: BACHELOR_QUALIFICATION_DETAIL_TEXT,
     });
   });

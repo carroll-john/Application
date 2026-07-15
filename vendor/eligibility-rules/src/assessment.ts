@@ -3,7 +3,7 @@ import {
   missingInformationCopyByReasonCode,
 } from "./checkCopy.js";
 import { applyDeterministicEligibilityRules } from "./deterministicRules.js";
-import { aggregateOutcome, evaluateRequirements } from "./matcher.js";
+import { aggregateOutcome, evaluateRequirementsWithPathways } from "./matcher.js";
 import {
   requirementEvidenceSource,
   type EvidenceSource,
@@ -194,11 +194,12 @@ function applyRequirementsMatcher(
 ): Record<string, unknown> {
   const requirements = context.requirements ?? [];
   const evidence = extractEvidence(assessment);
-  const checks: EligibilityRequirementCheck[] = evaluateRequirements(
+  const evaluation = evaluateRequirementsWithPathways(
     requirements,
     evidence,
     context,
   );
+  const checks: EligibilityRequirementCheck[] = evaluation.checks;
   const conditionalIds = new Set(
     requirements.filter((r) => r.weight === "conditional").map((r) => r.id),
   );
@@ -251,6 +252,10 @@ function applyRequirementsMatcher(
 
   const patched: Record<string, unknown> = { ...assessment };
   patched.requirementsChecked = checks;
+  patched.pathwayResults = evaluation.pathwayResults;
+  if (evaluation.selectedPathwayId) {
+    patched.selectedPathwayId = evaluation.selectedPathwayId;
+  }
   patched.outcome = outcome;
   patched.manualReviewRequired = manualReviewRequired;
   patched.pendingEvidence = pendingEvidence;

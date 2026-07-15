@@ -52,7 +52,39 @@ export function convertFlatToV2(
         ],
       };
 
-    case "master-of-business-administration-digital":
+    case "master-of-business-administration-digital": {
+      const levelOneRequirements = flat
+        .filter((requirement) => requirement.pathwayBundleId === "mba-level-1")
+        .filter((requirement) => requirement.id !== "academic_threshold-60-gpa")
+        .map(stripPathwayBundle)
+        .map((requirement) => {
+          if (requirement.kind === "qualification_level") {
+            return {
+              ...requirement,
+              params: { ...requirement.params, completedRequired: true },
+            };
+          }
+          if (requirement.kind === "work_experience") {
+            const { alternativeGroupId: _alternativeGroupId, ...standalone } = requirement;
+            return { ...standalone, weight: "mandatory" as const };
+          }
+          return requirement;
+        });
+      const levelTwoRequirements = flat
+        .filter((requirement) => requirement.pathwayBundleId === "mba-level-2")
+        .map(stripPathwayBundle)
+        .map((requirement) =>
+          requirement.kind === "qualification_completed"
+            ? {
+                ...requirement,
+                params: {
+                  requiredQualificationName:
+                    "Graduate Certificate of Business Administration (Digital)",
+                  requiredProvider: "Monash University",
+                },
+              }
+            : requirement,
+        );
       return {
         version: 2,
         global: [],
@@ -60,19 +92,16 @@ export function convertFlatToV2(
           {
             id: "mba-level-1",
             label: "Entry Level 1",
-            requirements: flat
-              .filter((requirement) => requirement.pathwayBundleId === "mba-level-1")
-              .map(stripPathwayBundle),
+            requirements: levelOneRequirements,
           },
           {
             id: "mba-level-2",
             label: "Entry Level 2",
-            requirements: flat
-              .filter((requirement) => requirement.pathwayBundleId === "mba-level-2")
-              .map(stripPathwayBundle),
+            requirements: levelTwoRequirements,
           },
         ],
       };
+    }
 
     case "deakin-university-master-of-data-science":
       return {

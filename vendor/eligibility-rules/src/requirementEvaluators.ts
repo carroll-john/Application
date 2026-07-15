@@ -45,27 +45,72 @@ function parseNumberFromText(value: string | undefined): number | undefined {
   return Number.isFinite(parsed) ? parsed : undefined;
 }
 
+function normalizeComparableText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function matchesRequiredText(observed: string, required: string): boolean {
+  const normalizedObserved = normalizeComparableText(observed);
+  const normalizedRequired = normalizeComparableText(required);
+  if (normalizedObserved === normalizedRequired) {
+    return true;
+  }
+
+  if (normalizedObserved.includes(normalizedRequired)) {
+    return true;
+  }
+
+  // Transcript issuers sometimes omit a short suffix from the published award name.
+  // Accept that only when the observed value still contains most of the required title;
+  // a generic prefix such as "Graduate Certificate of Business" must not satisfy a
+  // distinct named award such as "...Business Administration (Digital)".
+  return (
+    normalizedRequired.includes(normalizedObserved) &&
+    normalizedObserved.length / normalizedRequired.length >= 0.8
+  );
+}
+
+function readCompletionSignal(
+  { context, evidence }: EvaluationContext,
+): "completed" | "incomplete" | "unknown" {
+  const completionText = readFieldText(evidence.studyDetails?.completionStatus)
+    ?.toLowerCase()
+    .replace(/_/g, " ");
+
+  if (
+    completionText?.includes("in progress") ||
+    completionText?.includes("not completed") ||
+    completionText?.includes("withdrawn") ||
+    context.completed === false
+  ) {
+    return "incomplete";
+  }
+
+  if (
+    completionText?.includes("completed") ||
+    completionText?.includes("conferred") ||
+    context.completed === true
+  ) {
+    return "completed";
+  }
+
+  return "unknown";
+}
+
 // ---------- Per-kind evaluators ----------
 
 function evaluateQualificationCompleted(
   instance: Extract<RequirementInstance, { kind: "qualification_completed" }>,
-  { context, evidence }: EvaluationContext,
+  evaluationContext: EvaluationContext,
 ): EligibilityRequirementCheck {
-  // Normalize underscores so the schema-v2 enum values ("in_progress") match the same phrases as
-  // legacy free-text extraction ("in progress").
-  const completionText = readFieldText(evidence.studyDetails?.completionStatus)
-    ?.toLowerCase()
-    .replace(/_/g, " ");
-  const completionFromForm = context.completed;
+  const { evidence } = evaluationContext;
+  const completionSignal = readCompletionSignal(evaluationContext);
 
-  const indicatesNotCompleted =
-    completionText?.includes("in progress") ||
-    completionText?.includes("not completed") ||
-    completionText?.includes("withdrawn");
-  const indicatesCompleted =
-    completionText?.includes("completed") || completionText?.includes("conferred");
-
-  if (indicatesNotCompleted || completionFromForm === false) {
+  if (completionSignal === "incomplete") {
     return buildRequirementCheck(
       instance,
       "fail",
@@ -74,20 +119,71 @@ function evaluateQualificationCompleted(
     );
   }
 
-  if (indicatesCompleted || completionFromForm === true) {
+  if (completionSignal === "unknown") {
     return buildRequirementCheck(
       instance,
-      "pass",
-      "Qualification appears completed based on supplied evidence.",
-      "QUALIFICATION_COMPLETE",
+      "unknown",
+      "Completion status is unclear or not confirmed in transcript evidence.",
+      "QUALIFICATION_COMPLETION_UNKNOWN",
     );
+  }
+
+  const observedQualification = readFieldText(evidence.studyDetails?.programName);
+  if (instance.params.requiredQualificationName) {
+    if (!observedQualification) {
+      return buildRequirementCheck(
+        instance,
+        "unknown",
+        "The required qualification name could not be confirmed from transcript evidence.",
+        "QUALIFICATION_IDENTITY_UNKNOWN",
+        { required: instance.params.requiredQualificationName },
+      );
+    }
+    if (!matchesRequiredText(observedQualification, instance.params.requiredQualificationName)) {
+      return buildRequirementCheck(
+        instance,
+        "fail",
+        "The completed qualification does not match the award required for this pathway.",
+        "QUALIFICATION_NAME_MISMATCH",
+        {
+          observed: observedQualification,
+          required: instance.params.requiredQualificationName,
+        },
+      );
+    }
+  }
+
+  const observedProvider =
+    readFieldText(evidence.applicantDetails?.institutionName) ?? evaluationContext.context.institution;
+  if (instance.params.requiredProvider) {
+    if (!observedProvider) {
+      return buildRequirementCheck(
+        instance,
+        "unknown",
+        "The awarding institution could not be confirmed from transcript evidence.",
+        "QUALIFICATION_IDENTITY_UNKNOWN",
+        { required: instance.params.requiredProvider },
+      );
+    }
+    if (!matchesRequiredText(observedProvider, instance.params.requiredProvider)) {
+      return buildRequirementCheck(
+        instance,
+        "fail",
+        "The completed qualification was not awarded by the provider required for this pathway.",
+        "QUALIFICATION_PROVIDER_MISMATCH",
+        {
+          observed: observedProvider,
+          required: instance.params.requiredProvider,
+        },
+      );
+    }
   }
 
   return buildRequirementCheck(
     instance,
-    "unknown",
-    "Completion status is unclear or not confirmed in transcript evidence.",
-    "QUALIFICATION_COMPLETION_UNKNOWN",
+    "pass",
+    "Qualification appears completed based on supplied evidence.",
+    "QUALIFICATION_COMPLETE",
   );
 }
 
@@ -114,6 +210,34 @@ function evaluateQualificationLevel(
   )
     ? "pass"
     : "fail";
+
+  if (status === "pass" && instance.params.completedRequired) {
+    const completionSignal = readCompletionSignal({ context, evidence });
+    if (completionSignal === "incomplete") {
+      return buildRequirementCheck(
+        instance,
+        "fail",
+        "The qualification meets the required level but appears incomplete or withdrawn.",
+        "QUALIFICATION_INCOMPLETE",
+        {
+          observed: extractedLevel,
+          required: instance.params.level.replace("_", " "),
+        },
+      );
+    }
+    if (completionSignal === "unknown") {
+      return buildRequirementCheck(
+        instance,
+        "unknown",
+        "The qualification meets the required level but completion could not be confirmed.",
+        "QUALIFICATION_COMPLETION_UNKNOWN",
+        {
+          observed: extractedLevel,
+          required: instance.params.level.replace("_", " "),
+        },
+      );
+    }
+  }
 
   return buildRequirementCheck(
     instance,

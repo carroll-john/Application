@@ -1,9 +1,9 @@
-import type { RequirementInstance } from "./requirements.js";
+import type { RequirementInstance } from "./requirements";
 import {
   formatAcademicThreshold,
   formatQualificationLevel,
   type QualificationLevel,
-} from "./requirements.js";
+} from "./requirements";
 
 export const BACHELOR_QUALIFICATION_DETAIL_TEXT =
   "Completion of a 3-year Australian bachelor's degree or recognised equivalent";
@@ -135,6 +135,10 @@ export function consolidatePairedQualificationRequirements(
       }
       return {
         ...instance,
+        params: {
+          ...instance.params,
+          completedRequired: true,
+        },
         sourceText: formatBachelorQualificationDetailText(instance.sourceText),
       };
     });

@@ -25,7 +25,7 @@ const STRUCTURE_INSTRUCTIONS = `You structure classified requirement leaves into
 - version: 2
 - global: requirements applying to every pathway (typically English proficiency)
 - pathways: array of { id, label?, requirements[] } where each pathway is one entry route (OR across pathways, AND within a pathway)
-- Use alternativeGroupId only for genuine OR within the same pathway (e.g. WAM OR experience)
+- Use alternativeGroupId only for genuine OR within the same pathway; never group academic results with work experience unless the source explicitly makes either one sufficient
 - Never put requirements from different entry routes into the same pathway
 - Every pathway id must be unique kebab-case`;
 
@@ -46,7 +46,9 @@ Rules:
 - sourceText must be verbatim from the clause
 - weight: mandatory unless genuinely interchangeable (alternative) or waivable (conditional)
 - Do not invent requirements not evidenced in the clause
-- Do not emit both qualification_completed and qualification_level for the same clause; prefer qualification_level when a minimum level is stated (e.g. bachelor degree)`;
+- Do not emit both qualification_completed and qualification_level for the same clause; prefer qualification_level when a minimum level is stated and set completedRequired=true when the source requires a completed/awarded degree
+- Preserve a specifically named award or provider in qualification_completed params
+- A percentage average with "or equivalent GPA" is one WAM/percentage threshold because the evaluator already maps GPA to WAM; do not invent a numeric GPA threshold unless the source supplies both a GPA value and scale`;
 }
 
 export function buildStructureInstructions(): string {

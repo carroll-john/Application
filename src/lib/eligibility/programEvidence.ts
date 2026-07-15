@@ -253,7 +253,14 @@ export function buildProgramEvidenceRows(options: {
   transcriptAssessment?: TranscriptEligibilityAssessment;
 }): ProgramEvidenceRow[] {
   const { applicationData, course, transcriptAssessment } = options;
-  const requirements = course?.requirements ?? [];
+  const allRequirements = course?.requirements ?? [];
+  const selectedPathwayId = transcriptAssessment?.selectedPathwayId;
+  const requirements = selectedPathwayId
+    ? allRequirements.filter(
+        (requirement) =>
+          !requirement.pathwayBundleId || requirement.pathwayBundleId === selectedPathwayId,
+      )
+    : allRequirements;
   if (!course || requirements.length === 0) {
     return [];
   }
