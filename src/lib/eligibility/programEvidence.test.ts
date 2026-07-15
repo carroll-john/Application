@@ -101,6 +101,32 @@ const englishCourse = {
 } as CourseCatalogEntry;
 
 describe("buildProgramEvidenceRows", () => {
+  it("marks a consolidated qualification-level row as already requiring completion", () => {
+    const course = {
+      code: "completed-bachelor-course",
+      title: "Completed bachelor course",
+      requirements: [
+        {
+          id: "completed-bachelor",
+          kind: "qualification_level",
+          params: { completedRequired: true, level: "bachelor" },
+          sourceText: "Completion of a bachelor degree or higher.",
+          weight: "mandatory",
+        },
+      ],
+    } as CourseCatalogEntry;
+
+    const [row] = buildProgramEvidenceRows({
+      applicationData: application({ tertiaryQualifications: [tertiaryQualification()] }),
+      course,
+    });
+
+    expect(row).toMatchObject({
+      heading: "Bachelor degree or higher",
+      requiresCompletedQualification: true,
+    });
+  });
+
   it("marks English evidence met for a matching scored language test", () => {
     const rows = buildProgramEvidenceRows({
       applicationData: application({ languageTests: [languageTest()] }),

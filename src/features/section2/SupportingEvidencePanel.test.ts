@@ -14,6 +14,7 @@ const rows: ProgramEvidenceRow[] = [
     isBlocking: false,
     kindLabel: "Qualification level",
     reasonCode: "QUALIFICATION_LEVEL_MET",
+    requiresCompletedQualification: true,
     requirementId: "qualification-level",
     requirementStatus: "pass",
     sourceText: "A completed bachelor degree or higher.",
@@ -88,5 +89,46 @@ describe("SupportingEvidencePanel", () => {
     expect(html).not.toContain("Evidence ready");
     expect(html).toContain("Minimum WAM 60");
     expect(html).toContain("Your WAM of 59.0 is below the minimum of 60");
+  });
+
+  it("does not show completion as a separate card when the level requirement includes it", () => {
+    const assessment = normalizeTranscriptEligibilityAssessment({
+      checkedAt: "2026-07-15T00:00:00Z",
+      extractedData: {
+        studyDetails: {
+          completionStatus: {
+            confidence: 0.99,
+            normalizedValue: "conferred",
+            originalValue: "Award conferred",
+          },
+        },
+      },
+      outcome: "eligible",
+      requirementsChecked: [],
+      selectedPathwayId: "mba-level-1",
+    });
+
+    const html = renderToStaticMarkup(
+      createElement(SupportingEvidencePanel, {
+        assessment,
+        courseCode: "master-of-business-administration-digital",
+        courseTitle: "Master of Business Administration (Digital)",
+        ensureApplicationRow: async () => "application-id",
+        isHero: false,
+        isProcessing: false,
+        onNavigate: () => undefined,
+        onSaveFeedback: async () => undefined,
+        onSkipPrompt: () => undefined,
+        onUnskipPrompt: () => undefined,
+        plan,
+        showParsedTranscriptIntro: true,
+        ungroupedRows: [rows[0]],
+      }),
+    );
+
+    expect(html).toContain("Bachelor degree or higher");
+    expect(html).toContain("Met");
+    expect(html).not.toContain("Qualification completion from transcript");
+    expect(html).not.toContain("Completion status: conferred");
   });
 });

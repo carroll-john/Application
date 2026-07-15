@@ -45,6 +45,8 @@ export interface ProgramEvidenceRow {
   id: string;
   isBlocking: boolean;
   kindLabel: string;
+  /** This requirement already includes proof that the qualification was completed. */
+  requiresCompletedQualification?: boolean;
   /** Durable machine reason behind `requirementStatus`, when a transcript check produced it. */
   reasonCode?: RequirementReasonCode;
   requirementId: string;
@@ -289,6 +291,9 @@ export function buildProgramEvidenceRows(options: {
       heading: formatRequirementHeading(instance, requirements),
       id: instance.alternativeGroupId ?? instance.id,
       kindLabel: requirementKindLabel(instance.kind),
+      requiresCompletedQualification:
+        instance.kind === "qualification_completed" ||
+        (instance.kind === "qualification_level" && instance.params.completedRequired === true),
       requirementId: instance.id,
       sourceText: formatRequirementDetailText(instance, requirements),
     };
