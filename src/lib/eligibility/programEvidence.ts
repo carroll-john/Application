@@ -186,69 +186,36 @@ function workExperienceRow(
   instance: Extract<RequirementInstance, { kind: "work_experience" }>,
 ): Pick<
   ProgramEvidenceRow,
-  "actionLabel" | "actionPath" | "explanation" | "explanationItems" | "isBlocking" | "status"
+  "actionLabel" | "actionPath" | "explanation" | "isBlocking" | "status"
 > {
   const classification = classifyWorkExperienceEvidence({ applicationData: data, instance });
   const assessment = data.workExperienceAssessments[instance.id];
-  const explanationItems = assessment?.roleAssessments.map((role) => {
-    const experience = data.employmentExperiences.find(
-      (candidate) => candidate.id === role.employmentExperienceId,
-    );
-    const title = experience?.position.trim() || "Untitled role";
-    const inclusion = role.countedMonthsMinimum > 0
-      ? "Included"
-      : role.countedMonthsMaximum > 0
-        ? "Possibly included"
-        : "Not counted";
-    return `${title}: ${inclusion} — ${role.explanation}`;
-  });
-  const withRoleDetails = <T extends object>(value: T) => ({
-    ...value,
-    ...(explanationItems?.length ? { explanationItems } : {}),
-  });
 
-  if (classification.status === "met" || (classification.status === "needs_review" && assessment?.status === "provisionally_met")) {
-    return withRoleDetails(classification);
-  }
-
-  if (assessment?.status === "provisionally_met") {
-    const missingLetterRole = assessment.roleAssessments.find(
-      (role) =>
-        role.countedMonthsMinimum > 0 &&
-        !data.employmentExperiences.find(
-          (experience) =>
-            experience.id === role.employmentExperienceId &&
-            isSubmissionReadyDocument(experience.employerLetterDocument),
-        ),
-    );
-    if (!missingLetterRole) return withRoleDetails(classification);
-    return withRoleDetails(withEvidenceActions(classification, {
-      actionLabel: "Add employer letter",
-      actionPath: `/section2/edit-employment/${missingLetterRole.employmentExperienceId}?from=review`,
-    }));
+  if (classification.status === "met" || classification.status === "provisionally_met") {
+    return classification;
   }
 
   if (data.employmentExperiences.length > 0) {
     const roleId = assessment?.roleAssessments.find(
       (role) => role.relevanceStatus !== "not_demonstrated",
     )?.employmentExperienceId ?? data.employmentExperiences[0]?.id;
-    return withRoleDetails(withEvidenceActions(classification, {
+    return withEvidenceActions(classification, {
       actionLabel: "Review employment",
       actionPath: roleId ? `/section2/edit-employment/${roleId}?from=review` : employmentPath,
-    }));
+    });
   }
 
   if (data.cvUploaded && data.employmentExperiences.length === 0) {
-    return withRoleDetails(withEvidenceActions(classification, {
+    return withEvidenceActions(classification, {
       actionLabel: "Add employment experience",
       actionPath: employmentPath,
-    }));
+    });
   }
 
-  return withRoleDetails(withEvidenceActions(classification, {
+  return withEvidenceActions(classification, {
     actionLabel: "Add CV",
     actionPath: cvPath,
-  }));
+  });
 }
 
 function statusFromCheck(

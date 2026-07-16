@@ -257,13 +257,14 @@ export function SupportingEvidencePanel({
       ? buildAssessmentCheckEvidenceRows(assessment)
       : ungroupedRows;
   const dedupedRows = dedupeProgramEvidenceRowsByHeading(sourceRows);
-  const metRows = dedupedRows.filter((row) => row.status === "met");
+  const metRows = dedupedRows.filter(
+    (row) => row.status === "met" || row.status === "provisionally_met",
+  );
   const reviewRows = dedupedRows.filter(
     (row) =>
       !row.isBlocking &&
       (row.status === "needs_review" ||
-        row.status === "needs_details" ||
-        row.status === "provisionally_met"),
+        row.status === "needs_details"),
   );
   const alternativeRows = dedupedRows.filter(
     (row) => row.status === "possible_alternative" && row.requirementStatus,
@@ -359,7 +360,9 @@ export function SupportingEvidencePanel({
             >
               <p className="text-xs font-semibold text-gray-900 sm:text-sm">
                 {row.heading}
-                <span className="ml-2 font-medium text-[var(--success-text)]">Met</span>
+                <span className="ml-2 font-medium text-[var(--success-text)]">
+                  {row.statusLabel}
+                </span>
               </p>
               <p className="mt-1 text-xs text-gray-700 sm:text-sm">{row.explanation}</p>
             </li>

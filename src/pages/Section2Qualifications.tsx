@@ -23,6 +23,7 @@ import {
   getLatestTranscriptAssessment,
   SupportingEvidencePanel,
 } from "../features/section2/SupportingEvidencePanel";
+import { EmployerConfirmationNudge } from "../features/section2/EmployerConfirmationNudge";
 import type { Section2EvidenceSectionKey } from "../features/section2/section2EvidencePlan";
 import { usePendingTranscriptEligibility } from "../features/section2/usePendingTranscriptEligibility";
 import { useReviewReturn } from "../hooks/useReviewReturn";
@@ -181,6 +182,12 @@ export default function Section2Qualifications() {
         plan={evidencePlan}
         showParsedTranscriptIntro={showParsedTranscriptIntro}
         ungroupedRows={programEvidenceRows}
+      />
+
+      <EmployerConfirmationNudge
+        applicationData={data}
+        course={selectedCourseEntry}
+        onNavigate={(path) => navigate(`${path}${reviewSuffix}`)}
       />
 
       {showSection("tertiary") ? (

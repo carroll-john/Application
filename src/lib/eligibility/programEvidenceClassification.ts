@@ -201,16 +201,31 @@ export function classifyWorkExperienceEvidence(options: {
       unassessedConditions: assessment.unassessedConditions,
     });
 
-    if (assessment.status === "provisionally_met") {
+    const requiredRoleCriteriaMonths = instance.params.qualifyingRoleCriteria
+      ? Math.round(
+          (instance.params.qualifyingRoleCriteria.minYears ?? instance.params.minYears) * 12,
+        )
+      : 0;
+    const minimumAlreadyMeetsRequirement =
+      assessment.qualifyingMonthsMinimum >= assessment.requiredMonths &&
+      (!instance.params.qualifyingRoleCriteria ||
+        (assessment.roleCriteriaMonthsMinimum ?? 0) >= requiredRoleCriteriaMonths);
+    const appearsToMeet =
+      assessment.status === "provisionally_met" ||
+      (assessment.status === "needs_review" &&
+        assessment.unassessedConditions.length === 0 &&
+        minimumAlreadyMeetsRequirement);
+
+    if (appearsToMeet) {
       const years = (assessment.qualifyingMonthsMinimum / 12).toFixed(1).replace(/\.0$/, "");
       return letterCoverage.status === "provisionally_met"
         ? {
-            explanation: `Employer confirmation supplied for ${years} years of relevant experience. Admissions will review the evidence.`,
+            explanation: `Your CV indicates ${years} years of relevant experience. Employer confirmation has been supplied for admissions review.`,
             isBlocking: false,
-            status: "needs_review",
+            status: "provisionally_met",
           }
         : {
-            explanation: `Your CV indicates ${years} years of relevant experience. Add employer confirmation for the roles being counted; admissions will make the final assessment.`,
+            explanation: `Your CV indicates ${years} years of relevant experience. Admissions will confirm relevance and duration.`,
             isBlocking: false,
             status: "provisionally_met",
           };

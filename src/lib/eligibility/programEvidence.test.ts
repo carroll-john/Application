@@ -371,7 +371,7 @@ describe("buildProgramEvidenceRows", () => {
     });
   });
 
-  it("shows a conditional result and requests an employer letter", () => {
+  it("shows a compact conditional result without mixing in the employer-letter action", () => {
     const requirement = {
       id: "work-experience",
       kind: "work_experience" as const,
@@ -403,15 +403,12 @@ describe("buildProgramEvidenceRows", () => {
     });
 
     expect(row).toMatchObject({
-      actionLabel: "Add employer letter",
-      actionPath: "/section2/edit-employment/role-1?from=review",
       isBlocking: false,
       status: "provisionally_met",
       statusLabel: "Appears to meet",
     });
-    expect(row.explanationItems).toEqual([
-      "Operations Lead: Included — The duties demonstrate relevant operations work.",
-    ]);
+    expect(row.actionLabel).toBeUndefined();
+    expect(row.explanationItems).toBeUndefined();
   });
 
   it("keeps employer confirmation subject to admissions review", () => {
@@ -448,8 +445,8 @@ describe("buildProgramEvidenceRows", () => {
       course: { code: "work-course", title: "Work course", requirements: [requirement] } as CourseCatalogEntry,
     });
 
-    expect(row).toMatchObject({ isBlocking: false, status: "needs_review" });
-    expect(row.explanation).toContain("Employer confirmation supplied");
+    expect(row).toMatchObject({ isBlocking: false, status: "provisionally_met" });
+    expect(row.explanation).toContain("Employer confirmation has been supplied");
     expect(row.actionLabel).toBeUndefined();
   });
 });
