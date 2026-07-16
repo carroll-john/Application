@@ -23,5 +23,5 @@
 
 ## See/play with it
 - Live application shell: https://application-prototype.vercel.app
-- Current artifact for this stream: `docs/eligibility-check-roadmap.md`
+- Historical roadmap for this stream: `docs/archive/eligibility-check-roadmap.md`
 - Note: no standalone eligibility backend demo endpoint is live yet; this update reflects planning and architecture baseline.

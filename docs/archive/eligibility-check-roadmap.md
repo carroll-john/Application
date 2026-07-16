@@ -1,4 +1,7 @@
-# Eligibility Check Roadmap
+# Archived Eligibility Check Roadmap
+
+> **Archived 2026-07-15.** Use Linear for active work and
+> [`../system-context.md`](../system-context.md) for current boundaries.
 
 ## Objective
 Build a backend-backed eligibility-check flow where users can upload:

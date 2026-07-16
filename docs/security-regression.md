@@ -24,7 +24,7 @@ As an authenticated test user with a valid application id:
 ## Conditional submission requirements
 
 The submit RPC enforces two conditional requirements (see
-[memory-applications.md](memory-applications.md)). After any change to
+[applications.md](domains/applications.md)). After any change to
 `application_submission_missing_fields`:
 
 1. **Certificate of Completion** — a `completed` tertiary qualification with a ready

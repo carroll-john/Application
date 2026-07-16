@@ -11,11 +11,12 @@ University application prototype built with React, Vite, TypeScript, Tailwind, a
   - `lib/` business logic, validation, persistence, and backend helpers
   - `pages/` route-level screens
 - `docs/`
-  - `project-memory.md` cross-cutting contracts index
-  - `memory-*.md` domain memory for agents (auth, applications, documents, UI, workflow)
-  - `backend-rollout.md` Supabase and deployment setup
-  - `decisions.md` dated architecture decisions
-  - `current-phase.md` active priorities
+  - `system-context.md` current topology, ownership, and boundaries
+  - `domains/` current implementation contracts
+  - `decisions/` curated architectural decisions
+  - `workflows/` agent and CI procedures
+  - `runbooks/` deployment and operational guidance
+  - `reviews/` and `archive/` historical context only
 - `supabase/`
   - `migrations/` SQL migrations
   - `reset_test_data.sql` clean hosted test reset
@@ -28,6 +29,7 @@ npm run dev
 npm run dev:cv-parser-api
 npm test
 npm run build
+npm run context:check
 npm run test:cv-parser
 npm run start-task -- "Fix auth redirect"
 npm run finish-task -- "Fix auth redirect"
@@ -228,33 +230,27 @@ npm run sync-supabase-env   # optional: refresh .env.local keys
 npm run dev
 ```
 
-Hosted/Vercel auth requires an **active** Supabase project, email confirmation enabled, and `VITE_SUPABASE_*` env vars on Vercel. See [docs/auth-password-troubleshooting.md](docs/auth-password-troubleshooting.md).
+Hosted/Vercel auth requires an **active** Supabase project, email confirmation enabled, and `VITE_SUPABASE_*` env vars on Vercel. See [docs/runbooks/auth-password.md](docs/runbooks/auth-password.md).
 
 ## Documentation
 
 | Document | Purpose |
 |----------|---------|
-| [docs/project-memory.md](docs/project-memory.md) | Cross-cutting contracts index |
-| [docs/memory-auth.md](docs/memory-auth.md) | Auth, password sign-in, redirects, session |
-| [docs/memory-applications.md](docs/memory-applications.md) | Applications, validation, submit |
-| [docs/memory-documents.md](docs/memory-documents.md) | Uploads, storage, delivery proxy |
-| [docs/memory-document-parsing.md](docs/memory-document-parsing.md) | Kind-pluggable document parsing (CV first) |
-| [docs/memory-ui.md](docs/memory-ui.md) | UI primitives, forms, CTAs |
-| [docs/memory-agent-workflow.md](docs/memory-agent-workflow.md) | Tests, module boundaries, dev ops |
-| [docs/current-phase.md](docs/current-phase.md) | Active priorities and tracks |
-| [docs/decisions.md](docs/decisions.md) | Dated architecture decisions |
-| [docs/backend-rollout.md](docs/backend-rollout.md) | Supabase, Vercel, migrations |
-| [docs/auth-password-troubleshooting.md](docs/auth-password-troubleshooting.md) | Password auth delivery runbook |
+| [docs/README.md](docs/README.md) | Documentation index |
+| [docs/system-context.md](docs/system-context.md) | Current system topology, ownership, boundaries, and intentional mirrors |
+| [docs/domains/](docs/domains/) | Current auth, applications, documents, parsing, and UI contracts |
+| [docs/decisions/](docs/decisions/) | Curated architectural decisions and rationale |
+| [docs/workflows/agent.md](docs/workflows/agent.md) | Agent task lifecycle, working sets, and checks |
+| [docs/runbooks/backend.md](docs/runbooks/backend.md) | Supabase, Vercel, migrations, and service operations |
+| [docs/runbooks/auth-password.md](docs/runbooks/auth-password.md) | Password-auth troubleshooting |
 | [docs/analytics-events.md](docs/analytics-events.md) | PostHog event contract |
-| [docs/demo-scope-tuesday.md](docs/demo-scope-tuesday.md) | Historical Tuesday demo scope |
-| [docs/eligibility-check-roadmap.md](docs/eligibility-check-roadmap.md) | Eligibility backend roadmap |
 | [docs/contracts/eligibility-evaluate.v1.md](docs/contracts/eligibility-evaluate.v1.md) | Pinned v1 HTTP contract for the external eligibility service |
-| [docs/integration-platform-mvp.md](docs/integration-platform-mvp.md) | Separate integration platform initiative |
 | [docs/multi-program-flow-options.md](docs/multi-program-flow-options.md) | Multi-program product exploration |
 
 ## Notes
 
-- Read `docs/project-memory.md` and the relevant `docs/memory-*.md` before making product or UX changes.
-- The transcript **eligibility service** lives in its own repo: [github.com/carroll-john/eligibility-service](https://github.com/carroll-john/eligibility-service). This app talks to it over the pinned [v1 HTTP contract](docs/contracts/eligibility-evaluate.v1.md) via `api/evaluate-transcript-eligibility.ts` (`ELIGIBILITY_SERVICE_URL` + `ELIGIBILITY_SERVICE_TOKEN`). With the URL unset, the app falls back to a local OpenAI call, so the service is optional for local dev (`npm run dev:transcript-eligibility-api`).
-- Applicant auth uses public email + password (no company-domain gate). See `docs/auth-password-troubleshooting.md`.
+- Humans start at `docs/README.md`; coding agents start at `AGENTS.md`. Both use
+  `docs/system-context.md` and the same domain contracts.
+- The transcript **eligibility service** lives in its own repo: [github.com/carroll-john/eligibility-service](https://github.com/carroll-john/eligibility-service). This app talks to it through `api/evaluate-transcript-eligibility.ts`. A local OpenAI fallback still exists but is an explicitly planned Phase 3 removal, not a second long-term owner.
+- Applicant auth uses public email + password and applicant data requires a session. See `docs/runbooks/auth-password.md`.
 - PostHog is optional and activates when `VITE_POSTHOG_KEY` is set and bot/automation filters pass. Use `VITE_POSTHOG_HOST` to point at your PostHog region, for example `https://eu.i.posthog.com`.

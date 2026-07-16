@@ -12,6 +12,7 @@
     "build:eligibility-rules": "tsc -p vendor/eligibility-rules/tsconfig.json",
     "build": "npm run build:eligibility-rules && tsc -b && vite build",
     "lint": "eslint .",
+    "context:check": "node --test ./scripts/contextLinkPolicy.test.mjs && node ./scripts/validate-context.mjs",
     "preview": "vite preview",
     "pretest": "npm run build:eligibility-rules",
     "test": "vitest run",

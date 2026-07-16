@@ -1,4 +1,8 @@
-# Systems Architecture Review - Applications Runtime
+# Historical Systems Architecture Review - Applications Runtime
+
+> **Historical snapshot.** This review records findings as observed on 2026-07-06.
+> It is not current implementation guidance. See
+> [`../system-context.md`](../system-context.md) for current ownership and boundaries.
 
 Review date: 2026-07-06
 
@@ -7,6 +11,20 @@ routes, Supabase Auth/Postgres/Storage/RLS, `eligibility-service`,
 `suggest-service`, OpenAI, PostHog, Sentry, Google Places, and Pwned Passwords.
 Adjacent projects (`aus-uni-intel`, `Eligibility`, `keypathapply`,
 `keypath-suggest`) were treated as context only unless runtime coupling was found.
+
+## Finding status as of 2026-07-15
+
+| Original finding | Status | Current disposition |
+| --- | --- | --- |
+| Submit RPC weaker than client | Resolved | PR #213 persisted and enforced the Section 2 submission policy server-side. |
+| Transcript file-type mismatch | Partially resolved | Applications contract/tests now cover supported types; provider-owned contract publication and cross-repo verification remain Phase 3 work. |
+| Raw filename in AI observability | Resolved | PR #213 replaced it with safe metadata and added regression coverage. |
+| Cross-repo contract protection | Partially resolved | Stale app workflow paths were fixed; provider publication/pinning remains Phase 3 work. |
+| Orphaned document cleanup | Resolved as asynchronous operations | PR #213 added a dry-run-first cleanup command; foreground storage remains intentionally non-transactional. |
+| Stale suggest/address runbook | Resolved | PR #213 documents the proxy/service/Google ownership path. |
+
+These statuses are historical traceability only. The current boundary contract is
+[`../system-context.md`](../system-context.md).
 
 ## Findings
 

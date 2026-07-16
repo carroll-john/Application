@@ -1,10 +1,25 @@
-# Memory: Documents
+---
+schema_version: 1
+document_type: domain_contract
+domain: documents
+status: active
+owner: src/lib/documentStorage.ts
+---
 
-## Model
+# Documents Domain
 
-- Hybrid storage in `src/lib/documentStorage.ts`:
-  - Authenticated Supabase session → remote upload + metadata
-  - No session → IndexedDB local fallback
+## Owner
+
+The shared document layer (`src/lib/documentStorage.ts` and `src/lib/storage/*`)
+owns upload, replacement, deletion, and delivery. Supabase Storage/Postgres are
+authoritative for applicant documents.
+
+## Current contract
+
+- Product flows require an authenticated Supabase session and use remote upload
+  plus metadata.
+- `localDocumentStore.ts` and its tests remain as a legacy implementation pending
+  Phase 2 removal. They are not an approved path for new or changed product flows.
 - Never store file names only; preserve binary content.
 
 ### Document kinds (Section 2 + feedback)
@@ -27,7 +42,7 @@ Replacement and removal must use the shared document replacement/cleanup path. R
 CV-replacing a role cleans up its attached letter; missing letters never enter
 `application_submission_missing_fields`.
 
-## Upload UX
+## Approved entry points
 
 - Shared component: `src/components/FileUpload.tsx`
 - Native label-linked file input — no hidden-input click proxies.
@@ -61,18 +76,18 @@ Enforced in client and DB:
 
 ## Section 2 upload sequence
 
-1. `ensureApplicationRow()` — shell-only application persist (no child-table rewrite). See [memory-applications.md](memory-applications.md).
-2. `saveDocumentAttachment({ kind, ... })` — replace/delete via hybrid storage.
+1. `ensureApplicationRow()` — shell-only application persist (no child-table rewrite). See [applications.md](applications.md).
+2. `saveDocumentAttachment({ kind, ... })` — replace/delete through the shared storage layer.
 3. Collection mutator or CV exception (`uploadCV` / `removeCV`) — attach metadata to application state.
 
-Optional parse layer on top: [memory-document-parsing.md](memory-document-parsing.md).
+Optional parse layer on top: [document-parsing.md](document-parsing.md).
 
 ## Key Files
 
 | File | Role |
 |------|------|
 | `src/lib/documentStorage.ts` | Public barrel (re-exports storage modules) |
-| `src/lib/storage/localDocumentStore.ts` | IndexedDB local documents |
+| `src/lib/storage/localDocumentStore.ts` | Legacy IndexedDB implementation; Phase 2 removal |
 | `src/lib/storage/remoteDocumentUpload.ts` | Supabase upload + metadata rows |
 | `src/lib/storage/documentDelivery.ts` | Proxy fetch, view, download |
 | `src/lib/storage/documentReplace.ts` | Replace, duplicate, delete orchestration |
@@ -84,7 +99,30 @@ Optional parse layer on top: [memory-document-parsing.md](memory-document-parsin
 | `src/components/DocumentUploadField.tsx` | Form field wrapper |
 | `api/document-delivery.ts` | Server proxy |
 
-## Agent Module Boundary
+## Forbidden shortcuts
 
-Owns: upload, storage, delivery proxy integration.
-Do not change form page navigation when fixing upload bugs — fix shared primitives first.
+- Anonymous applicant-document storage or page-local IndexedDB access.
+- Page-local `FileUpload` orchestration, Supabase uploads, or delivery URLs.
+- File-name-only persistence.
+- Navigation changes as a side effect of fixing document storage; fix shared
+  primitives and orchestration first.
+
+## Intentional mirrors
+
+- Client file-size/count checks mirror authoritative Supabase constraints for
+  immediate feedback. Upload-limit and storage-integrity tests protect them.
+- Document metadata and private storage objects are two parts of one logical
+  document. Cleanup is deliberately asynchronous because browser code cannot make
+  Storage and Postgres transactional.
+
+## Required checks
+
+- `src/lib/documentStorage.test.ts`
+- `src/lib/documentUploadLimits.test.ts`
+- document replacement/delivery tests relevant to the change
+- `npm run documents:cleanup` in dry-run mode for cleanup-operation changes
+
+## Related decisions
+
+- [ADR-0001: Authenticated Applicant Data](../decisions/0001-authenticated-applicant-data.md)
+- [ADR-0006: Repository Context Control Plane](../decisions/0006-context-control-plane.md)

@@ -1,4 +1,7 @@
-# Current Phase
+# Archived Current Phase
+
+> **Archived 2026-07-15.** Active priorities now live in Linear and task-specific
+> `TASK.md` files. Do not use this document as current implementation guidance.
 
 ## Goal
 Run two active tracks in parallel:

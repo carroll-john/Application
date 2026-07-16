@@ -1,10 +1,25 @@
-# Memory: Document Parsing
+---
+schema_version: 1
+document_type: domain_contract
+domain: document-parsing
+status: active
+owner: api/_documentParser
+---
 
-Primary contract for kind-pluggable document parsing. Upload/save is kind-generic; parsing is optional and registered per `DocumentKind`.
+# Document Parsing Domain
 
-## Model
+## Owner
 
-- **Upload layer** — all Section 2 document pages use `saveSection2DocumentRecord({ kind })` + `saveDocumentAttachment`. See [memory-documents.md](memory-documents.md).
+`api/_documentParser/*` owns the shared parsing framework; registered client
+policies own kind-specific gating and normalization. The transcript workflow is a
+documented exception for course-context evaluation, not a separate upload system.
+
+## Current contract
+
+Upload/save is kind-generic; parsing is optional and registered per
+`DocumentKind` except for the transcript workflow described below.
+
+- **Upload layer** — all Section 2 document pages use `saveSection2DocumentRecord({ kind })` + `saveDocumentAttachment`. See [documents.md](documents.md).
 - **Parse layer** — opt-in via `useSection2DocumentSaveWithParse` + a per-kind `DocumentParsePolicy` config in `src/features/section2/`.
 - **Registry** — client `documentParserRegistry` maps `ParseableDocumentKind` → API route + normalizer. Starts with `"cv"` only.
 - **API** — shared core in `api/_documentParser/`; kind-specific extraction in `api/_documentParser/kinds/{kind}/`. Thin route wrappers (e.g. `api/parse-cv.ts`) call shared core + kind module.
@@ -66,7 +81,9 @@ Reuses `/api/evaluate-transcript-eligibility` as a single LLM call for field ext
 
 Gating: new transcript selected **and** qualification core fields empty → auto-fill; new transcript always runs evidence review. Upload failure is **blocking**; parse/review failure is **warning** (save succeeds, `insufficient_data` fallback).
 
-## Adding kind #3+ via registry (future)
+## Approved entry points
+
+For a new ordinary parser kind:
 
 1. `api/_documentParser/kinds/{kind}/` + prompt/schema
 2. `src/lib/documentParsers/{kind}.ts`
@@ -90,7 +107,30 @@ Do **not** copy upload hooks, storage paths, or save orchestration per kind.
 | `src/lib/documentFilePolicy.ts` | Shared MIME/size constants (client) |
 | `api/_shared/documentFilePolicy.ts` | Shared MIME/size constants (server) |
 
-## Agent Module Boundary
+## Forbidden shortcuts
 
-Owns: parse policies, registry, API parser framework, analytics with `document_kind`.
-Coordinate before changing: upload limits, `ApplicationContext` persist contracts.
+- Copying upload hooks, storage paths, attachment logic, or save orchestration per kind.
+- Moving final program decisioning into transcript extraction.
+- Treating transcript results as final admissions decisions.
+- Expanding the transcript exception beyond course-context behaviour.
+
+## Intentional mirrors
+
+- Client parser registry metadata mirrors API route availability; registry and API
+  tests protect the mapping.
+- Transcript processing deliberately has specialized orchestration because it
+  combines field drafting with course-specific evidence review. It must continue
+  to reuse shared upload, attachment, and persistence owners.
+
+## Required checks
+
+- Parser client/registry: `documentParserClient.test.ts` and
+  `documentParserRegistry.test.ts`.
+- Shared API framework: relevant `api/_documentParser/*` and `api/_ai/*` tests.
+- Section 2 parsing saves: `section2DocumentSave.test.ts` and the relevant save-hook tests.
+- Transcript changes: eligibility context/contract tests and transcript fixtures.
+
+## Related decisions
+
+- [ADR-0003: Eligibility Ownership](../decisions/0003-eligibility-ownership.md)
+- [ADR-0004: Service Contract Ownership](../decisions/0004-service-contract-ownership.md)

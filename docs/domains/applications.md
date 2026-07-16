@@ -1,6 +1,20 @@
-# Memory: Applications
+---
+schema_version: 1
+document_type: domain_contract
+domain: applications
+status: active
+owner: src/context/ApplicationContext.tsx
+---
 
-## Model
+# Applications Domain
+
+## Owner
+
+`ApplicationContext` and its focused hooks own application orchestration.
+`ApplicationData` owns the domain shape, `ApplicationStorageAdapter` owns the
+persistence boundary, and the server submit contract owns the final transition.
+
+## Current contract
 
 - Multiple applications per signed-in user.
 - One open draft per course; submitted applications kept separately.
@@ -8,15 +22,17 @@
 - Eligibility is course-specific; no direct apply shortcut bypassing eligibility on course pages.
 - `eligibilityFeedbackDocument` / `eligibilityFeedbackFileName` on `ApplicationData` —
   optional JSON feedback artifact; hydrate from latest `application_documents` row with
-  `kind = eligibility_feedback` (see [memory-documents.md](memory-documents.md)).
+  `kind = eligibility_feedback` (see [documents.md](documents.md)).
 - `workExperienceAssessments` is a versioned map keyed by course requirement ID. Employment
   roles may each reference one optional `employment_letter` document.
 
 ## State Layer
 
 - `ApplicationContext` — shared application state (facade over hooks in `src/context/application/` or `src/features/application/`).
-- `AuthContext` selects `storageMode` (`local` vs `remote`).
-- `ApplicationStorageAdapter` — single persistence contract; pages must not branch local vs remote.
+- `ApplicationContext` creates `ApplicationStorageAdapter` from the authenticated
+  session. Signed-out users receive a no-write guest adapter.
+- `ApplicationStorageAdapter` is the single persistence contract; pages must not
+  import stores or branch storage modes.
 - Types and merge helpers: `src/lib/applicationData.ts`.
 
 ## Validation
@@ -90,8 +106,9 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   `tertiary_qualifications.transcript_confirms_completion`; the app writes the
   course-derived signals at save time in `src/lib/storage/remoteMappers.ts` /
   `remoteStore.ts`.
-  The AHPRA regex and English-medium-country list are duplicated in SQL there —
-  **keep them in sync** with `englishProficiencyEvidence.ts`.
+  The AHPRA regex and English-medium-country list are intentional SQL mirrors of
+  the eligibility-rules package and are protected by
+  `submitPolicyContract.test.ts`.
 - **Gotcha — editing the submit RPC:** rebuild `application_submission_missing_fields`
   from its *current* definition (`pg_get_functiondef` or the latest migration that
   touched it: `20260522120000_storage_quota_and_document_integrity.sql`), never from
@@ -101,15 +118,14 @@ server `submit_application` RPC enforces the same conditions (see Submission).
 - Work-experience assessments and employer letters are deliberately absent from the submit
   RPC. Do not add them to `application_submission_missing_fields` without a new product and
   admissions policy decision.
-- **Eligibility rules package:** `@johncarroll/eligibility-rules` lives in the
-  `eligibility-service` repo (`packages/eligibility-rules/`) and is linked from
-  this app via `file:./vendor/eligibility-rules` (vendored snapshot). A
-  `preinstall` script can symlink a sibling eligibility-service checkout for live
-  rules development.
-  proxy still owns final verdict assembly; the package owns matcher, requirement
+- **Eligibility rules package:** `@johncarroll/eligibility-rules` at
+  `vendor/eligibility-rules` is the authoritative Applications-owned rules source.
+  The proxy owns final verdict assembly; the package owns matcher, requirement
   types, v2 pathway IR, evaluators, check copy, assessment resolution, and
   submit-policy constants. App shims under `src/lib/eligibility/*.ts` re-export
-  from the package so existing imports keep working.
+  from the package so existing imports keep working. An independent copy still
+  exists in the service repository pending Phase 3 removal; do not edit it as an
+  alternative authority.
 - **Pathway result contract:** matcher assessments expose `selectedPathwayId` plus
   per-pathway summaries. Applicant-facing evidence rows must render global
   requirements and the selected pathway only; never combine failing checks from
@@ -143,7 +159,8 @@ server `submit_application` RPC enforces the same conditions (see Submission).
 
 - Source: `src/data/courses.raw.json` → `src/lib/courseCatalog.ts` (public barrel).
 - Implementation lives in `src/lib/courseCatalog/`: `buildCatalog.ts` (catalog assembly), `normalize.ts` (orchestrator mapping a raw entry to a `CourseCatalogEntry`), and focused parsers — `fees.ts`, `duration.ts`, `intake.ts`, `inference.ts`, `entryRequirements.ts`, `text.ts`. Behavior is locked by `normalize.test.ts`.
-- Preserve raw academic fields; normalize display labels per `project-memory.md`.
+- Preserve raw academic fields; normalize display labels per
+  [`system-context.md`](../system-context.md).
 
 ### Course eligibility requirements (offline parser)
 
@@ -171,7 +188,7 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   fixtures (`npm run eligibility:build-golden`) → tune parser prompt/registry →
   re-run `eligibility:parse-eval` before merging requirement changes.
 
-## Key Files
+## Approved entry points
 
 | File | Role |
 |------|------|
@@ -188,7 +205,35 @@ server `submit_application` RPC enforces the same conditions (see Submission).
 | `src/pages/ReviewAndSubmit.tsx` | Review + submit |
 | `src/pages/Section2Qualifications.tsx` | Evidence hub + feedback entry |
 
-## Agent Module Boundary
+## Forbidden shortcuts
 
-Owns: context hooks, orchestration, adapter calls, validation schema consumers.
-Coordinate before changing: Supabase RLS migrations, `api/*` routes.
+- Page-level persistence calls or local/remote branches.
+- Client-only submission rules without a matching server contract.
+- Program eligibility decisioning in `eligibility-service`.
+- A second eligibility-rules implementation outside the Applications-owned package.
+- Rebuilding the submit RPC from an obsolete migration.
+
+## Intentional mirrors
+
+- Client submission validation mirrors the authoritative server submit gate for UX.
+- SQL copies of English-country/AHPRA values mirror the package because SQL cannot
+  import TypeScript; `submitPolicyContract.test.ts` checks them.
+- Generated course requirements mirror reviewed catalog source text and are
+  protected by the parser evaluation corpus.
+
+## Required checks
+
+- Application persistence: `applicationStorageAdapter.test.ts`,
+  `applicationRecords.test.ts`, and `applicationRemoteStore.test.ts`.
+- Validation/submission: validation integration tests,
+  `section2Requirements.test.ts`, and `submitPolicyContract.test.ts`.
+- Eligibility rules/context: eligibility unit tests, `contextSchema.test.ts`,
+  `npm run eligibility:eval`, and `npm run eligibility:parse-eval` as applicable.
+- Coordinate Supabase migrations and `api/*` changes through the relevant runbook
+  and contract tests.
+
+## Related decisions
+
+- [ADR-0001: Authenticated Applicant Data](../decisions/0001-authenticated-applicant-data.md)
+- [ADR-0002: Server-Authoritative Submission](../decisions/0002-server-authoritative-submission.md)
+- [ADR-0003: Eligibility Ownership](../decisions/0003-eligibility-ownership.md)

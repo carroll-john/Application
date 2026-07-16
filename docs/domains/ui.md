@@ -1,8 +1,29 @@
-# Memory: UI
+---
+schema_version: 1
+document_type: domain_contract
+domain: ui
+status: active
+owner: src/components/ui
+---
 
-## Prototype Fidelity
+# UI Domain
 
-Follow the Figma Make prototype unless a newer documented decision overrides it.
+## Owner
+
+The code-based design system is authoritative:
+
+- `src/index.css` owns brand, semantic, radius, shadow, and typography tokens.
+- `src/components/ui/*` owns base controls.
+- shared product primitives such as `AppBrandHeader`, `SurfaceCard`,
+  `AccentIconBadge`, `FileUpload`, and form shells own recurring compositions.
+
+External design files are not a project source of truth.
+
+## Current contract
+
+Extend tokens and shared primitives before introducing a new page-local visual
+pattern. Existing hard-coded exceptions may be migrated incrementally; new code
+must not expand them.
 
 ## CTAs
 
@@ -16,7 +37,9 @@ Follow the Figma Make prototype unless a newer documented decision overrides it.
 - Use shared `FormActionBar` / `ApplicationShell` action bar pattern.
 - `continueLabel`: "Save & Return to Review" when editing from review path.
 
-## Shared Primitives (reuse before local wrappers)
+## Approved entry points
+
+### Shared primitives (reuse before local wrappers)
 
 | Primitive | Use for |
 |-----------|---------|
@@ -93,7 +116,7 @@ Mobile UX matters as much as desktop. Validate meaningful UI changes at both siz
 - **Section 2:** item-level Edit on list rows (tertiary, employment); CV Edit on
   `ReviewDocumentRow`; some multi-record cards still link to the qualifications hub.
 
-## Key Files
+## Key files
 
 | File | Role |
 |------|------|
@@ -112,3 +135,30 @@ Mobile UX matters as much as desktop. Validate meaningful UI changes at both siz
 | `src/routes.tsx` | `RouteLoadingScreen` path-specific fallbacks |
 | `src/components/ui/*` | Primitives |
 | `src/hooks/useReviewReturn.ts` | Review edit return paths |
+
+## Forbidden shortcuts
+
+- External design-file implementation instructions or fidelity checks.
+- New page-local brand colours, radii, shadows, base controls, or CTA systems.
+- Page-local form/navigation shells when a shared step wrapper exists.
+- Direct `FileUpload` wiring when `DocumentUploadField` or an extracted wrapper applies.
+
+## Intentional mirrors
+
+- Suspense fallbacks mirror hydration placeholders so route loading and hydrated
+  loading have the same geometry. Shared shells and route tests protect this.
+- Responsive variants intentionally mirror the same interaction across desktop
+  and mobile; validate both sizes rather than creating separate flows.
+
+## Required checks
+
+- Run relevant component and route tests.
+- Run `npm run build` for type and production-bundle validation.
+- Validate meaningful UI changes at desktop and mobile sizes.
+- Confirm new visual values extend the design-system owners rather than appearing
+  only in a page or feature.
+
+## Related decisions
+
+- [ADR-0005: Code-Based Design System](../decisions/0005-code-based-design-system.md)
+- [ADR-0006: Repository Context Control Plane](../decisions/0006-context-control-plane.md)

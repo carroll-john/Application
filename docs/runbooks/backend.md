@@ -1,4 +1,4 @@
-# Backend Rollout
+# Backend Rollout Runbook
 
 ## Target Stack
 - Hosting: Vercel
@@ -10,7 +10,8 @@
 - Current access model: public applicant auth through Supabase email + password.
 - `/sign-in` exposes Sign in and Create account tabs. New accounts must confirm email before first sign-in.
 - No company-domain allowlist is used in the frontend, RLS policies, storage policies, or submit RPC.
-- Signed-in users use Supabase-backed profile, application, and document storage. Anonymous users can browse courses and keep pre-auth local drafts.
+- Signed-in users use Supabase-backed profile, application, and document storage.
+  Anonymous users can browse courses but cannot own drafts or applicant documents.
 - RLS protects applicant data with `auth.uid()` ownership checks.
 
 ## Auth security hardening (DIS-119, DIS-123)
@@ -125,7 +126,7 @@ Current workspace values:
   - `VITE_REMOTE_UPLOAD_MAX_TOTAL_BYTES_PER_APPLICATION=104857600` (100 MB)
   - `VITE_REMOTE_UPLOAD_RATE_LIMIT_WINDOW_MINUTES=10`
   - `VITE_REMOTE_UPLOAD_RATE_LIMIT_MAX_UPLOADS=20`
-- `SUGGEST_SERVICE_URL` and optional `SUGGEST_SERVICE_TOKEN` power the Vercel `/api/suggest/*` proxies (`api/_suggest/proxy.ts`); when the URL is unset, institution and address suggest return `404 SUGGEST_SERVICE_NOT_CONFIGURED` and the UI falls back to local fuzzy matching. Set both on Production and Preview in Vercel (server-side only — no `VITE_` prefix). See [docs/contracts/suggest.v1.md](contracts/suggest.v1.md).
+- `SUGGEST_SERVICE_URL` and optional `SUGGEST_SERVICE_TOKEN` power the Vercel `/api/suggest/*` proxies (`api/_suggest/proxy.ts`); when the URL is unset, institution and address suggest return `404 SUGGEST_SERVICE_NOT_CONFIGURED` and the UI falls back to local fuzzy matching. Set both on Production and Preview in Vercel (server-side only — no `VITE_` prefix). See [docs/contracts/suggest.v1.md](../contracts/suggest.v1.md).
 - server-side Sentry capture for `/api/parse-cv` uses `SENTRY_DSN` (or falls back to `VITE_SENTRY_DSN` if omitted)
 - server-side document delivery proxy (`/api/document-delivery`) reads `SUPABASE_URL`/`SUPABASE_ANON_KEY` when present, and falls back to `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`
 - server-side parser tracing uses `SENTRY_TRACES_SAMPLE_RATE` and emits Agent Insights spans (`gen_ai.invoke_agent` and `gen_ai.response`)
@@ -234,24 +235,24 @@ Free-tier Supabase projects auto-pause after inactivity. While paused, the proje
 Projects paused longer than 90 days may lose one-click restore. Download backups from the project overview and follow [Supabase restore guidance](https://supabase.com/docs/guides/platform/upgrading#pause-and-restore) or create a new project and re-apply migrations from `supabase/migrations/`.
 
 ## Supabase Project Setup
-Run [supabase/migrations/0001_initial.sql](/Users/jc/Documents/Applications/supabase/migrations/0001_initial.sql) in the Supabase SQL editor.
+Run [supabase/migrations/0001_initial.sql](../../supabase/migrations/0001_initial.sql) in the Supabase SQL editor.
 
-Then run [supabase/migrations/0002_server_submit.sql](/Users/jc/Documents/Applications/supabase/migrations/0002_server_submit.sql) to add:
+Then run [supabase/migrations/0002_server_submit.sql](../../supabase/migrations/0002_server_submit.sql) to add:
 - server-side submission validation
 - server-side application number generation
 - the `submit_application` RPC used by the review screen
 
-Then run [supabase/migrations/0003_business_users_and_applicant_profiles.sql](/Users/jc/Documents/Applications/supabase/migrations/0003_business_users_and_applicant_profiles.sql) to add:
+Then run [supabase/migrations/0003_business_users_and_applicant_profiles.sql](../../supabase/migrations/0003_business_users_and_applicant_profiles.sql) to add:
 - `business_users`
 - `applicant_profiles`
 - `applications.applicant_profile_id`
 - the RLS foundation for separating internal site users from applicant records
 
-Then run [supabase/migrations/0004_submission_rpc_grants.sql](/Users/jc/Documents/Applications/supabase/migrations/0004_submission_rpc_grants.sql) to add:
+Then run [supabase/migrations/0004_submission_rpc_grants.sql](../../supabase/migrations/0004_submission_rpc_grants.sql) to add:
 - authenticated execute grants for `submit_application` and supporting RPC functions
 - authenticated sequence permissions for server-generated application numbers
 
-Then run [supabase/migrations/0005_document_upload_limits.sql](/Users/jc/Documents/Applications/supabase/migrations/0005_document_upload_limits.sql) to add:
+Then run [supabase/migrations/0005_document_upload_limits.sql](../../supabase/migrations/0005_document_upload_limits.sql) to add:
 - explicit application-document upload quotas and rate limits
 - indexes for user/rate-limit document checks
 
@@ -262,7 +263,7 @@ Then run the applicant auth migration to remove the old company-domain RLS depen
 
 ### Applicant password auth troubleshooting
 
-See [auth-password-troubleshooting.md](./auth-password-troubleshooting.md).
+See [auth-password.md](auth-password.md).
 
 - **Local:** `supabase start`, then read confirmation emails in Mailpit at `http://127.0.0.1:54324` (not a real inbox). Run `npm run sync-supabase-env` to refresh `.env.local`.
 - **Hosted:** if the linked project ref `weyxnhykyyetquqprfnu` is `INACTIVE`, restore it in the Supabase dashboard before auth or API calls will work. There is no CLI restore command.
@@ -337,11 +338,13 @@ Notes:
 - `/profile` is now a plain reusable profile-management screen, not an auth step.
 - Course selection is catalog-driven and attached to each application through `applicationMeta.selectedCourse`.
 - The app now supports multiple applications per user and resumes an existing open draft for the same course instead of creating duplicates.
-- Current application state is remote for signed-in users and local for anonymous pre-auth drafts.
-- Document uploads are local-first:
-  - `src/lib/documentStorage.ts` uses IndexedDB when no authenticated Supabase session is available
-  - remote uploads remain available in code for any future return to real auth
-- Explicit upload controls now exist for remote mode:
+- Application state is remote for signed-in users. The guest adapter is no-write;
+  there are no anonymous pre-auth drafts.
+- Product document uploads require authentication and use Supabase Storage plus
+  metadata rows. A legacy IndexedDB implementation remains in code pending the
+  Phase 2 cleanup recorded in [`system-context.md`](../system-context.md); do not
+  add new callers.
+- Explicit upload controls exist for authenticated remote storage:
   - per-file size cap: 5 MB
   - per-application quota: max 30 files, max 100 MB total
   - per-user rate limit: max 20 uploads per 10 minutes
@@ -375,7 +378,7 @@ Notes:
 `applications.requires_english_proficiency`, and rebuilds
 `application_submission_missing_fields` to make the Certificate-of-Completion and
 English-proficiency requirements conditional (see
-[memory-applications.md](memory-applications.md) → Validation/Submission). It is
+[applications.md](../domains/applications.md) → Validation/Submission). It is
 additive and idempotent (`add column if not exists`, `create or replace function`,
 `set search_path` inline since `CREATE OR REPLACE` resets it).
 
@@ -408,7 +411,7 @@ scan assessment survives reloads. It is additive and idempotent
 
 ## Clean Test Reset
 To reset hosted test data before a fresh run, execute:
-- [supabase/reset_test_data.sql](/Users/jc/Documents/Applications/supabase/reset_test_data.sql)
+- [supabase/reset_test_data.sql](../../supabase/reset_test_data.sql)
 
 This will:
 - delete all application records

@@ -52,9 +52,9 @@ export default function AIAssessmentDemo({
             Automated profile review
           </h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            This demo layer mirrors the prototype idea from Figma Make: an AI
-            assistant checks completeness, highlights evidence gaps, and flags
-            potential admission risks before the application goes to staff.
+            This demo layer shows how an AI assistant checks completeness,
+            highlights evidence gaps, and flags potential admission risks before
+            the application goes to staff.
           </p>
         </SurfaceCard>
         <SurfaceCard className="rounded-[28px] border-0 bg-[var(--cta-secondary)] p-5 text-white shadow-none">

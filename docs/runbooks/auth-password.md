@@ -1,4 +1,4 @@
-# Applicant email + password troubleshooting
+# Applicant Email and Password Runbook
 
 ## Quick checks
 
@@ -21,7 +21,7 @@
 4. Open the confirmation email in Mailpit and click the link
 5. Return to the app and sign in with the same email and password
 
-Local config enables confirmations in [`supabase/config.toml`](../supabase/config.toml) and uses [`supabase/templates/confirm_signup.html`](../supabase/templates/confirm_signup.html).
+Local config enables confirmations in [`supabase/config.toml`](../../supabase/config.toml) and uses [`supabase/templates/confirm_signup.html`](../../supabase/templates/confirm_signup.html).
 
 ## Hosted Supabase checklist
 
@@ -91,13 +91,13 @@ Corporate email (especially Microsoft 365 / Defender **Safe Links**) prefetches 
 
 ### App fix (token_hash + verifyOtp)
 
-The repo recovery template [`supabase/templates/recovery.html`](../supabase/templates/recovery.html) now links to the app callback instead of `{{ .ConfirmationURL }}`:
+The repo recovery template [`supabase/templates/recovery.html`](../../supabase/templates/recovery.html) now links to the app callback instead of `{{ .ConfirmationURL }}`:
 
 ```html
 <a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=recovery">Reset password</a>
 ```
 
-`resetPasswordForEmail` passes `redirectTo` as `/auth/callback?redirect=…`. [`AuthCallback.tsx`](../src/pages/AuthCallback.tsx) forwards the user straight to the **Choose new password** form on `/sign-in`. `verifyOtp({ token_hash, type: 'recovery' })` runs only when they submit that form (POST). Safe Links may prefetch the landing page and execute JavaScript — auto-calling `verifyOtp` on mount consumed tokens before the user acted (2026-07-05 evidence: Azure IP `4.199.143.157` POST `/verify` 200, then user IP 403). Form submit is not triggered by link scanners.
+`resetPasswordForEmail` passes `redirectTo` as `/auth/callback?redirect=…`. [`AuthCallback.tsx`](../../src/pages/AuthCallback.tsx) forwards the user straight to the **Choose new password** form on `/sign-in`. `verifyOtp({ token_hash, type: 'recovery' })` runs only when they submit that form (POST). Safe Links may prefetch the landing page and execute JavaScript — auto-calling `verifyOtp` on mount consumed tokens before the user acted (2026-07-05 evidence: Azure IP `4.199.143.157` POST `/verify` 200, then user IP 403). Form submit is not triggered by link scanners.
 
 **Hosted dashboard — required after deploy:**
 
@@ -119,5 +119,5 @@ Accounts created under the previous email-code flow may exist in `auth.users` wi
 
 ## Related docs
 
-- [memory-auth.md](memory-auth.md)
-- [backend-rollout.md](backend-rollout.md)
+- [Auth domain](../domains/auth.md)
+- [Backend rollout runbook](backend.md)

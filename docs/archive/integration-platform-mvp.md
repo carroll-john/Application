@@ -1,4 +1,7 @@
-# Strategy-Learning MVP: University Integration Platform
+# Archived Strategy-Learning MVP: University Integration Platform
+
+> **Archived 2026-07-15.** The integration platform is a separate project.
+> Use its repository and Linear for active work; this file is historical context.
 
 ## Snapshot (2026-03-06)
 - Build an adapter-first university integration layer as a separate product surface.
