@@ -1,4 +1,33 @@
-# Memory: Agent Workflow
+# Agent Workflow
+
+## When to create a task
+
+Automatically create a task worktree when a prompt clearly requests a code or
+documentation change. The user does not need to use a special phrase. Do not
+create one for questions, reviews, or read-only diagnostics.
+
+If already inside a task worktree, continue there. Otherwise run:
+
+```bash
+npm run start-task -- "Task name"
+```
+
+The command creates a sibling worktree on `codex/<slug>` plus an ignored
+`TASK.md`. Update that file when scope, acceptance criteria, or constraints
+change. When the source is a Linear issue, record its URL/identifier and sync
+timestamp; otherwise label the source as `prompt`.
+
+Keep the worktree for follow-up changes. Finalise it only after merge or explicit
+abandonment, from a different checkout. Never bypass a dirty-tree guard unless
+the user explicitly approves `--allow-dirty`.
+
+## Context order
+
+1. Worktree `TASK.md`.
+2. [`../system-context.md`](../system-context.md).
+3. Relevant [`../domains/`](../domains/) contract.
+4. Linked active decision records.
+5. This workflow or a runbook only when needed.
 
 ## Commands
 
@@ -12,6 +41,7 @@ npm run sync-supabase-env      # Sync .env.local from supabase status
 npm test                       # Vitest unit tests
 npm run build                  # tsc + vite build
 npm run lint
+npm run context:check
 npm run start-task -- "Task name"
 npm run finish-task -- "Task name"
 ```
@@ -103,4 +133,4 @@ GitHub Actions:
 - **`.github/workflows/ci.yml`** — `test-and-build` on every PR and on `master` push. `llm-regression` (CV parser + transcript eligibility LLM suites) runs only when `OPENAI_API_KEY` is set and changed paths match parser/eligibility areas; one job, path-gated. PR updates do not also trigger a duplicate `codex/**` push run.
 - **`.github/workflows/eligibility-contract.yml`** — path-filtered `eligibility:eval` for branch protection (`Eligibility Contract / eligibility-contract`). Vitest contract tests run in `test-and-build`.
 
-Details: [docs/ci-notes.md](ci-notes.md).
+Details: [ci.md](ci.md).

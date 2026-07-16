@@ -1,4 +1,8 @@
-# Decisions
+# Archived Decisions Log
+
+> **Archived 2026-07-15.** This chronological log includes superseded decisions.
+> Current architectural decisions live under [`../decisions/`](../decisions/).
+> Do not use this file as current implementation guidance.
 
 ## 2026-03-01
 

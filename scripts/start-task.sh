@@ -155,6 +155,29 @@ main() {
 
   git worktree add "$worktree_path" -b "$branch_name" "$base_ref"
 
+  local created_at
+  created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  cat > "$worktree_path/TASK.md" <<EOF
+# Task Context
+
+- Status: active
+- Source: prompt
+- Created: $created_at
+- Branch: $branch_name
+
+## Goal
+
+$task_name
+
+## Acceptance Criteria
+
+- Confirm or expand these criteria from the user's prompt before implementation.
+
+## Constraints and Decisions
+
+- Follow AGENTS.md, docs/system-context.md, and the relevant domain contract.
+EOF
+
   cat <<EOF
 Started new task.
 
@@ -162,6 +185,7 @@ Task: $task_name
 Base: $base_ref
 Branch: $branch_name
 Worktree: $worktree_path
+Task context: $worktree_path/TASK.md
 
 Next:
   cd "$worktree_path"

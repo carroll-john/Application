@@ -1,4 +1,6 @@
-# Eligibility Rules Engine v1 — Implementation Plan
+# Archived Eligibility Rules Engine v1 — Implementation Plan
+
+> **Archived 2026-07-15.** This implementation plan is historical.
 
 > Status: **v1 core shipped (2026-06-03)**. Targets the roadmap item "Stand up rules
 > engine v1 with per-program reason codes and explanation payloads"

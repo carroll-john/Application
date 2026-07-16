@@ -1,4 +1,4 @@
-# Tuesday Demo Scope
+# Archived Tuesday Demo Scope
 
 > **Historical.** This document describes the original Tuesday demo (Keypath email gate, local-first persistence). Superseded for auth by [decisions.md](decisions.md) (2026-05-22 email + password). For current behavior, read [memory-auth.md](memory-auth.md) and [memory-applications.md](memory-applications.md).
 

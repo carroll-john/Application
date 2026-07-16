@@ -295,7 +295,7 @@ max_enrolled_factors = 10
 # DIS-123: TOTP authenticator-app MFA enabled to satisfy the "insufficient MFA
 # options" security advisor. Applies to local dev immediately and to the hosted
 # project on the next `supabase config push` (hosted MFA requires the Pro plan —
-# see docs/backend-rollout.md "Auth security hardening").
+# see docs/runbooks/backend.md "Auth security hardening").
 [auth.mfa.totp]
 enroll_enabled = true
 verify_enabled = true
