@@ -166,6 +166,14 @@ export function initSentry() {
     tracesSampleRate,
     replaysSessionSampleRate,
     replaysOnErrorSampleRate,
+    ignoreErrors: [
+      // DIS-263: browser extensions (Grammarly, Google Translate, password
+      // managers, etc.) mutate the DOM out from under React's reconciliation
+      // and surface as this unhandled rejection. It carries no stack, is not
+      // triggered by app code, and fires from injected extension scripts —
+      // not our sign-in/auth-callback flow. Safe to drop as noise.
+      /Object Not Found Matching Id/,
+    ],
     beforeSend(event) {
       if (SHOULD_FILTER_SMOKE_EVENTS && isSmokeTestEvent(event)) {
         return null;
