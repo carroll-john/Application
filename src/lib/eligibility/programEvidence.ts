@@ -59,6 +59,7 @@ export interface ProgramEvidenceRow {
 
 export const programEvidenceStatusCopy: Record<ProgramEvidenceStatus, string> = {
   met: "Met",
+  provisionally_met: "Appears to meet",
   needs_details: "Add details",
   needs_evidence: "Add evidence",
   needs_review: "Needs review",
@@ -188,9 +189,20 @@ function workExperienceRow(
   "actionLabel" | "actionPath" | "explanation" | "isBlocking" | "status"
 > {
   const classification = classifyWorkExperienceEvidence({ applicationData: data, instance });
+  const assessment = data.workExperienceAssessments[instance.id];
 
-  if (classification.status === "met") {
+  if (classification.status === "met" || classification.status === "provisionally_met") {
     return classification;
+  }
+
+  if (data.employmentExperiences.length > 0) {
+    const roleId = assessment?.roleAssessments.find(
+      (role) => role.relevanceStatus !== "not_demonstrated",
+    )?.employmentExperienceId ?? data.employmentExperiences[0]?.id;
+    return withEvidenceActions(classification, {
+      actionLabel: "Review employment",
+      actionPath: roleId ? `/section2/edit-employment/${roleId}?from=review` : employmentPath,
+    });
   }
 
   if (data.cvUploaded && data.employmentExperiences.length === 0) {

@@ -18,9 +18,11 @@ import type {
   TertiaryQualification,
 } from "../lib/applicationData";
 import type { StepCompletionLabel } from "../lib/applicationValidationSchema";
+import type { WorkExperienceAssessment } from "../lib/eligibility/workExperience";
 import { createApplicationStorageAdapter } from "../lib/applicationStorageAdapter";
 import { useApplicationAnalytics } from "../features/application/hooks/useApplicationAnalytics";
 import { useApplicationData } from "../features/application/hooks/useApplicationData";
+import { useWorkExperienceAssessment } from "../features/application/hooks/useWorkExperienceAssessment";
 import { useApplicationProfile } from "../features/application/hooks/useApplicationProfile";
 import {
   useApplicationStorageOrchestration,
@@ -59,6 +61,9 @@ interface ApplicationContextType {
   ) => Promise<void>;
   replaceEmploymentExperiences: (
     experiences: EmploymentExperience[],
+  ) => Promise<void>;
+  setWorkExperienceAssessments: (
+    assessments: Record<string, WorkExperienceAssessment>,
   ) => Promise<void>;
   addEmploymentExperience: (experience: EmploymentExperience) => Promise<void>;
   updateEmploymentExperience: (
@@ -146,6 +151,12 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     trackApplicationDataEvent: analytics.trackApplicationDataEvent,
   });
 
+  useWorkExperienceAssessment({
+    data,
+    isHydrating,
+    setWorkExperienceAssessments: dataActions.setWorkExperienceAssessments,
+  });
+
   const value = useMemo<ApplicationContextType>(
     () => ({
       activeApplicationId,
@@ -170,6 +181,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
       removeCV: dataActions.removeCV,
       saveEligibilityFeedback: dataActions.saveEligibilityFeedback,
       replaceEmploymentExperiences: dataActions.replaceEmploymentExperiences,
+      setWorkExperienceAssessments: dataActions.setWorkExperienceAssessments,
       addEmploymentExperience: dataActions.addEmploymentExperience,
       updateEmploymentExperience: dataActions.updateEmploymentExperience,
       removeEmploymentExperience: dataActions.removeEmploymentExperience,

@@ -28,7 +28,7 @@ const parserPromptFragments: Record<RequirementKind, string> = {
   english_proficiency:
     "english_proficiency: params: { acceptedPathways: [...] } with completion_in_country or english_test pathways.",
   work_experience:
-    "work_experience: params: { minYears: number, relevantTo?: string }.",
+    "work_experience: params: { minYears: number, relevantTo?: string, qualifyingRoleCriteria?: { description: string, minYears?: number } }. Use relevantTo only for the field or type of work. Put explicit managerial, supervisory, professional, leadership, people-management, or other role-level wording in qualifyingRoleCriteria. Omit qualifyingRoleCriteria when the source only asks for relevant experience.",
   field_of_study:
     "field_of_study: params: { acceptedAreas: string[] }.",
 };

@@ -79,8 +79,11 @@ export default function Section2AddCV() {
   );
 
   const policy = useMemo(
-    () => createCvDocumentParsePolicy({ replaceEmploymentExperiences }),
-    [replaceEmploymentExperiences],
+    () => createCvDocumentParsePolicy({
+      employmentExperiences: data.employmentExperiences,
+      replaceEmploymentExperiences,
+    }),
+    [data.employmentExperiences, replaceEmploymentExperiences],
   );
 
   const hasDocument = Boolean(selectedFile) || Boolean(currentDocument);

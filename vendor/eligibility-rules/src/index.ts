@@ -15,3 +15,4 @@ export * from "./courseRequirementsEval.js";
 export * from "./requirementPresentation.js";
 export * from "./contextSchema.js";
 export * from "./submitPolicy.js";
+export * from "./workExperience.js";

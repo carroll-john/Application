@@ -11,7 +11,7 @@ import {
   getCvParserErrorMessage,
   parseEmploymentExperiencesFromCv,
 } from "../../lib/cvParserClient";
-import type { UploadedDocument } from "../../lib/documentStorage";
+import { deleteStoredDocument, type UploadedDocument } from "../../lib/documentStorage";
 import { documentRemovalCopy } from "./documentRemovalCopy";
 import { isSection2DocumentRemoved } from "./section2DocumentRemoval";
 import type { DocumentParsePolicy } from "./useSection2DocumentSaveWithParse";
@@ -38,10 +38,19 @@ export type CvParseDraft = Awaited<
 >;
 
 export function createCvDocumentParsePolicy(deps: {
+  employmentExperiences: EmploymentExperience[];
   replaceEmploymentExperiences: (
     experiences: EmploymentExperience[],
   ) => Promise<void>;
 }): DocumentParsePolicy<CvParseDraft, CvDocumentParseContext> {
+  const removeEmployerLetters = async () => {
+    await Promise.all(
+      deps.employmentExperiences
+        .map((experience) => experience.employerLetterDocument)
+        .filter((document): document is UploadedDocument => Boolean(document))
+        .map((document) => deleteStoredDocument(document)),
+    );
+  };
   return {
     documentKind: "cv",
     shouldParse: ({ selectedFile, hasParsedCvFile }) =>
@@ -49,6 +58,7 @@ export function createCvDocumentParsePolicy(deps: {
     parseFile: parseEmploymentExperiencesFromCv,
     applyDraft: async (draft) => {
       await deps.replaceEmploymentExperiences(draft.experiences);
+      await removeEmployerLetters();
     },
     isEmptyDraft: (draft) => draft.experiences.length === 0,
     progress: {
@@ -158,6 +168,7 @@ export function createCvDocumentParsePolicy(deps: {
     },
     clearDerivedDataOnRemoval: async () => {
       await deps.replaceEmploymentExperiences([]);
+      await removeEmployerLetters();
     },
     afterDocumentSave: async ({ savedDocument, uploadDocument, removeDocument }) => {
       if (savedDocument) {

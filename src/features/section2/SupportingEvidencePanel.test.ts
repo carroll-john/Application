@@ -59,6 +59,48 @@ const plan: Section2EvidencePlan = {
 };
 
 describe("SupportingEvidencePanel", () => {
+  it("keeps an advisory work-experience result in the compact green evidence list", () => {
+    const workRow: ProgramEvidenceRow = {
+      explanation:
+        "Your CV indicates 3 years of relevant experience. Admissions will confirm relevance and duration.",
+      heading: "Relevant Work Experience",
+      id: "work-1",
+      isBlocking: false,
+      kindLabel: "Work experience",
+      requirementId: "work-1",
+      sourceText: "Three years relevant work experience.",
+      status: "provisionally_met",
+      statusLabel: "Appears to meet",
+    };
+    const readyPlan: Section2EvidencePlan = {
+      ...plan,
+      isEvidenceReady: true,
+      nextPrompt: null,
+      remainingPromptCount: 0,
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(SupportingEvidencePanel, {
+        courseTitle: "Course",
+        ensureApplicationRow: async () => "application-id",
+        isHero: false,
+        isProcessing: false,
+        onNavigate: () => undefined,
+        onSaveFeedback: async () => undefined,
+        onSkipPrompt: () => undefined,
+        onUnskipPrompt: () => undefined,
+        plan: readyPlan,
+        showParsedTranscriptIntro: false,
+        ungroupedRows: [workRow],
+      }),
+    );
+
+    expect(html).toContain('aria-label="Evidence satisfied"');
+    expect(html).toContain("Appears to meet");
+    expect(html).toContain("Evidence ready");
+    expect(html).not.toContain('aria-label="Evidence needing review"');
+  });
+
   it("shows a review outcome and the failed academic check instead of evidence ready", () => {
     const assessment = normalizeTranscriptEligibilityAssessment({
       checkedAt: "2026-07-15T00:00:00Z",

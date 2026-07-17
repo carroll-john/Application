@@ -16,6 +16,10 @@ export {
   trackCvParserSaveContinueClicked,
 } from "./analytics/cvParserAnalytics";
 export {
+  trackWorkExperienceAssessmentCompleted,
+  trackWorkExperienceAssessmentFailed,
+} from "./analytics/workExperienceAnalytics";
+export {
   getTertiaryTranscriptParserErrorCode,
   trackTertiaryTranscriptParserDraftEmpty,
   trackTertiaryTranscriptParserDraftFailed,

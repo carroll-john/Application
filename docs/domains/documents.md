@@ -29,11 +29,18 @@ authoritative for applicant documents.
 | `cv` | résumé PDF/DOC | Single per application |
 | `transcript`, `certificate`, etc. | per tertiary row | See Section 2 upload sequence |
 | `eligibility_feedback` | `eligibility-feedback.json` | Applicant dispute of automated evidence rows; schema v1 in `eligibilityFeedbackDocument.ts` |
+| `employment_letter` | signed employer letter | Optional, one per employment role; supplied for admissions review and never submission-gated |
 
 Migration: `supabase/migrations/20260705100000_eligibility_feedback_document.sql`
 adds the enum value and optional `applications.eligibility_feedback_document_id` FK.
 **Load contract:** hydration picks the latest `eligibility_feedback` row from
 `application_documents` (`findEligibilityFeedbackDocument`) — not the FK column alone.
+
+Migration `supabase/migrations/20260716090000_work_experience_assessment.sql` adds
+`employment_letter` plus optional document ID/name columns on `employment_experiences`.
+Replacement and removal must use the shared document replacement/cleanup path. Removing or
+CV-replacing a role cleans up its attached letter; missing letters never enter
+`application_submission_missing_fields`.
 
 ## Approved entry points
 

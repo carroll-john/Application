@@ -23,10 +23,12 @@ import {
   getLatestTranscriptAssessment,
   SupportingEvidencePanel,
 } from "../features/section2/SupportingEvidencePanel";
+import { EmployerConfirmationNudge } from "../features/section2/EmployerConfirmationNudge";
 import type { Section2EvidenceSectionKey } from "../features/section2/section2EvidencePlan";
 import { usePendingTranscriptEligibility } from "../features/section2/usePendingTranscriptEligibility";
 import { useReviewReturn } from "../hooks/useReviewReturn";
 import { getCourseByCode } from "../lib/courseCatalog";
+import { deleteStoredDocument } from "../lib/documentStorage";
 import {
   buildProgramEvidenceRows,
   dedupeProgramEvidenceRowsByHeading,
@@ -182,6 +184,12 @@ export default function Section2Qualifications() {
         ungroupedRows={programEvidenceRows}
       />
 
+      <EmployerConfirmationNudge
+        applicationData={data}
+        course={selectedCourseEntry}
+        onNavigate={(path) => navigate(`${path}${reviewSuffix}`)}
+      />
+
       {showSection("tertiary") ? (
         <div className="mb-6 sm:mb-8">
           <QualificationsSectionCard
@@ -278,11 +286,15 @@ export default function Section2Qualifications() {
                       : undefined
                   }
                   subtitle={experience.company}
+                  attachment={experience.employerLetterDocumentName}
                   title={experience.position || "Position"}
                   onDelete={() =>
-                    void runQualificationSave(() =>
-                      removeEmploymentExperience(experience.id),
-                    )
+                    void runQualificationSave(async () => {
+                      await removeEmploymentExperience(experience.id);
+                      if (experience.employerLetterDocument) {
+                        await deleteStoredDocument(experience.employerLetterDocument);
+                      }
+                    })
                   }
                   onEdit={() =>
                     navigate(

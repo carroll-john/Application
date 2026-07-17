@@ -111,6 +111,8 @@ describe("row -> domain mappers", () => {
         company: "Acme",
         duties: "Things",
         employment_type: "Full-time",
+        employer_letter_document_id: null,
+        employer_letter_document_name: null,
         end_month: null,
         end_year: null,
         id: "emp-1",
@@ -125,11 +127,34 @@ describe("row -> domain mappers", () => {
       duties: "Things",
       endMonth: "",
       endYear: "",
+      employerLetterDocument: undefined,
+      employerLetterDocumentName: undefined,
       id: "emp-1",
       position: "Engineer",
       startMonth: "January",
       startYear: "2020",
       type: "Full-time",
+    });
+  });
+
+  it("maps an employer letter onto its employment role", () => {
+    const documentMap = new Map([["letter-1", remoteDoc("letter-1")]]);
+    expect(mapEmploymentRow({
+      company: "Acme",
+      duties: "Led a team",
+      employment_type: "Full-time",
+      employer_letter_document_id: "letter-1",
+      employer_letter_document_name: "confirmation.pdf",
+      end_month: "December",
+      end_year: "2023",
+      id: "emp-1",
+      is_current_role: false,
+      position: "Manager",
+      start_month: "January",
+      start_year: "2021",
+    }, documentMap)).toMatchObject({
+      employerLetterDocument: remoteDoc("letter-1"),
+      employerLetterDocumentName: "confirmation.pdf",
     });
   });
 

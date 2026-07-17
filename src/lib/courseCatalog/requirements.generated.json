@@ -24,7 +24,9 @@
               "kind": "work_experience",
               "params": {
                 "minYears": 3,
-                "relevantTo": "managerial"
+                "qualifyingRoleCriteria": {
+                  "description": "managerial"
+                }
               },
               "sourceText": "Three years relevant managerial experience.",
               "weight": "mandatory"
@@ -76,7 +78,10 @@
               "kind": "work_experience",
               "params": {
                 "minYears": 3,
-                "relevantTo": "management or supervisory level"
+                "relevantTo": "professional work",
+                "qualifyingRoleCriteria": {
+                  "description": "management or supervisory level"
+                }
               },
               "sourceText": "a minimum of 3 years' full-time relevant professional work experience, post degree, at a management or supervisory level",
               "weight": "mandatory"
@@ -363,7 +368,9 @@
               "kind": "work_experience",
               "params": {
                 "minYears": 4,
-                "relevantTo": "professional experience"
+                "qualifyingRoleCriteria": {
+                  "description": "professional experience"
+                }
               },
               "sourceText": "A minimum of 4 years' full-time or equivalent part-time, relevant professional experience",
               "weight": "alternative",
@@ -2219,7 +2226,9 @@
               "kind": "work_experience",
               "params": {
                 "minYears": 2,
-                "relevantTo": "managerial role with people management responsibilities or in a human resource professional role"
+                "qualifyingRoleCriteria": {
+                  "description": "managerial role with people management responsibilities or a human resource professional role"
+                }
               },
               "sourceText": "Completion of a bachelor degree or higher in any discipline and at least two years' relevant work experience (or part-time equivalent); OR completion of a graduate certificate or higher in a related discipline and at least two years' relevant work experience (or part-time equivalent). Relevant work experience includes at least two years in a managerial role with people management responsibilities or in a human resource professional role.",
               "weight": "mandatory"

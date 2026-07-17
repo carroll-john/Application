@@ -30,7 +30,10 @@
           "kind": "work_experience",
           "params": {
             "minYears": 3,
-            "relevantTo": "management or supervisory level"
+            "relevantTo": "professional work",
+            "qualifyingRoleCriteria": {
+              "description": "management or supervisory level"
+            }
           },
           "sourceText": "a minimum of 3 years' full-time relevant professional work experience, post degree, at a management or supervisory level",
           "weight": "mandatory"

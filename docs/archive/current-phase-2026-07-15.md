@@ -25,6 +25,14 @@ Run two active tracks in parallel:
   Section 2 item-level Edit for tertiary/employment, CV Edit on document row);
   WAM calculation on evidence cards (#204).
 
+## Status Update (2026-07-16)
+- **Ready for Preview:** optional course-specific CV work-experience assessment with
+  deterministic duration bounds, optional explicit role-level criteria, persisted advisory
+  outcomes, role-by-role explanations, and non-blocking employer-letter attachments.
+- Rollout order: additive Supabase migration first; then synthetic Preview smoke tests covering
+  reassessment, hydration, document lifecycle, and successful submission without a letter;
+  then Production enablement.
+
 ## Status Update (2026-03-06)
 - Tuesday demo scope is complete.
 - Delivery is now dual-track: integration platform buildout plus ongoing UX improvements.

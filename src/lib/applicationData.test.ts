@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   initialApplicationData,
+  mergeRemoteApplicationWithLocalDocuments,
   mergeStoredApplicationData,
   normalizeConditionalContactDetails,
 } from "./applicationData";
@@ -107,6 +108,66 @@ describe("mergeStoredApplicationData", () => {
     } as never);
 
     expect(merged.contactDetails.hasDisability).toBeNull();
+  });
+
+  it("preserves work assessments and employer letters when hydrating stored data", () => {
+    const merged = mergeStoredApplicationData({
+      employmentExperiences: [{
+        id: "role-1", company: "Employer", position: "Lead", type: "Full-time",
+        startMonth: "January", startYear: "2021", endMonth: "December", endYear: "2023",
+        currentRole: false, duties: "Led a team.",
+        employerLetterDocumentName: "letter.pdf",
+      }],
+      workExperienceAssessments: { "work-1": {
+        requirementId: "work-1", status: "provisionally_met", requiredMonths: 36,
+        qualifyingMonthsMinimum: 36, qualifyingMonthsMaximum: 36, roleAssessments: [],
+        unassessedConditions: [], inputFingerprint: "we-test",
+        checkedAt: "2026-07-16T00:00:00.000Z", promptVersion: "test@v1",
+        schemaVersion: "work-experience-assessment@v1",
+      } },
+    } as never);
+
+    expect(merged.employmentExperiences[0]?.employerLetterDocumentName).toBe("letter.pdf");
+    expect(merged.workExperienceAssessments["work-1"]?.status).toBe("provisionally_met");
+  });
+
+  it("drops persisted work assessments from an unknown schema version", () => {
+    const merged = mergeStoredApplicationData({
+      workExperienceAssessments: {
+        "work-1": { requirementId: "work-1", schemaVersion: "future@v2" },
+      },
+    } as never);
+
+    expect(merged.workExperienceAssessments).toEqual({});
+  });
+});
+
+describe("mergeRemoteApplicationWithLocalDocuments", () => {
+  it("retains a locally loaded employer-letter binary when remote metadata has no document", () => {
+    const document = {
+      id: "letter-1", name: "letter.pdf", size: 100, type: "application/pdf",
+      lastModified: 1, uploadedAt: "2026-07-16T00:00:00.000Z",
+    };
+    const role = {
+      id: "role-1", company: "Employer", position: "Lead", type: "Full-time",
+      startMonth: "January", startYear: "2021", endMonth: "December", endYear: "2023",
+      currentRole: false, duties: "Led a team.",
+    };
+    const local = {
+      ...initialApplicationData,
+      employmentExperiences: [{
+        ...role, employerLetterDocument: document, employerLetterDocumentName: "letter.pdf",
+      }],
+    };
+    const remote = {
+      ...initialApplicationData,
+      employmentExperiences: [{ ...role, employerLetterDocumentName: "letter.pdf" }],
+    };
+
+    expect(
+      mergeRemoteApplicationWithLocalDocuments(local, remote)
+        .employmentExperiences[0]?.employerLetterDocument,
+    ).toEqual(document);
   });
 });
 

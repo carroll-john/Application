@@ -9,6 +9,7 @@ import {
   languageTestSatisfiesEnglishRequirement,
 } from "./englishProficiencyEvidence";
 import type { RequirementInstance } from "./requirements";
+import { buildWorkExperienceAssessment } from "./workExperience";
 import type {
   EligibilityRequirementCheck,
   EligibilityRequirementStatus,
@@ -17,6 +18,7 @@ import type {
 
 export type ProgramEvidenceStatus =
   | "met"
+  | "provisionally_met"
   | "needs_evidence"
   | "needs_details"
   | "needs_review"
@@ -181,13 +183,86 @@ export function classifyWorkExperienceEvidence(options: {
 }): ProgramEvidenceClassification {
   const { applicationData, instance } = options;
 
+  const assessment = applicationData.workExperienceAssessments[instance.id];
+
+  if (assessment) {
+    const rolesWithLetters = applicationData.employmentExperiences.filter(
+      (experience) => isSubmissionReadyDocument(experience.employerLetterDocument),
+    );
+    const classificationsWithLetters = assessment.roleAssessments.filter((role) =>
+      rolesWithLetters.some((experience) => experience.id === role.employmentExperienceId),
+    );
+    const letterCoverage = buildWorkExperienceAssessment({
+      requirement: instance,
+      roles: rolesWithLetters,
+      classifications: classificationsWithLetters,
+      checkedAt: assessment.checkedAt,
+      promptVersion: assessment.promptVersion,
+      unassessedConditions: assessment.unassessedConditions,
+    });
+
+    const requiredRoleCriteriaMonths = instance.params.qualifyingRoleCriteria
+      ? Math.round(
+          (instance.params.qualifyingRoleCriteria.minYears ?? instance.params.minYears) * 12,
+        )
+      : 0;
+    const minimumAlreadyMeetsRequirement =
+      assessment.qualifyingMonthsMinimum >= assessment.requiredMonths &&
+      (!instance.params.qualifyingRoleCriteria ||
+        (assessment.roleCriteriaMonthsMinimum ?? 0) >= requiredRoleCriteriaMonths);
+    const appearsToMeet =
+      assessment.status === "provisionally_met" ||
+      (assessment.status === "needs_review" &&
+        assessment.unassessedConditions.length === 0 &&
+        minimumAlreadyMeetsRequirement);
+
+    if (appearsToMeet) {
+      const years = (assessment.qualifyingMonthsMinimum / 12).toFixed(1).replace(/\.0$/, "");
+      return letterCoverage.status === "provisionally_met"
+        ? {
+            explanation: `Your CV indicates ${years} years of relevant experience. Employer confirmation has been supplied for admissions review.`,
+            isBlocking: false,
+            status: "provisionally_met",
+          }
+        : {
+            explanation: `Your CV indicates ${years} years of relevant experience. Admissions will confirm relevance and duration.`,
+            isBlocking: false,
+            status: "provisionally_met",
+          };
+    }
+
+    if (assessment.status === "possibly_met") {
+      return {
+        explanation:
+          "Your CV may demonstrate the required experience. Review the roles and dates we identified before admissions assesses them.",
+        isBlocking: false,
+        status: "needs_details",
+      };
+    }
+
+    if (assessment.status === "not_demonstrated") {
+      return {
+        explanation:
+          "The information provided does not yet demonstrate the required relevant experience. Add or update a role if your CV is incomplete.",
+        isBlocking: false,
+        status: "needs_details",
+      };
+    }
+
+    return {
+      explanation:
+        "We could not assess this requirement automatically. Your employment evidence can still be reviewed by admissions.",
+      isBlocking: false,
+      status: "needs_review",
+    };
+  }
+
   if (applicationData.employmentExperiences.length > 0) {
     return {
-      explanation: applicationData.cvUploaded
-        ? "Work experience and CV added for admissions review."
-        : "Work experience added. A CV can strengthen your case.",
+      explanation:
+        "Your employment history has been added and is awaiting an advisory review. Admissions can still assess it if the automated review is unavailable.",
       isBlocking: false,
-      status: "met",
+      status: "needs_review",
     };
   }
 

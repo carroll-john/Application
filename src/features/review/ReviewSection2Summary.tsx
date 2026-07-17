@@ -1,4 +1,5 @@
 import type { ApplicationData } from "../../lib/applicationData";
+import { viewStoredDocument } from "../../lib/documentStorage";
 import { ReviewCard, ReviewDocumentRow, ReviewList } from "./ReviewSections";
 
 interface ReviewSection2SummaryProps {
@@ -62,6 +63,15 @@ export function ReviewSection2Summary({ data, onEdit }: ReviewSection2SummaryPro
         <ReviewCard title="Employment experience">
           <ReviewList
             items={data.employmentExperiences.map((experience) => ({
+              attachments: experience.employerLetterDocumentName
+                ? [{
+                    fileName: experience.employerLetterDocumentName,
+                    label: "Employer letter",
+                    onView: experience.employerLetterDocument
+                      ? () => { void viewStoredDocument(experience.employerLetterDocument!); }
+                      : undefined,
+                  }]
+                : [],
               detail: experience.duties ? (
                 <div className="mt-3 border-t border-gray-200 pt-3">
                   <p className="text-gray-600">Key responsibilities</p>
