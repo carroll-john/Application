@@ -34,6 +34,7 @@ import {
   dedupeProgramEvidenceRowsByHeading,
   groupTranscriptVerifiableEvidenceRows,
 } from "../lib/eligibility/programEvidence";
+import { orderEmploymentExperiencesByMostRecent } from "../lib/employmentExperienceOrder";
 import { getSection2EditPath, getSection2Step } from "../lib/section2Steps";
 import { getEmploymentExperienceSubmissionMissingFields } from "../lib/validation/rules/section2";
 
@@ -271,7 +272,9 @@ export default function Section2Qualifications() {
             icon={
               <Briefcase className="h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />
             }
-            items={data.employmentExperiences}
+            items={orderEmploymentExperiencesByMostRecent(
+              data.employmentExperiences,
+            )}
             onSkip={() => handleSkipSection("employment")}
             renderItem={(experience) => {
               const missingFields =
