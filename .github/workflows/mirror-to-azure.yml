@@ -1,0 +1,33 @@
+# Mirror this GitHub repo to Azure DevOps (org: carrolljohn, project: Application)
+# One-way sync: GitHub is the source of truth; Azure Repos receives every push.
+# Requires repo secret AZURE_DEVOPS_PAT (Azure DevOps PAT, Code: Read & Write).
+
+name: Mirror to Azure DevOps
+
+on:
+  push:
+  delete:
+  workflow_dispatch:
+
+concurrency:
+  group: mirror-to-azure
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push all branches and tags to Azure Repos
+        env:
+          AZURE_PAT: ${{ secrets.AZURE_DEVOPS_PAT }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          git remote set-head origin -d
+          git remote add azure "https://mirror:${AZURE_PAT}@dev.azure.com/carrolljohn/Application/_git/${REPO_NAME}"
+          git push azure 'refs/remotes/origin/*:refs/heads/*' --force
+          git push azure --tags --force
