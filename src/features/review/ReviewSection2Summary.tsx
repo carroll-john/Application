@@ -1,5 +1,6 @@
 import type { ApplicationData } from "../../lib/applicationData";
 import { viewStoredDocument } from "../../lib/documentStorage";
+import { orderEmploymentExperiencesByMostRecent } from "../../lib/employmentExperienceOrder";
 import { ReviewCard, ReviewDocumentRow, ReviewList } from "./ReviewSections";
 
 interface ReviewSection2SummaryProps {
@@ -8,6 +9,10 @@ interface ReviewSection2SummaryProps {
 }
 
 export function ReviewSection2Summary({ data, onEdit }: ReviewSection2SummaryProps) {
+  const orderedEmploymentExperiences = orderEmploymentExperiencesByMostRecent(
+    data.employmentExperiences,
+  );
+
   return (
     <>
       {data.tertiaryQualifications.length > 0 ? (
@@ -62,7 +67,7 @@ export function ReviewSection2Summary({ data, onEdit }: ReviewSection2SummaryPro
       {data.employmentExperiences.length > 0 ? (
         <ReviewCard title="Employment experience">
           <ReviewList
-            items={data.employmentExperiences.map((experience) => ({
+            items={orderedEmploymentExperiences.map((experience) => ({
               attachments: experience.employerLetterDocumentName
                 ? [{
                     fileName: experience.employerLetterDocumentName,
