@@ -1,0 +1,35 @@
+# CI for Application — runs in Azure Pipelines on every mirrored push.
+
+trigger:
+  branches:
+    include:
+      - master
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: UseNode@1
+    displayName: Use Node 22
+    inputs:
+      version: '22.x'
+
+  - script: npm ci
+    displayName: Install dependencies
+
+  - script: npm run build:eligibility-rules
+    displayName: Build eligibility-rules package
+
+  - script: npx vitest run --reporter=default --reporter=junit --outputFile=test-results.xml
+    displayName: Run tests (vitest, JUnit output)
+
+  - task: PublishTestResults@2
+    displayName: Publish test results
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: JUnit
+      testResultsFiles: test-results.xml
+      testRunTitle: Application
+
+  - script: npm run build
+    displayName: Production build
