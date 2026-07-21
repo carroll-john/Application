@@ -14,6 +14,11 @@ export interface BrandConfig {
     reversed: string;
     alt: string;
   };
+  support: {
+    email: string;
+    phone: string;
+    service: string;
+  };
 }
 
 export const brandConfigs: Record<BrandId, BrandConfig> = {
@@ -22,6 +27,11 @@ export const brandConfigs: Record<BrandId, BrandConfig> = {
     displayName: "StudyNext",
     serviceLabel: "Apply",
     catalogId: "default",
+    support: {
+      email: "support@studynext.com",
+      phone: "1300 123 456",
+      service: "Start chat",
+    },
   },
   uc: {
     id: "uc",
@@ -32,6 +42,11 @@ export const brandConfigs: Record<BrandId, BrandConfig> = {
       fullColour: ucLogoInline,
       reversed: ucLogoInlineWhite,
       alt: "University of Canberra",
+    },
+    support: {
+      email: "study@canberra.edu.au",
+      phone: "1800 864 226",
+      service: "Future Students team",
     },
   },
 };

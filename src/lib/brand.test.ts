@@ -6,5 +6,6 @@ describe("brand configuration", () => {
     expect(brandConfigs.studynext.catalogId).toBe("default");
     expect(brandConfigs.uc.catalogId).toBe("uc");
     expect(brandConfigs.uc.logo?.alt).toBe("University of Canberra");
+    expect(brandConfigs.uc.support.email).not.toMatch(/studynext/i);
   });
 });

@@ -17,6 +17,7 @@ import { FormSectionCard } from "../features/forms";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
 import { formatApplicationDate } from "../lib/applicationProgress";
+import { activeBrand } from "../lib/brand";
 
 // Gate the dynamic import behind DEV so the chunk is dead-code-eliminated
 // from production builds. import.meta.env.DEV becomes a literal `false` at
@@ -138,19 +139,19 @@ export default function ApplicationSubmitted() {
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             <SupportCard
-              action="support@studynext.com"
+              action={activeBrand.support.email}
               iconTone="brandSoft"
               icon={<Mail className="h-6 w-6" />}
               title="Email support"
             />
             <SupportCard
-              action="1300 123 456"
+              action={activeBrand.support.phone}
               iconTone="mintSoft"
               icon={<Phone className="h-6 w-6" />}
               title="Phone support"
             />
             <SupportCard
-              action="Start chat"
+              action={activeBrand.support.service}
               iconTone="accentSoft"
               icon={<MessageCircle className="h-6 w-6" />}
               title="Live chat"

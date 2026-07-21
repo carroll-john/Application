@@ -155,6 +155,8 @@ additional_redirect_urls = [
   "http://localhost:5173/**",
   "https://application-prototype.vercel.app/auth/callback",
   "https://application-prototype.vercel.app/**",
+  "https://uc-vc-demo.vercel.app/auth/callback",
+  "https://uc-vc-demo.vercel.app/**",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600

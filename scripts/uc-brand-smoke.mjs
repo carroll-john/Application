@@ -38,7 +38,7 @@ try {
       consoleErrors.length = 0;
       await page.goto(`${baseUrl}${route}`, { waitUntil: "networkidle" });
       const result = await page.evaluate(() => ({
-        hasStudyNext: document.body.innerText.includes("StudyNext"),
+        hasStudyNext: /studynext/i.test(document.body.innerText),
         hasUcLogo: Boolean(document.querySelector('img[alt="University of Canberra"]')),
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
         title: document.title,
