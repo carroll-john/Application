@@ -18,6 +18,11 @@ export interface RawCourseEntry {
   recognition_of_prior_learning?: string | null;
   subject_area?: string | null;
   tuition_fees?: string | null;
+  officialCourseCode?: string | null;
+  sourceUrl?: string | null;
+  sourceVerifiedAt?: string | null;
+  deliveryMode?: "online" | "online_plus" | null;
+  eligibilityPolicy?: "assess" | "manual_review" | null;
 }
 
 export interface RawCourseCatalogData {
@@ -58,4 +63,9 @@ export interface CourseCatalogEntry {
    * the runtime falls back to legacy `eligibility` rules and regex thresholds.
    */
   requirements?: RequirementInstance[];
+  officialCourseCode?: string;
+  sourceUrl?: string;
+  sourceVerifiedAt?: string;
+  deliveryMode: "online" | "online_plus";
+  eligibilityPolicy: "assess" | "manual_review";
 }

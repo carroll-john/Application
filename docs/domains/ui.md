@@ -21,6 +21,15 @@ External design files are not a project source of truth.
 
 ## Current contract
 
+### Reversible product brands
+
+- Shared UI consumes semantic tokens and the active `BrandConfig`; route components must not define page-local brand palettes or logos.
+- `VITE_APP_BRAND=uc` selects the University of Canberra profile and UC catalogue. Absence selects StudyNext, preserving the production default.
+- The active brand is applied to the document before React renders to avoid an unthemed first frame.
+- UC uses its official inline logo assets, Figtree for UI/body copy, STIX Two Text for display headings, and Dark Teal for normal-size white-text actions.
+- `VITE_DEMO_MODE=true` disables PostHog and support capture; Sentry error capture may remain enabled but replay sampling is forced to zero.
+- Public course and submitted surfaces may include the compact brand footer. Application forms retain navigation ownership in `ApplicationShell` and do not use a site footer.
+
 Extend tokens and shared primitives before introducing a new page-local visual
 pattern. Existing hard-coded exceptions may be migrated incrementally; new code
 must not expand them.

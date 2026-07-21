@@ -59,7 +59,7 @@ export default function DevSentrySmoke() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f7f4]">
+    <div className="min-h-screen bg-[var(--background)]">
       <AppBrandHeader showApplicantProfileLink={false}>
         <Link
           className="inline-flex rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-[var(--cta-secondary)] transition-colors hover:border-[var(--cta-secondary)]/60 hover:bg-[#F2F8FB]"

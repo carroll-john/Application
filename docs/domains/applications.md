@@ -16,6 +16,13 @@ persistence boundary, and the server submit contract owns the final transition.
 
 ## Current contract
 
+### Brand-specific catalogues
+
+- StudyNext and University of Canberra catalogues are separate committed snapshots selected through the active brand configuration.
+- Catalogue consumers may request a specific `CatalogId` for contract tests; runtime consumers use the active brand catalogue.
+- UC entries retain source URL, verification date, delivery mode and an explicit `assess` or `manual_review` policy.
+- UC requirements without reviewed matcher-safe rules never fall back to inferred legacy admission logic. They proceed as an application requiring admissions review.
+
 - Multiple applications per signed-in user.
 - One open draft per course; submitted applications kept separately.
 - Selected course stored in `applicationMeta.selectedCourse` — never implicit/hard-coded.

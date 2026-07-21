@@ -17,4 +17,6 @@ supabase/.branches/
 .api-runtime-check/
 .tmp/
 reports/
+.playwright-cli/
+output/playwright/
 TASK.md

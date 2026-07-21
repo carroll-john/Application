@@ -12,7 +12,7 @@ export interface ButtonProps
 
 const variantClasses: Record<ButtonVariant, string> = {
   default:
-    "bg-[var(--cta-primary)] text-[#1f2937] hover:bg-[var(--cta-primary-hover)] active:bg-[var(--cta-primary-pressed)] shadow-[var(--shadow-cta-yellow)]",
+    "bg-[var(--cta-primary)] text-[var(--cta-primary-text)] hover:bg-[var(--cta-primary-hover)] active:bg-[var(--cta-primary-pressed)] shadow-[var(--shadow-cta-primary)]",
   neutralOutline:
     "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 shadow-none",
   outline:

@@ -39,7 +39,7 @@ export default function AuthCallback() {
   // the session from the URL via detectSessionInUrl.
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f7f7f4] px-4">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
         <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm">
           <LoadingSpinner />
           <span>Signing you in...</span>

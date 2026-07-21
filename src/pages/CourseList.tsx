@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
+import { AppBrandFooter } from "../components/AppBrandFooter";
 import {
   CourseBrowseCard,
   CourseBrowseFilters,
@@ -65,7 +66,7 @@ export default function CourseList() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f7f4]">
+    <div className="min-h-screen bg-[var(--background)]">
       <AppBrandHeader maxWidthClassName="max-w-7xl" />
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -91,6 +92,7 @@ export default function CourseList() {
           ))}
         </div>
       </section>
+      <AppBrandFooter />
     </div>
   );
 }

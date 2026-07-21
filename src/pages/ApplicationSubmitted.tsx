@@ -12,6 +12,7 @@ import { Suspense, lazy, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AccentIconBadge } from "../components/AccentIconBadge";
 import { AppBrandHeader } from "../components/AppBrandHeader";
+import { AppBrandFooter } from "../components/AppBrandFooter";
 import { FormSectionCard } from "../features/forms";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
@@ -34,7 +35,7 @@ export default function ApplicationSubmitted() {
   const submittedDate = formatApplicationDate(data.applicationMeta.submittedAt);
 
   return (
-    <div className="min-h-screen bg-[#f7f7f4]">
+    <div className="min-h-screen bg-[var(--background)]">
       <AppBrandHeader>
         {AI_ASSESSMENT_DEMO_ENABLED ? (
           <Button
@@ -54,7 +55,7 @@ export default function ApplicationSubmitted() {
         </Suspense>
       ) : null}
 
-      <section className="relative overflow-hidden bg-[linear-gradient(135deg,#1f2a3a_0%,#16202d_55%,#1f2a3a_100%)] text-white">
+      <section className="brand-hero relative overflow-hidden text-white">
         <div className="absolute inset-0 opacity-15">
           <div className="absolute right-10 top-10 h-64 w-64 rounded-full bg-[var(--sn-yellow)] blur-3xl" />
           <div className="absolute bottom-10 left-10 h-48 w-48 rounded-full bg-[var(--sn-mint)] blur-3xl" />
@@ -126,7 +127,7 @@ export default function ApplicationSubmitted() {
         </div>
       </section>
 
-      <section className="border-t border-slate-200 bg-[#f7f7f4] py-12 sm:py-16">
+      <section className="border-t border-slate-200 bg-[var(--background)] py-12 sm:py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-slate-900">Need help?</h2>
@@ -161,6 +162,7 @@ export default function ApplicationSubmitted() {
           </div>
         </div>
       </section>
+      <AppBrandFooter />
     </div>
   );
 }

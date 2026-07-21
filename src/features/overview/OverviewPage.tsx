@@ -42,13 +42,13 @@ export function OverviewPage({
   title,
 }: OverviewPageProps) {
   return (
-    <div className="min-h-screen bg-[#f7f7f4] pb-28 sm:pb-10">
+    <div className="min-h-screen bg-[var(--background)] pb-28 sm:pb-10">
       <AppBrandHeader maxWidthClassName="max-w-5xl" />
 
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <SurfaceCard className="p-5 sm:p-6">
           <div className="flex flex-col gap-5 sm:flex-row">
-            <div className="h-32 w-full rounded-[28px] bg-[linear-gradient(135deg,#1f2a3a_0%,#16202d_100%)] sm:w-48" />
+            <div className="brand-hero h-32 w-full rounded-[28px] sm:w-48" />
             <div className="flex-1">
               <h2 className="text-xl font-bold text-slate-900">{title}</h2>
               <div className="mt-4 max-w-xs rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700">

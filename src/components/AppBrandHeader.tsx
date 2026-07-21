@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { activeBrand, isUcBrand } from "../lib/brand";
 
 interface AppBrandHeaderProps {
   children?: ReactNode;
@@ -79,7 +80,7 @@ export function AppBrandHeader({
     : `/sign-in?redirect=${encodeURIComponent(location.pathname + location.search)}`;
 
   return (
-    <div className="bg-[var(--sn-navy)]">
+    <header className="border-b border-[var(--brand-header-border)] bg-[var(--brand-header)] text-[var(--brand-header-text)] shadow-[var(--brand-header-shadow)]">
       <div
         className={`mx-auto flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8 ${maxWidthClassName}`}
       >
@@ -88,9 +89,17 @@ export function AppBrandHeader({
           className="inline-flex items-center gap-3 transition hover:opacity-90"
           to="/"
         >
-          <StudyNextWordmark />
-          <span className="hidden h-5 items-center rounded-full bg-white/[0.10] px-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/85 sm:inline-flex">
-            Apply
+          {isUcBrand ? (
+            <img
+              alt={activeBrand.logo?.alt}
+              className="h-auto w-[190px] sm:w-[230px]"
+              src={activeBrand.logo?.fullColour}
+            />
+          ) : (
+            <StudyNextWordmark />
+          )}
+          <span className="hidden h-6 items-center rounded-full bg-[var(--brand-service-bg)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-service-text)] sm:inline-flex">
+            {activeBrand.serviceLabel}
           </span>
         </NavLink>
         <div className="flex items-center gap-3">
@@ -100,7 +109,7 @@ export function AppBrandHeader({
                 `inline-flex rounded-full border px-3 py-2 text-xs font-medium transition-colors sm:px-4 sm:text-sm ${
                   isActive
                     ? "border-transparent bg-[var(--sn-yellow)] text-[var(--sn-navy)] shadow-[var(--shadow-cta-yellow)] hover:bg-[var(--keypath-yellow-hover)]"
-                    : "border-white/30 bg-transparent text-white hover:border-[var(--sn-mint)] hover:text-[var(--sn-mint)]"
+                    : "border-[var(--brand-header-link-border)] bg-transparent text-[var(--brand-header-text)] hover:border-[var(--brand-accent)] hover:text-[var(--brand-accent-strong)]"
                 }`
               }
               to={accountLinkPath}
@@ -111,6 +120,6 @@ export function AppBrandHeader({
           {children ? <div className="shrink-0">{children}</div> : null}
         </div>
       </div>
-    </div>
+    </header>
   );
 }

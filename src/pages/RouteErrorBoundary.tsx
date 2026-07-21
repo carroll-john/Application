@@ -27,7 +27,7 @@ export default function RouteErrorBoundary() {
   const isChunkError = isRecoverableRouteChunkError(error);
 
   return (
-    <div className="min-h-screen bg-[#f7f7f4]">
+    <div className="min-h-screen bg-[var(--background)]">
       <AppBrandHeader maxWidthClassName="max-w-5xl" />
 
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">

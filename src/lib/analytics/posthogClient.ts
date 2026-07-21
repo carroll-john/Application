@@ -14,12 +14,13 @@ import {
   SYNTHETIC_TEST_TOKEN,
   type PostHogUserContext,
 } from "./posthogTypes";
+import { isDemoMode } from "../brand";
 
 let postHogStarted = false;
 let postHogBlockReason: string | null = null;
 let postHogIdentifyRequestId = 0;
 
-export const isPostHogEnabled = Boolean(POSTHOG_KEY);
+export const isPostHogEnabled = Boolean(POSTHOG_KEY) && !isDemoMode;
 export const POSTHOG_IDENTITY_VERSION = 1;
 
 // Properties that can carry a full URL (and therefore auth tokens in the hash or

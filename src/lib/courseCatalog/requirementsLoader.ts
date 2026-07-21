@@ -1,4 +1,6 @@
 import generated from "./requirements.generated.json";
+import generatedUc from "./requirements.uc.generated.json";
+import type { CatalogId } from "../brand";
 import type { RequirementInstance } from "../eligibility/requirements";
 import {
   isCourseRequirementsV2,
@@ -18,6 +20,11 @@ interface GeneratedRequirementsFile {
 }
 
 const typedGenerated = generated as GeneratedRequirementsFile;
+const typedGeneratedUc = generatedUc as GeneratedRequirementsFile;
+
+function requirementsForCatalog(catalogId: CatalogId) {
+  return catalogId === "uc" ? typedGeneratedUc : typedGenerated;
+}
 
 /**
  * Normalizes the on-disk JSON shape (which uses `null` for absent optional fields) into the typed
@@ -64,14 +71,18 @@ function normalizeRawCourseEntry(rawCourse: unknown): RequirementInstance[] {
   return rawCourse.map(normalizeInstance);
 }
 
-export function getRawGeneratedRequirementsEntry(courseCode: string): unknown {
-  return typedGenerated.courses[courseCode];
+export function getRawGeneratedRequirementsEntry(
+  courseCode: string,
+  catalogId: CatalogId = "default",
+): unknown {
+  return requirementsForCatalog(catalogId).courses[courseCode];
 }
 
 export function getGeneratedRequirementsForCourse(
   courseCode: string,
+  catalogId: CatalogId = "default",
 ): RequirementInstance[] | undefined {
-  const entry = normalizeRawCourseEntry(typedGenerated.courses[courseCode]);
+  const entry = normalizeRawCourseEntry(requirementsForCatalog(catalogId).courses[courseCode]);
   if (entry.length === 0) {
     return undefined;
   }
@@ -83,11 +94,12 @@ export function getGeneratedRequirementsForCourse(
 
 export { isMatcherUnsafe } from "../eligibility/courseRequirementsV2";
 
-export function getGeneratedRequirementsMetadata() {
+export function getGeneratedRequirementsMetadata(catalogId: CatalogId = "default") {
+  const selected = requirementsForCatalog(catalogId);
   return {
-    version: typedGenerated.version,
-    generatedAt: typedGenerated.generatedAt,
-    model: typedGenerated.model,
-    courseCount: Object.keys(typedGenerated.courses).length,
+    version: selected.version,
+    generatedAt: selected.generatedAt,
+    model: selected.model,
+    courseCount: Object.keys(selected.courses).length,
   };
 }

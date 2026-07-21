@@ -13,13 +13,13 @@ export function CourseBrowseResultsPanel({
   resultsState,
 }: CourseBrowseResultsPanelProps) {
   return (
-    <SurfaceCard className="mt-4 border-[#084E74]/10 bg-[#EAF1F5] p-4 sm:p-5">
+    <SurfaceCard className="mt-4 border-[var(--border)] bg-[var(--background-tinted)] p-4 sm:p-5">
       <div
         aria-live="polite"
         className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
       >
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#084E74]">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--cta-tertiary-text)]">
             {resultsState.headline}
           </p>
           <p className="mt-2 text-sm leading-6 text-slate-700">

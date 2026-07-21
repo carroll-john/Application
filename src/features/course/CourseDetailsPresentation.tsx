@@ -95,6 +95,34 @@ export function CourseDetailsPresentation({
                     <dd className="mt-1 font-medium">{course.subjectArea}</dd>
                   </div>
                 ) : null}
+                <div>
+                  <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                    Delivery
+                  </dt>
+                  <dd className="mt-1 font-medium">{course.delivery}</dd>
+                </div>
+                {course.sourceUrl ? (
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Official source
+                    </dt>
+                    <dd className="mt-1 font-medium">
+                      <a
+                        className="text-[var(--cta-tertiary-text)] underline underline-offset-4"
+                        href={course.sourceUrl}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        University of Canberra course information
+                      </a>
+                      {course.sourceVerifiedAt ? (
+                        <span className="mt-1 block text-xs font-normal text-slate-500">
+                          Verified {course.sourceVerifiedAt}
+                        </span>
+                      ) : null}
+                    </dd>
+                  </div>
+                ) : null}
                 {course.duration ? (
                   <div>
                     <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">

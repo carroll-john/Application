@@ -15,7 +15,7 @@ export function ProfilePage({
   signedInLabel,
 }: ProfilePageProps) {
   return (
-    <div className="min-h-screen bg-[#f7f7f4]">
+    <div className="min-h-screen bg-[var(--background)]">
       <AppBrandHeader maxWidthClassName="max-w-5xl" />
 
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -49,7 +49,7 @@ export function ProfilePage({
 
 export function ProfileLoadingState() {
   return (
-    <div className="min-h-screen bg-[#f7f7f4]">
+    <div className="min-h-screen bg-[var(--background)]">
       <AppBrandHeader maxWidthClassName="max-w-5xl" />
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <SurfaceCard className="w-full max-w-xl p-8 text-center text-slate-600">

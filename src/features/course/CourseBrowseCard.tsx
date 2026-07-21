@@ -13,7 +13,7 @@ export function CourseBrowseCard({ course, onViewCourse }: CourseBrowseCardProps
     <SurfaceCard className="h-full min-w-0 rounded-[24px] border-slate-200 p-0">
       <div className="flex h-full min-w-0 flex-col p-4">
         <div className="flex flex-wrap gap-2">
-          <span className="rounded-full bg-[#E8F8F3] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0E6A56]">
+          <span className="rounded-full bg-[var(--success-bg)] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--success-text)]">
             {course.delivery}
           </span>
           {course.categories.map((category) => (

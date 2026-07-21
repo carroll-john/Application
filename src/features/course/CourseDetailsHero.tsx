@@ -15,7 +15,7 @@ export function CourseDetailsHero({
   onOpenEligibilityCheck,
 }: CourseDetailsHeroProps) {
   return (
-    <section className="bg-[linear-gradient(135deg,#1f2a3a_0%,#16202d_55%,#1f2a3a_100%)] text-white">
+    <section className="brand-hero text-white">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-16">
         <div className="max-w-2xl">
           <div className="flex flex-wrap gap-3">
@@ -70,11 +70,13 @@ export function CourseDetailsHero({
             </svg>
           </AccentIconBadge>
           <h2 className="text-2xl font-bold text-[var(--cta-secondary)]">
-            Accelerated application process
+            Start your application
           </h2>
           <CourseChecklist
             items={[
-              "Start with a course-specific evidence check",
+              course.eligibilityPolicy === "manual_review"
+                ? "Prepare evidence for an admissions review"
+                : "Start with a course-specific evidence check",
               "Create or reuse your profile after sign in",
               "Save and resume applications across courses",
             ]}

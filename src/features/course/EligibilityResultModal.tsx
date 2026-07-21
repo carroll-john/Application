@@ -35,7 +35,7 @@ function ApplicationStartPicker({
       {reusableSourceApplications.map((application) => (
         <button
           key={application.id}
-          className="w-full rounded-[28px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[#084E74]/30 hover:bg-white"
+          className="w-full rounded-[28px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[var(--cta-tertiary-border)] hover:bg-white"
           disabled={isApplyActionPending}
           type="button"
           onClick={() => {
@@ -58,7 +58,7 @@ function ApplicationStartPicker({
                 sections)
               </p>
               {application.id === activeApplicationId ? (
-                <p className="mt-2 text-xs font-medium uppercase tracking-[0.16em] text-[#084E74]">
+                <p className="mt-2 text-xs font-medium uppercase tracking-[0.16em] text-[var(--cta-tertiary-text)]">
                   Current active application
                 </p>
               ) : null}
@@ -138,7 +138,7 @@ function getEligibleApplyLabel({
     : "Start application";
 }
 
-export type EligibilityOutcome = "success" | "fail";
+export type EligibilityOutcome = "success" | "fail" | "manual_review";
 
 export function EligibilityResultModal({
   activeApplicationId,
@@ -174,12 +174,17 @@ export function EligibilityResultModal({
   onTryAgain: () => void;
 }) {
   const isEligible = eligibilityOutcome === "success";
+  const isManualReview = eligibilityOutcome === "manual_review";
 
   return (
     <ModalShell
       maxWidthClassName="max-w-xl"
       onClose={onClose}
-      title={getEligibilityResultTitle(isEligible, showApplicationStartPicker)}
+      title={
+        isManualReview
+          ? "Admissions review needed"
+          : getEligibilityResultTitle(isEligible, showApplicationStartPicker)
+      }
     >
       {isEligible && showApplicationStartPicker ? (
         <ApplicationStartPicker
@@ -196,7 +201,9 @@ export function EligibilityResultModal({
               isEligible ? "text-green-700" : "text-red-700"
             }`}
           >
-            {isEligible
+            {isManualReview
+              ? "We’ll assess your evidence against the published course rules"
+              : isEligible
               ? "Your answers match the program evidence requirements"
               : "Some program evidence needs attention"}
           </p>
@@ -208,7 +215,7 @@ export function EligibilityResultModal({
               {applyError}
             </p>
           ) : null}
-          {isEligible ? (
+          {isEligible || isManualReview ? (
             <Button
               className="mt-6 w-full"
               disabled={isApplyActionPending}
@@ -216,12 +223,16 @@ export function EligibilityResultModal({
                 void onEligibleApplyNow();
               }}
             >
-              {getEligibleApplyLabel({
-                currentCourseDraft,
-                isApplyActionPending,
-                isAuthenticated,
-                reusableSourceApplications,
-              })}
+              {isManualReview
+                ? isAuthenticated
+                  ? "Start application for review"
+                  : "Sign in to start review"
+                : getEligibleApplyLabel({
+                    currentCourseDraft,
+                    isApplyActionPending,
+                    isAuthenticated,
+                    reusableSourceApplications,
+                  })}
             </Button>
           ) : (
             <div className="mt-6 space-y-3">

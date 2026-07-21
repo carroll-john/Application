@@ -1,0 +1,49 @@
+{
+  "version": 2,
+  "generatedAt": "2026-07-21T00:00:00.000Z",
+  "model": "human-reviewed",
+  "courses": {
+    "master-of-business-administration-government": {
+      "version": 2,
+      "global": [
+        {
+          "id": "uc-mbag-english",
+          "kind": "english_proficiency",
+          "params": {
+            "acceptedPathways": [
+              {"type": "english_test", "test": "IELTS", "minOverall": 6.5, "minBand": 6.0},
+              {"type": "completion_in_country", "countries": ["AU", "NZ", "UK", "IE", "US", "CA", "ZA"]}
+            ]
+          },
+          "sourceText": "IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent",
+          "weight": "mandatory"
+        }
+      ],
+      "pathways": [
+        {
+          "id": "related-bachelor",
+          "label": "Related bachelor degree",
+          "requirements": [
+            {"id":"uc-mbag-related-bachelor","kind":"qualification_level","params":{"level":"bachelor","completedRequired":true},"sourceText":"An Australian bachelor degree or equivalent in a related field","weight":"mandatory"},
+            {"id":"uc-mbag-related-field","kind":"field_of_study","params":{"acceptedAreas":["business","management","commerce","economics","government","public administration","policy","law","politics"]},"sourceText":"in a related field","weight":"mandatory"}
+          ]
+        },
+        {
+          "id": "unrelated-bachelor-experience",
+          "label": "Bachelor degree plus relevant experience",
+          "requirements": [
+            {"id":"uc-mbag-any-bachelor","kind":"qualification_level","params":{"level":"bachelor","completedRequired":true},"sourceText":"An Australian bachelor degree or equivalent in an unrelated field","weight":"mandatory"},
+            {"id":"uc-mbag-relevant-experience","kind":"work_experience","params":{"minYears":3,"relevantTo":"government, leadership, management, public administration, policy or organisational governance"},"sourceText":"plus three years of relevant work experience","weight":"mandatory"}
+          ]
+        },
+        {
+          "id": "aqf8-or-higher",
+          "label": "AQF 8 qualification or higher",
+          "requirements": [
+            {"id":"uc-mbag-aqf8","kind":"qualification_completed","params":{"requiredQualificationName":"graduate certificate"},"sourceText":"An Australian Graduate Certificate at AQF level 8 in any field or higher","weight":"mandatory"}
+          ]
+        }
+      ]
+    }
+  }
+}

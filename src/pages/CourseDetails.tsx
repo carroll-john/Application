@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
+import { AppBrandFooter } from "../components/AppBrandFooter";
 import { useApplication } from "../context/ApplicationContext";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -62,8 +63,9 @@ export default function CourseDetails() {
         course={course}
         courseDetailsSectionRef={eligibility.courseDetailsSectionRef}
         entryRequirementsRef={eligibility.entryRequirementsRef}
-        onOpenEligibilityCheck={() => eligibility.setShowEligibility(true)}
+        onOpenEligibilityCheck={eligibility.handleEligibilityOpen}
       />
+      <AppBrandFooter />
 
       {eligibility.showEligibility && !eligibility.eligibilityOutcome ? (
         <EligibilityCheckModal

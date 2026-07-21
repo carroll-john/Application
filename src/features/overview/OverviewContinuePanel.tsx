@@ -13,13 +13,13 @@ export function OverviewContinuePanel({
 }: OverviewContinuePanelProps) {
   return (
     <>
-      <SurfaceCard className="mt-6 border-[#084E74]/10 bg-[#EAF1F5] p-5 sm:p-6">
+      <SurfaceCard className="mt-6 border-[var(--border)] bg-[var(--background-tinted)] p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#084E74]">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--cta-tertiary-text)]">
               <span>{nextAction.label}</span>
               {nextAction.sectionLabel ? (
-                <span className="rounded-full border border-[#084E74]/20 bg-white px-3 py-1 tracking-[0.12em] text-[#084E74]">
+                <span className="rounded-full border border-[var(--cta-tertiary-border)] bg-white px-3 py-1 tracking-[0.12em] text-[var(--cta-tertiary-text)]">
                   {nextAction.sectionLabel}
                 </span>
               ) : null}
