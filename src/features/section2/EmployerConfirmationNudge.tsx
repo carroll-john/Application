@@ -1,5 +1,4 @@
 import { Building2 } from "lucide-react";
-import { Button } from "../../components/ui/button";
 import type { ApplicationData } from "../../lib/applicationData";
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
 import { isSubmissionReadyDocument } from "../../lib/documentAttachment";
@@ -7,11 +6,9 @@ import { isSubmissionReadyDocument } from "../../lib/documentAttachment";
 export function EmployerConfirmationNudge({
   applicationData,
   course,
-  onNavigate,
 }: {
   applicationData: ApplicationData;
   course: CourseCatalogEntry | null | undefined;
-  onNavigate: (path: string) => void;
 }) {
   const assessedRequirements = (course?.requirements ?? [])
     .filter((requirement) => requirement.kind === "work_experience")
@@ -43,7 +40,6 @@ export function EmployerConfirmationNudge({
     ...assessedRequirements.map(({ requirement }) => requirement.params.minYears),
   );
   const attachedCount = qualifyingRoles.length - rolesWithoutLetters.length;
-  const firstRole = rolesWithoutLetters[0];
 
   return (
     <aside
@@ -75,15 +71,6 @@ export function EmployerConfirmationNudge({
               {attachedCount} employer letter{attachedCount === 1 ? " is" : "s are"} already attached.
             </p>
           ) : null}
-          <div className="mt-3 flex justify-end">
-            <Button
-              onClick={() => onNavigate(`/section2/edit-employment/${firstRole.id}`)}
-              type="button"
-              variant="outline"
-            >
-              Review roles and add letters
-            </Button>
-          </div>
         </div>
       </div>
     </aside>

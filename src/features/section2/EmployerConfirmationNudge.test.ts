@@ -58,7 +58,6 @@ describe("EmployerConfirmationNudge", () => {
           workExperienceAssessments: { [requirement.id]: assessment },
         },
         course,
-        onNavigate: () => undefined,
       }),
     );
 
@@ -66,7 +65,7 @@ describe("EmployerConfirmationNudge", () => {
     expect(html).toContain("Optional for now");
     expect(html).toContain("covering at least 3 years");
     expect(html).toContain("You can submit without these letters");
-    expect(html).toContain("Review roles and add letters");
+    expect(html).not.toContain("Review roles and add letters");
     expect(html).not.toContain("The duties demonstrate relevant operations work");
   });
 
@@ -75,7 +74,6 @@ describe("EmployerConfirmationNudge", () => {
       createElement(EmployerConfirmationNudge, {
         applicationData: initialApplicationData,
         course: { code: "course-2", title: "Course", requirements: [] } as CourseCatalogEntry,
-        onNavigate: () => undefined,
       }),
     );
 

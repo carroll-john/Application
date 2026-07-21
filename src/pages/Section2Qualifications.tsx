@@ -188,7 +188,6 @@ export default function Section2Qualifications() {
       <EmployerConfirmationNudge
         applicationData={data}
         course={selectedCourseEntry}
-        onNavigate={(path) => navigate(`${path}${reviewSuffix}`)}
       />
 
       {showSection("tertiary") ? (
