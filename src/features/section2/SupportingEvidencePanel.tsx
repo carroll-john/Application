@@ -134,15 +134,32 @@ function EvidenceReviewRow({
   explanation,
   explanationItems,
   heading,
+  statusLabel,
+  tone = "neutral",
 }: {
   action?: ReactNode;
   explanation: string;
   explanationItems?: string[];
   heading: string;
+  statusLabel?: string;
+  tone?: "neutral" | "success";
 }) {
   return (
-    <li className="content-block-compact rounded-md border border-gray-200 p-3">
-      <p className="text-xs font-semibold text-gray-900 sm:text-sm">{heading}</p>
+    <li
+      className={`content-block-compact rounded-md border p-3 ${
+        tone === "success"
+          ? "border-[var(--success-border)] bg-[var(--success-bg)]"
+          : "border-gray-200"
+      }`}
+    >
+      <p className="text-xs font-semibold text-gray-900 sm:text-sm">
+        {heading}
+        {statusLabel ? (
+          <span className="ml-2 font-medium text-[var(--success-text)]">
+            {statusLabel}
+          </span>
+        ) : null}
+      </p>
       {explanationItems && explanationItems.length > 0 ? (
         <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-gray-700 sm:text-sm">
           {explanationItems.map((item) => (
@@ -342,13 +359,22 @@ export function SupportingEvidencePanel({
       ))}
       {assessmentEvidenceRows.length > 0 ? (
         <ul className="mt-3 space-y-2" aria-label="Transcript evidence extracted">
-          {assessmentEvidenceRows.map((row) => (
-            <EvidenceReviewRow
-              key={row.id}
-              explanation={row.explanation}
-              heading={row.sourceText}
-            />
-          ))}
+          {assessmentEvidenceRows.map((row) => {
+            const hasNoPublishedAcademicThreshold = row.id === "academic-result";
+            return (
+              <EvidenceReviewRow
+                key={row.id}
+                explanation={
+                  hasNoPublishedAcademicThreshold
+                    ? `${row.explanation}. This course does not publish a minimum WAM or GPA requirement.`
+                    : row.explanation
+                }
+                heading={row.sourceText}
+                statusLabel={hasNoPublishedAcademicThreshold ? "No minimum required" : undefined}
+                tone={hasNoPublishedAcademicThreshold ? "success" : "neutral"}
+              />
+            );
+          })}
         </ul>
       ) : null}
       {metRows.length > 0 ? (

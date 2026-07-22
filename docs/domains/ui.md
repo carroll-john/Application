@@ -105,6 +105,9 @@ See [PR #202](https://github.com/carroll-john/Application/pull/202).
 ## Section 2 evidence hub
 
 - `SupportingEvidencePanel` — program evidence cards + feedback entry point.
+- Extracted WAM/GPA is labelled `No minimum required` when the selected course publishes no
+  academic threshold. It may use the positive evidence treatment, but must not be called `Met`
+  because no numeric requirement was evaluated.
 - `EligibilityFeedbackForm` — per-row dispute notes; CTA copy in `uiCopy.ts`
   (`Save feedback` / `Saving...`).
 - Feedback rows mirror met/review evidence rows from `buildProgramEvidenceRows`.

@@ -173,4 +173,67 @@ describe("SupportingEvidencePanel", () => {
     expect(html).not.toContain("Qualification completion from transcript");
     expect(html).not.toContain("Completion status: conferred");
   });
+
+  it("marks an extracted academic result as having no minimum when the course publishes no threshold", () => {
+    const assessment = normalizeTranscriptEligibilityAssessment({
+      checkedAt: "2026-07-22T00:00:00Z",
+      extractedData: {
+        academicPerformance: {
+          gpa: {
+            confidence: 0.99,
+            normalizedValue: "3.3",
+            originalValue: "3.3",
+          },
+          gpaScale: {
+            confidence: 0.99,
+            normalizedValue: "4.0",
+            originalValue: "4.0",
+          },
+          gradeAverageOrWam: {
+            confidence: 0.99,
+            normalizedValue: "74.2",
+            originalValue: "74.2",
+          },
+        },
+      },
+      outcome: "eligible",
+      requirementsChecked: [],
+      selectedPathwayId: "related-bachelor",
+    });
+    const readyPlan: Section2EvidencePlan = {
+      ...plan,
+      isEvidenceReady: true,
+      nextPrompt: null,
+      remainingPromptCount: 0,
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(SupportingEvidencePanel, {
+        assessment,
+        courseTitle: "Master of Business Administration (Government)",
+        ensureApplicationRow: async () => "application-id",
+        isHero: false,
+        isProcessing: false,
+        onNavigate: () => undefined,
+        onSaveFeedback: async () => undefined,
+        onSkipPrompt: () => undefined,
+        onUnskipPrompt: () => undefined,
+        plan: readyPlan,
+        showParsedTranscriptIntro: true,
+        ungroupedRows: [rows[0]],
+      }),
+    );
+
+    const headingIndex = html.indexOf("Academic result from transcript");
+    const academicRowStart = html.lastIndexOf("<li", headingIndex);
+    const academicRowEnd = html.indexOf("</li>", headingIndex);
+    const academicRow = html.slice(academicRowStart, academicRowEnd);
+
+    expect(academicRow).toContain("bg-[var(--success-bg)]");
+    expect(academicRow).toContain("No minimum required");
+    expect(academicRow).toContain("WAM: 74.2 · GPA: 3.3/4.0");
+    expect(academicRow).toContain(
+      "This course does not publish a minimum WAM or GPA requirement.",
+    );
+  });
 });
