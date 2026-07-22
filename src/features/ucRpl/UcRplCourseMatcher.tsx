@@ -82,7 +82,7 @@ function IntroState({
       className="content-block bg-white"
     >
       <div className="grid lg:grid-cols-[1.35fr_0.9fr]">
-        <div className="border-b border-[var(--border)] p-6 sm:p-9 lg:border-b-0 lg:border-r lg:p-12">
+        <div className="border-b border-[var(--border)] py-6 sm:py-9 lg:border-b-0 lg:border-r lg:py-12 lg:pr-12">
           <h1
             id="uc-rpl-heading"
             className="max-w-3xl text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl"
@@ -158,7 +158,7 @@ function IntroState({
           ) : null}
         </div>
 
-        <ol className="divide-y divide-[var(--border)] p-6 sm:p-9 lg:grid lg:grid-rows-3 lg:p-10">
+        <ol className="divide-y divide-[var(--border)] py-6 sm:py-9 lg:grid lg:grid-rows-3 lg:py-10 lg:pl-10">
           {[
             {
               icon: Upload,
