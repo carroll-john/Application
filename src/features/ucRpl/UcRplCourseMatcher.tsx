@@ -9,7 +9,6 @@ import {
   LoaderCircle,
   Pencil,
   SearchCheck,
-  ShieldCheck,
   Upload,
   UserRoundCheck,
 } from "lucide-react";
@@ -237,157 +236,86 @@ function ReviewState({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_0.36fr]">
-        <div className="space-y-5">
-          {draft.experiences.map((experience, index) => (
-            <article
-              key={experience.id}
-              className="content-block border border-[var(--border)] bg-white p-6"
-            >
-              <div className="flex items-start gap-3">
-                <input
-                  aria-label={`Include ${experience.position} in assessment`}
-                  className="mt-1 h-5 w-5 rounded border-slate-300 text-[var(--cta-primary)] focus:ring-[var(--cta-primary)]"
-                  type="checkbox"
-                  checked={experience.includeInAssessment}
+      <div className="space-y-5">
+        {draft.experiences.map((experience, index) => (
+          <article
+            key={experience.id}
+            className="content-block border border-[var(--border)] bg-white p-6"
+          >
+            <div className="flex items-start gap-3">
+              <input
+                aria-label={`Include ${experience.position} in assessment`}
+                className="mt-1 h-5 w-5 rounded border-slate-300 text-[var(--cta-primary)] focus:ring-[var(--cta-primary)]"
+                type="checkbox"
+                checked={experience.includeInAssessment}
+                onChange={(event) => {
+                  const experiences = [...draft.experiences];
+                  experiences[index] = {
+                    ...experience,
+                    includeInAssessment: event.target.checked,
+                  };
+                  onChange({ ...draft, experiences });
+                }}
+              />
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl font-semibold text-slate-950">
+                  {experience.position || "Role title not found"}
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  {[experience.company, formatRolePeriod(experience)]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {experience.oscaConfidence} confidence
+              </span>
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_0.35fr]">
+              <div>
+                <Label htmlFor={`osca-title-${experience.id}`}>
+                  Indicative OSCA occupation
+                </Label>
+                <Input
+                  id={`osca-title-${experience.id}`}
+                  value={experience.oscaOccupationTitle}
+                  placeholder="Enter the closest OSCA occupation"
                   onChange={(event) => {
                     const experiences = [...draft.experiences];
                     experiences[index] = {
                       ...experience,
-                      includeInAssessment: event.target.checked,
+                      oscaOccupationTitle: event.target.value,
                     };
                     onChange({ ...draft, experiences });
                   }}
                 />
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-xl font-semibold text-slate-950">
-                    {experience.position || "Role title not found"}
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    {[experience.company, formatRolePeriod(experience)]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                </div>
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {experience.oscaConfidence} confidence
-                </span>
               </div>
-
-              <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_0.35fr]">
-                <div>
-                  <Label htmlFor={`osca-title-${experience.id}`}>
-                    Indicative OSCA occupation
-                  </Label>
-                  <Input
-                    id={`osca-title-${experience.id}`}
-                    value={experience.oscaOccupationTitle}
-                    placeholder="Enter the closest OSCA occupation"
-                    onChange={(event) => {
-                      const experiences = [...draft.experiences];
-                      experiences[index] = {
-                        ...experience,
-                        oscaOccupationTitle: event.target.value,
-                      };
-                      onChange({ ...draft, experiences });
-                    }}
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-slate-700">Skill level</p>
-                  <p className="mt-2 font-semibold text-slate-950">
-                    {experience.oscaSkillLevel
-                      ? `Level ${experience.oscaSkillLevel}`
-                      : "Needs review"}
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Set by the matched OSCA occupation.
-                  </p>
-                </div>
-              </div>
-
-              {experience.oscaRationale ? (
-                <p className="mt-4 border-l-2 border-blue-200 pl-4 text-sm leading-6 text-slate-600">
-                  {experience.oscaRationale}
+              <div>
+                <p className="text-sm font-medium text-slate-700">Skill level</p>
+                <p className="mt-2 font-semibold text-slate-950">
+                  {experience.oscaSkillLevel
+                    ? `Level ${experience.oscaSkillLevel}`
+                    : "Needs review"}
                 </p>
-              ) : null}
-            </article>
-          ))}
-        </div>
-
-        <aside className="space-y-5">
-          <div className="content-block border border-[var(--border)] bg-white p-6">
-            <h2 className="text-xl font-semibold text-slate-950">Details to pre-fill</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Check the safe contact details we can carry into your application.
-            </p>
-            <div className="mt-5 space-y-4">
-              <div>
-                <Label htmlFor="cv-first-name">First name</Label>
-                <Input
-                  id="cv-first-name"
-                  value={draft.profile.firstName}
-                  onChange={(event) =>
-                    onChange({
-                      ...draft,
-                      profile: { ...draft.profile, firstName: event.target.value },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="cv-last-name">Last name</Label>
-                <Input
-                  id="cv-last-name"
-                  value={draft.profile.lastName}
-                  onChange={(event) =>
-                    onChange({
-                      ...draft,
-                      profile: { ...draft.profile, lastName: event.target.value },
-                    })
-                  }
-                />
-              </div>
-              <div>
-                <Label htmlFor="cv-phone">Phone</Label>
-                <Input
-                  id="cv-phone"
-                  type="tel"
-                  value={draft.profile.phone}
-                  onChange={(event) =>
-                    onChange({
-                      ...draft,
-                      profile: { ...draft.profile, phone: event.target.value },
-                    })
-                  }
-                />
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Set by the matched OSCA occupation.
+                </p>
               </div>
             </div>
-            <div className="mt-5 border-t border-[var(--border)] pt-4 text-sm text-slate-600">
-              <p>{draft.tertiaryQualifications.length} tertiary qualification(s)</p>
-              <p className="mt-1">
-                {draft.professionalAccreditations.length} professional accreditation(s)
+
+            {experience.oscaRationale ? (
+              <p className="mt-4 border-l-2 border-blue-200 pl-4 text-sm leading-6 text-slate-600">
+                {experience.oscaRationale}
               </p>
-              <p className="mt-1">{includedCount} included role(s)</p>
-            </div>
-          </div>
-
-          <div className="content-block border border-blue-200 bg-blue-50/60 p-5">
-            <p className="flex gap-2 text-sm leading-6 text-slate-700">
-              <ShieldCheck
-                className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
-                aria-hidden="true"
-              />
-              We won’t infer sensitive personal information. Your sign-in email
-              remains the authoritative email for the application.
-            </p>
-          </div>
-        </aside>
+            ) : null}
+          </article>
+        ))}
       </div>
 
       <div className="content-block flex flex-col gap-4 border border-[var(--border)] bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-6 text-slate-600">
-          You can edit all pre-filled fields before submitting an application.
+          Check the roles you want to include, then continue to your course matches.
         </p>
         <Button disabled={includedCount === 0} onClick={onContinue}>
           Find my course matches
