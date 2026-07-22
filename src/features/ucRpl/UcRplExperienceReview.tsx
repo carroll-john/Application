@@ -63,8 +63,8 @@ function ExperienceSummaryEditor({
       <div className="border-b border-[var(--border)] pb-5">
         <h3 className="text-lg font-semibold text-slate-950">Review these roles</h3>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-          Choose which roles to include and correct any job titles that don’t look
-          right.
+          Choose which roles to include and check the occupation we matched to the
+          work described in your CV.
         </p>
       </div>
 
@@ -103,23 +103,46 @@ function ExperienceSummaryEditor({
                 </div>
               </div>
 
-              <div className="mt-4">
-                <Label htmlFor={`role-title-${role.id}`}>Job title</Label>
-                <Input
-                  id={`role-title-${role.id}`}
-                  value={role.position}
-                  placeholder="Enter your job title"
-                  onChange={(event) => {
-                    if (roleIndex < 0) return;
-                    const experiences = [...draft.experiences];
-                    experiences[roleIndex] = {
-                      ...role,
-                      position: event.target.value,
-                    };
-                    onChange({ ...draft, experiences });
-                  }}
-                />
+              <div className="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-start">
+                <div>
+                  <Label htmlFor={`matched-occupation-${role.id}`}>
+                    Matched occupation
+                  </Label>
+                  <Input
+                    id={`matched-occupation-${role.id}`}
+                    value={role.oscaOccupationTitle}
+                    placeholder="Enter the closest occupation"
+                    onChange={(event) => {
+                      if (roleIndex < 0) return;
+                      const experiences = [...draft.experiences];
+                      experiences[roleIndex] = {
+                        ...role,
+                        oscaOccupationTitle: event.target.value,
+                      };
+                      onChange({ ...draft, experiences });
+                    }}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700">
+                    Experience level
+                  </p>
+                  <p className="mt-2 font-semibold text-slate-950">
+                    {role.oscaSkillLevel
+                      ? `Level ${role.oscaSkillLevel}`
+                      : "Needs review"}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Based on the matched occupation.
+                  </p>
+                </div>
               </div>
+
+              {role.oscaRationale ? (
+                <p className="mt-5 border-l-2 border-blue-200 pl-4 text-sm leading-6 text-slate-600">
+                  {role.oscaRationale}
+                </p>
+              ) : null}
             </article>
           );
         })}
