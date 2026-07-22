@@ -29,6 +29,7 @@ External design files are not a project source of truth.
 - UC uses its official inline logo assets, Figtree for UI/body copy, STIX Two Text for display headings, and Dark Teal for normal-size white-text actions.
 - UC uses square editorial and content surfaces. Interactive controls such as buttons, inputs, search fields, pills, badges, and progress indicators retain their rounded control geometry.
 - UC course browse cards use deterministic, category-specific pools of official UC subject-area imagery through the checked-in same-origin proxy, the configured UC logo, concise summaries and compact metadata chips. Filtering must not reshuffle imagery, and the StudyNext card variant remains unchanged.
+- The UC application overview reuses the selected course's reviewed catalogue imagery and exposes course facts with meaningful icons. Its three application sections use person, qualification and review metaphors rather than decorative placeholders; the StudyNext overview remains unchanged.
 - `VITE_DEMO_MODE=true` disables PostHog and support capture; Sentry error capture may remain enabled but replay sampling is forced to zero.
 - Public course and submitted surfaces may include the compact brand footer. Application forms retain navigation ownership in `ApplicationShell` and do not use a site footer.
 
