@@ -140,7 +140,7 @@ function IntroState({
             {
               icon: Upload,
               label: "Upload your CV",
-              copy: "Sign in and add your current CV securely.",
+              copy: "Upload your current CV to get started.",
             },
             {
               icon: UserRoundCheck,
