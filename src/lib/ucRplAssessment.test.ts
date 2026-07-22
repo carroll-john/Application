@@ -6,6 +6,7 @@ import {
   assessUcAdmission,
   formatUcExperienceDuration,
   getUcExperienceGroupLabel,
+  getUcExperienceReviewGuidance,
   getUcWorkEntryGuidance,
   rankUcCourses,
   summarizeUcExperienceByOscaLevel,
@@ -177,6 +178,53 @@ describe("UC OSCA experience review summaries", () => {
       "UC will review this experience",
     );
     expect(getUcWorkEntryGuidance(null, 120)).toBe("More details needed");
+  });
+
+  it("tailors the review guidance to senior experience found in the CV", () => {
+    const summaries = summarizeUcExperienceByOscaLevel(
+      [
+        role({ endYear: "2026", id: "senior-one", level: 1, startYear: "2023" }),
+        role({ endYear: "2026", id: "senior-two", level: 1, startYear: "2024" }),
+      ],
+      now,
+    );
+
+    expect(getUcExperienceReviewGuidance(summaries)).toBe(
+      "Given your experience in senior and highly specialised roles, you may be eligible for direct entry. UC Admissions will review your responsibilities and confirm eligibility.",
+    );
+  });
+
+  it("states whether technical experience meets the two-year guide", () => {
+    const belowGuide = summarizeUcExperienceByOscaLevel(
+      [role({ endYear: "2026", level: 2, startYear: "2025" })],
+      now,
+    );
+    const meetsGuide = summarizeUcExperienceByOscaLevel(
+      [role({ endYear: "2026", level: 2, startYear: "2024" })],
+      now,
+    );
+
+    expect(getUcExperienceReviewGuidance(belowGuide)).toContain(
+      "UC’s guide usually requires at least two years in these roles.",
+    );
+    expect(getUcExperienceReviewGuidance(meetsGuide)).toContain(
+      "This meets UC’s two-year experience guide.",
+    );
+  });
+
+  it("calls out other and unclassified roles that need Admissions review", () => {
+    const unclassified = {
+      ...role({ endYear: "2026", id: "unclassified", level: 1, startYear: "2025" }),
+      oscaSkillLevel: null,
+    };
+    const summaries = summarizeUcExperienceByOscaLevel(
+      [role({ endYear: "2026", level: 3, startYear: "2020" }), unclassified],
+      now,
+    );
+
+    expect(getUcExperienceReviewGuidance(summaries)).toBe(
+      "Based on your CV, you have 1 other role for UC Admissions to consider against the work-experience entry requirements. We also need more detail about 1 role before it can be included in this guidance. UC Admissions will review your responsibilities and confirm eligibility.",
+    );
   });
 });
 

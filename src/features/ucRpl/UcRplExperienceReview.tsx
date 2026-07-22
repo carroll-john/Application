@@ -16,6 +16,7 @@ import { Label } from "../../components/ui/label";
 import {
   formatUcExperienceDuration,
   getUcExperienceGroupLabel,
+  getUcExperienceReviewGuidance,
   getUcWorkEntryGuidance,
   summarizeUcExperienceByOscaLevel,
   type CvRecognitionDraft,
@@ -411,12 +412,7 @@ export function UcRplExperienceReview({
             className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
             aria-hidden="true"
           />
-          <p>
-            Some senior or highly specialised roles may be considered without a
-            minimum length of service. Technical or supervisory experience may
-            meet the requirement after two years. UC Admissions will review your
-            responsibilities before confirming eligibility.
-          </p>
+          <p>{getUcExperienceReviewGuidance(summaries)}</p>
         </div>
       </section>
 

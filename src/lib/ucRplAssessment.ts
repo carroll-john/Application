@@ -273,6 +273,87 @@ export function getUcWorkEntryGuidance(
   return "UC will review this experience";
 }
 
+function formatUcExperienceAmount(months: number) {
+  return formatUcExperienceDuration(months).replace(/ experience$/, "");
+}
+
+function includedRoleDescription(
+  summary: UcOscaExperienceSummary,
+  description: string,
+) {
+  const roleLabel = summary.includedRoleCount === 1 ? "role" : "roles";
+
+  if (summary.experienceMonths <= 0) {
+    const verb = summary.includedRoleCount === 1 ? "has" : "have";
+    return `${summary.includedRoleCount} ${description} ${roleLabel} ${verb} dates that need review`;
+  }
+
+  const verb = summary.includedRoleCount === 1 ? "adds" : "add";
+
+  return `${summary.includedRoleCount} ${description} ${roleLabel} ${verb} up to ${formatUcExperienceAmount(summary.experienceMonths)} of experience`;
+}
+
+export function getUcExperienceReviewGuidance(
+  summaries: UcOscaExperienceSummary[],
+) {
+  const includedSummaries = summaries.filter(
+    (summary) => summary.includedRoleCount > 0,
+  );
+
+  if (includedSummaries.length === 0) {
+    return "Select at least one role to see guidance based on your experience. UC Admissions will review your responsibilities and confirm eligibility.";
+  }
+
+  const sentences: string[] = [];
+  const senior = includedSummaries.find((summary) => summary.skillLevel === 1);
+  const technical = includedSummaries.find((summary) => summary.skillLevel === 2);
+  const otherRoleCount = includedSummaries
+    .filter((summary) => summary.skillLevel !== null && summary.skillLevel >= 3)
+    .reduce((total, summary) => total + summary.includedRoleCount, 0);
+  const needsReview = includedSummaries.find(
+    (summary) => summary.skillLevel === null,
+  );
+
+  if (senior) {
+    sentences.push(
+      "Given your experience in senior and highly specialised roles, you may be eligible for direct entry.",
+    );
+  }
+
+  if (technical) {
+    const prefix = sentences.length === 0 ? "Based on your CV, your" : "Your";
+    const thresholdCopy =
+      technical.experienceMonths >= 24
+        ? "This meets UC’s two-year experience guide."
+        : "UC’s guide usually requires at least two years in these roles.";
+    sentences.push(
+      `${prefix} ${includedRoleDescription(technical, "technical or supervisory")}. ${thresholdCopy}`,
+    );
+  }
+
+  if (otherRoleCount > 0) {
+    const roleLabel = otherRoleCount === 1 ? "role" : "roles";
+    const prefix = sentences.length === 0 ? "Based on your CV, you have" : "You also have";
+    sentences.push(
+      `${prefix} ${otherRoleCount} other ${roleLabel} for UC Admissions to consider against the work-experience entry requirements.`,
+    );
+  }
+
+  if (needsReview) {
+    const roleLabel = needsReview.includedRoleCount === 1 ? "role" : "roles";
+    const pronoun = needsReview.includedRoleCount === 1 ? "it" : "they";
+    const prefix = sentences.length === 0 ? "We need" : "We also need";
+    sentences.push(
+      `${prefix} more detail about ${needsReview.includedRoleCount} ${roleLabel} before ${pronoun} can be included in this guidance.`,
+    );
+  }
+
+  sentences.push(
+    "UC Admissions will review your responsibilities and confirm eligibility.",
+  );
+  return sentences.join(" ");
+}
+
 function admissionBand(skillLevel: OscaSkillLevel | null, months: number) {
   if (skillLevel === 1) {
     if (months >= 36) return 5 as const;
