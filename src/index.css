@@ -4,12 +4,16 @@
 :root {
   color-scheme: light;
 
+  /* Keypath Tech brand — stable even when a partner theme is active. */
+  --keypath-tech-navy: #1f2a3a;
+  --keypath-tech-yellow: #f4b400;
+
   /* StudyNext brand */
-  --sn-navy: #1f2a3a;
+  --sn-navy: var(--keypath-tech-navy);
   --sn-navy-deep: #16202d;
   --sn-mint: #4cd2b6;
   --sn-mint-soft: #b8eadd;
-  --sn-yellow: #f4b400;
+  --sn-yellow: var(--keypath-tech-yellow);
   --sn-chip-border: rgba(255, 255, 255, 0.55);
   --sn-search-bg: #ffffff;
   --brand-header: var(--sn-navy);
@@ -144,8 +148,8 @@
   --brand-header-border: rgba(65, 64, 66, 0.14);
   --brand-header-link-border: rgba(65, 64, 66, 0.28);
   --brand-header-shadow: 0 1px 3px rgba(65, 64, 66, 0.05);
-  --brand-service-bg: #e7f6f8;
-  --brand-service-text: var(--uc-dark-teal);
+  --brand-service-bg: var(--keypath-tech-yellow);
+  --brand-service-text: var(--keypath-tech-navy);
   --brand-accent: var(--uc-blue);
   --brand-accent-strong: var(--uc-dark-teal);
   --brand-footer: var(--uc-hale-navy);

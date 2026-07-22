@@ -98,7 +98,13 @@ export function AppBrandHeader({
           ) : (
             <StudyNextWordmark />
           )}
-          <span className="hidden h-6 items-center rounded-full bg-[var(--brand-service-bg)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-service-text)] sm:inline-flex">
+          <span
+            className={`brand-service-label hidden h-6 items-center rounded-full bg-[var(--brand-service-bg)] px-2.5 text-[10px] font-semibold text-[var(--brand-service-text)] sm:inline-flex ${
+              isUcBrand
+                ? "normal-case tracking-[0.06em]"
+                : "uppercase tracking-[0.18em]"
+            }`}
+          >
             {activeBrand.serviceLabel}
           </span>
         </NavLink>

@@ -51,8 +51,20 @@ try {
         const ucCourseImages = [
           ...document.querySelectorAll('img[src^="/content/dam/uc/"]'),
         ];
+        const brandServiceLabel = document.querySelector(".brand-service-label");
+        const brandServiceStyle = brandServiceLabel
+          ? window.getComputedStyle(brandServiceLabel)
+          : null;
 
         return {
+          brandServiceLabel: brandServiceLabel
+            ? {
+                backgroundColor: brandServiceStyle.backgroundColor,
+                color: brandServiceStyle.color,
+                isVisible: isVisible(brandServiceLabel),
+                text: brandServiceLabel.textContent.trim(),
+              }
+            : null,
           brokenUcCourseImages: ucCourseImages.filter(
             (image) => !image.complete || image.naturalWidth === 0,
           ).length,
@@ -71,6 +83,18 @@ try {
 
       if (result.hasStudyNext) failures.push(`${viewport.name} ${route}: StudyNext visible`);
       if (!result.hasUcLogo) failures.push(`${viewport.name} ${route}: UC logo missing`);
+      if (result.brandServiceLabel?.text !== "Powered by Keypath Tech") {
+        failures.push(`${viewport.name} ${route}: unexpected Keypath badge copy`);
+      }
+      if (
+        result.brandServiceLabel?.backgroundColor !== "rgb(244, 180, 0)" ||
+        result.brandServiceLabel?.color !== "rgb(31, 42, 58)"
+      ) {
+        failures.push(`${viewport.name} ${route}: unexpected Keypath badge colours`);
+      }
+      if (viewport.name === "desktop" && !result.brandServiceLabel?.isVisible) {
+        failures.push(`${viewport.name} ${route}: Keypath badge hidden`);
+      }
       if (result.nonSquareContentBlocks > 0) {
         failures.push(
           `${viewport.name} ${route}: ${result.nonSquareContentBlocks} content blocks are rounded`,
