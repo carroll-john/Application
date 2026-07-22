@@ -8,6 +8,7 @@ import {
   getUcCourseMatchExperienceSummary,
   getUcExperienceGroupLabel,
   getUcExperienceReviewGuidance,
+  getUcIndicativeCreditPoints,
   getUcWorkEntryGuidance,
   rankUcCourses,
   summarizeUcExperienceByOscaLevel,
@@ -260,7 +261,7 @@ describe("UC OSCA experience review summaries", () => {
 });
 
 describe("UC course matching", () => {
-  it("ranks every one of the 33 UC courses and keeps credit qualitative", () => {
+  it("ranks every UC course with confidence and indicative credit guidance", () => {
     const experiences = [
       role({ endYear: "2026", level: 1, startYear: "2020" }),
     ];
@@ -277,15 +278,53 @@ describe("UC course matching", () => {
     expect(matches).toHaveLength(33);
     expect(matches[0].category).toBe("best_match");
     expect(matches[0].admissionDetail).toBe(
-      "Your work experience may support direct entry to this course. UC Admissions will confirm your eligibility and any course-specific requirements.",
-    );
-    expect(matches[0].rationale).toBe(
-      "Matched using the occupation and experience details you reviewed. Other course requirements may still apply.",
+      "Your work experience may support direct entry to this course. Additional course specific eligibility requirement may still apply.",
     );
     expect(matches[0].admissionDetail).not.toMatch(/equivalent GPA|relevant experience/i);
-    expect(matches.every((match) => !/\b\d+\s*(credit|unit)/i.test(match.creditDetail))).toBe(
+    expect(matches.every((match) => ["high", "medium", "low"].includes(match.entryConfidence))).toBe(
       true,
     );
+    expect(matches.every((match) => ["high", "medium", "low"].includes(match.creditConfidence))).toBe(
+      true,
+    );
+    expect(
+      matches.every((match) =>
+        match.entryConfidence ===
+        (match.category === "best_match"
+          ? "high"
+          : match.category === "needs_review"
+            ? "medium"
+            : "low"),
+      ),
+    ).toBe(true);
+    expect(
+      matches.every((match) =>
+        match.creditConfidence ===
+        (match.relevanceScore >= 17
+          ? "high"
+          : match.relevanceScore > 0
+            ? "medium"
+            : "low"),
+      ),
+    ).toBe(true);
+    expect(matches.find((match) => match.relevanceScore >= 17)?.creditDetail).toMatch(
+      /You may be eligible for up to (6|12|18) credit points\./,
+    );
+  });
+
+  it("scales indicative credit points with course length", () => {
+    const catalogue = getCourseCatalogFor("uc");
+    const graduateCertificate = catalogue.find((course) =>
+      course.title.startsWith("Graduate Certificate"),
+    );
+    const graduateDiploma = catalogue.find((course) =>
+      course.title.startsWith("Graduate Diploma"),
+    );
+    const masters = catalogue.find((course) => course.title.startsWith("Master"));
+
+    expect(graduateCertificate && getUcIndicativeCreditPoints(graduateCertificate)).toBe(6);
+    expect(graduateDiploma && getUcIndicativeCreditPoints(graduateDiploma)).toBe(12);
+    expect(masters && getUcIndicativeCreditPoints(masters)).toBe(18);
   });
 });
 

@@ -9,6 +9,7 @@ import type { CourseCatalogEntry } from "./courseCatalog";
 
 export type OscaSkillLevel = 1 | 2 | 3 | 4 | 5;
 export type OscaConfidence = "high" | "medium" | "low";
+export type UcGuidanceConfidence = "high" | "medium" | "low";
 
 export interface CvRecognitionExperience extends EmploymentExperience {
   includeInAssessment: boolean;
@@ -50,9 +51,11 @@ export interface UcAdmissionAssessment {
 export interface UcCourseMatch {
   admissionDetail: string;
   category: "best_match" | "needs_review" | "other";
+  creditConfidence: UcGuidanceConfidence;
   course: CourseCatalogEntry;
   creditDetail: string;
-  rationale: string;
+  creditPoints: 6 | 12 | 18;
+  entryConfidence: UcGuidanceConfidence;
   relevanceScore: number;
 }
 
@@ -496,6 +499,34 @@ function courseRelevance(course: CourseCatalogEntry, experiences: CvRecognitionE
   );
 }
 
+function getCourseDurationYears(duration: string | undefined) {
+  if (!duration) return null;
+
+  const monthMatch = duration.match(/(\d+(?:\.\d+)?)\s*months?/i);
+  if (monthMatch?.[1]) {
+    return Number(monthMatch[1]) / 12;
+  }
+
+  const yearMatch = duration.match(/(\d+(?:\.\d+)?)\s*years?/i);
+  return yearMatch?.[1] ? Number(yearMatch[1]) : null;
+}
+
+export function getUcIndicativeCreditPoints(
+  course: CourseCatalogEntry,
+): 6 | 12 | 18 {
+  const durationYears = getCourseDurationYears(course.duration);
+
+  if (durationYears !== null) {
+    if (durationYears <= 0.75) return 6;
+    if (durationYears < 2) return 12;
+    return 18;
+  }
+
+  if (/graduate certificate/i.test(course.title)) return 6;
+  if (/graduate diploma/i.test(course.title)) return 12;
+  return 18;
+}
+
 export function rankUcCourses(
   courses: CourseCatalogEntry[],
   experiences: CvRecognitionExperience[],
@@ -519,20 +550,28 @@ export function rankUcCourses(
         : hasAdmissionBand || relevanceScore > 0
           ? "needs_review"
           : "other";
+    const creditPoints = getUcIndicativeCreditPoints(course);
     const creditDetail =
       relevanceScore >= 17
-        ? "Your work appears related to this course. UC may assess whether it can count towards your study."
+        ? `Your work appears related to this course. You may be eligible for up to ${creditPoints} credit points.`
         : "UC will need supporting evidence before deciding whether your experience can count towards this course.";
 
     return {
       admissionDetail: maySupportDirectEntry
-        ? "Your work experience may support direct entry to this course. UC Admissions will confirm your eligibility and any course-specific requirements."
+        ? "Your work experience may support direct entry to this course. Additional course specific eligibility requirement may still apply."
         : "UC Admissions will review your work experience against this course’s entry requirements.",
       category,
+      creditConfidence:
+        relevanceScore >= 17 ? "high" : relevanceScore > 0 ? "medium" : "low",
       course,
       creditDetail,
-      rationale:
-        "Matched using the occupation and experience details you reviewed. Other course requirements may still apply.",
+      creditPoints,
+      entryConfidence:
+        category === "best_match"
+          ? "high"
+          : category === "needs_review"
+            ? "medium"
+            : "low",
       relevanceScore,
     };
   });

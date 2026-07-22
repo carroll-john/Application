@@ -20,6 +20,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
+import { StatusPill } from "../../components/StatusPill";
 import { useApplication } from "../../context/ApplicationContext";
 import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../auth";
@@ -49,6 +50,29 @@ type MatchFilter = "best_match" | "needs_review" | "all";
 
 interface UcRplCourseMatcherProps {
   courses: CourseCatalogEntry[];
+}
+
+const CONFIDENCE_BADGE: Record<
+  UcCourseMatch["entryConfidence"],
+  { label: string; tone: "neutral" | "success" | "warning" }
+> = {
+  high: { label: "High confidence", tone: "success" },
+  medium: { label: "Medium confidence", tone: "warning" },
+  low: { label: "Low confidence", tone: "neutral" },
+};
+
+function ConfidenceBadge({
+  confidence,
+}: {
+  confidence: UcCourseMatch["entryConfidence"];
+}) {
+  const badge = CONFIDENCE_BADGE[confidence];
+
+  return (
+    <StatusPill className="px-2.5 py-1 text-xs" tone={badge.tone}>
+      {badge.label}
+    </StatusPill>
+  );
 }
 
 const FILTER_LABELS: Record<MatchFilter, string> = {
@@ -207,35 +231,38 @@ function MatchCard({
     <UcCourseBrowseCard
       course={match.course}
       mediaVariantIndex={mediaVariantIndex}
+      showSummary={false}
       footer={(
         <div className="border-t border-[var(--border)] bg-white p-5 sm:p-6">
           <div className="space-y-4">
             <div>
-              <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <SearchCheck className="h-4 w-4 text-green-700" aria-hidden="true" />
-                Entry guidance
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <SearchCheck className="h-4 w-4 text-green-700" aria-hidden="true" />
+                  Entry guidance
+                </p>
+                <ConfidenceBadge confidence={match.entryConfidence} />
+              </div>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 {match.admissionDetail}
               </p>
             </div>
             <div className="border-t border-[var(--border)] pt-4">
-              <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                <FileText
-                  className="h-4 w-4 text-[var(--cta-secondary)]"
-                  aria-hidden="true"
-                />
-                Potential credit
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <FileText
+                    className="h-4 w-4 text-[var(--cta-secondary)]"
+                    aria-hidden="true"
+                  />
+                  Credit potential
+                </p>
+                <ConfidenceBadge confidence={match.creditConfidence} />
+              </div>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 {match.creditDetail}
               </p>
             </div>
           </div>
-          <p className="mt-4 flex gap-2 text-xs leading-5 text-slate-500">
-            <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            {match.rationale}
-          </p>
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
             <Button disabled={isStarting} onClick={onStart}>
               {isStarting ? (

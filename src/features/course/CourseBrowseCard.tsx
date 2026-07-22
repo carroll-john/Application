@@ -40,10 +40,12 @@ export function UcCourseBrowseCard({
   course,
   footer,
   mediaVariantIndex,
+  showSummary = true,
 }: {
   course: CourseCatalogEntry;
   footer?: ReactNode;
   mediaVariantIndex: number;
+  showSummary?: boolean;
 }) {
   const media = getUcCourseCardMedia(course, mediaVariantIndex);
   const titleId = `course-card-title-${course.code}`;
@@ -98,9 +100,11 @@ export function UcCourseBrowseCard({
           />
         </div>
 
-        <p className="mt-4 line-clamp-2 min-h-12 text-sm leading-6 text-slate-600 sm:text-base">
-          {course.summary ?? "Explore this flexible University of Canberra postgraduate course."}
-        </p>
+        {showSummary ? (
+          <p className="mt-4 line-clamp-2 min-h-12 text-sm leading-6 text-slate-600 sm:text-base">
+            {course.summary ?? "Explore this flexible University of Canberra postgraduate course."}
+          </p>
+        ) : null}
 
         <div className="mt-auto flex flex-wrap gap-2 pt-5">
           <UcCourseMetaChip icon={<Monitor className="h-3.5 w-3.5" />}>
