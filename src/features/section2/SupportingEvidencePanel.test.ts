@@ -59,6 +59,48 @@ const plan: Section2EvidencePlan = {
 };
 
 describe("SupportingEvidencePanel", () => {
+  it("hides the complete eligibility panel while transcript evidence is processing", () => {
+    const html = renderToStaticMarkup(
+      createElement(SupportingEvidencePanel, {
+        courseTitle: "Master of Business Administration (Government)",
+        ensureApplicationRow: async () => "application-id",
+        isHero: false,
+        isProcessing: true,
+        onNavigate: () => undefined,
+        onSaveFeedback: async () => undefined,
+        onSkipPrompt: () => undefined,
+        onUnskipPrompt: () => undefined,
+        plan,
+        showParsedTranscriptIntro: false,
+        ungroupedRows: rows,
+      }),
+    );
+
+    expect(html).toBe("");
+  });
+
+  it("stages completed eligibility fields in reading order", () => {
+    const html = renderToStaticMarkup(
+      createElement(SupportingEvidencePanel, {
+        courseTitle: "Master of Business Administration (Government)",
+        ensureApplicationRow: async () => "application-id",
+        isHero: false,
+        isProcessing: false,
+        onNavigate: () => undefined,
+        onSaveFeedback: async () => undefined,
+        onSkipPrompt: () => undefined,
+        onUnskipPrompt: () => undefined,
+        plan,
+        showParsedTranscriptIntro: false,
+        ungroupedRows: rows,
+      }),
+    );
+
+    expect(html.match(/eligibility-evidence-field/g)).toHaveLength(2);
+    expect(html).toContain("--eligibility-evidence-reveal-order:0");
+    expect(html).toContain("--eligibility-evidence-reveal-order:1");
+  });
+
   it("keeps an advisory work-experience result in the compact green evidence list", () => {
     const workRow: ProgramEvidenceRow = {
       explanation:
@@ -174,7 +216,7 @@ describe("SupportingEvidencePanel", () => {
     expect(html).not.toContain("Completion status: conferred");
   });
 
-  it("marks an extracted academic result as having no minimum when the course publishes no threshold", () => {
+  it("omits extracted WAM and GPA when the course publishes no academic threshold", () => {
     const assessment = normalizeTranscriptEligibilityAssessment({
       checkedAt: "2026-07-22T00:00:00Z",
       extractedData: {
@@ -224,16 +266,9 @@ describe("SupportingEvidencePanel", () => {
       }),
     );
 
-    const headingIndex = html.indexOf("Academic result from transcript");
-    const academicRowStart = html.lastIndexOf("<li", headingIndex);
-    const academicRowEnd = html.indexOf("</li>", headingIndex);
-    const academicRow = html.slice(academicRowStart, academicRowEnd);
-
-    expect(academicRow).toContain("bg-[var(--success-bg)]");
-    expect(academicRow).toContain("No minimum required");
-    expect(academicRow).toContain("WAM: 74.2 · GPA: 3.3/4.0");
-    expect(academicRow).toContain(
-      "This course does not publish a minimum WAM or GPA requirement.",
-    );
+    expect(html).not.toContain("Academic result from transcript");
+    expect(html).not.toContain("WAM: 74.2");
+    expect(html).not.toContain("GPA: 3.3/4.0");
+    expect(html).toContain("Bachelor degree or higher");
   });
 });

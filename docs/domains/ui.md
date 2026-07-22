@@ -105,9 +105,11 @@ See [PR #202](https://github.com/carroll-john/Application/pull/202).
 ## Section 2 evidence hub
 
 - `SupportingEvidencePanel` — program evidence cards + feedback entry point.
-- Extracted WAM/GPA is labelled `No minimum required` when the selected course publishes no
-  academic threshold. It may use the positive evidence treatment, but must not be called `Met`
-  because no numeric requirement was evaluated.
+- During an automatic transcript evidence review, the results panel remains hidden while the
+  dedicated progress panel is visible. Once processing completes, result cards reveal in reading
+  order; reduced-motion users receive the completed result immediately without staggered delays.
+- Extracted WAM/GPA is not listed as standalone eligibility evidence. It appears only in the
+  result copy for a published academic-threshold requirement; courses without a threshold omit it.
 - `EligibilityFeedbackForm` — per-row dispute notes; CTA copy in `uiCopy.ts`
   (`Save feedback` / `Saving...`).
 - Feedback rows mirror met/review evidence rows from `buildProgramEvidenceRows`.
