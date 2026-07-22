@@ -36,11 +36,13 @@ export function CourseBrowseCard({
   return <StudyNextCourseBrowseCard course={course} onViewCourse={onViewCourse} />;
 }
 
-function UcCourseBrowseCard({
+export function UcCourseBrowseCard({
   course,
+  footer,
   mediaVariantIndex,
 }: {
   course: CourseCatalogEntry;
+  footer?: ReactNode;
   mediaVariantIndex: number;
 }) {
   const media = getUcCourseCardMedia(course, mediaVariantIndex);
@@ -52,72 +54,91 @@ function UcCourseBrowseCard({
         ? `${course.intakeLabel} intake`
         : null;
 
-  return (
-    <SurfaceCard className="group h-full min-w-0 overflow-hidden rounded-none border-slate-200 p-0 shadow-none transition duration-200 hover:-translate-y-1 hover:border-[var(--brand-accent)]/50 hover:shadow-[0_18px_40px_rgba(65,77,97,0.16)] focus-within:border-[var(--brand-accent)]">
-      <Link
-        aria-labelledby={titleId}
-        className="flex h-full min-w-0 flex-col bg-white text-left no-underline"
-        to={`/courses/${course.code}`}
-      >
-        <div className="relative aspect-[4/3] overflow-hidden bg-[var(--background-tinted)]">
-          <img
-            alt={media.alt}
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.025]"
-            decoding="async"
-            src={media.src}
-          />
-          {mediaBadge ? (
-            <span className="absolute left-3 top-3 rounded-full bg-[var(--cta-primary)] px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
-              {mediaBadge}
-            </span>
-          ) : null}
-          {activeBrand.logo ? (
-            <div
-              aria-hidden="true"
-              className="content-block-compact absolute bottom-0 right-0 flex h-28 w-36 items-center justify-center bg-white p-3 sm:h-32 sm:w-40"
-            >
-              <img
-                alt=""
-                className="h-auto w-full"
-                src={activeBrand.logo.fullColour}
-              />
-            </div>
-          ) : null}
-        </div>
-
-        <div className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
-          <p className="text-base font-medium text-slate-400">{course.provider}</p>
-          <div className="mt-3 flex items-start gap-3">
-            <h2
-              className="min-w-0 flex-1 break-words text-[1.45rem] font-bold leading-[1.12] text-slate-950 sm:text-[1.6rem]"
-              id={titleId}
-            >
-              {course.title}
-            </h2>
-            <ChevronsRight
-              aria-hidden="true"
-              className="mt-0.5 h-8 w-8 shrink-0 text-[var(--brand-accent)] transition-transform duration-200 group-hover:translate-x-1"
-              strokeWidth={2.5}
+  const courseContent = (
+    <>
+      <div className="relative aspect-[4/3] overflow-hidden bg-[var(--background-tinted)]">
+        <img
+          alt={media.alt}
+          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.025]"
+          decoding="async"
+          src={media.src}
+        />
+        {mediaBadge ? (
+          <span className="absolute left-3 top-3 rounded-full bg-[var(--cta-primary)] px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
+            {mediaBadge}
+          </span>
+        ) : null}
+        {activeBrand.logo ? (
+          <div
+            aria-hidden="true"
+            className="content-block-compact absolute bottom-0 right-0 flex h-28 w-36 items-center justify-center bg-white p-3 sm:h-32 sm:w-40"
+          >
+            <img
+              alt=""
+              className="h-auto w-full"
+              src={activeBrand.logo.fullColour}
             />
           </div>
+        ) : null}
+      </div>
 
-          <p className="mt-4 line-clamp-2 min-h-12 text-sm leading-6 text-slate-600 sm:text-base">
-            {course.summary ?? "Explore this flexible University of Canberra postgraduate course."}
-          </p>
-
-          <div className="mt-auto flex flex-wrap gap-2 pt-5">
-            <UcCourseMetaChip icon={<Monitor className="h-3.5 w-3.5" />}>
-              {course.delivery}
-            </UcCourseMetaChip>
-            <UcCourseMetaChip icon={<Clock3 className="h-3.5 w-3.5" />}>
-              {course.duration || "Flexible study"}
-            </UcCourseMetaChip>
-            <UcCourseMetaChip icon={<CalendarDays className="h-3.5 w-3.5" />}>
-              {course.intakeLabel}
-            </UcCourseMetaChip>
-          </div>
+      <div className="flex min-h-0 flex-1 flex-col p-5 sm:p-6">
+        <p className="text-base font-medium text-slate-400">{course.provider}</p>
+        <div className="mt-3 flex items-start gap-3">
+          <h2
+            className="min-w-0 flex-1 break-words text-[1.45rem] font-bold leading-[1.12] text-slate-950 sm:text-[1.6rem]"
+            id={titleId}
+          >
+            {course.title}
+          </h2>
+          <ChevronsRight
+            aria-hidden="true"
+            className="mt-0.5 h-8 w-8 shrink-0 text-[var(--brand-accent)] transition-transform duration-200 group-hover:translate-x-1"
+            strokeWidth={2.5}
+          />
         </div>
-      </Link>
+
+        <p className="mt-4 line-clamp-2 min-h-12 text-sm leading-6 text-slate-600 sm:text-base">
+          {course.summary ?? "Explore this flexible University of Canberra postgraduate course."}
+        </p>
+
+        <div className="mt-auto flex flex-wrap gap-2 pt-5">
+          <UcCourseMetaChip icon={<Monitor className="h-3.5 w-3.5" />}>
+            {course.delivery}
+          </UcCourseMetaChip>
+          <UcCourseMetaChip icon={<Clock3 className="h-3.5 w-3.5" />}>
+            {course.duration || "Flexible study"}
+          </UcCourseMetaChip>
+          <UcCourseMetaChip icon={<CalendarDays className="h-3.5 w-3.5" />}>
+            {course.intakeLabel}
+          </UcCourseMetaChip>
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <SurfaceCard className="group h-full min-w-0 overflow-hidden rounded-none border-slate-200 p-0 shadow-none transition duration-200 hover:-translate-y-1 hover:border-[var(--brand-accent)]/50 hover:shadow-[0_18px_40px_rgba(65,77,97,0.16)] focus-within:border-[var(--brand-accent)]">
+      {footer ? (
+        <div className="flex h-full min-w-0 flex-col bg-white">
+          <Link
+            aria-labelledby={titleId}
+            className="flex min-w-0 flex-1 flex-col text-left no-underline"
+            to={`/courses/${course.code}`}
+          >
+            {courseContent}
+          </Link>
+          {footer}
+        </div>
+      ) : (
+        <Link
+          aria-labelledby={titleId}
+          className="flex h-full min-w-0 flex-col bg-white text-left no-underline"
+          to={`/courses/${course.code}`}
+        >
+          {courseContent}
+        </Link>
+      )}
     </SurfaceCard>
   );
 }

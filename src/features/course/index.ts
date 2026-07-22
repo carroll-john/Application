@@ -1,5 +1,5 @@
 export { AuthModal } from "../auth/AuthModal";
-export { CourseBrowseCard } from "./CourseBrowseCard";
+export { CourseBrowseCard, UcCourseBrowseCard } from "./CourseBrowseCard";
 export { CourseBrowseFilters } from "./CourseBrowseFilters";
 export { CourseBrowsePageIntro } from "./CourseBrowsePageIntro";
 export { CourseBrowseResultsPanel } from "./CourseBrowseResultsPanel";

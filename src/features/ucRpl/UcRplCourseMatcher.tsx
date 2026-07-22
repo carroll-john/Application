@@ -27,6 +27,7 @@ import { Label } from "../../components/ui/label";
 import { useApplication } from "../../context/ApplicationContext";
 import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../auth";
+import { UcCourseBrowseCard } from "../course";
 import {
   getCvParserErrorMessage,
   parseCvForRecognition,
@@ -327,64 +328,65 @@ function ReviewState({
 }
 
 function MatchCard({
-  index,
   match,
+  mediaVariantIndex,
   isStarting,
   onStart,
   onView,
 }: {
-  index: number;
   isStarting: boolean;
   match: UcCourseMatch;
+  mediaVariantIndex: number;
   onStart: () => void;
   onView: () => void;
 }) {
   return (
-    <article className="content-block border border-[var(--border)] bg-white p-5 sm:p-6">
-      <div className="grid gap-5 sm:grid-cols-[auto_1fr_auto]">
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-lg font-bold text-[var(--cta-secondary)]">
-          {index + 1}
-        </div>
-        <div className="min-w-0">
-          <h3 className="text-2xl font-semibold text-slate-950">{match.course.title}</h3>
-          <div className="mt-4 grid gap-3">
-            <div className="grid gap-1 border-b border-[var(--border)] pb-3 sm:grid-cols-[10rem_1fr]">
-              <span className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+    <UcCourseBrowseCard
+      course={match.course}
+      mediaVariantIndex={mediaVariantIndex}
+      footer={(
+        <div className="border-t border-[var(--border)] bg-white p-5 sm:p-6">
+          <div className="space-y-4">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                 <SearchCheck className="h-4 w-4 text-green-700" aria-hidden="true" />
                 Admission indication
-              </span>
-              <span className="text-sm leading-6 text-slate-600">
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
                 {match.admissionDetail}
-              </span>
+              </p>
             </div>
-            <div className="grid gap-1 sm:grid-cols-[10rem_1fr]">
-              <span className="flex items-center gap-2 text-sm font-semibold text-slate-800">
-                <FileText className="h-4 w-4 text-[var(--cta-secondary)]" aria-hidden="true" />
+            <div className="border-t border-[var(--border)] pt-4">
+              <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <FileText
+                  className="h-4 w-4 text-[var(--cta-secondary)]"
+                  aria-hidden="true"
+                />
                 Potential credit
-              </span>
-              <span className="text-sm leading-6 text-slate-600">
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
                 {match.creditDetail}
-              </span>
+              </p>
             </div>
           </div>
           <p className="mt-4 flex gap-2 text-xs leading-5 text-slate-500">
             <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
             {match.rationale}
           </p>
+          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+            <Button disabled={isStarting} onClick={onStart}>
+              {isStarting ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              {isStarting ? "Starting…" : "Start application"}
+            </Button>
+            <Button variant="neutralOutline" onClick={onView}>
+              View course
+            </Button>
+          </div>
         </div>
-        <div className="flex min-w-40 flex-col gap-2">
-          <Button disabled={isStarting} onClick={onStart}>
-            {isStarting ? (
-              <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
-            ) : null}
-            {isStarting ? "Starting…" : "Start application"}
-          </Button>
-          <Button variant="neutralOutline" onClick={onView}>
-            View course
-          </Button>
-        </div>
-      </div>
-    </article>
+      )}
+    />
   );
 }
 
@@ -410,6 +412,9 @@ function ResultsState({
     if (filter === "all") return true;
     return match.category === filter;
   });
+  const mediaVariantByCourseCode = new Map(
+    matches.map((match, index) => [match.course.code, index]),
+  );
 
   return (
     <section aria-labelledby="course-matches-heading" className="space-y-6">
@@ -422,6 +427,9 @@ function ResultsState({
         </h1>
         <p className="mt-3 text-lg text-slate-600">
           Based on the work experience and prior learning you confirmed.
+        </p>
+        <p className="mt-2 text-sm leading-6 text-slate-500">
+          Indicative only. This is not an admission offer or a formal credit decision.
         </p>
 
         <div className="mt-7 grid border border-[var(--border)] sm:grid-cols-2 lg:grid-cols-5">
@@ -469,84 +477,41 @@ function ResultsState({
         </div>
       </div>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[1fr_0.4fr]">
-        <div className="content-block border border-[var(--border)] bg-white">
-          <div className="flex flex-wrap gap-6 border-b border-[var(--border)] px-5 pt-4">
-            {(Object.keys(FILTER_LABELS) as MatchFilter[]).map((item) => (
-              <button
-                key={item}
-                type="button"
-                className={`border-b-2 px-1 pb-3 text-sm font-semibold transition ${
-                  filter === item
-                    ? "border-[var(--cta-primary)] text-[var(--cta-primary)]"
-                    : "border-transparent text-slate-600 hover:text-slate-950"
-                }`}
-                onClick={() => onFilter(item)}
-              >
-                {FILTER_LABELS[item]}
-              </button>
-            ))}
-          </div>
-          <div className="space-y-4 bg-slate-50 p-4 sm:p-5">
-            {visibleMatches.length > 0 ? (
-              visibleMatches.map((match, index) => (
-                <MatchCard
-                  key={match.course.code}
-                  index={index}
-                  isStarting={startingCourseCode === match.course.code}
-                  match={match}
-                  onStart={() => onStart(match)}
-                  onView={() => navigate(`/courses/${match.course.code}`)}
-                />
-              ))
-            ) : (
-              <div className="bg-white p-8 text-center text-sm text-slate-600">
-                No courses fall into this group. Try All courses.
-              </div>
-            )}
-          </div>
-        </div>
-
-        <aside className="content-block border border-[var(--border)] bg-white p-6 lg:sticky lg:top-6">
-          <h2 className="text-2xl font-semibold text-slate-950">
-            How this assessment works
-          </h2>
-          <ol className="mt-5 divide-y divide-[var(--border)]">
-            {[
-              {
-                title: "OSCA informs the admission indication",
-                copy: "Your confirmed occupation skill level and relevant experience are mapped to UC’s prototype admission bands.",
-              },
-              {
-                title: "Course requirements are checked separately",
-                copy: "Academic prerequisites, professional requirements and other course conditions still apply.",
-              },
-              {
-                title: "Credit needs evidence and faculty approval",
-                copy: "A Course Convener may request documents, tests or demonstrations before recommending an outcome for senior faculty approval.",
-              },
-            ].map((item, index) => (
-              <li key={item.title} className="flex gap-4 py-5 first:pt-0">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--cta-secondary)] text-xs font-bold text-[var(--cta-secondary)]">
-                  {index + 1}
-                </span>
-                <div>
-                  <h3 className="font-semibold text-slate-900">{item.title}</h3>
-                  <p className="mt-1.5 text-sm leading-6 text-slate-600">{item.copy}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-          <p className="mt-3 flex gap-2 border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-slate-700">
-            <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            Indicative only. This is not an admission offer or a formal credit decision.
-          </p>
-          <p className="mt-3 text-xs leading-5 text-slate-500">
-            Prototype assumption: OSCA Skill Level 2 experience from 2 to under 3
-            years is included in the GPA 4.0 band.
-          </p>
-        </aside>
+      <div className="content-block flex flex-wrap gap-6 border border-[var(--border)] bg-white px-5 pt-4">
+        {(Object.keys(FILTER_LABELS) as MatchFilter[]).map((item) => (
+          <button
+            key={item}
+            type="button"
+            className={`border-b-2 px-1 pb-3 text-sm font-semibold transition ${
+              filter === item
+                ? "border-[var(--cta-primary)] text-[var(--cta-primary)]"
+                : "border-transparent text-slate-600 hover:text-slate-950"
+            }`}
+            onClick={() => onFilter(item)}
+          >
+            {FILTER_LABELS[item]}
+          </button>
+        ))}
       </div>
+
+      {visibleMatches.length > 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          {visibleMatches.map((match) => (
+            <MatchCard
+              key={match.course.code}
+              isStarting={startingCourseCode === match.course.code}
+              match={match}
+              mediaVariantIndex={mediaVariantByCourseCode.get(match.course.code) ?? 0}
+              onStart={() => onStart(match)}
+              onView={() => navigate(`/courses/${match.course.code}`)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="content-block border border-[var(--border)] bg-white p-8 text-center text-sm text-slate-600">
+          No courses fall into this group. Try All courses.
+        </div>
+      )}
     </section>
   );
 }
