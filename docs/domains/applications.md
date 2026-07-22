@@ -22,6 +22,7 @@ persistence boundary, and the server submit contract owns the final transition.
 - Catalogue consumers may request a specific `CatalogId` for contract tests; runtime consumers use the active brand catalogue.
 - UC entries retain source URL, verification date, delivery mode and an explicit `assess` or `manual_review` policy.
 - UC requirements without reviewed matcher-safe rules never fall back to inferred legacy admission logic. They proceed as an application requiring admissions review.
+- The UC pre-application course matcher ranks from the applicant's full reviewed CV. Current or most recent included roles carry more weight than older roles, while completed tertiary qualifications demote equivalent or lower-level study in the same field so recommendations favour additive learning. This ranking is advisory and does not replace course-specific entry, credit or admissions review.
 
 - Multiple applications per signed-in user.
 - One open draft per course; submitted applications kept separately.

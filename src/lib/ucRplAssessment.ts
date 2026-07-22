@@ -105,16 +105,51 @@ const STOP_WORDS = new Set([
 const RELATED_TERMS: Record<string, string[]> = {
   administration: ["business", "management", "leadership", "governance"],
   analyst: ["analytics", "data", "business", "research"],
+  chancellor: ["leadership", "management", "strategy"],
   cyber: ["security", "technology", "information", "digital"],
-  education: ["teaching", "learning", "leadership"],
+  education: ["teaching", "learning"],
+  educational: ["education", "teaching", "learning"],
   engineer: ["technology", "systems", "project", "management"],
+  executive: ["leadership", "management", "strategy"],
   health: ["public", "clinical", "care", "leadership"],
+  laws: ["law", "legal"],
+  llb: ["law", "legal", "juris"],
   manager: ["management", "leadership", "business", "strategy"],
   marketing: ["communication", "business", "digital", "strategy"],
+  mba: ["business", "administration", "management"],
   project: ["management", "leadership", "business", "delivery"],
+  president: ["leadership", "strategy"],
   public: ["government", "policy", "administration", "leadership"],
+  strategic: ["strategy"],
   technology: ["information", "digital", "data", "systems"],
+  university: ["education", "learning", "research"],
 };
+
+const QUALIFICATION_AWARD_TERMS = new Set([
+  "advanced",
+  "award",
+  "bachelor",
+  "bachelors",
+  "certificate",
+  "degree",
+  "diploma",
+  "graduate",
+  "master",
+  "masters",
+  "postgraduate",
+  "qualification",
+  "undergraduate",
+]);
+
+const TRANSFERABLE_PROFILE_TERMS = new Set([
+  "capability",
+  "leadership",
+  "management",
+  "practice",
+  "professional",
+  "research",
+  "strategy",
+]);
 
 const SPECIALIST_DOMAIN_GUARDS = [
   ["building", "construction"],
@@ -140,6 +175,33 @@ function tokenize(value: string) {
   });
 
   return expanded;
+}
+
+function overlapCount(left: Set<string>, right: Set<string>) {
+  return Array.from(left).filter((token) => right.has(token)).length;
+}
+
+function qualificationDomainTokens(value: string) {
+  return new Set(
+    Array.from(tokenize(value)).filter(
+      (token) =>
+        !QUALIFICATION_AWARD_TERMS.has(token) &&
+        !TRANSFERABLE_PROFILE_TERMS.has(token),
+    ),
+  );
+}
+
+function awardRank(value: string) {
+  const normalized = normalizeKey(value);
+
+  if (/\b(phd|doctor of philosophy|doctorate)\b/.test(normalized)) return 10;
+  if (/\b(master|masters|mba|juris doctor)\b/.test(normalized)) return 9;
+  if (/\bgraduate (certificate|diploma)\b/.test(normalized)) return 8;
+  if (/\b(bachelor|bachelors|llb)\b/.test(normalized)) return 7;
+  if (/\badvanced diploma\b/.test(normalized)) return 6;
+  if (/\bdiploma\b/.test(normalized)) return 5;
+  if (/\bcertificate iv\b/.test(normalized)) return 4;
+  return null;
 }
 
 function parseYear(value: string) {
@@ -459,19 +521,9 @@ export function assessUcAdmission(
   };
 }
 
-function courseRelevance(course: CourseCatalogEntry, experiences: CvRecognitionExperience[]) {
-  const courseTokens = tokenize(
-    [
-      course.title,
-      course.subjectArea ?? "",
-      course.summary ?? "",
-      course.outcomes ?? "",
-      course.coreSubjects.join(" "),
-    ].join(" "),
-  );
-  const roleTokens = tokenize(
+function experienceTokens(experiences: CvRecognitionExperience[]) {
+  return tokenize(
     experiences
-      .filter((experience) => experience.includeInAssessment)
       .map((experience) =>
         [
           experience.position,
@@ -481,22 +533,160 @@ function courseRelevance(course: CourseCatalogEntry, experiences: CvRecognitionE
       )
       .join(" "),
   );
+}
 
-  if (courseTokens.size === 0 || roleTokens.size === 0) {
-    return 0;
+function mostRecentExperiences(experiences: CvRecognitionExperience[]) {
+  const current = experiences.filter((experience) => experience.currentRole);
+
+  if (current.length > 0) {
+    return current;
   }
 
-  const overlap = Array.from(roleTokens).filter((token) => courseTokens.has(token)).length;
+  const dated = experiences.map((experience) => ({
+    experience,
+    recency:
+      toMonthNumber(experience.endYear, experience.endMonth, 11) ??
+      toMonthNumber(experience.startYear, experience.startMonth, 11) ??
+      Number.NEGATIVE_INFINITY,
+  }));
+  const mostRecent = Math.max(...dated.map(({ recency }) => recency));
+
+  return dated
+    .filter(({ recency }) => recency === mostRecent)
+    .map(({ experience }) => experience);
+}
+
+function completedQualificationTokens(
+  qualifications: TertiaryQualification[],
+) {
+  return tokenize(
+    qualifications
+      .filter((qualification) => qualification.completed)
+      .map((qualification) => `${qualification.level} ${qualification.courseName}`)
+      .join(" "),
+  );
+}
+
+function courseRepeatsCompletedQualification(
+  course: CourseCatalogEntry,
+  qualifications: TertiaryQualification[],
+) {
+  const courseRank = awardRank(course.title);
+
+  if (courseRank === null) {
+    return false;
+  }
+
+  const courseDomains = qualificationDomainTokens(
+    `${course.title} ${course.subjectArea ?? ""}`,
+  );
+
+  return qualifications.some((qualification) => {
+    if (!qualification.completed) return false;
+
+    const qualificationRank = awardRank(
+      `${qualification.level} ${qualification.courseName}`,
+    );
+    if (qualificationRank === null || qualificationRank < courseRank) {
+      return false;
+    }
+
+    const qualificationDomains = qualificationDomainTokens(
+      qualification.courseName,
+    );
+    const overlap = overlapCount(courseDomains, qualificationDomains);
+
+    return (
+      overlap > 0 &&
+      (courseDomains.size <= 2 || overlap >= 2 || overlap / courseDomains.size >= 0.5)
+    );
+  });
+}
+
+function buildCourseMatchProfile(draft: CvRecognitionDraft) {
+  const includedExperiences = draft.experiences.filter(
+    (experience) => experience.includeInAssessment,
+  );
+  const roleTokens = experienceTokens(includedExperiences);
+  const directionTokens = experienceTokens(
+    mostRecentExperiences(includedExperiences),
+  );
+  const qualificationTokens = completedQualificationTokens(
+    draft.tertiaryQualifications,
+  );
+  const profileTokens = new Set([...roleTokens, ...qualificationTokens]);
+  const highestQualificationRank = Math.max(
+    0,
+    ...draft.tertiaryQualifications
+      .filter((qualification) => qualification.completed)
+      .map((qualification) =>
+        awardRank(`${qualification.level} ${qualification.courseName}`) ?? 0,
+      ),
+  );
+
+  return {
+    directionTokens,
+    highestQualificationRank,
+    profileTokens,
+    qualificationTokens,
+    roleTokens,
+    tertiaryQualifications: draft.tertiaryQualifications,
+  };
+}
+
+function courseRelevance(
+  course: CourseCatalogEntry,
+  profile: ReturnType<typeof buildCourseMatchProfile>,
+) {
+  const courseTokens = tokenize(
+    [
+      course.title,
+      course.subjectArea ?? "",
+      course.summary ?? "",
+      course.outcomes ?? "",
+      course.coreSubjects.join(" "),
+    ].join(" "),
+  );
+  const {
+    directionTokens,
+    highestQualificationRank,
+    profileTokens,
+    qualificationTokens,
+    roleTokens,
+    tertiaryQualifications,
+  } = profile;
+
+  if (courseTokens.size === 0 || profileTokens.size === 0) {
+    return { relevanceScore: 0, repeatsCompletedQualification: false };
+  }
+
   const domainPenalty = SPECIALIST_DOMAIN_GUARDS.reduce((penalty, guard) => {
     const courseIsSpecialist = guard.some((term) => courseTokens.has(term));
-    const roleShowsDomain = guard.some((term) => roleTokens.has(term));
-    return penalty + (courseIsSpecialist && !roleShowsDomain ? 3 : 0);
+    const profileShowsDomain = guard.some((term) => profileTokens.has(term));
+    return penalty + (courseIsSpecialist && !profileShowsDomain ? 18 : 0);
   }, 0);
-  const adjustedOverlap = Math.max(0, overlap - domainPenalty);
-
-  return Math.round(
-    (adjustedOverlap / Math.max(4, Math.min(roleTokens.size, 18))) * 100,
+  const repeatsCompletedQualification = courseRepeatsCompletedQualification(
+    course,
+    tertiaryQualifications,
   );
+  const courseRank = awardRank(course.title) ?? 0;
+  const progressionBonus =
+    highestQualificationRank > 0 && courseRank >= highestQualificationRank
+      ? 4
+      : 0;
+  const score =
+    overlapCount(courseTokens, directionTokens) * 12 +
+    overlapCount(courseTokens, roleTokens) * 3 +
+    overlapCount(courseTokens, qualificationTokens) * 2 +
+    progressionBonus -
+    domainPenalty;
+
+  return {
+    relevanceScore: repeatsCompletedQualification
+      ? 0
+      : Math.max(0, Math.min(100, score)),
+    repeatsCompletedQualification,
+  };
 }
 
 function getCourseDurationYears(duration: string | undefined) {
@@ -529,11 +719,12 @@ export function getUcIndicativeCreditPoints(
 
 export function rankUcCourses(
   courses: CourseCatalogEntry[],
-  experiences: CvRecognitionExperience[],
+  draft: CvRecognitionDraft,
   admission: UcAdmissionAssessment,
 ): UcCourseMatch[] {
+  const profile = buildCourseMatchProfile(draft);
   const ranked = courses
-    .map((course) => ({ course, relevanceScore: courseRelevance(course, experiences) }))
+    .map((course) => ({ course, ...courseRelevance(course, profile) }))
     .sort(
       (a, b) =>
         b.relevanceScore - a.relevanceScore || a.course.title.localeCompare(b.course.title),
