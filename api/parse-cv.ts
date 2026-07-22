@@ -11,6 +11,7 @@ import {
   findExperienceArray,
   normalizeExperienceEntry,
 } from "./_documentParser/kinds/cv/extraction.js";
+import { applyExactOscaRoleOverride } from "./_documentParser/kinds/cv/oscaRoleOverrides.js";
 import { errorResponse, jsonResponse } from "./_documentParser/errors.js";
 import {
   decodeTextFile,
@@ -79,14 +80,14 @@ function normalizeRecognitionPayload(parsed: unknown) {
       ? rawConfidence
       : "low";
 
-    return {
+    return applyExactOscaRoleOverride({
       ...experience,
       oscaConfidence,
       oscaOccupationCode: stringValue(recognition, "oscaOccupationCode"),
       oscaOccupationTitle: stringValue(recognition, "oscaOccupationTitle"),
       oscaRationale: stringValue(recognition, "oscaRationale"),
       oscaSkillLevel,
-    };
+    });
   });
 
   const professionalAccreditations = arrayValue(
