@@ -9,6 +9,7 @@ import {
   CourseBrowseResultsPanel,
   type CourseCategoryFilter,
 } from "../features/course";
+import { isUcBrand } from "../lib/brand";
 import { getCourseBrowseResultsState } from "../lib/courseBrowse";
 import { getCourseCatalog } from "../lib/courseCatalog";
 
@@ -82,7 +83,13 @@ export default function CourseList() {
           onClearFilters={clearFilters}
         />
 
-        <div className="mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div
+          className={
+            isUcBrand
+              ? "mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+              : "mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          }
+        >
           {filteredCourses.map((course) => (
             <CourseBrowseCard
               key={course.code}

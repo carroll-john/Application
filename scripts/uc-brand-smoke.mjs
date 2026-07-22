@@ -48,14 +48,21 @@ try {
             'button:not(.content-block), input:not([type="checkbox"]):not([type="radio"]), textarea, select',
           ),
         ].filter(isVisible);
+        const ucCourseImages = [
+          ...document.querySelectorAll('img[src^="/content/dam/uc/"]'),
+        ];
 
         return {
+          brokenUcCourseImages: ucCourseImages.filter(
+            (image) => !image.complete || image.naturalWidth === 0,
+          ).length,
           hasStudyNext: /studynext/i.test(document.body.innerText),
           hasUcLogo: Boolean(document.querySelector('img[alt="University of Canberra"]')),
           nonSquareContentBlocks: contentBlocks.filter((element) => radius(element) !== 0).length,
           overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
           squareControls: controls.filter((element) => radius(element) === 0).length,
           title: document.title,
+          ucCourseImageCount: ucCourseImages.length,
         };
       });
 
@@ -72,6 +79,14 @@ try {
       }
       if (result.title !== "Applications | University of Canberra") {
         failures.push(`${viewport.name} ${route}: unexpected title ${result.title}`);
+      }
+      if (route === "/" && result.ucCourseImageCount === 0) {
+        failures.push(`${viewport.name} ${route}: UC course imagery missing`);
+      }
+      if (route === "/" && result.brokenUcCourseImages > 0) {
+        failures.push(
+          `${viewport.name} ${route}: ${result.brokenUcCourseImages} UC course images failed`,
+        );
       }
       if (consoleErrors.length > 0) {
         failures.push(`${viewport.name} ${route}: ${consoleErrors.length} console errors`);
