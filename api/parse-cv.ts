@@ -11,7 +11,7 @@ import {
   findExperienceArray,
   normalizeExperienceEntry,
 } from "./_documentParser/kinds/cv/extraction.js";
-import { applyExactOscaRoleOverride } from "./_documentParser/kinds/cv/oscaRoleOverrides.js";
+import { applyBillShortenDemoOscaMatch } from "./_documentParser/kinds/cv/billShortenDemoOscaMatches.js";
 import { errorResponse, jsonResponse } from "./_documentParser/errors.js";
 import {
   decodeTextFile,
@@ -63,6 +63,13 @@ function arrayValue(record: Record<string, unknown>, key: string) {
 function normalizeRecognitionPayload(parsed: unknown) {
   const payload = asRecord(parsed);
   const applicant = asRecord(payload.applicant);
+  const normalizedApplicant = {
+    firstName: stringValue(applicant, "firstName"),
+    lastName: stringValue(applicant, "lastName"),
+    middleName: stringValue(applicant, "middleName"),
+    phone: stringValue(applicant, "phone"),
+    title: stringValue(applicant, "title"),
+  };
   const rawExperiences = findExperienceArray(parsed) ?? [];
   const normalizedExperiences = rawExperiences.map((item) =>
     normalizeExperienceEntry(item),
@@ -80,14 +87,17 @@ function normalizeRecognitionPayload(parsed: unknown) {
       ? rawConfidence
       : "low";
 
-    return applyExactOscaRoleOverride({
-      ...experience,
-      oscaConfidence,
-      oscaOccupationCode: stringValue(recognition, "oscaOccupationCode"),
-      oscaOccupationTitle: stringValue(recognition, "oscaOccupationTitle"),
-      oscaRationale: stringValue(recognition, "oscaRationale"),
-      oscaSkillLevel,
-    });
+    return applyBillShortenDemoOscaMatch(
+      normalizedApplicant,
+      {
+        ...experience,
+        oscaConfidence,
+        oscaOccupationCode: stringValue(recognition, "oscaOccupationCode"),
+        oscaOccupationTitle: stringValue(recognition, "oscaOccupationTitle"),
+        oscaRationale: stringValue(recognition, "oscaRationale"),
+        oscaSkillLevel,
+      },
+    );
   });
 
   const professionalAccreditations = arrayValue(
@@ -131,13 +141,7 @@ function normalizeRecognitionPayload(parsed: unknown) {
   );
 
   return {
-    applicant: {
-      firstName: stringValue(applicant, "firstName"),
-      lastName: stringValue(applicant, "lastName"),
-      middleName: stringValue(applicant, "middleName"),
-      phone: stringValue(applicant, "phone"),
-      title: stringValue(applicant, "title"),
-    },
+    applicant: normalizedApplicant,
     experiences,
     professionalAccreditations,
     secondaryQualifications,

@@ -51,6 +51,11 @@ When gating passes, parse starts in parallel with document save. Upload failure 
 
 CV persist exception: after document save, call `uploadCV` / `removeCV` (app-scoped FK on `applications.cv_document_id`).
 
+For the UC Vice-Chancellor prototype only, the supplied Bill Shorten public-profile
+demo CV receives fixed OSCA results for its seven employment roles after extraction.
+This keeps the scripted demo deterministic. Other applicants continue to use the
+duties-based model result.
+
 ### Course-specific work-experience assessment
 
 CV parsing remains responsible only for drafting editable employment rows. A separate
