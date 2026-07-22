@@ -150,7 +150,7 @@
   --brand-accent-strong: var(--uc-dark-teal);
   --brand-footer: var(--uc-hale-navy);
 
-  --background: #f7f8f8;
+  --background: #ffffff;
   --background-dark: var(--uc-hale-navy);
   --background-tinted: #edf6f8;
   --background-soft-blue: #e7f6f8;
@@ -215,9 +215,7 @@ body {
 }
 
 :root[data-brand="uc"] body {
-  background:
-    radial-gradient(circle at top right, rgba(146, 214, 227, 0.24), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, var(--background) 100%);
+  background: var(--background);
 }
 
 .brand-hero {

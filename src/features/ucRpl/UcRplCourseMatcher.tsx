@@ -79,7 +79,7 @@ function IntroState({
   return (
     <section
       aria-labelledby="uc-rpl-heading"
-      className="content-block border border-[var(--border)] bg-white"
+      className="content-block bg-white"
     >
       <div className="grid lg:grid-cols-[1.35fr_0.9fr]">
         <div className="border-b border-[var(--border)] p-6 sm:p-9 lg:border-b-0 lg:border-r lg:p-12">
