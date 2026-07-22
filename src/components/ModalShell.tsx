@@ -28,6 +28,7 @@ export function ModalShell({
       <div className="flex items-start justify-between gap-4 p-6 sm:p-8 sm:pb-0">
         <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
         <button
+          aria-label="Close dialog"
           type="button"
           className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:bg-slate-100"
           onClick={onClose}

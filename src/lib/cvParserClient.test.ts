@@ -51,7 +51,20 @@ describe("parseEmploymentExperiencesFromCv", () => {
     expect(init.method).toBe("POST");
     expect(init.headers).toMatchObject({ authorization: "Bearer tok-123" });
     expect(init.body).toBeInstanceOf(FormData);
-    expect(result).toEqual({ experiences: [], model: "gpt-4.1-mini" });
+    expect(result).toEqual({
+      experiences: [],
+      model: "gpt-4.1-mini",
+      professionalAccreditations: [],
+      profile: {
+        firstName: "",
+        lastName: "",
+        middleName: "",
+        phone: "",
+        title: "",
+      },
+      secondaryQualifications: [],
+      tertiaryQualifications: [],
+    });
   });
 
   it("omits the authorization header when no session is available", async () => {

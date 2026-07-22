@@ -22,6 +22,8 @@ export async function parseEmploymentExperiencesFromCv(file: File) {
   }
 }
 
+export const parseCvForRecognition = parseEmploymentExperiencesFromCv;
+
 export function getCvParserErrorMessage(error: unknown) {
   if (error instanceof CvParserRequestError) {
     if (error.status === 404) {

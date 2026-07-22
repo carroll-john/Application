@@ -9,6 +9,7 @@ import {
   CourseBrowseResultsPanel,
   type CourseCategoryFilter,
 } from "../features/course";
+import { UcRplCourseMatcher } from "../features/ucRpl";
 import { isUcBrand } from "../lib/brand";
 import { getCourseBrowseResultsState } from "../lib/courseBrowse";
 import { getCourseCatalog } from "../lib/courseCatalog";
@@ -75,33 +76,57 @@ export default function CourseList() {
       <AppBrandHeader maxWidthClassName="max-w-7xl" />
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <CourseBrowsePageIntro />
-        <CourseBrowseFilters
-          activeCategory={activeCategory}
-          searchQuery={searchQuery}
-          onCategoryChange={setActiveCategory}
-          onSearchChange={setSearchQuery}
-        />
-        <CourseBrowseResultsPanel
-          resultsState={resultsState}
-          onClearFilters={clearFilters}
-        />
+        {isUcBrand ? (
+          <UcRplCourseMatcher
+            courses={courses}
+            onBrowseCourses={() =>
+              document
+                .getElementById("course-catalogue")
+                ?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+          />
+        ) : (
+          <CourseBrowsePageIntro />
+        )}
 
-        <div
-          className={
-            isUcBrand
-              ? "mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3"
-              : "mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-          }
-        >
-          {filteredCourses.map((course) => (
-            <CourseBrowseCard
-              key={course.code}
-              course={course}
-              mediaVariantIndex={mediaVariantByCourseCode.get(course.code)}
-              onViewCourse={(courseCode) => navigate(`/courses/${courseCode}`)}
-            />
-          ))}
+        <div id="course-catalogue" className={isUcBrand ? "scroll-mt-6 pt-14" : ""}>
+          {isUcBrand ? (
+            <div className="max-w-3xl">
+              <h2 className="text-4xl font-bold tracking-tight text-slate-950">
+                Explore postgraduate courses
+              </h2>
+              <p className="mt-3 text-lg leading-8 text-slate-600">
+                Browse all 33 online University of Canberra postgraduate courses.
+              </p>
+            </div>
+          ) : null}
+          <CourseBrowseFilters
+            activeCategory={activeCategory}
+            searchQuery={searchQuery}
+            onCategoryChange={setActiveCategory}
+            onSearchChange={setSearchQuery}
+          />
+          <CourseBrowseResultsPanel
+            resultsState={resultsState}
+            onClearFilters={clearFilters}
+          />
+
+          <div
+            className={
+              isUcBrand
+                ? "mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+                : "mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            }
+          >
+            {filteredCourses.map((course) => (
+              <CourseBrowseCard
+                key={course.code}
+                course={course}
+                mediaVariantIndex={mediaVariantByCourseCode.get(course.code)}
+                onViewCourse={(courseCode) => navigate(`/courses/${courseCode}`)}
+              />
+            ))}
+          </div>
         </div>
       </section>
       <AppBrandFooter />
