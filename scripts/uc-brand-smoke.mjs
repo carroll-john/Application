@@ -63,6 +63,9 @@ try {
           squareControls: controls.filter((element) => radius(element) === 0).length,
           title: document.title,
           ucCourseImageCount: ucCourseImages.length,
+          uniqueUcCourseImageCount: new Set(
+            ucCourseImages.map((image) => image.currentSrc || image.src),
+          ).size,
         };
       });
 
@@ -86,6 +89,11 @@ try {
       if (route === "/" && result.brokenUcCourseImages > 0) {
         failures.push(
           `${viewport.name} ${route}: ${result.brokenUcCourseImages} UC course images failed`,
+        );
+      }
+      if (route === "/" && result.uniqueUcCourseImageCount < 20) {
+        failures.push(
+          `${viewport.name} ${route}: only ${result.uniqueUcCourseImageCount} unique UC course images`,
         );
       }
       if (consoleErrors.length > 0) {

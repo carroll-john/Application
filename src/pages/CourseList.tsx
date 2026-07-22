@@ -20,6 +20,10 @@ export default function CourseList() {
   const [activeCategory, setActiveCategory] = useState<CourseCategoryFilter>("All");
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const totalCourses = courses.length;
+  const mediaVariantByCourseCode = useMemo(
+    () => new Map(courses.map((course, index) => [course.code, index])),
+    [courses],
+  );
 
   const filteredCourses = useMemo(
     () =>
@@ -94,6 +98,7 @@ export default function CourseList() {
             <CourseBrowseCard
               key={course.code}
               course={course}
+              mediaVariantIndex={mediaVariantByCourseCode.get(course.code)}
               onViewCourse={(courseCode) => navigate(`/courses/${courseCode}`)}
             />
           ))}

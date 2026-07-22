@@ -28,7 +28,7 @@ External design files are not a project source of truth.
 - The active brand is applied to the document before React renders to avoid an unthemed first frame.
 - UC uses its official inline logo assets, Figtree for UI/body copy, STIX Two Text for display headings, and Dark Teal for normal-size white-text actions.
 - UC uses square editorial and content surfaces. Interactive controls such as buttons, inputs, search fields, pills, badges, and progress indicators retain their rounded control geometry.
-- UC course browse cards use official UC subject-area imagery through the checked-in same-origin proxy, the configured UC logo, concise summaries and compact metadata chips. The StudyNext card variant remains unchanged.
+- UC course browse cards use deterministic, category-specific pools of official UC subject-area imagery through the checked-in same-origin proxy, the configured UC logo, concise summaries and compact metadata chips. Filtering must not reshuffle imagery, and the StudyNext card variant remains unchanged.
 - `VITE_DEMO_MODE=true` disables PostHog and support capture; Sentry error capture may remain enabled but replay sampling is forced to zero.
 - Public course and submitted surfaces may include the compact brand footer. Application forms retain navigation ownership in `ApplicationShell` and do not use a site footer.
 

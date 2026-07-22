@@ -15,19 +15,35 @@ import { getUcCourseCardMedia } from "./ucCourseCardMedia";
 
 interface CourseBrowseCardProps {
   course: CourseCatalogEntry;
+  mediaVariantIndex?: number;
   onViewCourse: (courseCode: string) => void;
 }
 
-export function CourseBrowseCard({ course, onViewCourse }: CourseBrowseCardProps) {
+export function CourseBrowseCard({
+  course,
+  mediaVariantIndex,
+  onViewCourse,
+}: CourseBrowseCardProps) {
   if (isUcBrand) {
-    return <UcCourseBrowseCard course={course} />;
+    return (
+      <UcCourseBrowseCard
+        course={course}
+        mediaVariantIndex={mediaVariantIndex ?? 0}
+      />
+    );
   }
 
   return <StudyNextCourseBrowseCard course={course} onViewCourse={onViewCourse} />;
 }
 
-function UcCourseBrowseCard({ course }: { course: CourseCatalogEntry }) {
-  const media = getUcCourseCardMedia(course);
+function UcCourseBrowseCard({
+  course,
+  mediaVariantIndex,
+}: {
+  course: CourseCatalogEntry;
+  mediaVariantIndex: number;
+}) {
+  const media = getUcCourseCardMedia(course, mediaVariantIndex);
   const titleId = `course-card-title-${course.code}`;
   const mediaBadge =
     course.deliveryMode === "online_plus"
