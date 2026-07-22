@@ -257,12 +257,12 @@ export function getUcWorkEntryGuidance(
   experienceMonths: number,
 ) {
   if (skillLevel === 1) {
-    return "May meet UC’s experience requirement";
+    return "May be eligible for direct entry";
   }
 
   if (skillLevel === 2) {
     return experienceMonths >= 24
-      ? "Meets the two-year experience guide"
+      ? "May be eligible for direct entry"
       : "More experience may be needed";
   }
 
@@ -496,6 +496,9 @@ export function rankUcCourses(
 
   return ranked.map(({ course, relevanceScore }, index) => {
     const hasAdmissionBand = admission.equivalentGpa !== null;
+    const maySupportDirectEntry =
+      admission.skillLevel === 1 ||
+      (admission.skillLevel === 2 && admission.experienceMonths >= 24);
     const category =
       hasAdmissionBand && index < 6
         ? "best_match"
@@ -508,15 +511,14 @@ export function rankUcCourses(
         : "UC will need supporting evidence before deciding whether your experience can count towards this course.";
 
     return {
-      admissionDetail: hasAdmissionBand
-        ? `Your experience may meet UC's general entry requirements at an equivalent GPA of ${admission.equivalentGpa!.toFixed(1)}.`
-        : "UC will need to review your experience against the general entry requirements.",
+      admissionDetail: maySupportDirectEntry
+        ? "Your work experience may support direct entry to this course. UC Admissions will confirm your eligibility and any course-specific requirements."
+        : "UC Admissions will review your work experience against this course’s entry requirements.",
       category,
       course,
       creditDetail,
-      rationale: hasAdmissionBand
-        ? `Based on ${admission.experienceYears} years of relevant experience and the type of work identified in your CV. Other course requirements may still apply.`
-        : "UC will need to review your experience. Other course requirements may still apply.",
+      rationale:
+        "Matched using the occupation and experience details you reviewed. Other course requirements may still apply.",
       relevanceScore,
     };
   });

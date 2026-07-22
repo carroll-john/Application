@@ -167,13 +167,9 @@ describe("UC OSCA experience review summaries", () => {
     expect(getUcExperienceGroupLabel(2)).toBe("Technical or supervisory roles");
     expect(getUcExperienceGroupLabel(null)).toBe("Roles needing more information");
 
-    expect(getUcWorkEntryGuidance(1, 0)).toBe(
-      "May meet UC’s experience requirement",
-    );
+    expect(getUcWorkEntryGuidance(1, 0)).toBe("May be eligible for direct entry");
     expect(getUcWorkEntryGuidance(2, 23)).toBe("More experience may be needed");
-    expect(getUcWorkEntryGuidance(2, 24)).toBe(
-      "Meets the two-year experience guide",
-    );
+    expect(getUcWorkEntryGuidance(2, 24)).toBe("May be eligible for direct entry");
     expect(getUcWorkEntryGuidance(4, 120)).toBe(
       "UC will review this experience",
     );
@@ -245,6 +241,13 @@ describe("UC course matching", () => {
 
     expect(matches).toHaveLength(33);
     expect(matches[0].category).toBe("best_match");
+    expect(matches[0].admissionDetail).toBe(
+      "Your work experience may support direct entry to this course. UC Admissions will confirm your eligibility and any course-specific requirements.",
+    );
+    expect(matches[0].rationale).toBe(
+      "Matched using the occupation and experience details you reviewed. Other course requirements may still apply.",
+    );
+    expect(matches[0].admissionDetail).not.toMatch(/equivalent GPA|relevant experience/i);
     expect(matches.every((match) => !/\b\d+\s*(credit|unit)/i.test(match.creditDetail))).toBe(
       true,
     );

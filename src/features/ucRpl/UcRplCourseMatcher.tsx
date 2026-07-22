@@ -32,8 +32,12 @@ import {
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
 import {
   assessUcAdmission,
+  formatUcExperienceDuration,
   getUcExperienceGroupLabel,
+  getUcExperienceReviewGuidance,
+  getUcWorkEntryGuidance,
   rankUcCourses,
+  summarizeUcExperienceByOscaLevel,
   type CvRecognitionDraft,
   type UcCourseMatch,
 } from "../../lib/ucRplAssessment";
@@ -250,6 +254,7 @@ function MatchCard({
 
 function ResultsState({
   admission,
+  experienceGuidance,
   filter,
   matches,
   onEdit,
@@ -258,6 +263,7 @@ function ResultsState({
   startingCourseCode,
 }: {
   admission: ReturnType<typeof assessUcAdmission>;
+  experienceGuidance: string;
   filter: MatchFilter;
   matches: UcCourseMatch[];
   onEdit: () => void;
@@ -284,7 +290,7 @@ function ResultsState({
           Courses matched to your experience
         </h1>
         <p className="mt-3 text-lg text-slate-600">
-          Based on the work experience and qualifications you confirmed.
+          Based on the experience and qualifications you reviewed.
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-500">
           This is a guide only. It is not an admission offer or credit decision.
@@ -302,13 +308,14 @@ function ResultsState({
             },
             {
               icon: ClipboardCheck,
-              label: `${admission.experienceYears} years relevant experience`,
+              label: formatUcExperienceDuration(admission.experienceMonths),
             },
             {
               icon: GraduationCap,
-              label: admission.equivalentGpa
-                ? `UC equivalent GPA: ${admission.equivalentGpa.toFixed(1)}`
-                : "Faculty review pathway",
+              label: getUcWorkEntryGuidance(
+                admission.skillLevel,
+                admission.experienceMonths,
+              ),
             },
           ].map((item) => (
             <div
@@ -330,6 +337,14 @@ function ResultsState({
             <Pencil className="h-4 w-4" aria-hidden="true" />
             Review my experience
           </button>
+        </div>
+
+        <div className="mt-5 flex gap-3 border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-slate-700 sm:p-5">
+          <Info
+            className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
+            aria-hidden="true"
+          />
+          <p>{experienceGuidance}</p>
         </div>
       </div>
 
@@ -394,6 +409,15 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
   const matches = useMemo(
     () => (draft && admission ? rankUcCourses(courses, draft.experiences, admission) : []),
     [admission, courses, draft],
+  );
+  const experienceGuidance = useMemo(
+    () =>
+      draft
+        ? getUcExperienceReviewGuidance(
+            summarizeUcExperienceByOscaLevel(draft.experiences),
+          )
+        : "",
+    [draft],
   );
 
   async function parseSelectedFile(file: File) {
@@ -518,6 +542,7 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
       {stage === "results" && admission ? (
         <ResultsState
           admission={admission}
+          experienceGuidance={experienceGuidance}
           filter={filter}
           matches={matches}
           onEdit={() => setStage("review")}
