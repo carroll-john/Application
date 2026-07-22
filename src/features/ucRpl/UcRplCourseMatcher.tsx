@@ -96,7 +96,7 @@ function IntroState({
 
           <button
             type="button"
-            className="mt-7 flex w-full items-center gap-5 border border-dashed border-slate-400 bg-slate-50 px-5 py-6 text-left transition hover:border-[var(--cta-secondary)] hover:bg-blue-50/40 focus:outline-none focus:ring-4 focus:ring-[var(--cta-secondary)]/15"
+            className="content-block mt-7 flex w-full items-center gap-5 border border-dashed border-slate-400 bg-slate-50 px-5 py-6 text-left transition hover:border-[var(--cta-secondary)] hover:bg-blue-50/40 focus:outline-none focus:ring-4 focus:ring-[var(--cta-secondary)]/15"
             onClick={() => fileInputRef.current?.click()}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => {
@@ -118,7 +118,7 @@ function IntroState({
           </button>
           <input
             ref={fileInputRef}
-            className="sr-only"
+            className="sr-only rounded-full"
             type="file"
             accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
             onChange={(event) => {
@@ -134,7 +134,7 @@ function IntroState({
             </Button>
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--cta-secondary)] underline-offset-4 hover:underline"
+              className="inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-[var(--cta-secondary)] underline-offset-4 hover:underline"
               onClick={onBrowseCourses}
             >
               Browse all courses
@@ -150,7 +150,7 @@ function IntroState({
           {isDemoMode ? (
             <button
               type="button"
-              className="mt-3 text-sm font-semibold text-[var(--cta-secondary)] underline underline-offset-4"
+              className="mt-3 rounded-full text-sm font-semibold text-[var(--cta-secondary)] underline underline-offset-4"
               onClick={onUseSample}
             >
               Preview with synthetic sample experience
@@ -158,7 +158,7 @@ function IntroState({
           ) : null}
         </div>
 
-        <ol className="divide-y divide-[var(--border)] p-6 sm:p-9 lg:p-10">
+        <ol className="divide-y divide-[var(--border)] p-6 sm:p-9 lg:grid lg:grid-rows-3 lg:p-10">
           {[
             {
               icon: Upload,
@@ -176,17 +176,24 @@ function IntroState({
               copy: "Compare admission indications and potential credit separately.",
             },
           ].map((step, index) => (
-            <li key={step.label} className="flex gap-5 py-6 first:pt-0 last:pb-0">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-[var(--cta-secondary)]">
+            <li
+              key={step.label}
+              className="flex gap-5 py-6 first:pt-0 last:pb-0 lg:items-center lg:gap-6 lg:py-8 lg:first:pt-8 lg:last:pb-8"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-[var(--cta-secondary)] lg:h-11 lg:w-11 lg:text-base">
                 {index + 1}
               </span>
               <step.icon
-                className="mt-1 h-6 w-6 shrink-0 text-[var(--cta-secondary)]"
+                className="mt-1 h-6 w-6 shrink-0 text-[var(--cta-secondary)] lg:mt-0 lg:h-7 lg:w-7"
                 aria-hidden="true"
               />
               <div>
-                <h2 className="text-xl font-semibold text-slate-950">{step.label}</h2>
-                <p className="mt-1.5 text-sm leading-6 text-slate-600">{step.copy}</p>
+                <h2 className="text-xl font-semibold text-slate-950 lg:text-2xl">
+                  {step.label}
+                </h2>
+                <p className="mt-1.5 text-sm leading-6 text-slate-600 lg:mt-2 lg:text-base lg:leading-7">
+                  {step.copy}
+                </p>
               </div>
             </li>
           ))}
