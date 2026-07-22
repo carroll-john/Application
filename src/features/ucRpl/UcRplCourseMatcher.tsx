@@ -34,7 +34,6 @@ import {
   parseCvForRecognition,
 } from "../../lib/cvParserClient";
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
-import { isDemoMode } from "../../lib/brand";
 import {
   assessUcAdmission,
   rankUcCourses,
@@ -48,7 +47,6 @@ type MatchFilter = "best_match" | "needs_review" | "all";
 
 interface UcRplCourseMatcherProps {
   courses: CourseCatalogEntry[];
-  onBrowseCourses: () => void;
 }
 
 const FILTER_LABELS: Record<MatchFilter, string> = {
@@ -67,14 +65,10 @@ function formatRolePeriod(role: CvRecognitionDraft["experiences"][number]) {
 
 function IntroState({
   fileInputRef,
-  onBrowseCourses,
   onChooseFile,
-  onUseSample,
 }: {
   fileInputRef: RefObject<HTMLInputElement | null>;
-  onBrowseCourses: () => void;
   onChooseFile: (file: File | null) => void;
-  onUseSample: () => void;
 }) {
   return (
     <section
@@ -127,19 +121,11 @@ function IntroState({
             }}
           />
 
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-5">
             <Button onClick={() => fileInputRef.current?.click()}>
               <Upload className="h-4 w-4" aria-hidden="true" />
               Upload your CV
             </Button>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-[var(--cta-secondary)] underline-offset-4 hover:underline"
-              onClick={onBrowseCourses}
-            >
-              Browse all courses
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </button>
           </div>
 
           <p className="mt-6 flex items-start gap-2 text-sm leading-6 text-slate-600">
@@ -147,33 +133,24 @@ function IntroState({
             This is an indicative check, not an admission offer or formal credit
             decision.
           </p>
-          {isDemoMode ? (
-            <button
-              type="button"
-              className="mt-3 rounded-full text-sm font-semibold text-[var(--cta-secondary)] underline underline-offset-4"
-              onClick={onUseSample}
-            >
-              Preview with synthetic sample experience
-            </button>
-          ) : null}
         </div>
 
         <ol className="divide-y divide-[var(--border)] py-6 sm:py-9 lg:grid lg:grid-rows-3 lg:py-10 lg:pl-10">
           {[
             {
               icon: Upload,
-              label: "Upload CV",
-              copy: "Add your current CV through the secure, signed-in experience.",
+              label: "Upload your CV",
+              copy: "Sign in and add your current CV securely.",
             },
             {
               icon: UserRoundCheck,
-              label: "Review experience",
-              copy: "Confirm the roles, dates and OSCA occupation candidates we found.",
+              label: "Check your experience",
+              copy: "Review the roles and dates we find, and correct anything that doesn’t look right.",
             },
             {
               icon: GraduationCap,
-              label: "See course matches",
-              copy: "Compare admission indications and potential credit separately.",
+              label: "Explore course matches",
+              copy: "See where your experience may support entry requirements or potential credit.",
             },
           ].map((step, index) => (
             <li
@@ -665,10 +642,7 @@ function ResultsState({
   );
 }
 
-export function UcRplCourseMatcher({
-  courses,
-  onBrowseCourses,
-}: UcRplCourseMatcherProps) {
+export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { beginCourseApplication } = useApplication();
@@ -691,68 +665,6 @@ export function UcRplCourseMatcher({
     () => (draft && admission ? rankUcCourses(courses, draft.experiences, admission) : []),
     [admission, courses, draft],
   );
-
-  function useSampleExperience() {
-    const sampleFile = new File(
-      [
-        "Synthetic UC prototype CV\nICT Project Manager, Example Agency, January 2018 to Present\nLed digital service delivery, technology governance and stakeholder engagement.",
-      ],
-      "synthetic-uc-prototype-cv.txt",
-      { type: "text/plain" },
-    );
-    setSelectedFile(sampleFile);
-    setDraft({
-      experiences: [
-        {
-          id: crypto.randomUUID(),
-          company: "Example Agency",
-          currentRole: true,
-          duties:
-            "Led digital service delivery, technology project governance, budgets, vendors and stakeholder engagement across a government portfolio.",
-          endMonth: "",
-          endYear: "",
-          includeInAssessment: true,
-          oscaConfidence: "high",
-          oscaOccupationCode: "271131",
-          oscaOccupationTitle: "ICT Project Manager",
-          oscaRationale:
-            "The CV describes technology delivery leadership, project governance, budgets and stakeholder management.",
-          oscaSkillLevel: 1,
-          position: "ICT Project Manager",
-          startMonth: "January",
-          startYear: "2018",
-          type: "Full-time",
-        },
-      ],
-      professionalAccreditations: [
-        { id: crypto.randomUUID(), name: "PRINCE2 Practitioner", status: "Current" },
-      ],
-      profile: {
-        firstName: "Alex",
-        lastName: "Jordan",
-        middleName: "",
-        phone: "0400 000 000",
-        title: "",
-      },
-      secondaryQualifications: [],
-      tertiaryQualifications: [
-        {
-          id: crypto.randomUUID(),
-          completed: true,
-          country: "Australia",
-          courseName: "Bachelor of Information Technology",
-          endMonth: "November",
-          endYear: "2017",
-          institution: "Example University",
-          level: "Bachelor",
-          startMonth: "February",
-          startYear: "2015",
-        },
-      ],
-    });
-    setError(null);
-    setStage("review");
-  }
 
   async function parseSelectedFile(file: File) {
     setError(null);
@@ -860,9 +772,7 @@ export function UcRplCourseMatcher({
       {stage === "intro" ? (
         <IntroState
           fileInputRef={fileInputRef}
-          onBrowseCourses={onBrowseCourses}
           onChooseFile={chooseFile}
-          onUseSample={useSampleExperience}
         />
       ) : null}
       {stage === "parsing" && selectedFile ? (

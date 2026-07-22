@@ -77,14 +77,7 @@ export default function CourseList() {
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         {isUcBrand ? (
-          <UcRplCourseMatcher
-            courses={courses}
-            onBrowseCourses={() =>
-              document
-                .getElementById("course-catalogue")
-                ?.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-          />
+          <UcRplCourseMatcher courses={courses} />
         ) : (
           <CourseBrowsePageIntro />
         )}
