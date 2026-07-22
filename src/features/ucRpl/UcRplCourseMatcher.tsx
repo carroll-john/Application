@@ -180,21 +180,19 @@ function IntroState({
   );
 }
 
-function ParsingState({ fileName }: { fileName: string }) {
+function ParsingState() {
   return (
     <section className="content-block border border-[var(--border)] bg-white px-6 py-16 text-center sm:px-10">
       <LoaderCircle
         className="mx-auto h-10 w-10 animate-spin text-[var(--cta-secondary)]"
         aria-hidden="true"
       />
-      <h1 className="mt-6 text-3xl font-bold text-slate-950">
-        Reviewing your experience
-      </h1>
+      <h1 className="mt-6 text-3xl font-bold text-slate-950">Reviewing your CV</h1>
       <p className="mx-auto mt-3 max-w-xl leading-7 text-slate-600">
-        We’re extracting roles, qualifications and evidence from {fileName}, then
-        finding an indicative OSCA occupation match for you to confirm.
+        We’re finding your work experience and qualifications. You’ll be able to
+        check what we find before seeing your course matches.
       </p>
-      <p className="mt-5 text-sm text-slate-500">This usually takes under a minute.</p>
+      <p className="mt-5 text-sm text-slate-500">This usually takes less than a minute.</p>
     </section>
   );
 }
@@ -776,7 +774,7 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
         />
       ) : null}
       {stage === "parsing" && selectedFile ? (
-        <ParsingState fileName={selectedFile.name} />
+        <ParsingState />
       ) : null}
       {stage === "review" && draft && selectedFile ? (
         <ReviewState
