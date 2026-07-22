@@ -29,7 +29,7 @@ export function FamilySupportDisabilityFields({
       title="Disability & Support Needs"
     >
       <div className="space-y-5">
-        <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
+        <div className="content-block-compact rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
           <Label className="mb-3 block">
             Do you have a disability, impairment or long-term condition? *
           </Label>
@@ -99,7 +99,7 @@ export function FamilySupportDisabilityFields({
             </p>
           </div>
         ) : formData.hasDisability === false ? (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div className="content-block-compact rounded-lg border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm text-slate-600">
               No support details will be recorded unless you select Yes above.
             </p>

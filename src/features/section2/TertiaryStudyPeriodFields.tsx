@@ -51,7 +51,7 @@ export function TertiaryStudyPeriodFields({
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <div className="content-block-compact rounded-lg border border-gray-200 bg-gray-50 p-4">
           <label className="flex items-start gap-3">
             <input
               checked={formData.completed}

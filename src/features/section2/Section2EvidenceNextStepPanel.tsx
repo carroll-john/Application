@@ -23,9 +23,9 @@ export function Section2EvidenceNextStepPanel({
   return (
     <div
       aria-label="Next evidence step"
-      className="mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5"
+      className="content-block mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5"
     >
-      <div className="rounded-md border-2 border-[var(--cta-secondary)] bg-[var(--info-bg)] p-3">
+      <div className="content-block-compact rounded-md border-2 border-[var(--cta-secondary)] bg-[var(--info-bg)] p-3">
         <p className="text-xs font-semibold text-gray-900 sm:text-sm">
           Next step: {prompt.heading}
         </p>

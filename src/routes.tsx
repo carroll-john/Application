@@ -166,7 +166,7 @@ function AuthRequiredLayout() {
   if (!isConfigured) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
-        <div className="max-w-xl rounded-[32px] border border-[var(--warning-border)] bg-white p-8 shadow-sm">
+        <div className="content-block max-w-xl rounded-[32px] border border-[var(--warning-border)] bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-semibold text-slate-950">
             Authentication setup required
           </h1>

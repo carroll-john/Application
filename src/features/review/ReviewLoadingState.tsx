@@ -9,12 +9,12 @@ export function ReviewLoadingState() {
       aria-label="Loading your application review"
       className="space-y-4 sm:space-y-6"
     >
-      <div className="h-16 rounded-lg border border-[var(--info-border)] bg-slate-50" />
+      <div className="content-block-compact h-16 rounded-lg border border-[var(--info-border)] bg-slate-50" />
 
       {[0, 1, 2, 3].map((index) => (
         <div
           key={index}
-          className="rounded-lg border border-gray-200 border-l-4 border-l-[var(--cta-secondary)] bg-white p-5 shadow-sm sm:p-6"
+          className="content-block rounded-lg border border-gray-200 border-l-4 border-l-[var(--cta-secondary)] bg-white p-5 shadow-sm sm:p-6"
         >
           <div className="mb-5 flex items-center justify-between gap-3">
             <div className="h-4 w-44 max-w-full rounded bg-slate-200" />

@@ -71,7 +71,7 @@ export function CourseDetailsPresentation({
                   {course.coreSubjects.map((subject) => (
                     <li
                       key={subject}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700"
+                      className="content-block-compact rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700"
                     >
                       {subject}
                     </li>

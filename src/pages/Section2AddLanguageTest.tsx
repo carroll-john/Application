@@ -208,7 +208,7 @@ export default function Section2AddLanguageTest() {
             selectedFile={selectedFile}
           />
 
-          <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
+          <div className="content-block-compact rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
             <p className="text-sm text-[var(--info-text)]">
               <strong>Note:</strong> Add the scores shown on your official result so
               we can compare them with this program&apos;s English requirement.

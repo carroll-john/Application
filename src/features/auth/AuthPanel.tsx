@@ -435,7 +435,7 @@ export function AuthPanel({
       <AuthPanelHeader screen={currentScreen} sentEmail={sentEmail} />
 
       {!isConfigured ? (
-        <div className="rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-bg)] p-4 text-sm text-[var(--warning-text)]">
+        <div className="content-block-compact rounded-2xl border border-[var(--warning-border)] bg-[var(--warning-bg)] p-4 text-sm text-[var(--warning-text)]">
           Authentication is not configured yet. Set the Supabase URL and anon
           key environment variables to enable applicant sign-in.
         </div>

@@ -61,7 +61,7 @@ export function FamilySupportParentFields({
         </div>
 
         {parentCount === 0 && formData.parentsCount !== "" ? (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <div className="content-block-compact rounded-lg border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
               <p className="text-sm text-slate-600">
@@ -79,7 +79,7 @@ export function FamilySupportParentFields({
               count are required.
             </p>
             {showValidation && missingParentEducationFields.length > 0 ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+              <div className="content-block-compact rounded-lg border border-red-200 bg-red-50 p-3">
                 <p className="text-sm font-medium text-red-700">
                   Complete each parent/guardian education level before continuing.
                 </p>

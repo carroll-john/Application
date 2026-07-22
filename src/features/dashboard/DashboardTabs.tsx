@@ -55,7 +55,7 @@ export function DashboardTabs({
       {dashboardTabs.map((tab) => (
         <button
           key={tab.key}
-          className={`rounded-[28px] border-2 bg-white p-5 text-left shadow-sm transition-all ${
+          className={`content-block rounded-[28px] border-2 bg-white p-5 text-left shadow-sm transition-all ${
             activeTab === tab.key
               ? tab.tone === "draft"
                 ? "border-[var(--sn-yellow)] ring-2 ring-[var(--sn-yellow)]/30"

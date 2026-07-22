@@ -35,7 +35,7 @@ function ApplicationStartPicker({
       {reusableSourceApplications.map((application) => (
         <button
           key={application.id}
-          className="w-full rounded-[28px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[var(--cta-tertiary-border)] hover:bg-white"
+          className="content-block w-full rounded-[28px] border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-[var(--cta-tertiary-border)] hover:bg-white"
           disabled={isApplyActionPending}
           type="button"
           onClick={() => {

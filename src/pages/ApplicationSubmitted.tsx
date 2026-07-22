@@ -68,7 +68,7 @@ export default function ApplicationSubmitted() {
           <h1 className="mt-6 text-4xl font-bold sm:text-5xl">
             Application Successfully Submitted!
           </h1>
-          <div className="mt-6 inline-block rounded-2xl border border-white/20 bg-white/10 px-6 py-3 backdrop-blur">
+          <div className="content-block-compact mt-6 inline-block rounded-2xl border border-white/20 bg-white/10 px-6 py-3 backdrop-blur">
             <p className="text-sm text-white/75">Your application number</p>
             <p className="text-3xl font-bold text-[var(--sn-yellow)]">{applicationNumber}</p>
           </div>
@@ -157,7 +157,7 @@ export default function ApplicationSubmitted() {
               title="Live chat"
             />
           </div>
-          <div className="mt-8 rounded-2xl border border-[var(--info-border)] bg-[var(--info-bg)] p-4 text-center text-sm text-[var(--info-text)]">
+          <div className="content-block-compact mt-8 rounded-2xl border border-[var(--info-border)] bg-[var(--info-bg)] p-4 text-center text-sm text-[var(--info-text)]">
             <strong>Quote your Application Number ({applicationNumber})</strong> when
             contacting support for faster assistance.
           </div>

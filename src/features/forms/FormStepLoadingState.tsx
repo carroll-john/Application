@@ -26,7 +26,7 @@ export function FormStepLoadingState({
       {[0, 1].map((index) => (
         <div
           key={index}
-          className="rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+          className="content-block rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
         >
           <div className="mb-5 flex items-start gap-3">
             <div className="h-6 w-6 shrink-0 rounded bg-slate-200" />

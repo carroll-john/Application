@@ -27,6 +27,7 @@ External design files are not a project source of truth.
 - `VITE_APP_BRAND=uc` selects the University of Canberra profile and UC catalogue. Absence selects StudyNext, preserving the production default.
 - The active brand is applied to the document before React renders to avoid an unthemed first frame.
 - UC uses its official inline logo assets, Figtree for UI/body copy, STIX Two Text for display headings, and Dark Teal for normal-size white-text actions.
+- UC uses square editorial and content surfaces. Interactive controls such as buttons, inputs, search fields, pills, badges, and progress indicators retain their rounded control geometry.
 - `VITE_DEMO_MODE=true` disables PostHog and support capture; Sentry error capture may remain enabled but replay sampling is forced to zero.
 - Public course and submitted surfaces may include the compact brand footer. Application forms retain navigation ownership in `ApplicationShell` and do not use a site footer.
 

@@ -185,6 +185,17 @@
   --font-display: "STIX Two Text", Georgia, serif;
 }
 
+/*
+ * UC separates editorial geometry from interaction geometry: content panels
+ * are square, while buttons, pills, inputs and search controls stay rounded.
+ * Components opt into these semantic surface classes so the StudyNext radii
+ * remain unchanged and control shapes are never flattened accidentally.
+ */
+:root[data-brand="uc"] .content-block,
+:root[data-brand="uc"] .content-block-compact {
+  border-radius: 0;
+}
+
 * {
   box-sizing: border-box;
 }

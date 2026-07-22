@@ -37,16 +37,39 @@ try {
     for (const route of routes) {
       consoleErrors.length = 0;
       await page.goto(`${baseUrl}${route}`, { waitUntil: "networkidle" });
-      const result = await page.evaluate(() => ({
-        hasStudyNext: /studynext/i.test(document.body.innerText),
-        hasUcLogo: Boolean(document.querySelector('img[alt="University of Canberra"]')),
-        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-        title: document.title,
-      }));
+      const result = await page.evaluate(() => {
+        const isVisible = (element) => element.getClientRects().length > 0;
+        const radius = (element) =>
+          Number.parseFloat(window.getComputedStyle(element).borderTopLeftRadius);
+        const contentBlocks = [...document.querySelectorAll(".content-block, .content-block-compact")]
+          .filter(isVisible);
+        const controls = [
+          ...document.querySelectorAll(
+            'button:not(.content-block), input:not([type="checkbox"]):not([type="radio"]), textarea, select',
+          ),
+        ].filter(isVisible);
+
+        return {
+          hasStudyNext: /studynext/i.test(document.body.innerText),
+          hasUcLogo: Boolean(document.querySelector('img[alt="University of Canberra"]')),
+          nonSquareContentBlocks: contentBlocks.filter((element) => radius(element) !== 0).length,
+          overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          squareControls: controls.filter((element) => radius(element) === 0).length,
+          title: document.title,
+        };
+      });
 
       if (result.hasStudyNext) failures.push(`${viewport.name} ${route}: StudyNext visible`);
       if (!result.hasUcLogo) failures.push(`${viewport.name} ${route}: UC logo missing`);
+      if (result.nonSquareContentBlocks > 0) {
+        failures.push(
+          `${viewport.name} ${route}: ${result.nonSquareContentBlocks} content blocks are rounded`,
+        );
+      }
       if (result.overflow) failures.push(`${viewport.name} ${route}: horizontal overflow`);
+      if (result.squareControls > 0) {
+        failures.push(`${viewport.name} ${route}: ${result.squareControls} controls are square`);
+      }
       if (result.title !== "Applications | University of Canberra") {
         failures.push(`${viewport.name} ${route}: unexpected title ${result.title}`);
       }

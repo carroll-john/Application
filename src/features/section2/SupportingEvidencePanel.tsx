@@ -141,7 +141,7 @@ function EvidenceReviewRow({
   heading: string;
 }) {
   return (
-    <li className="rounded-md border border-gray-200 p-3">
+    <li className="content-block-compact rounded-md border border-gray-200 p-3">
       <p className="text-xs font-semibold text-gray-900 sm:text-sm">{heading}</p>
       {explanationItems && explanationItems.length > 0 ? (
         <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-gray-700 sm:text-sm">
@@ -197,7 +197,7 @@ export function SupportingEvidencePanel({
     const startsWithTranscript = !prompt || prompt.sectionKey === "tertiary";
 
     return (
-      <div className="mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5">
+      <div className="content-block mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5">
         <h2 className="text-sm font-semibold text-gray-900 sm:text-base">
           Supporting Eligibility Documentation
         </h2>
@@ -322,7 +322,7 @@ export function SupportingEvidencePanel({
     : "text-[var(--warning-text)]";
 
   return (
-    <div className="mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5">
+    <div className="content-block mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-semibold text-gray-900 sm:text-base">
           Supporting Eligibility Documentation
@@ -356,7 +356,7 @@ export function SupportingEvidencePanel({
           {metRows.map((row) => (
             <li
               key={row.id}
-              className="rounded-md border border-[var(--success-border)] bg-[var(--success-bg)] p-3"
+              className="content-block-compact rounded-md border border-[var(--success-border)] bg-[var(--success-bg)] p-3"
             >
               <p className="text-xs font-semibold text-gray-900 sm:text-sm">
                 {row.heading}
@@ -420,7 +420,7 @@ export function SupportingEvidencePanel({
         </ul>
       ) : null}
       {!isProcessing && !prompt && plan.skippedPrompts.length > 0 ? (
-        <div className="mt-3 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3">
+        <div className="content-block-compact mt-3 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3">
           <p className="text-xs font-semibold text-[var(--warning-text)] sm:text-sm">
             You skipped {plan.skippedPrompts.length} evidence item
             {plan.skippedPrompts.length === 1 ? "" : "s"}. Admissions may follow up if

@@ -100,7 +100,7 @@ export function FormSectionCard({
   return (
     <div
       className={cn(
-        "rounded-lg border border-[var(--border)] bg-white p-4 shadow-sm sm:p-6",
+        "content-block rounded-lg border border-[var(--border)] bg-white p-4 shadow-sm sm:p-6",
         className,
       )}
     >

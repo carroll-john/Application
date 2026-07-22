@@ -57,7 +57,7 @@ export default function RouteErrorBoundary() {
           </div>
 
           {errorMessage && !isChunkError ? (
-            <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+            <div className="content-block-compact mt-6 rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
               {errorMessage}
             </div>
           ) : null}

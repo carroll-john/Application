@@ -72,7 +72,7 @@ function CourseComparisonItem({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+    <div className="content-block-compact rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
         {label}
       </p>

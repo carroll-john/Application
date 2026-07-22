@@ -81,7 +81,7 @@ export function CourseDetailsHero({
               "Save and resume applications across courses",
             ]}
           />
-          <div className="mt-6 rounded-[28px] border border-slate-200 bg-white px-5 py-4 text-sm text-slate-700">
+          <div className="content-block-compact mt-6 rounded-[28px] border border-slate-200 bg-white px-5 py-4 text-sm text-slate-700">
             <p className="font-semibold text-slate-900">At a glance</p>
             <dl className="mt-3 space-y-3">
               <div>
@@ -133,7 +133,7 @@ export function CourseDetailsHero({
 
 function CourseHeroFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur">
+    <div className="content-block-compact rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur">
       <p className="text-xs uppercase tracking-[0.16em] text-white/70">{label}</p>
       <p className="mt-2 text-sm font-semibold text-white">{value}</p>
     </div>

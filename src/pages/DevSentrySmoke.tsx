@@ -85,7 +85,7 @@ export default function DevSentrySmoke() {
 
         <SurfaceCard className="p-6 sm:p-8">
           <div className="flex flex-col gap-6">
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            <div className="content-block-compact rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <p className="font-semibold text-slate-900">Current status</p>
               <p className="mt-2">
                 Sentry runtime is{" "}
@@ -116,7 +116,7 @@ export default function DevSentrySmoke() {
               </Button>
             </div>
 
-            <div className="rounded-3xl border border-[var(--info-border)] bg-[var(--info-bg)] p-4 text-sm leading-6 text-[var(--info-text)]">
+            <div className="content-block-compact rounded-3xl border border-[var(--info-border)] bg-[var(--info-bg)] p-4 text-sm leading-6 text-[var(--info-text)]">
               <p className="font-semibold">Expected results</p>
               <p className="mt-2">
                 The handled and uncaught error buttons should create issue events.

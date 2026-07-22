@@ -48,10 +48,10 @@ export function OverviewPage({
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <SurfaceCard className="p-5 sm:p-6">
           <div className="flex flex-col gap-5 sm:flex-row">
-            <div className="brand-hero h-32 w-full rounded-[28px] sm:w-48" />
+            <div className="brand-hero content-block-compact h-32 w-full rounded-[28px] sm:w-48" />
             <div className="flex-1">
               <h2 className="text-xl font-bold text-slate-900">{title}</h2>
-              <div className="mt-4 max-w-xs rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700">
+              <div className="content-block-compact mt-4 max-w-xs rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700">
                 Desired course intake: {intakeLabel}
               </div>
             </div>
