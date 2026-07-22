@@ -25,7 +25,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { NativeSelect } from "../../components/ui/native-select";
 import { useApplication } from "../../context/ApplicationContext";
 import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../auth";
@@ -38,7 +37,6 @@ import {
   assessUcAdmission,
   rankUcCourses,
   type CvRecognitionDraft,
-  type OscaSkillLevel,
   type UcCourseMatch,
 } from "../../lib/ucRplAssessment";
 
@@ -296,30 +294,15 @@ function ReviewState({
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`osca-level-${experience.id}`}>Skill level</Label>
-                  <NativeSelect
-                    id={`osca-level-${experience.id}`}
-                    value={experience.oscaSkillLevel?.toString() ?? ""}
-                    onChange={(event) => {
-                      const value = Number(event.target.value);
-                      const experiences = [...draft.experiences];
-                      experiences[index] = {
-                        ...experience,
-                        oscaSkillLevel:
-                          value >= 1 && value <= 5
-                            ? (value as OscaSkillLevel)
-                            : null,
-                      };
-                      onChange({ ...draft, experiences });
-                    }}
-                  >
-                    <option value="">Needs review</option>
-                    {[1, 2, 3, 4, 5].map((level) => (
-                      <option key={level} value={level.toString()}>
-                        Level {level}
-                      </option>
-                    ))}
-                  </NativeSelect>
+                  <p className="text-sm font-medium text-slate-700">Skill level</p>
+                  <p className="mt-2 font-semibold text-slate-950">
+                    {experience.oscaSkillLevel
+                      ? `Level ${experience.oscaSkillLevel}`
+                      : "Needs review"}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Set by the matched OSCA occupation.
+                  </p>
                 </div>
               </div>
 
