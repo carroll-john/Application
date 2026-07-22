@@ -56,6 +56,12 @@ demo CV receives fixed OSCA results for its seven employment roles after extract
 This keeps the scripted demo deterministic. Other applicants continue to use the
 duties-based model result.
 
+The UC pre-application course-matching flow calls `/api/parse-cv` with
+`flow=uc-pre-application`. That flow may run before sign-in and is rate-limited by
+client IP. Its extracted data stays in temporary browser state. The ordinary
+Section 2 CV parser remains authenticated, and authentication is required before
+the UC assessment can create or save an application.
+
 ### Course-specific work-experience assessment
 
 CV parsing remains responsible only for drafting editable employment rows. A separate

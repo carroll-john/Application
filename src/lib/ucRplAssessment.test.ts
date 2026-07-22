@@ -4,7 +4,11 @@ import { getCourseCatalogFor } from "./courseCatalog";
 import {
   applyUcCvPrefill,
   assessUcAdmission,
+  formatUcExperienceDuration,
+  getUcExperienceGroupLabel,
+  getUcWorkEntryGuidance,
   rankUcCourses,
+  summarizeUcExperienceByOscaLevel,
   type CvRecognitionDraft,
   type CvRecognitionExperience,
   type OscaSkillLevel,
@@ -102,6 +106,77 @@ describe("UC OSCA admission prototype matrix", () => {
     );
     expect(result.experienceMonths).toBe(24);
     expect(result.equivalentGpa).toBe(4);
+  });
+});
+
+describe("UC OSCA experience review summaries", () => {
+  const now = new Date("2026-07-01T00:00:00Z");
+
+  it("groups roles by skill level in level order and keeps unclassified roles visible", () => {
+    const summaries = summarizeUcExperienceByOscaLevel(
+      [
+        role({ endYear: "2026", id: "level-2", level: 2, startYear: "2024" }),
+        {
+          ...role({ endYear: "2026", id: "unclassified", level: 1, startYear: "2025" }),
+          oscaSkillLevel: null,
+        },
+        role({ endYear: "2026", id: "level-1", level: 1, startYear: "2023" }),
+      ],
+      now,
+    );
+
+    expect(summaries.map((summary) => summary.key)).toEqual([
+      "level-1",
+      "level-2",
+      "needs-review",
+    ]);
+    expect(summaries[0].roles.map((item) => item.id)).toEqual(["level-1"]);
+    expect(summaries[2].roles.map((item) => item.id)).toEqual(["unclassified"]);
+  });
+
+  it("rolls up overlapping included roles without double-counting them", () => {
+    const summaries = summarizeUcExperienceByOscaLevel(
+      [
+        role({ endYear: "2026", id: "first", level: 1, startYear: "2023" }),
+        role({ endYear: "2026", id: "overlap", level: 1, startYear: "2024" }),
+        {
+          ...role({ endYear: "2026", id: "excluded", level: 1, startYear: "2010" }),
+          includeInAssessment: false,
+        },
+      ],
+      now,
+    );
+
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0]).toMatchObject({
+      experienceMonths: 36,
+      experienceYears: 3,
+      includedRoleCount: 2,
+    });
+    expect(summaries[0].roles).toHaveLength(3);
+  });
+
+  it("formats duration and presents applicant-friendly UC experience guidance", () => {
+    expect(formatUcExperienceDuration(1)).toBe("1 month experience");
+    expect(formatUcExperienceDuration(12)).toBe("1 year experience");
+    expect(formatUcExperienceDuration(205)).toBe("17.1 years experience");
+    expect(formatUcExperienceDuration(0)).toBe("Duration needs review");
+
+    expect(getUcExperienceGroupLabel(1)).toBe("Senior or highly specialised roles");
+    expect(getUcExperienceGroupLabel(2)).toBe("Technical or supervisory roles");
+    expect(getUcExperienceGroupLabel(null)).toBe("Roles needing more information");
+
+    expect(getUcWorkEntryGuidance(1, 0)).toBe(
+      "May meet UC’s experience requirement",
+    );
+    expect(getUcWorkEntryGuidance(2, 23)).toBe("More experience may be needed");
+    expect(getUcWorkEntryGuidance(2, 24)).toBe(
+      "Meets the two-year experience guide",
+    );
+    expect(getUcWorkEntryGuidance(4, 120)).toBe(
+      "UC will review this experience",
+    );
+    expect(getUcWorkEntryGuidance(null, 120)).toBe("More details needed");
   });
 });
 

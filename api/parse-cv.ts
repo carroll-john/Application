@@ -21,6 +21,7 @@ import {
   MAX_FILE_SIZE_BYTES,
   toParsedUploadFile,
 } from "./_documentParser/fileUpload.js";
+import { getCvParserAccessError } from "./_documentParser/cvParserAccess.js";
 import {
   buildSentryContext,
   captureApiException,
@@ -162,13 +163,14 @@ async function handleWebRequest(request: Request) {
     }
 
     const authResult = await authenticateRequest(request);
+    const accessError = getCvParserAccessError(
+      authResult.kind,
+      request,
+      isDeployedEnvironment(),
+    );
 
-    if (authResult.kind === "open" && isDeployedEnvironment()) {
-      return errorResponse("CV_PARSER_NOT_CONFIGURED");
-    }
-
-    if (authResult.kind === "unauthenticated") {
-      return errorResponse("CV_PARSER_UNAUTHORIZED");
+    if (accessError) {
+      return errorResponse(accessError);
     }
 
     const rateLimitKey =

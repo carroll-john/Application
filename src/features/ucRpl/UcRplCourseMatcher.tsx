@@ -1,6 +1,5 @@
 import {
   BriefcaseBusiness,
-  ChevronRight,
   CircleAlert,
   ClipboardCheck,
   FileText,
@@ -22,8 +21,6 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
 import { useApplication } from "../../context/ApplicationContext";
 import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../auth";
@@ -35,10 +32,12 @@ import {
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
 import {
   assessUcAdmission,
+  getUcExperienceGroupLabel,
   rankUcCourses,
   type CvRecognitionDraft,
   type UcCourseMatch,
 } from "../../lib/ucRplAssessment";
+import { UcRplExperienceReview } from "./UcRplExperienceReview";
 
 type AssessmentStage = "intro" | "parsing" | "review" | "results";
 type MatchFilter = "best_match" | "needs_review" | "all";
@@ -52,14 +51,6 @@ const FILTER_LABELS: Record<MatchFilter, string> = {
   best_match: "Best matches",
   needs_review: "Needs review",
 };
-
-function formatRolePeriod(role: CvRecognitionDraft["experiences"][number]) {
-  const start = [role.startMonth, role.startYear].filter(Boolean).join(" ");
-  const end = role.currentRole
-    ? "Present"
-    : [role.endMonth, role.endYear].filter(Boolean).join(" ");
-  return [start, end].filter(Boolean).join(" – ") || "Dates not found";
-}
 
 function IntroState({
   fileInputRef,
@@ -82,8 +73,8 @@ function IntroState({
             Find courses that recognise your experience
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-            Upload your CV to see how your work and prior learning may support
-            admission and potential credit.
+            Upload your CV to see which UC courses may match your work experience
+            and qualifications.
           </p>
 
           <button
@@ -128,8 +119,7 @@ function IntroState({
 
           <p className="mt-6 flex items-start gap-2 text-sm leading-6 text-slate-600">
             <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            This is an indicative check, not an admission offer or formal credit
-            decision.
+            This is a guide only, not an admission offer or credit decision.
           </p>
         </div>
 
@@ -138,17 +128,17 @@ function IntroState({
             {
               icon: Upload,
               label: "Upload your CV",
-              copy: "Upload your current CV to get started.",
+              copy: "Add your current CV. You’ll only need to sign in if you start an application.",
             },
             {
               icon: UserRoundCheck,
               label: "Check your experience",
-              copy: "Review the roles and dates we find, and correct anything that doesn’t look right.",
+              copy: "Review the roles, dates and qualifications we find, and correct anything that doesn’t look right.",
             },
             {
               icon: GraduationCap,
               label: "Explore course matches",
-              copy: "See where your experience may support entry requirements or potential credit.",
+              copy: "See which courses may match and whether your experience could count towards your study.",
             },
           ].map((step, index) => (
             <li
@@ -195,138 +185,6 @@ function ParsingState() {
   );
 }
 
-function ReviewState({
-  draft,
-  fileName,
-  onChange,
-  onContinue,
-  onStartOver,
-}: {
-  draft: CvRecognitionDraft;
-  fileName: string;
-  onChange: (draft: CvRecognitionDraft) => void;
-  onContinue: () => void;
-  onStartOver: () => void;
-}) {
-  const includedCount = draft.experiences.filter(
-    (experience) => experience.includeInAssessment,
-  ).length;
-
-  return (
-    <section aria-labelledby="review-experience-heading" className="space-y-6">
-      <div className="content-block border border-[var(--border)] bg-white p-6 sm:p-9">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-[var(--cta-secondary)]">
-              {fileName}
-            </p>
-            <h1
-              id="review-experience-heading"
-              className="mt-2 text-4xl font-bold tracking-tight text-slate-950"
-            >
-              Review your experience
-            </h1>
-            <p className="mt-3 max-w-3xl leading-7 text-slate-600">
-              Confirm what we found before we use it. OSCA candidates are based on
-              the duties described in your CV, not the job title alone.
-            </p>
-          </div>
-          <Button variant="neutralOutline" onClick={onStartOver}>
-            Upload another CV
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-5">
-        {draft.experiences.map((experience, index) => (
-          <article
-            key={experience.id}
-            className="content-block border border-[var(--border)] bg-white p-6"
-          >
-            <div className="flex items-start gap-3">
-              <input
-                aria-label={`Include ${experience.position} in assessment`}
-                className="mt-1 h-5 w-5 rounded border-slate-300 text-[var(--cta-primary)] focus:ring-[var(--cta-primary)]"
-                type="checkbox"
-                checked={experience.includeInAssessment}
-                onChange={(event) => {
-                  const experiences = [...draft.experiences];
-                  experiences[index] = {
-                    ...experience,
-                    includeInAssessment: event.target.checked,
-                  };
-                  onChange({ ...draft, experiences });
-                }}
-              />
-              <div className="min-w-0 flex-1">
-                <h2 className="text-xl font-semibold text-slate-950">
-                  {experience.position || "Role title not found"}
-                </h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  {[experience.company, formatRolePeriod(experience)]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              </div>
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {experience.oscaConfidence} confidence
-              </span>
-            </div>
-
-            <div className="mt-5 grid gap-4 sm:grid-cols-[1fr_0.35fr]">
-              <div>
-                <Label htmlFor={`osca-title-${experience.id}`}>
-                  Indicative OSCA occupation
-                </Label>
-                <Input
-                  id={`osca-title-${experience.id}`}
-                  value={experience.oscaOccupationTitle}
-                  placeholder="Enter the closest OSCA occupation"
-                  onChange={(event) => {
-                    const experiences = [...draft.experiences];
-                    experiences[index] = {
-                      ...experience,
-                      oscaOccupationTitle: event.target.value,
-                    };
-                    onChange({ ...draft, experiences });
-                  }}
-                />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-700">Skill level</p>
-                <p className="mt-2 font-semibold text-slate-950">
-                  {experience.oscaSkillLevel
-                    ? `Level ${experience.oscaSkillLevel}`
-                    : "Needs review"}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">
-                  Set by the matched OSCA occupation.
-                </p>
-              </div>
-            </div>
-
-            {experience.oscaRationale ? (
-              <p className="mt-4 border-l-2 border-blue-200 pl-4 text-sm leading-6 text-slate-600">
-                {experience.oscaRationale}
-              </p>
-            ) : null}
-          </article>
-        ))}
-      </div>
-
-      <div className="content-block flex flex-col gap-4 border border-[var(--border)] bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm leading-6 text-slate-600">
-          Check the roles you want to include, then continue to your course matches.
-        </p>
-        <Button disabled={includedCount === 0} onClick={onContinue}>
-          Find my course matches
-          <ChevronRight className="h-4 w-4" aria-hidden="true" />
-        </Button>
-      </div>
-    </section>
-  );
-}
-
 function MatchCard({
   match,
   mediaVariantIndex,
@@ -350,7 +208,7 @@ function MatchCard({
             <div>
               <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                 <SearchCheck className="h-4 w-4 text-green-700" aria-hidden="true" />
-                Admission indication
+                Entry guidance
               </p>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 {match.admissionDetail}
@@ -426,10 +284,10 @@ function ResultsState({
           Courses matched to your experience
         </h1>
         <p className="mt-3 text-lg text-slate-600">
-          Based on the work experience and prior learning you confirmed.
+          Based on the work experience and qualifications you confirmed.
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          Indicative only. This is not an admission offer or a formal credit decision.
+          This is a guide only. It is not an admission offer or credit decision.
         </p>
 
         <div className="mt-7 grid border border-[var(--border)] sm:grid-cols-2 lg:grid-cols-5">
@@ -440,9 +298,7 @@ function ResultsState({
             },
             {
               icon: SearchCheck,
-              label: admission.skillLevel
-                ? `OSCA Skill Level ${admission.skillLevel}`
-                : "OSCA review needed",
+              label: getUcExperienceGroupLabel(admission.skillLevel),
             },
             {
               icon: ClipboardCheck,
@@ -564,12 +420,6 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
 
   function chooseFile(file: File | null) {
     if (!file) return;
-    if (!isAuthenticated) {
-      setPendingStartMatch(null);
-      setSelectedFile(file);
-      setShowAuthModal(true);
-      return;
-    }
     void parseSelectedFile(file);
   }
 
@@ -653,7 +503,7 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
         <ParsingState />
       ) : null}
       {stage === "review" && draft && selectedFile ? (
-        <ReviewState
+        <UcRplExperienceReview
           draft={draft}
           fileName={selectedFile.name}
           onChange={setDraft}
@@ -679,23 +529,17 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
 
       {showAuthModal ? (
         <AuthModal
-          context="eligibility"
+          context="apply"
           signUpRedirectPath="/"
           onAuthenticated={() => {
             setShowAuthModal(false);
             if (pendingStartMatch) {
               setAwaitingAuthenticatedStart(true);
-            } else if (selectedFile) {
-              void parseSelectedFile(selectedFile);
             }
           }}
           onClose={() => {
             setShowAuthModal(false);
-            if (pendingStartMatch) {
-              setPendingStartMatch(null);
-            } else {
-              setSelectedFile(null);
-            }
+            setPendingStartMatch(null);
           }}
         />
       ) : null}

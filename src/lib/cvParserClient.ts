@@ -22,7 +22,19 @@ export async function parseEmploymentExperiencesFromCv(file: File) {
   }
 }
 
-export const parseCvForRecognition = parseEmploymentExperiencesFromCv;
+export async function parseCvForRecognition(file: File) {
+  try {
+    return await requestParseDocument<CvParserDraft>(file, "cv", {
+      allowAnonymousUcPreApplication: true,
+    });
+  } catch (error) {
+    if (error instanceof DocumentParserRequestError) {
+      throw new CvParserRequestError(error.message, error.status, error.code);
+    }
+
+    throw error;
+  }
+}
 
 export function getCvParserErrorMessage(error: unknown) {
   if (error instanceof CvParserRequestError) {

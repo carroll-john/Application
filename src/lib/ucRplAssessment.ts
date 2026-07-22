@@ -56,6 +56,19 @@ export interface UcCourseMatch {
   relevanceScore: number;
 }
 
+export type UcOscaExperienceSummaryKey =
+  | `level-${OscaSkillLevel}`
+  | "needs-review";
+
+export interface UcOscaExperienceSummary {
+  experienceMonths: number;
+  experienceYears: number;
+  includedRoleCount: number;
+  key: UcOscaExperienceSummaryKey;
+  roles: CvRecognitionExperience[];
+  skillLevel: OscaSkillLevel | null;
+}
+
 const MONTH_INDEX = new Map(
   [
     "January",
@@ -179,6 +192,85 @@ function unionMonths(roles: EmploymentExperience[], now: Date) {
   });
 
   return total + current.end - current.start;
+}
+
+export function summarizeUcExperienceByOscaLevel(
+  experiences: CvRecognitionExperience[],
+  now = new Date(),
+): UcOscaExperienceSummary[] {
+  const groups = new Map<OscaSkillLevel | null, CvRecognitionExperience[]>();
+
+  experiences.forEach((experience) => {
+    const skillLevel = experience.oscaSkillLevel;
+    groups.set(skillLevel, [...(groups.get(skillLevel) ?? []), experience]);
+  });
+
+  return Array.from(groups.entries())
+    .sort(([left], [right]) => (left ?? 6) - (right ?? 6))
+    .map(([skillLevel, roles]) => {
+      const includedRoles = roles.filter((role) => role.includeInAssessment);
+      const experienceMonths = unionMonths(includedRoles, now);
+
+      return {
+        experienceMonths,
+        experienceYears: Math.round((experienceMonths / 12) * 10) / 10,
+        includedRoleCount: includedRoles.length,
+        key: skillLevel ? `level-${skillLevel}` : "needs-review",
+        roles,
+        skillLevel,
+      };
+    });
+}
+
+export function formatUcExperienceDuration(months: number) {
+  if (months <= 0) {
+    return "Duration needs review";
+  }
+
+  if (months < 12) {
+    return `${months} ${months === 1 ? "month" : "months"} experience`;
+  }
+
+  const years = Math.round((months / 12) * 10) / 10;
+  return `${years} ${years === 1 ? "year" : "years"} experience`;
+}
+
+export function getUcExperienceGroupLabel(skillLevel: OscaSkillLevel | null) {
+  switch (skillLevel) {
+    case 1:
+      return "Senior or highly specialised roles";
+    case 2:
+      return "Technical or supervisory roles";
+    case 3:
+      return "Skilled roles";
+    case 4:
+      return "Operational roles";
+    case 5:
+      return "Entry-level roles";
+    default:
+      return "Roles needing more information";
+  }
+}
+
+export function getUcWorkEntryGuidance(
+  skillLevel: OscaSkillLevel | null,
+  experienceMonths: number,
+) {
+  if (skillLevel === 1) {
+    return "May meet UC’s experience requirement";
+  }
+
+  if (skillLevel === 2) {
+    return experienceMonths >= 24
+      ? "Meets the two-year experience guide"
+      : "More experience may be needed";
+  }
+
+  if (skillLevel === null) {
+    return "More details needed";
+  }
+
+  return "UC will review this experience";
 }
 
 function admissionBand(skillLevel: OscaSkillLevel | null, months: number) {
@@ -331,19 +423,19 @@ export function rankUcCourses(
           : "other";
     const creditDetail =
       relevanceScore >= 17
-        ? "Related experience identified; an individual RPL assessment may be available."
-        : "Supporting evidence and an individual faculty assessment are required.";
+        ? "Your work appears related to this course. UC may assess whether it can count towards your study."
+        : "UC will need supporting evidence before deciding whether your experience can count towards this course.";
 
     return {
       admissionDetail: hasAdmissionBand
-        ? `Your experience may meet UC's general admission standard at an equivalent GPA of ${admission.equivalentGpa!.toFixed(1)}.`
-        : "Your experience needs faculty review against the general admission standard.",
+        ? `Your experience may meet UC's general entry requirements at an equivalent GPA of ${admission.equivalentGpa!.toFixed(1)}.`
+        : "UC will need to review your experience against the general entry requirements.",
       category,
       course,
       creditDetail,
       rationale: hasAdmissionBand
-        ? `Based on OSCA Skill Level ${admission.skillLevel} and ${admission.experienceYears} years of relevant experience. Course-specific prerequisites and professional requirements still apply.`
-        : `${admission.rationale} Course-specific prerequisites and professional requirements still apply.`,
+        ? `Based on ${admission.experienceYears} years of relevant experience and the type of work identified in your CV. Other course requirements may still apply.`
+        : "UC will need to review your experience. Other course requirements may still apply.",
       relevanceScore,
     };
   });

@@ -1,5 +1,6 @@
 import { getDocumentParserConfig, type ParseableDocumentKind } from "./documentParserRegistry";
 import { supabase } from "./supabase";
+import { addUcPreApplicationParseFlow } from "./ucPreApplicationParseContract";
 
 export class DocumentParserRequestError extends Error {
   code?: string;
@@ -63,6 +64,7 @@ async function requestParseDocumentRoute(
   apiPath: string,
   localFallbackUrl: string | undefined,
   formData: FormData,
+  allowAnonymousUcPreApplication: boolean,
 ) {
   const accessToken = await getAccessToken();
   const headers: HeadersInit = {};
@@ -77,18 +79,25 @@ async function requestParseDocumentRoute(
     method: "POST",
   };
 
-  const primaryResponse = await fetch(apiPath, requestInit);
+  const primaryUrl = allowAnonymousUcPreApplication
+    ? addUcPreApplicationParseFlow(apiPath)
+    : apiPath;
+  const primaryResponse = await fetch(primaryUrl, requestInit);
 
   if (primaryResponse.status !== 404 || !isLocalhostRuntime() || !localFallbackUrl) {
     return primaryResponse;
   }
 
-  return fetch(localFallbackUrl, requestInit);
+  const fallbackUrl = allowAnonymousUcPreApplication
+    ? addUcPreApplicationParseFlow(localFallbackUrl)
+    : localFallbackUrl;
+  return fetch(fallbackUrl, requestInit);
 }
 
 export async function requestParseDocument<TDraft>(
   file: File,
   kind: ParseableDocumentKind,
+  options: { allowAnonymousUcPreApplication?: boolean } = {},
 ): Promise<TDraft> {
   const config = getDocumentParserConfig(kind);
 
@@ -107,6 +116,7 @@ export async function requestParseDocument<TDraft>(
     config.apiPath,
     config.localFallbackUrl,
     formData,
+    options.allowAnonymousUcPreApplication === true,
   );
 
   let payload: unknown;
