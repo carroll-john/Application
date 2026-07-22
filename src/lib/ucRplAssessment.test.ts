@@ -5,6 +5,7 @@ import {
   applyUcCvPrefill,
   assessUcAdmission,
   formatUcExperienceDuration,
+  getUcCourseMatchExperienceSummary,
   getUcExperienceGroupLabel,
   getUcExperienceReviewGuidance,
   getUcWorkEntryGuidance,
@@ -155,6 +156,40 @@ describe("UC OSCA experience review summaries", () => {
       includedRoleCount: 2,
     });
     expect(summaries[0].roles).toHaveLength(3);
+  });
+
+  it("uses the reviewed experience-group duration on course matches", () => {
+    const experiences = [
+      role({
+        endYear: "2024",
+        id: "chief-executive",
+        level: 1,
+        occupation: "Chief Executive Officer",
+        startYear: "2021",
+      }),
+      {
+        ...role({
+          endYear: "2026",
+          id: "government-minister",
+          level: 1,
+          occupation: "Government Minister",
+          startYear: "2024",
+        }),
+        oscaOccupationCode: "121332",
+      },
+    ];
+    const admission = assessUcAdmission(experiences, now);
+    const summaries = summarizeUcExperienceByOscaLevel(experiences, now);
+    const displayedSummary = getUcCourseMatchExperienceSummary(
+      summaries,
+      admission.skillLevel,
+    );
+
+    expect(admission.experienceMonths).toBe(36);
+    expect(displayedSummary?.experienceMonths).toBe(60);
+    expect(displayedSummary?.experienceMonths).toBe(
+      summaries[0].experienceMonths,
+    );
   });
 
   it("formats duration and presents applicant-friendly UC experience guidance", () => {

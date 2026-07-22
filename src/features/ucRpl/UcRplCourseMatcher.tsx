@@ -1,5 +1,4 @@
 import {
-  BriefcaseBusiness,
   CircleAlert,
   ClipboardCheck,
   FileText,
@@ -33,6 +32,7 @@ import type { CourseCatalogEntry } from "../../lib/courseCatalog";
 import {
   assessUcAdmission,
   formatUcExperienceDuration,
+  getUcCourseMatchExperienceSummary,
   getUcExperienceGroupLabel,
   getUcExperienceReviewGuidance,
   getUcWorkEntryGuidance,
@@ -40,6 +40,7 @@ import {
   summarizeUcExperienceByOscaLevel,
   type CvRecognitionDraft,
   type UcCourseMatch,
+  type UcOscaExperienceSummary,
 } from "../../lib/ucRplAssessment";
 import { UcRplExperienceReview } from "./UcRplExperienceReview";
 
@@ -254,6 +255,7 @@ function MatchCard({
 
 function ResultsState({
   admission,
+  experienceSummary,
   experienceGuidance,
   filter,
   matches,
@@ -263,6 +265,7 @@ function ResultsState({
   startingCourseCode,
 }: {
   admission: ReturnType<typeof assessUcAdmission>;
+  experienceSummary: UcOscaExperienceSummary | null;
   experienceGuidance: string;
   filter: MatchFilter;
   matches: UcCourseMatch[];
@@ -279,6 +282,9 @@ function ResultsState({
   const mediaVariantByCourseCode = new Map(
     matches.map((match, index) => [match.course.code, index]),
   );
+  const displayedSkillLevel = experienceSummary?.skillLevel ?? admission.skillLevel;
+  const displayedExperienceMonths =
+    experienceSummary?.experienceMonths ?? admission.experienceMonths;
 
   return (
     <section aria-labelledby="course-matches-heading" className="space-y-6">
@@ -296,25 +302,21 @@ function ResultsState({
           This is a guide only. It is not an admission offer or credit decision.
         </p>
 
-        <div className="mt-7 grid border border-[var(--border)] sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-7 grid border border-[var(--border)] sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
-              icon: BriefcaseBusiness,
-              label: admission.occupationTitle,
-            },
-            {
               icon: SearchCheck,
-              label: getUcExperienceGroupLabel(admission.skillLevel),
+              label: getUcExperienceGroupLabel(displayedSkillLevel),
             },
             {
               icon: ClipboardCheck,
-              label: formatUcExperienceDuration(admission.experienceMonths),
+              label: formatUcExperienceDuration(displayedExperienceMonths),
             },
             {
               icon: GraduationCap,
               label: getUcWorkEntryGuidance(
-                admission.skillLevel,
-                admission.experienceMonths,
+                displayedSkillLevel,
+                displayedExperienceMonths,
               ),
             },
           ].map((item) => (
@@ -410,14 +412,23 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
     () => (draft && admission ? rankUcCourses(courses, draft.experiences, admission) : []),
     [admission, courses, draft],
   );
-  const experienceGuidance = useMemo(
-    () =>
-      draft
-        ? getUcExperienceReviewGuidance(
-            summarizeUcExperienceByOscaLevel(draft.experiences),
-          )
-        : "",
+  const experienceSummaries = useMemo(
+    () => (draft ? summarizeUcExperienceByOscaLevel(draft.experiences) : []),
     [draft],
+  );
+  const experienceSummary = useMemo(
+    () =>
+      admission
+        ? getUcCourseMatchExperienceSummary(
+            experienceSummaries,
+            admission.skillLevel,
+          )
+        : null,
+    [admission, experienceSummaries],
+  );
+  const experienceGuidance = useMemo(
+    () => getUcExperienceReviewGuidance(experienceSummaries),
+    [experienceSummaries],
   );
 
   async function parseSelectedFile(file: File) {
@@ -542,6 +553,7 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
       {stage === "results" && admission ? (
         <ResultsState
           admission={admission}
+          experienceSummary={experienceSummary}
           experienceGuidance={experienceGuidance}
           filter={filter}
           matches={matches}

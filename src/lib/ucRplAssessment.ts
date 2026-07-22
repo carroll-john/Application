@@ -222,6 +222,20 @@ export function summarizeUcExperienceByOscaLevel(
     });
 }
 
+export function getUcCourseMatchExperienceSummary(
+  summaries: UcOscaExperienceSummary[],
+  skillLevel: OscaSkillLevel | null,
+) {
+  return (
+    summaries.find(
+      (summary) =>
+        summary.skillLevel === skillLevel && summary.includedRoleCount > 0,
+    ) ??
+    summaries.find((summary) => summary.includedRoleCount > 0) ??
+    null
+  );
+}
+
 export function formatUcExperienceDuration(months: number) {
   if (months <= 0) {
     return "Duration needs review";
