@@ -436,7 +436,7 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
     [draft],
   );
   const matches = useMemo(
-    () => (draft && admission ? rankUcCourses(courses, draft.experiences, admission) : []),
+    () => (draft && admission ? rankUcCourses(courses, draft, admission) : []),
     [admission, courses, draft],
   );
   const experienceSummaries = useMemo(

@@ -271,7 +271,7 @@ describe("UC course matching", () => {
     );
     const matches = rankUcCourses(
       getCourseCatalogFor("uc"),
-      experiences,
+      draft(experiences),
       admission,
     );
 
@@ -325,6 +325,85 @@ describe("UC course matching", () => {
     expect(graduateCertificate && getUcIndicativeCreditPoints(graduateCertificate)).toBe(6);
     expect(graduateDiploma && getUcIndicativeCreditPoints(graduateDiploma)).toBe(12);
     expect(masters && getUcIndicativeCreditPoints(masters)).toBe(18);
+  });
+
+  it("uses Bill Shorten's current education role and completed MBA to avoid redundant matches", () => {
+    const experiences = [
+      {
+        ...role({
+          endYear: "",
+          id: "vice-chancellor",
+          level: 1,
+          occupation: "Chief Executive Officer",
+          startYear: "2025",
+        }),
+        company: "University of Canberra",
+        currentRole: true,
+        duties:
+          "Leads the university and champions flexible education, student support, employability and stronger connections between education and the community.",
+        position: "Vice-Chancellor and President",
+      },
+      {
+        ...role({
+          endYear: "2025",
+          id: "government-minister",
+          level: 1,
+          occupation: "Government Minister",
+          startYear: "2022",
+        }),
+        duties:
+          "Led government policy and services for the National Disability Insurance Scheme.",
+        position: "Minister for Government Services",
+      },
+    ];
+    const recognition = draft(experiences);
+    recognition.profile = {
+      ...recognition.profile,
+      firstName: "Bill",
+      lastName: "Shorten",
+    };
+    recognition.tertiaryQualifications = [
+      {
+        id: "mba",
+        completed: true,
+        country: "Australia",
+        courseName: "Master of Business Administration (MBA)",
+        endMonth: "",
+        endYear: "",
+        institution: "University of Melbourne",
+        level: "Master",
+        startMonth: "",
+        startYear: "",
+      },
+    ];
+    const admission = assessUcAdmission(
+      experiences,
+      new Date("2026-07-01T00:00:00Z"),
+    );
+    const matches = rankUcCourses(
+      getCourseCatalogFor("uc"),
+      recognition,
+      admission,
+    );
+    const bestMatches = matches.filter((match) => match.category === "best_match");
+    const mba = matches.find(
+      (match) => match.course.title === "Master of Business Administration",
+    );
+    const publicPolicyIndex = matches.findIndex(
+      (match) => match.course.title === "Master of Public Policy",
+    );
+    const educationLeadershipIndex = matches.findIndex(
+      (match) => match.course.title === "Master of Education (Leadership)",
+    );
+
+    expect(matches[0].course.title).toBe("Master of Education (Leadership)");
+    expect(bestMatches.every((match) => /Education|Teaching/i.test(match.course.title))).toBe(
+      true,
+    );
+    expect(educationLeadershipIndex).toBeLessThan(publicPolicyIndex);
+    expect(mba?.category).not.toBe("best_match");
+    expect(mba?.relevanceScore).toBe(0);
+    expect(mba?.creditConfidence).toBe("low");
   });
 });
 
