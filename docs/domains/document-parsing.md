@@ -81,6 +81,11 @@ Reuses `/api/evaluate-transcript-eligibility` as a single LLM call for field ext
 
 Gating: new transcript selected **and** qualification core fields empty → auto-fill; new transcript always runs evidence review. Upload failure is **blocking**; parse/review failure is **warning** (save succeeds, `insufficient_data` fallback).
 
+The Applications proxy retries one transient eligibility-service response (`502`, `503`, or
+`504`) before returning a typed upstream error. If both attempts fail, applicant copy must
+describe the evidence service as temporarily unavailable; “try a clearer file” is reserved
+for successful assessments that genuinely contain no draftable transcript fields.
+
 ## Approved entry points
 
 For a new ordinary parser kind:

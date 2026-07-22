@@ -31,6 +31,8 @@ import {
 const DEFAULT_MODEL = "gpt-4.1-mini";
 const INITIAL_MAX_OUTPUT_TOKENS = 3_000;
 const RETRY_MAX_OUTPUT_TOKENS = 7_000;
+const ELIGIBILITY_SERVICE_MAX_ATTEMPTS = 2;
+const TRANSIENT_ELIGIBILITY_SERVICE_STATUSES = new Set([502, 503, 504]);
 
 function getSafeFileExtension(fileName: string) {
   const match = /\.([a-z0-9]{1,12})$/i.exec(fileName.trim());
@@ -260,11 +262,6 @@ async function forwardToEligibilityService(
     return jsonResponse(fallbackAssessment, 200);
   }
 
-  const forwardPayload = new FormData();
-  const forwardBlob = new Blob([fileBuffer], { type: mimeType });
-  forwardPayload.append("file", forwardBlob, file.name || "transcript");
-  forwardPayload.append("context", JSON.stringify(context));
-
   const headers = new Headers();
   const serviceToken = process.env.ELIGIBILITY_SERVICE_TOKEN?.trim();
 
@@ -272,11 +269,40 @@ async function forwardToEligibilityService(
     headers.set("authorization", `Bearer ${serviceToken}`);
   }
 
-  const upstream = await fetch(serviceUrl, {
-    body: forwardPayload,
-    headers,
-    method: "POST",
-  });
+  let upstream: Response | undefined;
+  let lastRequestError: unknown;
+
+  for (let attempt = 1; attempt <= ELIGIBILITY_SERVICE_MAX_ATTEMPTS; attempt += 1) {
+    const forwardPayload = new FormData();
+    const forwardBlob = new Blob([fileBuffer], { type: mimeType });
+    forwardPayload.append("file", forwardBlob, file.name || "transcript");
+    forwardPayload.append("context", JSON.stringify(context));
+
+    try {
+      upstream = await fetch(serviceUrl, {
+        body: forwardPayload,
+        headers,
+        method: "POST",
+      });
+      lastRequestError = undefined;
+
+      if (
+        !TRANSIENT_ELIGIBILITY_SERVICE_STATUSES.has(upstream.status) ||
+        attempt === ELIGIBILITY_SERVICE_MAX_ATTEMPTS
+      ) {
+        break;
+      }
+    } catch (error) {
+      lastRequestError = error;
+      if (attempt === ELIGIBILITY_SERVICE_MAX_ATTEMPTS) {
+        throw error;
+      }
+    }
+  }
+
+  if (!upstream) {
+    throw lastRequestError ?? new Error("Eligibility service request failed.");
+  }
 
   let payload: unknown;
 

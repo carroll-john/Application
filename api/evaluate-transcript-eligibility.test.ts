@@ -186,14 +186,19 @@ describe("evaluate-transcript-eligibility api route", () => {
 
   it("returns typed upstream error details when service responds non-ok", async () => {
     process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
-    fetchMock.mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          error: "Eligibility engine failed.",
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "Eligibility engine failed." }), {
+          status: 502,
+          headers: { "content-type": "application/json" },
         }),
-        { status: 502, headers: { "content-type": "application/json" } },
-      ),
-    );
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "Eligibility engine failed." }), {
+          status: 502,
+          headers: { "content-type": "application/json" },
+        }),
+      );
 
     const formData = new FormData();
     formData.append("file", new File(["fixture"], "transcript.txt", { type: "text/plain" }));
@@ -209,6 +214,44 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(response.status).toBe(502);
     expect(payload.code).toBe("ELIGIBILITY_SERVICE_UPSTREAM_ERROR");
     expect(payload.error).toBe("Eligibility engine failed.");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries one transient upstream response before returning a successful assessment", async () => {
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "Eligibility engine is warming up." }), {
+          status: 502,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            confidence: 0.95,
+            outcome: "eligible",
+            requirementsChecked: [],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+
+    const formData = new FormData();
+    formData.append("file", new File(["fixture"], "transcript.txt", { type: "text/plain" }));
+    formData.append("context", JSON.stringify({ completed: true }));
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.outcome).toBe("eligible");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("uses local OpenAI evaluation when service URL is unset", async () => {
