@@ -69,7 +69,7 @@ export function UcCreditAssessmentComparison({
 
         <div className="border border-green-300 bg-white p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-green-800">
-            After potential credit
+            After credit
           </p>
           <p className="mt-3 flex items-center gap-2 text-sm font-bold text-green-950">
             <Clock3 className="h-4 w-4 text-green-700" aria-hidden="true" />
