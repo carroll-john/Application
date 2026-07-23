@@ -19,7 +19,13 @@ import {
   buildFallbackResponse,
   withContextDefaults,
 } from "./_eligibility/assessment.js";
+import { getUcCreditAssessmentAccessError } from "./_eligibility/creditAssessmentAccess.js";
+import {
+  authenticateRequest,
+  isDeployedEnvironment,
+} from "./_documentParser/auth.js";
 import { captureTranscriptAiGeneration } from "./_shared/posthogAiObservability.js";
+import { isUcCreditAssessmentRequest } from "../src/lib/ucCreditAssessmentContract.js";
 // Importing initializes Sentry as a side effect, which also activates the
 // Sentry.startSpan tracing inside _ai/callLlm.ts on this route.
 import {
@@ -359,6 +365,23 @@ async function handleWebRequest(request: Request) {
 async function handleEligibilityRequest(request: Request) {
   if (request.method !== "POST") {
     return errorResponse("Method not allowed.", "ELIGIBILITY_METHOD_NOT_ALLOWED", 405);
+  }
+
+  if (isUcCreditAssessmentRequest(request)) {
+    const authResult = await authenticateRequest(request);
+    const accessError = getUcCreditAssessmentAccessError(
+      authResult.kind,
+      request,
+      isDeployedEnvironment(),
+    );
+
+    if (accessError) {
+      return errorResponse(
+        accessError.message,
+        accessError.code,
+        accessError.status,
+      );
+    }
   }
 
   const formData = await request.formData();

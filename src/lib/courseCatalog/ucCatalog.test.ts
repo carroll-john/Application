@@ -14,7 +14,7 @@ describe("University of Canberra catalogue", () => {
     for (const course of catalogue) {
       expect(course.provider).toBe("University of Canberra");
       expect(course.sourceUrl).toMatch(/^https:\/\//);
-      expect(course.sourceVerifiedAt).toBe("2026-07-21");
+      expect(course.sourceVerifiedAt).toMatch(/^2026-07-(21|23)$/);
       expect(["online", "online_plus"]).toContain(course.deliveryMode);
       expect(["assess", "manual_review"]).toContain(course.eligibilityPolicy);
     }
@@ -35,5 +35,20 @@ describe("University of Canberra catalogue", () => {
 
   it("includes Online Plus offerings", () => {
     expect(catalogue.filter((course) => course.deliveryMode === "online_plus").length).toBeGreaterThan(0);
+  });
+
+  it("preserves current published duration, tuition and RPL limits for the education comparison", () => {
+    const educationLeadership = catalogue.find(
+      (course) => course.title === "Master of Education (Leadership)",
+    );
+
+    expect(educationLeadership).toMatchObject({
+      duration: "1.3 years part-time",
+      sourceVerifiedAt: "2026-07-23",
+      tuitionFees: "$2,956.25 per unit; $23,650 total (2026 indicative fees)",
+    });
+    expect(educationLeadership?.recognitionOfPriorLearning).toContain(
+      "up to 12 credit points",
+    );
   });
 });
