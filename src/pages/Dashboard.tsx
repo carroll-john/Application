@@ -13,7 +13,7 @@ import { capturePostHogEvent } from "../lib/posthog";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { signOut, userDisplayName } = useAuth();
+  const { signOut } = useAuth();
   const {
     activeApplicationId,
     applicantProfile,
@@ -21,6 +21,11 @@ export default function Dashboard() {
     openApplication,
   } = useApplication();
   const [activeTab, setActiveTab] = useState<DashboardTab>("all");
+  const applicantName =
+    [applicantProfile?.firstName, applicantProfile?.lastName]
+      .map((name) => name?.trim())
+      .filter(Boolean)
+      .join(" ") || "Applicant";
 
   const filteredApplications = useMemo(() => {
     if (activeTab === "all") {
@@ -51,7 +56,7 @@ export default function Dashboard() {
           ? "Your profile is ready. Start a new course application or continue an open one below."
           : "Browse courses, pass eligibility, and start an application from the course page."
       }
-      userDisplayName={userDisplayName}
+      userDisplayName={applicantName}
       onBrowseCourses={() => navigate("/")}
       onSignOut={async () => {
         await signOut();
