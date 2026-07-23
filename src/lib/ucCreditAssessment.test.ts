@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { getCourseCatalogFor } from "./courseCatalog";
 import { normalizeTranscriptEligibilityAssessment } from "./eligibility/normalize";
 import type { UcCourseMatch } from "./ucRplAssessment";
@@ -10,6 +10,7 @@ import {
   formatUcAssessmentDuration,
   hasUcTranscriptStudyEvidence,
   isBillShortenUcCreditDemoFixture,
+  prepareUcCreditAssessment,
   UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS,
 } from "./ucCreditAssessment";
 
@@ -126,6 +127,40 @@ describe("UC shortlisted-course credit assessment", () => {
         createBillShortenUcCreditDemoTranscriptAssessment(),
       ),
     ).toBe(true);
+  });
+
+  it("starts the real parser without making the demo cards wait for it", async () => {
+    const parserAssessment = new Promise<TranscriptEligibilityAssessment>(() => {});
+    const wait = vi.fn().mockResolvedValue(undefined);
+    const run = prepareUcCreditAssessment({
+      parserAssessment,
+      usesFastDemoAssessment: true,
+      wait,
+    });
+
+    await expect(run.cardAssessment).resolves.toMatchObject({
+      extractedData: {
+        studyDetails: {
+          programName: {
+            normalizedValue: "Bachelor of Arts / Bachelor of Laws",
+          },
+        },
+      },
+    });
+    expect(run.parserAssessment).toBe(parserAssessment);
+    expect(wait).toHaveBeenCalledWith(UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS);
+  });
+
+  it("uses the parser result directly outside the fast demo fixture", () => {
+    const parserAssessment = Promise.resolve(relatedTranscript);
+    const run = prepareUcCreditAssessment({
+      parserAssessment,
+      usesFastDemoAssessment: false,
+      wait: vi.fn(),
+    });
+
+    expect(run.cardAssessment).toBe(parserAssessment);
+    expect(run.parserAssessment).toBe(parserAssessment);
   });
 
   it("combines related transcript study and CV relevance into time and cost estimates", () => {

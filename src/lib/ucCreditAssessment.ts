@@ -149,6 +149,23 @@ export function createBillShortenUcCreditDemoTranscriptAssessment() {
   });
 }
 
+export function prepareUcCreditAssessment(options: {
+  parserAssessment: Promise<TranscriptEligibilityAssessment>;
+  usesFastDemoAssessment: boolean;
+  wait: (milliseconds: number) => Promise<void>;
+}) {
+  const { parserAssessment, usesFastDemoAssessment, wait } = options;
+
+  return {
+    cardAssessment: usesFastDemoAssessment
+      ? wait(UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS).then(() =>
+          createBillShortenUcCreditDemoTranscriptAssessment(),
+        )
+      : parserAssessment,
+    parserAssessment,
+  };
+}
+
 function getBillShortenDemoCreditPoints(
   match: UcCourseMatch,
   context: UcCreditAssessmentContext,

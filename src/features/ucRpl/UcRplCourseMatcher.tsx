@@ -43,10 +43,9 @@ import type { CourseCatalogEntry } from "../../lib/courseCatalog";
 import { isDemoMode } from "../../lib/brand";
 import {
   assessUcShortlistCredit,
-  createBillShortenUcCreditDemoTranscriptAssessment,
   hasUcTranscriptStudyEvidence,
   isBillShortenUcCreditDemoFixture,
-  UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS,
+  prepareUcCreditAssessment,
   type UcCreditAssessmentResult,
 } from "../../lib/ucCreditAssessment";
 import { sleep } from "../../lib/utils";
@@ -603,6 +602,8 @@ export function UcRplCourseMatcher({
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
   const [transcriptAssessment, setTranscriptAssessment] =
     useState<TranscriptEligibilityAssessment | null>(null);
+  const transcriptAssessmentRequestRef =
+    useRef<Promise<TranscriptEligibilityAssessment> | null>(null);
   const [assessmentResults, setAssessmentResults] = useState(
     new Map<string, UcCreditAssessmentResult>(),
   );
@@ -655,6 +656,7 @@ export function UcRplCourseMatcher({
     setAssessmentResults(new Map());
     setAssessmentStatus("ready");
     setTranscriptAssessment(null);
+    transcriptAssessmentRequestRef.current = null;
     setShortlistedCourseCodes([]);
     setTranscriptFile(null);
     setSelectedFile(file);
@@ -700,6 +702,7 @@ export function UcRplCourseMatcher({
     setAssessmentError(null);
     setAssessmentResults(new Map());
     setTranscriptAssessment(null);
+    transcriptAssessmentRequestRef.current = null;
     setTranscriptFile(null);
 
     if (next.length === 3 && shortlistedCourseCodes.length !== 3) {
@@ -748,22 +751,53 @@ export function UcRplCourseMatcher({
       const usesFastDemoAssessment =
         isDemoMode &&
         isBillShortenUcCreditDemoFixture(shortlist, draft.profile);
-      const transcriptAssessment = usesFastDemoAssessment
-        ? await sleep(UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS).then(() =>
-            createBillShortenUcCreditDemoTranscriptAssessment(),
-          )
-        : await evaluateTranscriptEligibility(
-            transcriptFile,
-            {
-              courseCode: shortlist.map((match) => match.course.code).join(","),
-              courseTitle: shortlist.map((match) => match.course.title).join("; "),
-              cvUploaded: true,
-              employmentCount: draft.experiences.filter(
-                (experience) => experience.includeInAssessment,
-              ).length,
-            },
-            { accessToken, ucCreditAssessment: true },
+      let parsedTranscriptAssessment: TranscriptEligibilityAssessment | null = null;
+      const parserAssessment = evaluateTranscriptEligibility(
+        transcriptFile,
+        {
+          courseCode: shortlist.map((match) => match.course.code).join(","),
+          courseTitle: shortlist.map((match) => match.course.title).join("; "),
+          cvUploaded: true,
+          employmentCount: draft.experiences.filter(
+            (experience) => experience.includeInAssessment,
+          ).length,
+        },
+        { accessToken, ucCreditAssessment: true },
+      ).then((assessment) => {
+        if (!hasUcTranscriptStudyEvidence(assessment)) {
+          throw new Error(
+            "We couldn’t identify enough study information in this transcript. Try a clearer file or a transcript that lists your course and units.",
           );
+        }
+
+        parsedTranscriptAssessment = assessment;
+        if (
+          usesFastDemoAssessment &&
+          transcriptAssessmentRequestRef.current === parserAssessment
+        ) {
+          setTranscriptAssessment(assessment);
+        }
+        return assessment;
+      });
+      transcriptAssessmentRequestRef.current = parserAssessment;
+      const assessmentRun = prepareUcCreditAssessment({
+        parserAssessment,
+        usesFastDemoAssessment,
+        wait: sleep,
+      });
+
+      if (usesFastDemoAssessment) {
+        void parserAssessment.catch((backgroundFailure) => {
+          if (transcriptAssessmentRequestRef.current === parserAssessment) {
+            console.error(
+              "Failed to parse the UC demo transcript in the background",
+              backgroundFailure,
+            );
+          }
+        });
+      }
+
+      const transcriptAssessment = await assessmentRun.cardAssessment;
 
       if (!hasUcTranscriptStudyEvidence(transcriptAssessment)) {
         throw new Error(
@@ -774,7 +808,7 @@ export function UcRplCourseMatcher({
       const results = assessUcShortlistCredit(shortlist, transcriptAssessment, {
         applicant: draft.profile,
       });
-      setTranscriptAssessment(transcriptAssessment);
+      setTranscriptAssessment(parsedTranscriptAssessment ?? transcriptAssessment);
       setAssessmentResults(
         new Map(results.map((result) => [result.courseCode, result])),
       );
@@ -785,6 +819,7 @@ export function UcRplCourseMatcher({
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     } catch (assessmentFailure) {
+      transcriptAssessmentRequestRef.current = null;
       console.error("Failed to complete UC credit assessment", assessmentFailure);
       if (
         assessmentFailure instanceof TranscriptEligibilityRequestError &&
@@ -816,6 +851,11 @@ export function UcRplCourseMatcher({
     setStartingCourseCode(match.course.code);
 
     try {
+      const parserAssessment = transcriptAssessmentRequestRef.current;
+      const applicationTranscriptAssessment = parserAssessment
+        ? await parserAssessment
+        : transcriptAssessment;
+
       await beginCourseApplication(
         {
           code: match.course.code,
@@ -829,7 +869,7 @@ export function UcRplCourseMatcher({
           startFresh: true,
           ucCvPrefill: draft,
           ucTranscriptFile: transcriptFile ?? undefined,
-          ucTranscriptPrefill: transcriptAssessment ?? undefined,
+          ucTranscriptPrefill: applicationTranscriptAssessment ?? undefined,
         },
       );
       navigate("/overview");
@@ -901,6 +941,7 @@ export function UcRplCourseMatcher({
             setAssessmentResults(new Map());
             setAssessmentStatus("ready");
             setTranscriptAssessment(null);
+            transcriptAssessmentRequestRef.current = null;
             setTranscriptFile(null);
             onStageChange("intro");
           }}
@@ -920,11 +961,13 @@ export function UcRplCourseMatcher({
               onClearTranscript={() => {
                 setAssessmentError(null);
                 setTranscriptAssessment(null);
+                transcriptAssessmentRequestRef.current = null;
                 setTranscriptFile(null);
               }}
               onFileSelect={(file) => {
                 setAssessmentError(null);
                 setTranscriptAssessment(null);
+                transcriptAssessmentRequestRef.current = null;
                 setTranscriptFile(file);
               }}
               onRequestAssessment={requestCreditAssessment}
