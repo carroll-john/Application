@@ -51,6 +51,8 @@ try {
         const ucCourseImages = [
           ...document.querySelectorAll('img[src^="/content/dam/uc/"]'),
         ];
+        const ucHeader = document.querySelector("[data-uc-brand-header]");
+        const ucFooter = document.querySelector("[data-uc-brand-footer]");
         return {
           brokenUcCourseImages: ucCourseImages.filter(
             (image) => !image.complete || image.naturalWidth === 0,
@@ -59,6 +61,19 @@ try {
             document.querySelector("[data-keypath-tech-service-mark]"),
           ),
           hasStudyNext: /studynext/i.test(document.body.innerText),
+          hasUcApplicationNavigation: Boolean(
+            ucHeader?.querySelector('nav[aria-label="Application navigation"]'),
+          ),
+          hasUcFooter: Boolean(ucFooter),
+          hasUcFooterAddress: Boolean(
+            ucFooter?.textContent?.includes(
+              "University of Canberra, Bruce ACT 2617 Australia",
+            ),
+          ),
+          hasUcFooterLegalNavigation: Boolean(
+            ucFooter?.querySelector('nav[aria-label="University legal links"]'),
+          ),
+          hasUcHeader: Boolean(ucHeader),
           hasUcLogo: Boolean(document.querySelector('img[alt="University of Canberra"]')),
           courseSearchPlaceholder: document
             .querySelector('input[aria-label="Search courses"]')
@@ -75,7 +90,21 @@ try {
       });
 
       if (result.hasStudyNext) failures.push(`${viewport.name} ${route}: StudyNext visible`);
+      if (!result.hasUcHeader) failures.push(`${viewport.name} ${route}: UC header missing`);
+      if (!result.hasUcApplicationNavigation) {
+        failures.push(`${viewport.name} ${route}: UC application navigation missing`);
+      }
       if (!result.hasUcLogo) failures.push(`${viewport.name} ${route}: UC logo missing`);
+      const expectsFooter = route !== "/sign-in";
+      if (expectsFooter && !result.hasUcFooter) {
+        failures.push(`${viewport.name} ${route}: UC footer missing`);
+      }
+      if (expectsFooter && !result.hasUcFooterAddress) {
+        failures.push(`${viewport.name} ${route}: UC footer address missing`);
+      }
+      if (expectsFooter && !result.hasUcFooterLegalNavigation) {
+        failures.push(`${viewport.name} ${route}: UC footer legal navigation missing`);
+      }
       if (route === "/" && result.courseSearchPlaceholder !== "Search courses") {
         failures.push(
           `${viewport.name} ${route}: unexpected course search placeholder`,
@@ -119,6 +148,14 @@ try {
           path: `${outputDirectory}/${viewport.name}-${routeName}.png`,
           fullPage: true,
         });
+        if (route === "/") {
+          await page.locator("[data-uc-brand-header]").screenshot({
+            path: `${outputDirectory}/${viewport.name}-header.png`,
+          });
+          await page.locator("[data-uc-brand-footer]").screenshot({
+            path: `${outputDirectory}/${viewport.name}-footer.png`,
+          });
+        }
       }
 
       if (route === "/") {
