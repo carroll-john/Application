@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Button } from "../../components/ui/button";
 import {
   buildAssessmentCheckEvidenceRows,
@@ -134,15 +134,28 @@ function EvidenceReviewRow({
   explanation,
   explanationItems,
   heading,
+  revealOrder,
 }: {
   action?: ReactNode;
   explanation: string;
   explanationItems?: string[];
   heading: string;
+  revealOrder?: number;
 }) {
   return (
-    <li className="rounded-md border border-gray-200 p-3">
-      <p className="text-xs font-semibold text-gray-900 sm:text-sm">{heading}</p>
+    <li
+      className={`content-block-compact rounded-md border border-gray-200 p-3 ${
+        revealOrder === undefined ? "" : "eligibility-evidence-field "
+      }`}
+      style={
+        revealOrder === undefined
+          ? undefined
+          : ({ "--eligibility-evidence-reveal-order": revealOrder } as CSSProperties)
+      }
+    >
+      <p className="text-xs font-semibold text-gray-900 sm:text-sm">
+        {heading}
+      </p>
       {explanationItems && explanationItems.length > 0 ? (
         <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-gray-700 sm:text-sm">
           {explanationItems.map((item) => (
@@ -192,12 +205,16 @@ export function SupportingEvidencePanel({
 }: SupportingEvidencePanelProps) {
   const prompt = plan.nextPrompt;
 
+  if (isProcessing) {
+    return null;
+  }
+
   if (isHero) {
     const heroBullets = prompt?.explanationItems ?? [];
     const startsWithTranscript = !prompt || prompt.sectionKey === "tertiary";
 
     return (
-      <div className="mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5">
+      <div className="content-block mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5">
         <h2 className="text-sm font-semibold text-gray-900 sm:text-base">
           Supporting Eligibility Documentation
         </h2>
@@ -284,9 +301,6 @@ export function SupportingEvidencePanel({
   const transcriptReviewSummary = assessment
     ? buildTranscriptReviewSummary(dedupedRows)
     : undefined;
-  const hasAcademicThresholdRequirement = sourceRows.some(
-    (row) => row.kindLabel === requirementKindLabel("academic_threshold"),
-  );
   const hasQualificationCompletionRequirement = sourceRows.some(
     (row) =>
       row.requiresCompletedQualification ||
@@ -294,7 +308,7 @@ export function SupportingEvidencePanel({
   );
   const assessmentEvidenceRows = assessment
     ? buildAssessmentEvidenceRows(assessment).filter((row) => {
-        if (hasAcademicThresholdRequirement && row.id === "academic-result") {
+        if (row.id === "academic-result") {
           return false;
         }
         if (hasQualificationCompletionRequirement && row.id === "completion-status") {
@@ -320,9 +334,11 @@ export function SupportingEvidencePanel({
   const summaryTone = plan.isEvidenceReady && !hasReviewOutcome
     ? "text-[var(--success-text)]"
     : "text-[var(--warning-text)]";
+  const metRevealOffset = assessmentEvidenceRows.length;
+  const reviewRevealOffset = metRevealOffset + metRows.length;
 
   return (
-    <div className="mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5">
+    <div className="content-block mb-6 rounded-lg border border-[var(--info-border)] bg-white p-4 sm:mb-8 sm:p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-sm font-semibold text-gray-900 sm:text-base">
           Supporting Eligibility Documentation
@@ -342,21 +358,27 @@ export function SupportingEvidencePanel({
       ))}
       {assessmentEvidenceRows.length > 0 ? (
         <ul className="mt-3 space-y-2" aria-label="Transcript evidence extracted">
-          {assessmentEvidenceRows.map((row) => (
+          {assessmentEvidenceRows.map((row, index) => (
             <EvidenceReviewRow
               key={row.id}
               explanation={row.explanation}
               heading={row.sourceText}
+              revealOrder={index}
             />
           ))}
         </ul>
       ) : null}
       {metRows.length > 0 ? (
         <ul className="mt-3 space-y-2" aria-label="Evidence satisfied">
-          {metRows.map((row) => (
+          {metRows.map((row, index) => (
             <li
               key={row.id}
-              className="rounded-md border border-[var(--success-border)] bg-[var(--success-bg)] p-3"
+              className="eligibility-evidence-field content-block-compact rounded-md border border-[var(--success-border)] bg-[var(--success-bg)] p-3"
+              style={
+                {
+                  "--eligibility-evidence-reveal-order": metRevealOffset + index,
+                } as CSSProperties
+              }
             >
               <p className="text-xs font-semibold text-gray-900 sm:text-sm">
                 {row.heading}
@@ -371,7 +393,7 @@ export function SupportingEvidencePanel({
       ) : null}
       {displayedReviewRows.length > 0 ? (
         <ul className="mt-3 space-y-2" aria-label="Evidence needing review">
-          {displayedReviewRows.map((row) => (
+          {displayedReviewRows.map((row, index) => (
             <EvidenceReviewRow
               key={row.id}
               action={row.actionLabel && row.actionPath ? (
@@ -382,6 +404,7 @@ export function SupportingEvidencePanel({
               explanation={row.explanation}
               explanationItems={row.explanationItems}
               heading={row.heading}
+              revealOrder={reviewRevealOffset + index}
             />
           ))}
         </ul>
@@ -420,7 +443,7 @@ export function SupportingEvidencePanel({
         </ul>
       ) : null}
       {!isProcessing && !prompt && plan.skippedPrompts.length > 0 ? (
-        <div className="mt-3 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3">
+        <div className="content-block-compact mt-3 rounded-md border border-[var(--warning-border)] bg-[var(--warning-bg)] p-3">
           <p className="text-xs font-semibold text-[var(--warning-text)] sm:text-sm">
             You skipped {plan.skippedPrompts.length} evidence item
             {plan.skippedPrompts.length === 1 ? "" : "s"}. Admissions may follow up if

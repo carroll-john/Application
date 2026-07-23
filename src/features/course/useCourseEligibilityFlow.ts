@@ -131,6 +131,16 @@ export function useCourseEligibilityFlow({
     eligibilityForm,
   );
 
+  const handleEligibilityOpen = useCallback(() => {
+    if (course.eligibilityPolicy === "manual_review") {
+      const result = evaluateCourseRequirementAnswers(course, {});
+      setEligibilityOutcome("manual_review");
+      setEligibilityReason(result.reason ?? "");
+      return;
+    }
+    setShowEligibility(true);
+  }, [course]);
+
   const resolveEligibilityResult = useCallback(
     (answers: EligibilityAnswers) => {
       const result = evaluateCourseRequirementAnswers(course, answers);
@@ -145,7 +155,9 @@ export function useCourseEligibilityFlow({
         field_of_study: answers.fieldOfStudy,
       });
       clearPendingEligibilityCheck();
-      setEligibilityOutcome(result.eligible ? "success" : "fail");
+      setEligibilityOutcome(
+        result.manualReview ? "manual_review" : result.eligible ? "success" : "fail",
+      );
       setEligibilityReason(result.reason ?? "");
     },
     [course],
@@ -274,6 +286,7 @@ export function useCourseEligibilityFlow({
     handleBrowseCourses,
     handleEligibleApplyNow,
     handleEligibilityComplete,
+    handleEligibilityOpen,
     handleReviewRequirements,
     handleTryEligibilityAgain,
     isApplyActionPending,

@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react";
 
 export function ReviewDeclaration() {
   return (
-    <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
+    <div className="content-block-compact rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[var(--info-text)]" />
         <div>

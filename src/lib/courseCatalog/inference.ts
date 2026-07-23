@@ -42,12 +42,32 @@ export function inferCategories(subjectArea: string) {
     categories.push("Technology");
   }
 
+  if (/\b(communication|media|journalism)\b/i.test(normalized)) {
+    categories.push("Communication");
+  }
+
+  if (/\b(built environment|building|construction|architecture)\b/i.test(normalized)) {
+    categories.push("Built Environment");
+  }
+
   if (
     /\b(health|healthcare|public health|nursing|clinical|human services)\b/i.test(
       normalized,
     )
   ) {
     categories.push("Health");
+  }
+
+  if (/\b(law|legal|juris)\b/i.test(normalized)) {
+    categories.push("Law");
+  }
+
+  if (/\b(government|politics|public policy|public administration|policy)\b/i.test(normalized)) {
+    categories.push("Politics & Society");
+  }
+
+  if (/\b(education|teaching|languages)\b/i.test(normalized)) {
+    categories.push("Education");
   }
 
   return Array.from(new Set(categories));

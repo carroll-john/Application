@@ -51,7 +51,7 @@ export default function ReviewAndSubmit() {
                   readyToSubmit={readyToSubmit}
                 />
               ) : readyToSubmit ? (
-                <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3">
+                <div className="content-block-compact rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3">
                   <p className="text-sm font-medium text-[var(--info-text)]">
                     Review before submitting
                   </p>
@@ -71,7 +71,7 @@ export default function ReviewAndSubmit() {
             ) : null}
 
             {submitError ? (
-              <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+              <div className="content-block-compact mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
                 <p className="font-semibold text-red-800">Submission failed</p>
                 <p className="mt-1 text-sm text-red-700">{submitError}</p>
               </div>
@@ -88,7 +88,7 @@ export default function ReviewAndSubmit() {
 
       {isSubmitting ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50">
-          <div className="rounded-lg bg-white p-6 text-center shadow-2xl">
+          <div className="content-block rounded-lg bg-white p-6 text-center shadow-2xl">
             <LoadingSpinner size="lg" />
             <p className="mt-4 text-sm font-medium text-slate-700">
               Submitting your application...

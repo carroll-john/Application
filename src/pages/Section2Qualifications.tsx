@@ -405,7 +405,7 @@ export default function Section2Qualifications() {
         ) : null}
 
         {!isHeroState && hiddenAddMoreSections.length > 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-300 p-4 sm:p-5">
+          <div className="content-block-compact rounded-lg border border-dashed border-gray-300 p-4 sm:p-5">
             <p className="text-xs font-semibold text-gray-700 sm:text-sm">
               Add another document
             </p>

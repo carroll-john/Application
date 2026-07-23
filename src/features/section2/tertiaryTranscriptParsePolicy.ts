@@ -47,6 +47,8 @@ export const tertiaryTranscriptParseCopy = {
     "We saved your transcript and reviewed program evidence, but couldn't draft a qualification from it. Complete the details manually.",
   draftHubSuccess:
     "We saved a qualification drafted from your transcript. Review the details below and update any missing or incorrect information.",
+  evidenceServiceUnavailable:
+    "We saved your transcript, but the automatic evidence review is temporarily unavailable. Upload the transcript again shortly to retry, or enter the qualification details manually.",
   eligibilityTitle: "Reviewing program evidence from your transcript...",
   eligibilityDetail: "This can take a little longer for larger files.",
   parsingTitle: "Reading your transcript and drafting your qualification...",
@@ -235,6 +237,16 @@ export function buildTertiaryTranscriptFlashMessage(options: {
   }
 
   if (assessment) {
+    const evidenceServiceUnavailable = assessment.requirementsChecked.some(
+      (requirement) => requirement.reasonCode === "SERVICE_UNAVAILABLE",
+    );
+    if (evidenceServiceUnavailable && !qualificationHasCoreData) {
+      return {
+        message: tertiaryTranscriptParseCopy.evidenceServiceUnavailable,
+        type: "warning" as const,
+      };
+    }
+
     // An "insufficient_data" outcome describes the overall eligibility verdict, not whether
     // qualification fields were drafted -- e.g. institution/course/dates can extract cleanly
     // while a WAM or English evidence field is missing. Only report "couldn't draft" when the

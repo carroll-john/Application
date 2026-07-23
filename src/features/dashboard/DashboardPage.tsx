@@ -18,7 +18,7 @@ export function DashboardPage({
   userDisplayName,
 }: DashboardPageProps) {
   return (
-    <div className="min-h-screen bg-[#f7f7f4]">
+    <div className="min-h-screen bg-[var(--background)]">
       <AppBrandHeader>
         <Button
           className="rounded-2xl shadow-none"

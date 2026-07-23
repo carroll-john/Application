@@ -1,5 +1,5 @@
 export { AuthModal } from "../auth/AuthModal";
-export { CourseBrowseCard } from "./CourseBrowseCard";
+export { CourseBrowseCard, UcCourseBrowseCard } from "./CourseBrowseCard";
 export { CourseBrowseFilters } from "./CourseBrowseFilters";
 export { CourseBrowsePageIntro } from "./CourseBrowsePageIntro";
 export { CourseBrowseResultsPanel } from "./CourseBrowseResultsPanel";
@@ -7,6 +7,7 @@ export { CourseChecklist } from "./CourseChecklist";
 export { CourseDetailsHero } from "./CourseDetailsHero";
 export { CourseDetailsPresentation } from "./CourseDetailsPresentation";
 export { EligibilityCheckModal } from "./EligibilityCheckModal";
+export { getUcCourseCardMedia } from "./ucCourseCardMedia";
 export {
   COURSE_CATEGORY_FILTERS,
   type CourseCategoryFilter,

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
+import { AppBrandFooter } from "../components/AppBrandFooter";
 import {
   CourseBrowseCard,
   CourseBrowseFilters,
@@ -8,6 +9,12 @@ import {
   CourseBrowseResultsPanel,
   type CourseCategoryFilter,
 } from "../features/course";
+import {
+  shouldShowUcCourseCatalogue,
+  UcRplCourseMatcher,
+  type UcRplAssessmentStage,
+} from "../features/ucRpl";
+import { isUcBrand } from "../lib/brand";
 import { getCourseBrowseResultsState } from "../lib/courseBrowse";
 import { getCourseCatalog } from "../lib/courseCatalog";
 
@@ -16,8 +23,14 @@ export default function CourseList() {
   const courses = getCourseCatalog();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<CourseCategoryFilter>("All");
+  const [ucRplStage, setUcRplStage] =
+    useState<UcRplAssessmentStage>("intro");
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const totalCourses = courses.length;
+  const mediaVariantByCourseCode = useMemo(
+    () => new Map(courses.map((course, index) => [course.code, index])),
+    [courses],
+  );
 
   const filteredCourses = useMemo(
     () =>
@@ -58,6 +71,8 @@ export default function CourseList() {
       }),
     [activeCategory, filteredCourses.length, searchQuery, totalCourses],
   );
+  const showCourseCatalogue =
+    !isUcBrand || shouldShowUcCourseCatalogue(ucRplStage);
 
   function clearFilters() {
     setSearchQuery("");
@@ -65,32 +80,63 @@ export default function CourseList() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f7f4]">
+    <div className="min-h-screen bg-[var(--background)]">
       <AppBrandHeader maxWidthClassName="max-w-7xl" />
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <CourseBrowsePageIntro />
-        <CourseBrowseFilters
-          activeCategory={activeCategory}
-          searchQuery={searchQuery}
-          onCategoryChange={setActiveCategory}
-          onSearchChange={setSearchQuery}
-        />
-        <CourseBrowseResultsPanel
-          resultsState={resultsState}
-          onClearFilters={clearFilters}
-        />
+        {isUcBrand ? (
+          <UcRplCourseMatcher
+            courses={courses}
+            stage={ucRplStage}
+            onStageChange={setUcRplStage}
+          />
+        ) : (
+          <CourseBrowsePageIntro />
+        )}
 
-        <div className="mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredCourses.map((course) => (
-            <CourseBrowseCard
-              key={course.code}
-              course={course}
-              onViewCourse={(courseCode) => navigate(`/courses/${courseCode}`)}
+        {showCourseCatalogue ? (
+          <div id="course-catalogue" className={isUcBrand ? "scroll-mt-6 pt-14" : ""}>
+            {isUcBrand ? (
+              <div className="max-w-3xl">
+                <h2 className="text-4xl font-bold tracking-tight text-slate-950">
+                  Explore postgraduate courses
+                </h2>
+                <p className="mt-3 text-lg leading-8 text-slate-600">
+                  Browse all 33 online University of Canberra postgraduate courses.
+                </p>
+              </div>
+            ) : null}
+            <CourseBrowseFilters
+              activeCategory={activeCategory}
+              searchQuery={searchQuery}
+              onCategoryChange={setActiveCategory}
+              onSearchChange={setSearchQuery}
             />
-          ))}
-        </div>
+            <CourseBrowseResultsPanel
+              resultsState={resultsState}
+              onClearFilters={clearFilters}
+            />
+
+            <div
+              className={
+                isUcBrand
+                  ? "mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+                  : "mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              }
+            >
+              {filteredCourses.map((course) => (
+                <CourseBrowseCard
+                  key={course.code}
+                  course={course}
+                  mediaVariantIndex={mediaVariantByCourseCode.get(course.code)}
+                  onViewCourse={(courseCode) => navigate(`/courses/${courseCode}`)}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
+      <AppBrandFooter />
     </div>
   );
 }

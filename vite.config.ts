@@ -45,6 +45,10 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        "/content/dam/uc": {
+          target: "https://www.canberra.edu.au",
+          changeOrigin: true,
+        },
         "/api/evaluate-transcript-eligibility": {
           target: `http://127.0.0.1:${env.TRANSCRIPT_ELIGIBILITY_PORT || "4191"}`,
           changeOrigin: true,

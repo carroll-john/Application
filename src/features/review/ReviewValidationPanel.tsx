@@ -12,7 +12,7 @@ export function ReviewValidationPanel({
   onEdit,
 }: ReviewValidationPanelProps) {
   return (
-    <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+    <div className="content-block mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
       <div className="flex-1">
         <p className="mb-2 font-semibold text-red-800">Required fields missing</p>
         <p className="mb-4 text-sm text-red-700">
@@ -22,7 +22,7 @@ export function ReviewValidationPanel({
           {Object.entries(groupedErrors).map(([section, subsections]) => (
             <div
               key={section}
-              className="rounded border border-red-200 bg-white p-4"
+              className="content-block-compact rounded border border-red-200 bg-white p-4"
             >
               <h3 className="text-base font-bold text-gray-900">{section}</h3>
               <div className="mt-3 space-y-3">

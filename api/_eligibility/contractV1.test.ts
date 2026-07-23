@@ -215,17 +215,25 @@ describe("eligibility-evaluate contract v1", () => {
 
   it("RESPONSE: a non-OK service response is re-wrapped as the typed upstream error", async () => {
     process.env.ELIGIBILITY_SERVICE_URL = SERVICE_URL;
-    fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ error: "boom" }), {
-        status: 503,
-        headers: { "content-type": "application/json" },
-      }),
-    );
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "boom" }), {
+          status: 503,
+          headers: { "content-type": "application/json" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "boom" }), {
+          status: 503,
+          headers: { "content-type": "application/json" },
+        }),
+      );
 
     const response = await postTranscript(JSON.stringify({ courseCode: "MDA900" }));
     const payload = (await response.json()) as Record<string, unknown>;
 
     expect(response.status).toBe(503);
     expect(payload.code).toBe("ELIGIBILITY_SERVICE_UPSTREAM_ERROR");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

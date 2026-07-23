@@ -12,6 +12,7 @@
  *
  * Flags:
  *   --code=<courseCode>   Parse only the named course code.
+ *   --catalog=default|uc  Select the committed catalogue (default: default).
  *   --force               Re-parse courses even if they already have generated requirements.
  *   --dry                 Print planned work without API calls or writes.
  *   --model=<name>        Override OpenAI model (default: gpt-4.1-mini).
@@ -30,8 +31,18 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = resolve(__filename, "../..");
 
-const RAW_CATALOG_PATH = resolve(repoRoot, "src/data/courses.raw.json");
-const GENERATED_PATH = resolve(repoRoot, "src/lib/courseCatalog/requirements.generated.json");
+type CatalogId = "default" | "uc";
+
+const CATALOG_PATHS: Record<CatalogId, { raw: string; generated: string }> = {
+  default: {
+    raw: resolve(repoRoot, "src/data/courses.raw.json"),
+    generated: resolve(repoRoot, "src/lib/courseCatalog/requirements.generated.json"),
+  },
+  uc: {
+    raw: resolve(repoRoot, "src/data/courses.uc.raw.json"),
+    generated: resolve(repoRoot, "src/lib/courseCatalog/requirements.uc.generated.json"),
+  },
+};
 
 interface RawCourseEntry {
   course_name: string;
@@ -51,6 +62,7 @@ interface GeneratedFile {
 }
 
 interface ParseFlags {
+  catalog: CatalogId;
   code?: string;
   force: boolean;
   dry: boolean;
@@ -59,13 +71,25 @@ interface ParseFlags {
 }
 
 function parseFlags(argv: string[]): ParseFlags {
-  const flags: ParseFlags = { force: false, dry: false, model: DEFAULT_PARSER_MODEL };
+  const flags: ParseFlags = {
+    catalog: "default",
+    force: false,
+    dry: false,
+    model: DEFAULT_PARSER_MODEL,
+  };
   for (const arg of argv.slice(2)) {
     if (arg === "--force") flags.force = true;
     else if (arg === "--dry") flags.dry = true;
     else if (arg.startsWith("--code=")) flags.code = arg.slice("--code=".length);
     else if (arg.startsWith("--model=")) flags.model = arg.slice("--model=".length);
     else if (arg.startsWith("--stage=")) flags.stage = arg.slice("--stage=".length);
+    else if (arg.startsWith("--catalog=")) {
+      const catalog = arg.slice("--catalog=".length);
+      if (catalog !== "default" && catalog !== "uc") {
+        throw new Error(`Unknown catalogue: ${catalog}`);
+      }
+      flags.catalog = catalog;
+    }
   }
   return flags;
 }
@@ -105,6 +129,7 @@ function hasGeneratedEntry(entry: unknown): boolean {
 
 async function main() {
   const flags = parseFlags(process.argv);
+  const catalogPaths = CATALOG_PATHS[flags.catalog];
 
   if (flags.stage === "validate") {
     const { spawnSync } = await import("node:child_process");
@@ -116,8 +141,8 @@ async function main() {
     process.exit(result.status ?? 1);
   }
 
-  const rawData = JSON.parse(await readFile(RAW_CATALOG_PATH, "utf8")) as RawCatalog;
-  const existing = JSON.parse(await readFile(GENERATED_PATH, "utf8")) as GeneratedFile;
+  const rawData = JSON.parse(await readFile(catalogPaths.raw, "utf8")) as RawCatalog;
+  const existing = JSON.parse(await readFile(catalogPaths.generated, "utf8")) as GeneratedFile;
 
   const baseCodeCounts: Record<string, number> = {};
   for (const course of rawData.courses) {
@@ -135,7 +160,7 @@ async function main() {
   });
 
   console.log(
-    `Found ${targets.length} courses to parse (force=${flags.force}, dry=${flags.dry}, model=${flags.model}).`,
+    `Found ${targets.length} courses to parse (catalog=${flags.catalog}, force=${flags.force}, dry=${flags.dry}, model=${flags.model}).`,
   );
 
   if (flags.dry) {
@@ -193,8 +218,10 @@ async function main() {
     courses: updated,
   };
 
-  await writeFile(GENERATED_PATH, `${JSON.stringify(next, null, 2)}\n`, "utf8");
-  console.log(`\nWrote ${GENERATED_PATH}. ${successCount} succeeded, ${failureCount} failed.`);
+  await writeFile(catalogPaths.generated, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+  console.log(
+    `\nWrote ${catalogPaths.generated}. ${successCount} succeeded, ${failureCount} failed.`,
+  );
 }
 
 void main().catch((error) => {

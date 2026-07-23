@@ -43,7 +43,7 @@ export function CvUploadFields({
         selectedFile={selectedFile}
       />
 
-      <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
+      <div className="content-block-compact rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
         <p className="mb-2 text-sm font-medium text-[var(--info-text)]">Keep your CV:</p>
         <ul className="list-disc space-y-1 pl-5 text-sm text-[var(--info-text)]">
           <li>current and accurate</li>

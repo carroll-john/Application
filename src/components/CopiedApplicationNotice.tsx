@@ -20,7 +20,7 @@ export function CopiedApplicationNotice({
       )}
     >
       <div className="flex items-start gap-4">
-        <div className="rounded-2xl bg-white/80 p-3">
+        <div className="content-block-compact rounded-2xl bg-white/80 p-3">
           <ArrowRightLeft className="h-5 w-5" />
         </div>
         <div>

@@ -65,7 +65,7 @@ export function QualificationsSectionCard<T>({
 
   return (
     <div
-      className={`rounded-lg border p-4 shadow-sm transition-all sm:p-6 ${getSectionClasses()}`}
+      className={`content-block rounded-lg border p-4 shadow-sm transition-all sm:p-6 ${getSectionClasses()}`}
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
         <div className="flex flex-1 items-center gap-3">
@@ -175,7 +175,7 @@ export function QualificationsListItem({
   const attachmentOnly = !title && !subtitle && attachmentList.length > 0;
 
   return (
-    <div className="rounded border border-gray-200 bg-white p-3 sm:p-4">
+    <div className="content-block-compact rounded border border-gray-200 bg-white p-3 sm:p-4">
       <div
         className={`flex flex-col gap-3 sm:flex-row sm:justify-between ${
           attachmentOnly ? "sm:items-center" : "sm:items-start"

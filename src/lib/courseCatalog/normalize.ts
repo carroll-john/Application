@@ -59,6 +59,9 @@ export function createCourseTransformer(baseCodeCounts: Record<string, number>) 
     const minimumEducation = inferEducationMinimum(course, studyLevel);
     const minimumExperienceYears = inferExperienceMinimum(course);
     const { feeSummary, supportSummary, supportOptions, feeNotes } = buildFeeSummary(course);
+    const publishedFeeSummary = course.sourceUrl?.includes("canberra.edu.au")
+      ? sanitizeText(course.tuition_fees) || feeSummary
+      : feeSummary;
 
     return {
       code: buildCourseCode(course),
@@ -66,9 +69,15 @@ export function createCourseTransformer(baseCodeCounts: Record<string, number>) 
       provider,
       providerCode: slugify(provider),
       categories: inferCategories(subjectArea),
-      delivery: inferDelivery(course),
+      delivery:
+        course.deliveryMode === "online_plus"
+          ? "Online Plus"
+          : course.deliveryMode === "online"
+            ? "100% Online"
+            : inferDelivery(course),
+      deliveryMode: course.deliveryMode ?? "online",
       duration: normalizeDurationLabel(course.course_duration),
-      price: feeSummary,
+      price: publishedFeeSummary,
       studyLevel,
       courseType,
       intakeLabel,
@@ -82,11 +91,15 @@ export function createCourseTransformer(baseCodeCounts: Record<string, number>) 
       intakeDates,
       tuitionFees: sanitizeText(course.tuition_fees) || undefined,
       feeHelpEligibility: sanitizeText(course.fee_help_eligibility) || undefined,
-      feeSummary,
+      feeSummary: publishedFeeSummary,
       supportSummary,
       supportOptions,
       feeNotes,
       outcomes: sanitizeText(course.outcomes) || undefined,
+      officialCourseCode: sanitizeText(course.officialCourseCode) || undefined,
+      sourceUrl: sanitizeText(course.sourceUrl) || undefined,
+      sourceVerifiedAt: sanitizeText(course.sourceVerifiedAt) || undefined,
+      eligibilityPolicy: course.eligibilityPolicy ?? "assess",
       eligibility: {
         educationOptions: [...DEFAULT_EDUCATION_OPTIONS],
         experienceOptions: [...DEFAULT_EXPERIENCE_OPTIONS],

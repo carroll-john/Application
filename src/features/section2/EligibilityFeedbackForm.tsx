@@ -68,7 +68,7 @@ export function EligibilityFeedbackForm({
 
   if (submitted) {
     return (
-      <p className="mt-3 rounded-md border border-[var(--info-border)] bg-[var(--info-bg)] px-3 py-2 text-[11px] text-[var(--info-text)] sm:text-xs">
+      <p className="content-block-compact mt-3 rounded-md border border-[var(--info-border)] bg-[var(--info-bg)] px-3 py-2 text-[11px] text-[var(--info-text)] sm:text-xs">
         {eligibilityFeedbackCopy.submitted}
       </p>
     );
@@ -116,7 +116,7 @@ export function EligibilityFeedbackForm({
   const canSubmit = selectedIds.size > 0 && !submitting;
 
   return (
-    <div className="mt-3 rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3 sm:p-4">
+    <div className="content-block-compact mt-3 rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-3 sm:p-4">
       <p className="text-xs font-semibold text-gray-900 sm:text-sm">
         {eligibilityFeedbackCopy.prompt}
       </p>

@@ -5,6 +5,8 @@ import type { ApplicationSummary } from "../../../lib/applicationRecords";
 import type { StoredApplicantProfile } from "../../../lib/applicantProfileStore";
 import { cloneSourceApplicationDocuments } from "./applicationDocumentClone";
 import type { BeginCourseApplicationOptions } from "./useApplicationStorageOrchestration";
+import { applyUcCvPrefill } from "../../../lib/ucRplAssessment";
+import { replaceStoredDocument } from "../../../lib/documentStorage";
 
 interface BeginCourseApplicationDeps {
   applications: ApplicationSummary[];
@@ -43,10 +45,32 @@ export async function beginCourseApplication(
   );
 
   if (existingApplication?.id) {
+    const loadedApplication =
+      (await deps.storageAdapter.loadApplicationById(existingApplication.id)) ?? deps.data;
+    let reopenedApplication = options?.ucCvPrefill
+      ? await deps.storageAdapter.saveApplication(
+          applyUcCvPrefill(
+            loadedApplication,
+            options.ucCvPrefill,
+            options.authenticatedEmail ?? null,
+          ),
+        )
+      : loadedApplication;
+
+    if (options?.cvFile) {
+      const cvDocument = await replaceStoredDocument(
+        options.cvFile,
+        reopenedApplication.cvDocument,
+        { applicationId: existingApplication.id, kind: "cv" },
+      );
+      reopenedApplication = await deps.storageAdapter.saveApplication({
+        ...reopenedApplication,
+        cvDocument,
+        cvFileName: cvDocument?.name,
+        cvUploaded: Boolean(cvDocument),
+      });
+    }
     await deps.openApplication(existingApplication.id);
-    const reopenedApplication =
-      (await deps.storageAdapter.loadApplicationById(existingApplication.id)) ??
-      deps.data;
     deps.trackDraftResumed(course, existingApplication.id);
     return reopenedApplication;
   }
@@ -60,7 +84,7 @@ export async function beginCourseApplication(
           )
       : null;
 
-  const draft = createApplicationDraft(
+  const baseDraft = createApplicationDraft(
     course,
     resolvedApplicantProfile?.id ?? undefined,
     resolvedApplicantProfile,
@@ -69,11 +93,32 @@ export async function beginCourseApplication(
       ? { includeSourceDocuments: false }
       : undefined,
   );
+  const draft = options?.ucCvPrefill
+    ? applyUcCvPrefill(
+        baseDraft,
+        options.ucCvPrefill,
+        options.authenticatedEmail ?? null,
+      )
+    : baseDraft;
 
   let persisted = await deps.persistApplication(draft, {
     applicantProfileId: resolvedApplicantProfile?.id ?? null,
     forceCreate: true,
   });
+
+  if (options?.cvFile && persisted.applicationMeta.recordId) {
+    const cvDocument = await replaceStoredDocument(options.cvFile, undefined, {
+      applicationId: persisted.applicationMeta.recordId,
+      kind: "cv",
+    });
+
+    persisted = await deps.persistApplication({
+      ...persisted,
+      cvDocument,
+      cvFileName: cvDocument?.name,
+      cvUploaded: Boolean(cvDocument),
+    });
+  }
 
   if (isStartingFromPreviousApplication && reusableSourceApplication) {
     const clonedApplication = await cloneSourceApplicationDocuments(

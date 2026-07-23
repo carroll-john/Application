@@ -1,6 +1,15 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  readonly VITE_APP_BRAND?: "studynext" | "uc";
+  readonly VITE_DEMO_MODE?: "true" | "false";
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
+
+interface ImportMetaEnv {
   readonly VITE_ANALYTICS_HASH_SALT?: string;
   readonly VITE_LOCAL_CV_PARSER_URL?: string;
   readonly VITE_POSTHOG_HOST?: string;

@@ -197,7 +197,7 @@ export default function Section2AddEmployment() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
+              <div className="content-block-compact rounded-lg border border-[var(--info-border)] bg-[var(--info-bg)] p-4">
                 <label className="flex items-start gap-3">
                   <input
                     checked={formData.currentRole}

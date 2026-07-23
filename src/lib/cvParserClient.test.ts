@@ -9,6 +9,7 @@ vi.mock("./supabase", () => ({
 const {
   CvParserRequestError,
   getCvParserErrorMessage,
+  parseCvForRecognition,
   parseEmploymentExperiencesFromCv,
 } = await import("./cvParserClient");
 
@@ -51,7 +52,20 @@ describe("parseEmploymentExperiencesFromCv", () => {
     expect(init.method).toBe("POST");
     expect(init.headers).toMatchObject({ authorization: "Bearer tok-123" });
     expect(init.body).toBeInstanceOf(FormData);
-    expect(result).toEqual({ experiences: [], model: "gpt-4.1-mini" });
+    expect(result).toEqual({
+      experiences: [],
+      model: "gpt-4.1-mini",
+      professionalAccreditations: [],
+      profile: {
+        firstName: "",
+        lastName: "",
+        middleName: "",
+        phone: "",
+        title: "",
+      },
+      secondaryQualifications: [],
+      tertiaryQualifications: [],
+    });
   });
 
   it("omits the authorization header when no session is available", async () => {
@@ -62,6 +76,18 @@ describe("parseEmploymentExperiencesFromCv", () => {
     );
 
     const [, init] = fetchMock.mock.calls[0];
+    expect(init.headers).toEqual({});
+  });
+
+  it("marks the UC pre-application parser request as anonymous-capable", async () => {
+    fetchMock.mockResolvedValueOnce(makeJsonResponse({ experiences: [] }));
+
+    await parseCvForRecognition(
+      new File(["x"], "cv.pdf", { type: "application/pdf" }),
+    );
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/api/parse-cv?flow=uc-pre-application");
     expect(init.headers).toEqual({});
   });
 

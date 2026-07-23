@@ -15,7 +15,7 @@ export function CourseDetailsHero({
   onOpenEligibilityCheck,
 }: CourseDetailsHeroProps) {
   return (
-    <section className="bg-[linear-gradient(135deg,#1f2a3a_0%,#16202d_55%,#1f2a3a_100%)] text-white">
+    <section className="brand-hero text-white">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-16">
         <div className="max-w-2xl">
           <div className="flex flex-wrap gap-3">
@@ -70,16 +70,18 @@ export function CourseDetailsHero({
             </svg>
           </AccentIconBadge>
           <h2 className="text-2xl font-bold text-[var(--cta-secondary)]">
-            Accelerated application process
+            Start your application
           </h2>
           <CourseChecklist
             items={[
-              "Start with a course-specific evidence check",
+              course.eligibilityPolicy === "manual_review"
+                ? "Prepare evidence for an admissions review"
+                : "Start with a course-specific evidence check",
               "Create or reuse your profile after sign in",
               "Save and resume applications across courses",
             ]}
           />
-          <div className="mt-6 rounded-[28px] border border-slate-200 bg-white px-5 py-4 text-sm text-slate-700">
+          <div className="content-block-compact mt-6 rounded-[28px] border border-slate-200 bg-white px-5 py-4 text-sm text-slate-700">
             <p className="font-semibold text-slate-900">At a glance</p>
             <dl className="mt-3 space-y-3">
               <div>
@@ -131,7 +133,7 @@ export function CourseDetailsHero({
 
 function CourseHeroFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur">
+    <div className="content-block-compact rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur">
       <p className="text-xs uppercase tracking-[0.16em] text-white/70">{label}</p>
       <p className="mt-2 text-sm font-semibold text-white">{value}</p>
     </div>

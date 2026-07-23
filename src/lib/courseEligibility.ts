@@ -26,6 +26,7 @@ export interface EligibilityAnswers {
 
 export interface EligibilityResult {
   eligible: boolean;
+  manualReview?: boolean;
   reason?: string;
 }
 
@@ -197,6 +198,9 @@ function buildAcademicThresholdOptions(
 export function getCourseEligibilityQuestions(
   course: CourseCatalogEntry,
 ): EligibilityQuestion[] {
+  if (course.eligibilityPolicy === "manual_review") {
+    return [];
+  }
   const requirements = course.requirements ?? [];
   if (requirements.length === 0) {
     return [
@@ -273,6 +277,14 @@ export function evaluateCourseRequirementAnswers(
   course: CourseCatalogEntry,
   answers: EligibilityAnswers,
 ): EligibilityResult {
+  if (course.eligibilityPolicy === "manual_review") {
+    return {
+      eligible: false,
+      manualReview: true,
+      reason:
+        "UC Admissions needs to review this course manually. Add your documents and details so the published requirements can be assessed safely.",
+    };
+  }
   const requirements = course.requirements ?? [];
   if (requirements.length === 0) {
     return evaluateCourseEligibility(course.eligibility, answers);
@@ -281,8 +293,19 @@ export function evaluateCourseRequirementAnswers(
   const doesNotMeetAcademic =
     answers.academicThreshold === "Below the required WAM/GPA" ||
     answers.academicThreshold === "Not sure";
+  const pathwayBundles = new Map<string, RequirementInstance[]>();
+  for (const requirement of requirements) {
+    if (!requirement.pathwayBundleId) continue;
+    const pathway = pathwayBundles.get(requirement.pathwayBundleId) ?? [];
+    pathway.push(requirement);
+    pathwayBundles.set(requirement.pathwayBundleId, pathway);
+  }
+  const hasPathwayWithoutFieldRequirement = [...pathwayBundles.values()].some(
+    (pathway) => !pathway.some((requirement) => requirement.kind === "field_of_study"),
+  );
   const doesNotMeetField =
-    answers.fieldOfStudy === "Different field" || answers.fieldOfStudy === "Not sure";
+    !hasPathwayWithoutFieldRequirement &&
+    (answers.fieldOfStudy === "Different field" || answers.fieldOfStudy === "Not sure");
   const needsEnglishEvidence = answers.englishEvidence === "Need to provide evidence";
 
   if (doesNotMeetAcademic || doesNotMeetField || needsEnglishEvidence) {

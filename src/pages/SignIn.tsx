@@ -16,7 +16,7 @@ export default function SignIn() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f7f7f4] px-4">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
         <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm">
           <LoadingSpinner />
           <span>Loading sign in...</span>
@@ -30,7 +30,7 @@ export default function SignIn() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f7f4]">
+    <div className="min-h-screen bg-[var(--background)]">
       <AppBrandHeader maxWidthClassName="max-w-6xl" />
       <div className="mx-auto flex min-h-[calc(100vh-73px)] max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid w-full gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">

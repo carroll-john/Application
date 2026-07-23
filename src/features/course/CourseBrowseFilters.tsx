@@ -1,6 +1,7 @@
 import { SurfaceCard } from "../../components/SurfaceCard";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { isUcBrand } from "../../lib/brand";
 import {
   COURSE_CATEGORY_FILTERS,
   type CourseCategoryFilter,
@@ -26,7 +27,9 @@ export function CourseBrowseFilters({
           <Input
             aria-label="Search courses"
             className="h-10 rounded-xl border-slate-200 bg-slate-50 px-3 py-2 shadow-none focus:bg-white sm:max-w-xl"
-            placeholder="Search courses or providers"
+            placeholder={
+              isUcBrand ? "Search courses" : "Search courses or providers"
+            }
             type="search"
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}

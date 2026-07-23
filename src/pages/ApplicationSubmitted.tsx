@@ -12,10 +12,12 @@ import { Suspense, lazy, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { AccentIconBadge } from "../components/AccentIconBadge";
 import { AppBrandHeader } from "../components/AppBrandHeader";
+import { AppBrandFooter } from "../components/AppBrandFooter";
 import { FormSectionCard } from "../features/forms";
 import { Button } from "../components/ui/button";
 import { useApplication } from "../context/ApplicationContext";
 import { formatApplicationDate } from "../lib/applicationProgress";
+import { activeBrand } from "../lib/brand";
 
 // Gate the dynamic import behind DEV so the chunk is dead-code-eliminated
 // from production builds. import.meta.env.DEV becomes a literal `false` at
@@ -34,7 +36,7 @@ export default function ApplicationSubmitted() {
   const submittedDate = formatApplicationDate(data.applicationMeta.submittedAt);
 
   return (
-    <div className="min-h-screen bg-[#f7f7f4]">
+    <div className="min-h-screen bg-[var(--background)]">
       <AppBrandHeader>
         {AI_ASSESSMENT_DEMO_ENABLED ? (
           <Button
@@ -54,7 +56,7 @@ export default function ApplicationSubmitted() {
         </Suspense>
       ) : null}
 
-      <section className="relative overflow-hidden bg-[linear-gradient(135deg,#1f2a3a_0%,#16202d_55%,#1f2a3a_100%)] text-white">
+      <section className="brand-hero relative overflow-hidden text-white">
         <div className="absolute inset-0 opacity-15">
           <div className="absolute right-10 top-10 h-64 w-64 rounded-full bg-[var(--sn-yellow)] blur-3xl" />
           <div className="absolute bottom-10 left-10 h-48 w-48 rounded-full bg-[var(--sn-mint)] blur-3xl" />
@@ -66,7 +68,7 @@ export default function ApplicationSubmitted() {
           <h1 className="mt-6 text-4xl font-bold sm:text-5xl">
             Application Successfully Submitted!
           </h1>
-          <div className="mt-6 inline-block rounded-2xl border border-white/20 bg-white/10 px-6 py-3 backdrop-blur">
+          <div className="content-block-compact mt-6 inline-block rounded-2xl border border-white/20 bg-white/10 px-6 py-3 backdrop-blur">
             <p className="text-sm text-white/75">Your application number</p>
             <p className="text-3xl font-bold text-[var(--sn-yellow)]">{applicationNumber}</p>
           </div>
@@ -126,7 +128,7 @@ export default function ApplicationSubmitted() {
         </div>
       </section>
 
-      <section className="border-t border-slate-200 bg-[#f7f7f4] py-12 sm:py-16">
+      <section className="border-t border-slate-200 bg-[var(--background)] py-12 sm:py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-slate-900">Need help?</h2>
@@ -137,30 +139,31 @@ export default function ApplicationSubmitted() {
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             <SupportCard
-              action="support@studynext.com"
+              action={activeBrand.support.email}
               iconTone="brandSoft"
               icon={<Mail className="h-6 w-6" />}
               title="Email support"
             />
             <SupportCard
-              action="1300 123 456"
+              action={activeBrand.support.phone}
               iconTone="mintSoft"
               icon={<Phone className="h-6 w-6" />}
               title="Phone support"
             />
             <SupportCard
-              action="Start chat"
+              action={activeBrand.support.service}
               iconTone="accentSoft"
               icon={<MessageCircle className="h-6 w-6" />}
               title="Live chat"
             />
           </div>
-          <div className="mt-8 rounded-2xl border border-[var(--info-border)] bg-[var(--info-bg)] p-4 text-center text-sm text-[var(--info-text)]">
+          <div className="content-block-compact mt-8 rounded-2xl border border-[var(--info-border)] bg-[var(--info-bg)] p-4 text-center text-sm text-[var(--info-text)]">
             <strong>Quote your Application Number ({applicationNumber})</strong> when
             contacting support for faster assistance.
           </div>
         </div>
       </section>
+      <AppBrandFooter />
     </div>
   );
 }

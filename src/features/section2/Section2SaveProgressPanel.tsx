@@ -12,7 +12,7 @@ export function Section2SaveProgressPanel({
   return (
     <div
       aria-live="polite"
-      className="rounded-2xl border border-[var(--info-border)] bg-[linear-gradient(140deg,#f4fbff_0%,#eef7fc_100%)] px-4 py-4 shadow-[0_14px_30px_rgba(31,42,58,0.08)]"
+      className="content-block-compact rounded-2xl border border-[var(--info-border)] bg-[linear-gradient(140deg,#f4fbff_0%,#eef7fc_100%)] px-4 py-4 shadow-[0_14px_30px_rgba(31,42,58,0.08)]"
       role="status"
     >
       <div className="flex items-start gap-3">

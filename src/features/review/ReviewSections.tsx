@@ -12,7 +12,7 @@ export function ReviewCard({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 border-l-4 border-l-[var(--cta-secondary)] bg-white p-5 shadow-sm sm:p-6">
+    <div className="content-block rounded-lg border border-gray-200 border-l-4 border-l-[var(--cta-secondary)] bg-white p-5 shadow-sm sm:p-6">
       <div
         className={
           onEdit
@@ -48,7 +48,7 @@ export function ReviewDocumentRow({
   onEdit: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+    <div className="content-block-compact rounded-lg border border-gray-200 bg-gray-50 p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-start gap-2">
           <Paperclip className="h-4 w-4 shrink-0 text-green-600" />
@@ -99,7 +99,7 @@ export function ReviewList({
       {items.map((item, index) => (
         <div
           key={item.id}
-          className="rounded-lg border border-gray-200 bg-gray-50 p-4"
+          className="content-block-compact rounded-lg border border-gray-200 bg-gray-50 p-4"
         >
           <div className="flex items-start justify-between gap-3">
             <p className="font-medium text-gray-900">

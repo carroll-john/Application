@@ -10,7 +10,7 @@ export function SurfaceCard({ children, className }: SurfaceCardProps) {
   return (
     <div
       className={cn(
-        "rounded-[32px] border border-[var(--border)] bg-white shadow-sm",
+        "content-block rounded-[32px] border border-[var(--border)] bg-white shadow-sm",
         className,
       )}
     >

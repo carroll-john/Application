@@ -51,7 +51,7 @@ export function StatusMessage({
     <div
       role={isUrgent ? "alert" : "status"}
       aria-live={isUrgent ? "assertive" : "polite"}
-      className={`flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg ${config[type].wrapper}`}
+      className={`content-block-compact flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-lg ${config[type].wrapper}`}
     >
       <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${config[type].iconClass}`} />
       <p className="flex-1 text-sm font-medium">{message}</p>

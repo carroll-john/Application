@@ -59,6 +59,48 @@ const plan: Section2EvidencePlan = {
 };
 
 describe("SupportingEvidencePanel", () => {
+  it("hides the complete eligibility panel while transcript evidence is processing", () => {
+    const html = renderToStaticMarkup(
+      createElement(SupportingEvidencePanel, {
+        courseTitle: "Master of Business Administration (Government)",
+        ensureApplicationRow: async () => "application-id",
+        isHero: false,
+        isProcessing: true,
+        onNavigate: () => undefined,
+        onSaveFeedback: async () => undefined,
+        onSkipPrompt: () => undefined,
+        onUnskipPrompt: () => undefined,
+        plan,
+        showParsedTranscriptIntro: false,
+        ungroupedRows: rows,
+      }),
+    );
+
+    expect(html).toBe("");
+  });
+
+  it("stages completed eligibility fields in reading order", () => {
+    const html = renderToStaticMarkup(
+      createElement(SupportingEvidencePanel, {
+        courseTitle: "Master of Business Administration (Government)",
+        ensureApplicationRow: async () => "application-id",
+        isHero: false,
+        isProcessing: false,
+        onNavigate: () => undefined,
+        onSaveFeedback: async () => undefined,
+        onSkipPrompt: () => undefined,
+        onUnskipPrompt: () => undefined,
+        plan,
+        showParsedTranscriptIntro: false,
+        ungroupedRows: rows,
+      }),
+    );
+
+    expect(html.match(/eligibility-evidence-field/g)).toHaveLength(2);
+    expect(html).toContain("--eligibility-evidence-reveal-order:0");
+    expect(html).toContain("--eligibility-evidence-reveal-order:1");
+  });
+
   it("keeps an advisory work-experience result in the compact green evidence list", () => {
     const workRow: ProgramEvidenceRow = {
       explanation:
@@ -172,5 +214,61 @@ describe("SupportingEvidencePanel", () => {
     expect(html).toContain("Met");
     expect(html).not.toContain("Qualification completion from transcript");
     expect(html).not.toContain("Completion status: conferred");
+  });
+
+  it("omits extracted WAM and GPA when the course publishes no academic threshold", () => {
+    const assessment = normalizeTranscriptEligibilityAssessment({
+      checkedAt: "2026-07-22T00:00:00Z",
+      extractedData: {
+        academicPerformance: {
+          gpa: {
+            confidence: 0.99,
+            normalizedValue: "3.3",
+            originalValue: "3.3",
+          },
+          gpaScale: {
+            confidence: 0.99,
+            normalizedValue: "4.0",
+            originalValue: "4.0",
+          },
+          gradeAverageOrWam: {
+            confidence: 0.99,
+            normalizedValue: "74.2",
+            originalValue: "74.2",
+          },
+        },
+      },
+      outcome: "eligible",
+      requirementsChecked: [],
+      selectedPathwayId: "related-bachelor",
+    });
+    const readyPlan: Section2EvidencePlan = {
+      ...plan,
+      isEvidenceReady: true,
+      nextPrompt: null,
+      remainingPromptCount: 0,
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(SupportingEvidencePanel, {
+        assessment,
+        courseTitle: "Master of Business Administration (Government)",
+        ensureApplicationRow: async () => "application-id",
+        isHero: false,
+        isProcessing: false,
+        onNavigate: () => undefined,
+        onSaveFeedback: async () => undefined,
+        onSkipPrompt: () => undefined,
+        onUnskipPrompt: () => undefined,
+        plan: readyPlan,
+        showParsedTranscriptIntro: true,
+        ungroupedRows: [rows[0]],
+      }),
+    );
+
+    expect(html).not.toContain("Academic result from transcript");
+    expect(html).not.toContain("WAM: 74.2");
+    expect(html).not.toContain("GPA: 3.3/4.0");
+    expect(html).toContain("Bachelor degree or higher");
   });
 });

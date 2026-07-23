@@ -118,7 +118,7 @@ function ApplicationRow({
       </div>
 
       {isActive ? (
-        <div className="mt-5 rounded-2xl border border-[var(--info-border)] bg-[var(--info-bg)] px-4 py-3 text-sm font-medium text-[var(--info-text)]">
+        <div className="content-block-compact mt-5 rounded-2xl border border-[var(--info-border)] bg-[var(--info-bg)] px-4 py-3 text-sm font-medium text-[var(--info-text)]">
           This is your current active application.
         </div>
       ) : null}
@@ -139,7 +139,7 @@ function ApplicationRow({
 
 function ApplicationMeta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+    <div className="content-block-compact rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
       <span className="block text-xs uppercase tracking-[0.16em] text-slate-500">
         {label}
       </span>

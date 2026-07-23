@@ -51,6 +51,17 @@ When gating passes, parse starts in parallel with document save. Upload failure 
 
 CV persist exception: after document save, call `uploadCV` / `removeCV` (app-scoped FK on `applications.cv_document_id`).
 
+For the UC Vice-Chancellor prototype only, the supplied Bill Shorten public-profile
+demo CV receives fixed OSCA results for its seven employment roles after extraction.
+This keeps the scripted demo deterministic. Other applicants continue to use the
+duties-based model result.
+
+The UC pre-application course-matching flow calls `/api/parse-cv` with
+`flow=uc-pre-application`. That flow may run before sign-in and is rate-limited by
+client IP. Its extracted data stays in temporary browser state. The ordinary
+Section 2 CV parser remains authenticated, and authentication is required before
+the UC assessment can create or save an application.
+
 ### Course-specific work-experience assessment
 
 CV parsing remains responsible only for drafting editable employment rows. A separate
@@ -80,6 +91,11 @@ Reuses `/api/evaluate-transcript-eligibility` as a single LLM call for field ext
 | Analytics | `tertiaryTranscriptParserAnalytics.ts` |
 
 Gating: new transcript selected **and** qualification core fields empty → auto-fill; new transcript always runs evidence review. Upload failure is **blocking**; parse/review failure is **warning** (save succeeds, `insufficient_data` fallback).
+
+The Applications proxy retries one transient eligibility-service response (`502`, `503`, or
+`504`) before returning a typed upstream error. If both attempts fail, applicant copy must
+describe the evidence service as temporarily unavailable; “try a clearer file” is reserved
+for successful assessments that genuinely contain no draftable transcript fields.
 
 ## Approved entry points
 

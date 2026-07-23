@@ -21,6 +21,20 @@ External design files are not a project source of truth.
 
 ## Current contract
 
+### Reversible product brands
+
+- Shared UI consumes semantic tokens and the active `BrandConfig`; route components must not define page-local brand palettes or logos.
+- `VITE_APP_BRAND=uc` selects the University of Canberra profile and UC catalogue. Absence selects StudyNext, preserving the production default.
+- The active brand is applied to the document before React renders to avoid an unthemed first frame.
+- UC uses its official inline logo assets, Figtree for UI/body copy, STIX Two Text for display headings, and Dark Teal for normal-size white-text actions.
+- The UC header shows the official UC logo without a KeypathTECH service mark. The StudyNext header remains unchanged.
+- UC uses square editorial and content surfaces. Interactive controls such as buttons, inputs, search fields, pills, badges, and progress indicators retain their rounded control geometry.
+- UC course browse cards use deterministic, category-specific pools of official UC subject-area imagery through the checked-in same-origin proxy, the configured UC logo, concise summaries and compact metadata chips. Filtering must not reshuffle imagery, and the StudyNext card variant remains unchanged.
+- The UC demo's pre-application CV review uses applicant-friendly experience groups backed by the internal occupation classification and counts overlapping dates once. Guidance beneath the groups is generated from the applicant's included role types and durations rather than restating the full generic policy. The full browse catalogue remains beneath the initial CV upload screen but is hidden while reviewing the CV, reviewing experience, and showing matched courses. The matched-course screen reuses the same experience-group, duration, direct-entry and Admissions-review language; its summary strip does not repeat a matched occupation title, and its duration comes from the corresponding reviewed experience group. The prototype's internal GPA mapping is not applicant-facing work-experience copy, and potential credit remains a separate decision. Course-match cards omit the short course summary beneath the title, rank entry guidance and credit potential as High, Medium or Low confidence, and keep the home-page catalogue summary unchanged. Their indicative credit copy uses 6 points for graduate certificates, 12 for graduate diplomas and 18 for longer awards, always subject to supporting evidence and faculty assessment. Expanding an experience group lets applicants include roles and review or correct the mapped occupation title, with its classification level and short mapping description shown for context; parser confidence remains hidden on the review screen. Tertiary, secondary, and professional qualifications extracted from the CV are shown as named rows. Contact-detail prefill is handled later in the application rather than in this review. This pattern does not apply to StudyNext or `/review`.
+- The UC application overview reuses the selected course's reviewed catalogue imagery and exposes course facts with meaningful icons. Its three application sections use person, qualification and review metaphors rather than decorative placeholders; the StudyNext overview remains unchanged.
+- `VITE_DEMO_MODE=true` disables PostHog and support capture; Sentry error capture may remain enabled but replay sampling is forced to zero.
+- Public course and submitted surfaces may include the compact brand footer. Application forms retain navigation ownership in `ApplicationShell` and do not use a site footer.
+
 Extend tokens and shared primitives before introducing a new page-local visual
 pattern. Existing hard-coded exceptions may be migrated incrementally; new code
 must not expand them.
@@ -94,6 +108,11 @@ See [PR #202](https://github.com/carroll-john/Application/pull/202).
 ## Section 2 evidence hub
 
 - `SupportingEvidencePanel` — program evidence cards + feedback entry point.
+- During an automatic transcript evidence review, the results panel remains hidden while the
+  dedicated progress panel is visible. Once processing completes, result cards reveal in reading
+  order; reduced-motion users receive the completed result immediately without staggered delays.
+- Extracted WAM/GPA is not listed as standalone eligibility evidence. It appears only in the
+  result copy for a published academic-threshold requirement; courses without a threshold omit it.
 - `EligibilityFeedbackForm` — per-row dispute notes; CTA copy in `uiCopy.ts`
   (`Save feedback` / `Saving...`).
 - Feedback rows mirror met/review evidence rows from `buildProgramEvidenceRows`.

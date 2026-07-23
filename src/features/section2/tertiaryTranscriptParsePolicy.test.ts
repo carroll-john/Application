@@ -208,4 +208,35 @@ describe("tertiaryTranscriptParsePolicy", () => {
     expect(message?.type).toBe("warning");
     expect(message?.message).toContain("couldn't draft a qualification");
   });
+
+  it("describes a service failure without blaming transcript clarity", () => {
+    const message = buildTertiaryTranscriptFlashMessage({
+      assessment: {
+        checkedAt: new Date().toISOString(),
+        confidence: 0.4,
+        extractedData: {},
+        manualReviewRequired: true,
+        missingInformation: ["Eligibility service request failed."],
+        outcome: "insufficient_data",
+        recommendedNextStep: "Retry the evidence review.",
+        requirementsChecked: [
+          {
+            explanation: "Eligibility service request failed.",
+            id: "automatic-evaluation",
+            reasonCode: "SERVICE_UNAVAILABLE",
+            requirement: "Automatic transcript eligibility evaluation",
+            status: "unknown",
+          },
+        ],
+      },
+      draftedFieldCount: 0,
+      preservedExistingFields: false,
+      qualificationHasCoreData: false,
+      validationFailed: false,
+    });
+
+    expect(message?.type).toBe("warning");
+    expect(message?.message).toContain("temporarily unavailable");
+    expect(message?.message).not.toContain("clearer file");
+  });
 });

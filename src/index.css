@@ -1,17 +1,31 @@
-@import url("https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700;800;900&family=STIX+Two+Text:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 :root {
   color-scheme: light;
 
+  /* Keypath Tech brand — stable even when a partner theme is active. */
+  --keypath-tech-navy: #1f2a3a;
+  --keypath-tech-yellow: #f4b400;
+
   /* StudyNext brand */
-  --sn-navy: #1f2a3a;
+  --sn-navy: var(--keypath-tech-navy);
   --sn-navy-deep: #16202d;
   --sn-mint: #4cd2b6;
   --sn-mint-soft: #b8eadd;
-  --sn-yellow: #f4b400;
+  --sn-yellow: var(--keypath-tech-yellow);
   --sn-chip-border: rgba(255, 255, 255, 0.55);
   --sn-search-bg: #ffffff;
+  --brand-header: var(--sn-navy);
+  --brand-header-text: #ffffff;
+  --brand-header-border: transparent;
+  --brand-header-link-border: rgba(255, 255, 255, 0.3);
+  --brand-header-shadow: none;
+  --brand-service-bg: rgba(255, 255, 255, 0.1);
+  --brand-service-text: rgba(255, 255, 255, 0.85);
+  --brand-accent: var(--sn-mint);
+  --brand-accent-strong: var(--sn-mint);
+  --brand-footer: var(--sn-navy-deep);
 
   /* Keypath Apply — aliased to StudyNext so legacy components pick up the new brand. */
   --keypath-yellow: var(--sn-yellow);
@@ -47,6 +61,7 @@
   --deep-blue-dark: var(--keypath-blue-hover);
 
   --cta-primary: var(--keypath-yellow);
+  --cta-primary-text: #1f2937;
   --cta-primary-hover: var(--keypath-yellow-hover);
   --cta-primary-pressed: var(--keypath-yellow-pressed);
   --cta-secondary: var(--keypath-blue);
@@ -98,11 +113,89 @@
   --shadow-cta-yellow: 0 8px 20px rgba(244, 180, 0, 0.28);
   --shadow-cta-navy: 0 8px 20px rgba(31, 42, 58, 0.22);
   --shadow-cta-blue: var(--shadow-cta-navy);
+  --shadow-cta-primary: var(--shadow-cta-yellow);
   --ring-brand: 0 0 0 4px rgba(31, 42, 58, 0.1);
 
   /* Typography */
   --font-body: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --font-display: var(--font-body);
+}
+
+:root[data-brand="uc"] {
+  /* University of Canberra — published digital palette */
+  --uc-blue: #009abc;
+  --uc-dark-teal: #006c91;
+  --uc-hale-navy: #414d61;
+  --uc-light-blue: #92d6e3;
+  --uc-dark-grey: #414042;
+  --uc-yellow: #ffcc32;
+
+  /* Legacy aliases keep existing screens on the shared semantic theme. */
+  --sn-navy: var(--uc-hale-navy);
+  --sn-navy-deep: #303a4b;
+  --sn-mint: var(--uc-light-blue);
+  --sn-mint-soft: #d7f0f4;
+  --sn-yellow: var(--uc-yellow);
+  --keypath-yellow: var(--uc-dark-teal);
+  --keypath-yellow-hover: #005a79;
+  --keypath-yellow-pressed: #004963;
+  --keypath-blue: var(--uc-hale-navy);
+  --keypath-blue-hover: #303a4b;
+  --keypath-blue-pressed: #242c39;
+
+  --brand-header: #ffffff;
+  --brand-header-text: var(--uc-dark-grey);
+  --brand-header-border: rgba(65, 64, 66, 0.14);
+  --brand-header-link-border: rgba(65, 64, 66, 0.28);
+  --brand-header-shadow: 0 1px 3px rgba(65, 64, 66, 0.05);
+  --brand-accent: var(--uc-blue);
+  --brand-accent-strong: var(--uc-dark-teal);
+  --brand-footer: var(--uc-hale-navy);
+
+  --background: #ffffff;
+  --background-dark: var(--uc-hale-navy);
+  --background-tinted: #edf6f8;
+  --background-soft-blue: #e7f6f8;
+  --background-soft-yellow: #fff7d6;
+  --fg-1: #25282d;
+  --fg-2: var(--uc-dark-grey);
+  --fg-3: #66707c;
+  --border: rgba(65, 64, 66, 0.14);
+  --border-strong: rgba(65, 64, 66, 0.28);
+  --border-input: #9aa5ad;
+  --muted: #eef2f3;
+
+  --primary: var(--uc-dark-teal);
+  --secondary: var(--uc-hale-navy);
+  --deep-blue: var(--uc-hale-navy);
+  --deep-blue-dark: #303a4b;
+  --cta-primary: var(--uc-dark-teal);
+  --cta-primary-hover: #005a79;
+  --cta-primary-pressed: #004963;
+  --cta-primary-text: #ffffff;
+  --cta-secondary: var(--uc-hale-navy);
+  --cta-secondary-hover: #303a4b;
+  --cta-secondary-pressed: #242c39;
+  --cta-tertiary-hover: #e7f6f8;
+  --cta-tertiary-pressed: #d1edf2;
+  --cta-tertiary-border: var(--uc-dark-teal);
+  --cta-tertiary-text: var(--uc-dark-teal);
+  --shadow-cta-primary: 0 8px 20px rgba(0, 108, 145, 0.22);
+  --shadow-cta-yellow: var(--shadow-cta-primary);
+  --shadow-cta-navy: 0 8px 20px rgba(65, 77, 97, 0.2);
+  --ring-brand: 0 0 0 4px rgba(0, 154, 188, 0.2);
+  --font-display: "STIX Two Text", Georgia, serif;
+}
+
+/*
+ * UC separates editorial geometry from interaction geometry: content panels
+ * are square, while buttons, pills, inputs and search controls stay rounded.
+ * Components opt into these semantic surface classes so the StudyNext radii
+ * remain unchanged and control shapes are never flattened accidentally.
+ */
+:root[data-brand="uc"] .content-block,
+:root[data-brand="uc"] .content-block-compact {
+  border-radius: 0;
 }
 
 * {
@@ -121,6 +214,63 @@ body {
     radial-gradient(circle at top right, rgba(76, 210, 182, 0.12), transparent 32%),
     linear-gradient(180deg, #fbfcfd 0%, #f7f7f4 100%);
   color: var(--foreground);
+}
+
+:root[data-brand="uc"] body {
+  background: var(--background);
+}
+
+.brand-hero {
+  background: linear-gradient(
+    135deg,
+    var(--background-dark) 0%,
+    var(--deep-blue-dark) 55%,
+    var(--background-dark) 100%
+  );
+}
+
+:root[data-brand="uc"] h1,
+:root[data-brand="uc"] h2,
+:root[data-brand="uc"] .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+}
+
+:focus-visible {
+  outline: 3px solid var(--brand-accent);
+  outline-offset: 3px;
+}
+
+@keyframes eligibility-evidence-field-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.eligibility-evidence-field {
+  animation: eligibility-evidence-field-reveal 360ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--eligibility-evidence-reveal-order, 0) * 420ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .eligibility-evidence-field {
+    animation-delay: 0ms !important;
+  }
 }
 
 button,

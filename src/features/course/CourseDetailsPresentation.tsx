@@ -71,7 +71,7 @@ export function CourseDetailsPresentation({
                   {course.coreSubjects.map((subject) => (
                     <li
                       key={subject}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700"
+                      className="content-block-compact rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700"
                     >
                       {subject}
                     </li>
@@ -93,6 +93,34 @@ export function CourseDetailsPresentation({
                       Subject area
                     </dt>
                     <dd className="mt-1 font-medium">{course.subjectArea}</dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                    Delivery
+                  </dt>
+                  <dd className="mt-1 font-medium">{course.delivery}</dd>
+                </div>
+                {course.sourceUrl ? (
+                  <div>
+                    <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
+                      Official source
+                    </dt>
+                    <dd className="mt-1 font-medium">
+                      <a
+                        className="text-[var(--cta-tertiary-text)] underline underline-offset-4"
+                        href={course.sourceUrl}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        University of Canberra course information
+                      </a>
+                      {course.sourceVerifiedAt ? (
+                        <span className="mt-1 block text-xs font-normal text-slate-500">
+                          Verified {course.sourceVerifiedAt}
+                        </span>
+                      ) : null}
+                    </dd>
                   </div>
                 ) : null}
                 {course.duration ? (

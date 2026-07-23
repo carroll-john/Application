@@ -66,7 +66,7 @@ export function FileUpload({
       {!hasFile ? (
         <div className="mt-3 space-y-3">
           {pendingHelperText ? (
-            <div className="flex items-center gap-2 rounded-2xl border border-[var(--info-border)] bg-[linear-gradient(135deg,#f4fbff_0%,var(--info-bg)_100%)] px-3 py-2 text-xs font-medium text-[var(--info-text)]">
+            <div className="content-block-compact flex items-center gap-2 rounded-2xl border border-[var(--info-border)] bg-[linear-gradient(135deg,#f4fbff_0%,var(--info-bg)_100%)] px-3 py-2 text-xs font-medium text-[var(--info-text)]">
               <Upload className="h-3.5 w-3.5 shrink-0" />
               <span>{pendingHelperText}</span>
             </div>
@@ -121,7 +121,7 @@ export function FileUpload({
         </div>
       ) : null}
       {hasFile ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--success-border)] bg-[linear-gradient(180deg,#ffffff_0%,#f7fcf9_100%)] px-4 py-3 text-sm text-[var(--success-text)]">
+        <div className="content-block-compact mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--success-border)] bg-[linear-gradient(180deg,#ffffff_0%,#f7fcf9_100%)] px-4 py-3 text-sm text-[var(--success-text)]">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <Paperclip className="h-4 w-4 shrink-0" />
             <span className="truncate font-medium">{fileName}</span>

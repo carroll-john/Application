@@ -44,7 +44,7 @@ export function EmployerConfirmationNudge({
   return (
     <aside
       aria-label="Employer confirmation reminder"
-      className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:mb-8 sm:p-5"
+      className="content-block-compact mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 sm:mb-8 sm:p-5"
     >
       <div className="flex items-start gap-3">
         <div className="rounded-full bg-white p-2 text-[var(--cta-secondary)] shadow-sm">

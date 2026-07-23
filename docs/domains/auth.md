@@ -32,6 +32,11 @@ and password-recovery state. Shared route gates own access enforcement.
 - Local dev: `supabase start` + Mailpit at http://127.0.0.1:54324 (confirmation emails do not go to real inboxes).
 - Applications and applicant data require authentication. Signed-out visitors
   may browse but cannot own drafts or applicant documents.
+- The UC pre-application demo is a narrow exception: a signed-out visitor may
+  parse one CV into temporary in-memory course-matching state. The assessment is
+  IP-rate-limited and is not persisted. Authentication is required when the
+  visitor selects Start application, before the CV or extracted data can enter an
+  application draft.
 - Troubleshooting: [auth-password.md](../runbooks/auth-password.md)
 
 ## Approved entry points
@@ -39,6 +44,7 @@ and password-recovery state. Shared route gates own access enforcement.
 - Header sign-in
 - Eligibility completion (before showing result)
 - Apply actions on course pages
+- Start application from the UC pre-application assessment
 - `/sign-in?redirect=…` for protected routes
 
 ## Redirect Contract
@@ -122,6 +128,8 @@ npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
 - An authenticated session produces the remote Supabase adapter; no session
   produces a no-write guest adapter.
 - There is no anonymous application draft or draft-import contract.
+- The UC pre-application assessment is temporary browser state, not an
+  application draft. Closing or refreshing the page discards it.
 
 ## Profile
 

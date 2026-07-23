@@ -45,7 +45,7 @@ maintain a separate current-phase list.
 | Application data | Browser → `ApplicationStorageAdapter` → Supabase Postgres | Applications require authentication. Supabase and the submit RPC are authoritative. |
 | Documents | Browser → shared document layer → Supabase Storage/Postgres | Product flows require authentication. A legacy IndexedDB implementation still exists pending Phase 2 removal. |
 | Submission | Browser validation → remote store → `submit_application` RPC | The server is final authority; browser checks are a UX mirror. |
-| CV parsing | Browser → `/api/parse-cv` → OpenAI | The app API owns CV extraction orchestration. |
+| CV parsing | Browser → `/api/parse-cv` → OpenAI | The app API owns CV extraction orchestration. Ordinary application parsing requires authentication. The UC pre-application assessment may parse anonymously without persistence; authentication is required before starting or saving an application. |
 | Transcript evidence | Browser → `/api/evaluate-transcript-eligibility` → `eligibility-service` → OpenAI | The service extracts evidence; the Applications proxy owns program decisions. A local app OpenAI fallback still exists pending Phase 3 removal. |
 | Suggestions | Browser → `/api/suggest/*` → `suggest-service` | The service owns institution/address suggestions. Local lists remain as a legacy fallback pending Phase 3 removal. |
 | Analytics | Browser/API → PostHog | Typed analytics wrappers own event shape and privacy controls. |

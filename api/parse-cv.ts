@@ -1,6 +1,6 @@
 import { callLlm, type LlmContent } from "./_ai/callLlm.js";
-import { cvEmploymentPromptV1 } from "./_ai/prompts/cvEmployment.v1.js";
-import { cvEmploymentSchemaV1 } from "./_ai/schemas/cvEmployment.v1.js";
+import { cvRecognitionPromptV2 } from "./_ai/prompts/cvRecognition.v2.js";
+import { cvRecognitionSchemaV2 } from "./_ai/schemas/cvRecognition.v2.js";
 import {
   authenticateRequest,
   getClientIp,
@@ -11,6 +11,7 @@ import {
   findExperienceArray,
   normalizeExperienceEntry,
 } from "./_documentParser/kinds/cv/extraction.js";
+import { applyBillShortenDemoOscaMatch } from "./_documentParser/kinds/cv/billShortenDemoOscaMatches.js";
 import { errorResponse, jsonResponse } from "./_documentParser/errors.js";
 import {
   decodeTextFile,
@@ -20,6 +21,7 @@ import {
   MAX_FILE_SIZE_BYTES,
   toParsedUploadFile,
 } from "./_documentParser/fileUpload.js";
+import { getCvParserAccessError } from "./_documentParser/cvParserAccess.js";
 import {
   buildSentryContext,
   captureApiException,
@@ -37,13 +39,116 @@ import {
 import { createRateLimiter } from "./_shared/rateLimiter.js";
 
 const DEFAULT_MODEL = "gpt-4.1-mini";
-const INITIAL_MAX_OUTPUT_TOKENS = 700;
-const RETRY_MAX_OUTPUT_TOKENS = 3_000;
+const INITIAL_MAX_OUTPUT_TOKENS = 1_800;
+const RETRY_MAX_OUTPUT_TOKENS = 6_000;
 
 const parseCvRateLimiter = createRateLimiter({
   max: 10,
   windowMs: 60_000,
 });
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function stringValue(record: Record<string, unknown>, key: string) {
+  return typeof record[key] === "string" ? record[key] : "";
+}
+
+function arrayValue(record: Record<string, unknown>, key: string) {
+  return Array.isArray(record[key]) ? record[key] : [];
+}
+
+function normalizeRecognitionPayload(parsed: unknown) {
+  const payload = asRecord(parsed);
+  const applicant = asRecord(payload.applicant);
+  const normalizedApplicant = {
+    firstName: stringValue(applicant, "firstName"),
+    lastName: stringValue(applicant, "lastName"),
+    middleName: stringValue(applicant, "middleName"),
+    phone: stringValue(applicant, "phone"),
+    title: stringValue(applicant, "title"),
+  };
+  const rawExperiences = findExperienceArray(parsed) ?? [];
+  const normalizedExperiences = rawExperiences.map((item) =>
+    normalizeExperienceEntry(item),
+  );
+  const expandedExperiences = expandCollapsedRoles(normalizedExperiences);
+  const experiences = expandedExperiences.map((experience, index) => {
+    const recognition = asRecord(rawExperiences[index]);
+    const rawSkillLevel = recognition.oscaSkillLevel;
+    const oscaSkillLevel =
+      typeof rawSkillLevel === "number" && rawSkillLevel >= 1 && rawSkillLevel <= 5
+        ? Math.trunc(rawSkillLevel)
+        : 0;
+    const rawConfidence = stringValue(recognition, "oscaConfidence");
+    const oscaConfidence = ["high", "medium", "low"].includes(rawConfidence)
+      ? rawConfidence
+      : "low";
+
+    return applyBillShortenDemoOscaMatch(
+      normalizedApplicant,
+      {
+        ...experience,
+        oscaConfidence,
+        oscaOccupationCode: stringValue(recognition, "oscaOccupationCode"),
+        oscaOccupationTitle: stringValue(recognition, "oscaOccupationTitle"),
+        oscaRationale: stringValue(recognition, "oscaRationale"),
+        oscaSkillLevel,
+      },
+    );
+  });
+
+  const professionalAccreditations = arrayValue(
+    payload,
+    "professionalAccreditations",
+  ).map((value) => {
+    const item = asRecord(value);
+    return {
+      name: stringValue(item, "name"),
+      status: stringValue(item, "status"),
+    };
+  });
+  const secondaryQualifications = arrayValue(payload, "secondaryQualifications").map(
+    (value) => {
+      const item = asRecord(value);
+      return {
+        country: stringValue(item, "country"),
+        qualification: stringValue(item, "qualification"),
+        school: stringValue(item, "school"),
+        state: stringValue(item, "state"),
+        type: stringValue(item, "type"),
+        year: stringValue(item, "year"),
+      };
+    },
+  );
+  const tertiaryQualifications = arrayValue(payload, "tertiaryQualifications").map(
+    (value) => {
+      const item = asRecord(value);
+      return {
+        completed: item.completed === true,
+        country: stringValue(item, "country"),
+        courseName: stringValue(item, "courseName"),
+        endMonth: stringValue(item, "endMonth"),
+        endYear: stringValue(item, "endYear"),
+        institution: stringValue(item, "institution"),
+        level: stringValue(item, "level"),
+        startMonth: stringValue(item, "startMonth"),
+        startYear: stringValue(item, "startYear"),
+      };
+    },
+  );
+
+  return {
+    applicant: normalizedApplicant,
+    experiences,
+    professionalAccreditations,
+    secondaryQualifications,
+    tertiaryQualifications,
+  };
+}
 
 async function handleWebRequest(request: Request) {
   try {
@@ -58,13 +163,14 @@ async function handleWebRequest(request: Request) {
     }
 
     const authResult = await authenticateRequest(request);
+    const accessError = getCvParserAccessError(
+      authResult.kind,
+      request,
+      isDeployedEnvironment(),
+    );
 
-    if (authResult.kind === "open" && isDeployedEnvironment()) {
-      return errorResponse("CV_PARSER_NOT_CONFIGURED");
-    }
-
-    if (authResult.kind === "unauthenticated") {
-      return errorResponse("CV_PARSER_UNAUTHORIZED");
+    if (accessError) {
+      return errorResponse(accessError);
     }
 
     const rateLimitKey =
@@ -124,8 +230,8 @@ async function handleWebRequest(request: Request) {
       provider: "openai",
       apiKey,
       model,
-      prompt: cvEmploymentPromptV1,
-      schema: cvEmploymentSchemaV1,
+      prompt: cvRecognitionPromptV2,
+      schema: cvRecognitionSchemaV2,
       attachments,
       initialMaxOutputTokens: INITIAL_MAX_OUTPUT_TOKENS,
       retryMaxOutputTokens: RETRY_MAX_OUTPUT_TOKENS,
@@ -226,12 +332,9 @@ async function handleWebRequest(request: Request) {
         return errorResponse("CV_PARSER_RESPONSE_INVALID");
       }
 
-      const normalizedExperiences = extractedExperiences.map((item) =>
-        normalizeExperienceEntry(item),
-      );
-      const experiences = expandCollapsedRoles(normalizedExperiences);
+      const recognition = normalizeRecognitionPayload(llmResult.parsed);
 
-      return jsonResponse({ experiences, model });
+      return jsonResponse({ ...recognition, model });
     } catch (error) {
       const payload = llmResult.upstream.payload as
         | Record<string, unknown>

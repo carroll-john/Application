@@ -25,6 +25,7 @@
     "dev:suggest-api": "tsx ./scripts/dev-suggest-server.mjs",
     "smoke:eligibility-ui": "node ./scripts/smoke-eligibility-ui.mjs",
     "smoke:console": "node ./scripts/console-smoke.mjs",
+    "smoke:uc-brand": "node ./scripts/uc-brand-smoke.mjs",
     "services:health": "node ./scripts/render-service-health.mjs",
     "funnel:bot": "node ./scripts/synthetic-funnel-bot.mjs",
     "eligibility:parse-requirements": "tsx ./scripts/parse-course-requirements.ts",

@@ -27,6 +27,7 @@ import { FormStepRouteFallback } from "./features/forms/FormStepRouteFallback";
 import { ReviewRouteFallback } from "./features/review/ReviewRouteFallback";
 import { PostHogSupportLauncher } from "./features/support";
 import RouteErrorBoundary from "./pages/RouteErrorBoundary";
+import { isDemoMode } from "./lib/brand";
 
 const ApplicationSubmitted = lazyWithRetry(
   "application-submitted",
@@ -115,7 +116,7 @@ function RouteLoadingScreen() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f7f7f4] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
       <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-700 shadow-sm">
         <LoadingSpinner />
         <span>Loading next step...</span>
@@ -140,7 +141,7 @@ function Layout() {
   return (
     <>
       <ScrollToTop />
-      <PostHogSupportLauncher />
+      {isDemoMode ? null : <PostHogSupportLauncher />}
       <Suspense fallback={<RouteLoadingScreen />}>
         <Outlet />
       </Suspense>
@@ -164,8 +165,8 @@ function AuthRequiredLayout() {
 
   if (!isConfigured) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f7f7f4] px-4">
-        <div className="max-w-xl rounded-[32px] border border-[var(--warning-border)] bg-white p-8 shadow-sm">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
+        <div className="content-block max-w-xl rounded-[32px] border border-[var(--warning-border)] bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-semibold text-slate-950">
             Authentication setup required
           </h1>

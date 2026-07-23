@@ -61,7 +61,7 @@ export function SignInForm({
       </Button>
 
       <button
-        className="w-full text-sm font-medium text-[var(--cta-secondary)] hover:underline"
+        className="w-full rounded-full text-sm font-medium text-[var(--cta-secondary)] hover:underline"
         type="button"
         onClick={onForgotPassword}
       >

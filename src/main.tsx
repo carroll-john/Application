@@ -6,10 +6,14 @@ import "./index.css";
 import { installDevConsoleBridge } from "./lib/devConsoleBridge";
 import { initPostHog, syncReplayRoutePrivacy } from "./lib/posthog";
 import { initSentry, isSentryEnabled } from "./lib/sentry";
+import { applyBrandToDocument, isDemoMode } from "./lib/brand";
 
+applyBrandToDocument();
 installDevConsoleBridge();
-initPostHog();
-syncReplayRoutePrivacy(window.location.pathname);
+if (!isDemoMode) {
+  initPostHog();
+  syncReplayRoutePrivacy(window.location.pathname);
+}
 initSentry();
 
 const container = document.getElementById("root");

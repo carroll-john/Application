@@ -9,6 +9,7 @@ import {
 import posthog from "posthog-js";
 import { hashAnalyticsIdentifierSync } from "./analyticsIdentity";
 import { isPostHogEnabled } from "./posthog";
+import { isDemoMode } from "./brand";
 
 type SentryUserContext = {
   email?: string;
@@ -137,14 +138,16 @@ export function initSentry() {
     import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE,
     1,
   );
-  const replaysSessionSampleRate = parseSampleRate(
+  const configuredReplaysSessionSampleRate = parseSampleRate(
     import.meta.env.VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE,
     0,
   );
-  const replaysOnErrorSampleRate = parseSampleRate(
+  const configuredReplaysOnErrorSampleRate = parseSampleRate(
     import.meta.env.VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE,
     0.1,
   );
+  const replaysSessionSampleRate = isDemoMode ? 0 : configuredReplaysSessionSampleRate;
+  const replaysOnErrorSampleRate = isDemoMode ? 0 : configuredReplaysOnErrorSampleRate;
   const integrations = [
     Sentry.reactRouterV7BrowserTracingIntegration({
       createRoutesFromChildren,

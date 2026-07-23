@@ -218,7 +218,7 @@ function useResponsivePicker({
                 Cancel
               </button>
               <button
-                className="flex-1 rounded-full bg-[#084E74] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#063a57]"
+                className="flex-1 rounded-full bg-[var(--cta-secondary)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--cta-secondary-hover)]"
                 type="button"
                 onClick={handleConfirm}
               >
