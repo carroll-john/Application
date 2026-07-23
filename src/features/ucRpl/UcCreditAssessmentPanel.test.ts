@@ -78,7 +78,8 @@ describe("UC credit assessment interface", () => {
     );
 
     expect(html).toContain("Original");
-    expect(html).toContain("After potential credit");
+    expect(html).toContain("After credit");
+    expect(html).not.toContain("After potential credit");
     expect(html).toContain("16 months");
     expect(html).toContain("8 months");
     expect(html).toContain("$23,650");
