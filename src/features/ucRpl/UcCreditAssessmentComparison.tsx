@@ -87,10 +87,6 @@ export function UcCreditAssessmentComparison({
           ? `Up to ${result.potentialCreditPoints} credit points indicated`
           : "No automatic credit estimate — faculty review required"}
       </p>
-      <p className="mt-1 text-xs leading-5 text-slate-600">
-        2026 indicative tuition only. UC confirms final credit, study duration and
-        fees after formal assessment.
-      </p>
     </div>
   );
 }

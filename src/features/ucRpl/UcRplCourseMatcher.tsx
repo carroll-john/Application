@@ -234,7 +234,7 @@ function ParsingState() {
   );
 }
 
-function MatchCard({
+export function UcRplMatchCard({
   assessmentResult,
   isAssessmentComplete,
   isShortlistFull,
@@ -281,21 +281,23 @@ function MatchCard({
                   {match.admissionDetail}
                 </p>
               </div>
-              <div className="border-t border-[var(--border)] pt-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                    <FileText
-                      className="h-4 w-4 text-[var(--cta-secondary)]"
-                      aria-hidden="true"
-                    />
-                    {assessmentResult ? "Initial credit potential" : "Credit potential"}
+              {!assessmentResult ? (
+                <div className="border-t border-[var(--border)] pt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                      <FileText
+                        className="h-4 w-4 text-[var(--cta-secondary)]"
+                        aria-hidden="true"
+                      />
+                      Credit potential
+                    </p>
+                    <ConfidenceBadge confidence={match.creditConfidence} />
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    {match.creditDetail}
                   </p>
-                  <ConfidenceBadge confidence={match.creditConfidence} />
                 </div>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {match.creditDetail}
-                </p>
-              </div>
+              ) : null}
             </div>
           </div>
 
@@ -492,7 +494,7 @@ function ResultsState({
       {visibleMatches.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {visibleMatches.map((match) => (
-            <MatchCard
+            <UcRplMatchCard
               key={match.course.code}
               assessmentResult={assessmentResults.get(match.course.code)}
               isAssessmentComplete={assessmentStatus === "complete"}
