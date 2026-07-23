@@ -40,11 +40,16 @@ import {
 } from "../../lib/eligibility/client";
 import type { TranscriptEligibilityAssessment } from "../../lib/eligibility/types";
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
+import { isDemoMode } from "../../lib/brand";
 import {
   assessUcShortlistCredit,
+  createBillShortenUcCreditDemoTranscriptAssessment,
   hasUcTranscriptStudyEvidence,
+  isBillShortenUcCreditDemoFixture,
+  UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS,
   type UcCreditAssessmentResult,
 } from "../../lib/ucCreditAssessment";
+import { sleep } from "../../lib/utils";
 import {
   assessUcAdmission,
   formatUcExperienceDuration,
@@ -740,18 +745,25 @@ export function UcRplCourseMatcher({
     setAssessmentStatus("processing");
 
     try {
-      const transcriptAssessment = await evaluateTranscriptEligibility(
-        transcriptFile,
-        {
-          courseCode: shortlist.map((match) => match.course.code).join(","),
-          courseTitle: shortlist.map((match) => match.course.title).join("; "),
-          cvUploaded: true,
-          employmentCount: draft.experiences.filter(
-            (experience) => experience.includeInAssessment,
-          ).length,
-        },
-        { accessToken, ucCreditAssessment: true },
-      );
+      const usesFastDemoAssessment =
+        isDemoMode &&
+        isBillShortenUcCreditDemoFixture(shortlist, draft.profile);
+      const transcriptAssessment = usesFastDemoAssessment
+        ? await sleep(UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS).then(() =>
+            createBillShortenUcCreditDemoTranscriptAssessment(),
+          )
+        : await evaluateTranscriptEligibility(
+            transcriptFile,
+            {
+              courseCode: shortlist.map((match) => match.course.code).join(","),
+              courseTitle: shortlist.map((match) => match.course.title).join("; "),
+              cvUploaded: true,
+              employmentCount: draft.experiences.filter(
+                (experience) => experience.includeInAssessment,
+              ).length,
+            },
+            { accessToken, ucCreditAssessment: true },
+          );
 
       if (!hasUcTranscriptStudyEvidence(transcriptAssessment)) {
         throw new Error(

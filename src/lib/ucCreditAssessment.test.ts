@@ -5,9 +5,12 @@ import type { UcCourseMatch } from "./ucRplAssessment";
 import {
   assessUcShortlistCredit,
   assessUcShortlistedCourseCredit,
+  createBillShortenUcCreditDemoTranscriptAssessment,
   formatUcAssessmentCost,
   formatUcAssessmentDuration,
   hasUcTranscriptStudyEvidence,
+  isBillShortenUcCreditDemoFixture,
+  UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS,
 } from "./ucCreditAssessment";
 
 function matchFor(title: string, creditConfidence: UcCourseMatch["creditConfidence"] = "high") {
@@ -98,6 +101,33 @@ const billShortenDemoTranscript = normalizeTranscriptEligibilityAssessment({
 });
 
 describe("UC shortlisted-course credit assessment", () => {
+  it("uses a short, identity-gated processing pause for the exact UC demo fixture", () => {
+    const matches = [
+      matchFor("Master of Education (Leadership)"),
+      matchFor("Master of Education (STEM)"),
+      matchFor("Graduate Certificate in Educational Leadership"),
+    ];
+
+    expect(
+      isBillShortenUcCreditDemoFixture(matches, {
+        firstName: "Bill",
+        lastName: "Shorten",
+      }),
+    ).toBe(true);
+    expect(
+      isBillShortenUcCreditDemoFixture(matches, {
+        firstName: "Jane",
+        lastName: "Shorten",
+      }),
+    ).toBe(false);
+    expect(UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS).toBe(3_000);
+    expect(
+      hasUcTranscriptStudyEvidence(
+        createBillShortenUcCreditDemoTranscriptAssessment(),
+      ),
+    ).toBe(true);
+  });
+
   it("combines related transcript study and CV relevance into time and cost estimates", () => {
     const result = assessUcShortlistedCourseCredit(
       matchFor("Master of Education (Leadership)"),

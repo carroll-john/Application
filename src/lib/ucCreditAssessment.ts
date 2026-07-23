@@ -1,4 +1,5 @@
 import type { TranscriptEligibilityAssessment } from "./eligibility/types";
+import { normalizeTranscriptEligibilityAssessment } from "./eligibility/normalize";
 import type { UcCourseMatch, UcGuidanceConfidence } from "./ucRplAssessment";
 
 const CREDIT_POINTS_PER_UNIT = 3;
@@ -36,6 +37,8 @@ const BILL_SHORTEN_DEMO_CREDIT_POINTS = new Map<string, number>([
   ["Master of Education (STEM)", 6],
   ["Graduate Certificate in Educational Leadership", 0],
 ]);
+
+export const UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS = 3_000;
 
 function normalizeTokens(value: string) {
   return new Set(
@@ -97,6 +100,55 @@ function isBillShortenDemoApplicant(
   );
 }
 
+function isBillShortenDemoCourseSet(matches: UcCourseMatch[]) {
+  const expectedCourseTitles = new Set(BILL_SHORTEN_DEMO_CREDIT_POINTS.keys());
+
+  return (
+    matches.length === expectedCourseTitles.size &&
+    matches.every((match) => expectedCourseTitles.has(match.course.title))
+  );
+}
+
+export function isBillShortenUcCreditDemoFixture(
+  matches: UcCourseMatch[],
+  applicant: UcCreditAssessmentContext["applicant"],
+) {
+  if (!applicant) return false;
+
+  return (
+    isBillShortenDemoName(`${applicant.firstName} ${applicant.lastName}`) &&
+    isBillShortenDemoCourseSet(matches)
+  );
+}
+
+export function createBillShortenUcCreditDemoTranscriptAssessment() {
+  return normalizeTranscriptEligibilityAssessment({
+    confidence: 0.97,
+    manualReviewRequired: false,
+    outcome: "eligible",
+    applicantDetails: {
+      fullName: {
+        confidence: 0.99,
+        normalizedValue: "William (Bill) Shorten",
+      },
+      institutionName: {
+        confidence: 0.98,
+        normalizedValue: "Monash University, Australia",
+      },
+    },
+    studyDetails: {
+      highestEducationLevel: {
+        confidence: 0.98,
+        normalizedValue: "Bachelor",
+      },
+      programName: {
+        confidence: 0.98,
+        normalizedValue: "Bachelor of Arts / Bachelor of Laws",
+      },
+    },
+  });
+}
+
 function getBillShortenDemoCreditPoints(
   match: UcCourseMatch,
   context: UcCreditAssessmentContext,
@@ -113,13 +165,10 @@ function isBillShortenDemoShortlist(
   transcriptAssessment: TranscriptEligibilityAssessment,
   context: UcCreditAssessmentContext,
 ) {
-  const expectedCourseTitles = new Set(BILL_SHORTEN_DEMO_CREDIT_POINTS.keys());
-
   return (
     isBillShortenDemoApplicant(context.applicant, transcriptAssessment) &&
     hasUcTranscriptStudyEvidence(transcriptAssessment) &&
-    matches.length === expectedCourseTitles.size &&
-    matches.every((match) => expectedCourseTitles.has(match.course.title))
+    isBillShortenDemoCourseSet(matches)
   );
 }
 
