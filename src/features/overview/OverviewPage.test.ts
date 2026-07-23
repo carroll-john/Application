@@ -58,6 +58,9 @@ describe("OverviewPage", () => {
     expect(html).toContain("Study and experience");
     expect(html).toContain("Check and submit");
     expect(html).toContain("Start my application");
+    expect(html).toContain("Your progress is saved as you go");
+    expect(html).not.toContain("Complete the three sections below");
+    expect(html).not.toContain("Allow around 30–60 minutes");
     expect(html).not.toContain("Application Overview");
   });
 });
