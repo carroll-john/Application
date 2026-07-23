@@ -37,6 +37,10 @@ and password-recovery state. Shared route gates own access enforcement.
   IP-rate-limited and is not persisted. Authentication is required when the
   visitor selects Start application, before the CV or extracted data can enter an
   application draft.
+- After three UC courses are shortlisted, authentication is required before the
+  credit-assessment transcript upload is shown. The marked transcript endpoint
+  independently verifies the bearer session before reading the file. The
+  transcript and comparison remain in memory and do not create a hidden draft.
 - Troubleshooting: [auth-password.md](../runbooks/auth-password.md)
 
 ## Approved entry points
@@ -45,6 +49,7 @@ and password-recovery state. Shared route gates own access enforcement.
 - Eligibility completion (before showing result)
 - Apply actions on course pages
 - Start application from the UC pre-application assessment
+- Complete credit assessment from a three-course UC shortlist
 - `/sign-in?redirect=…` for protected routes
 
 ## Redirect Contract
@@ -130,6 +135,9 @@ npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
 - There is no anonymous application draft or draft-import contract.
 - The UC pre-application assessment is temporary browser state, not an
   application draft. Closing or refreshing the page discards it.
+- The UC credit comparison is also temporary browser state. Its transcript is
+  authenticated and processed ephemerally; starting an application later uses
+  the ordinary authenticated document system.
 
 ## Profile
 

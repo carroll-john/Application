@@ -46,6 +46,30 @@ describe("evaluateTranscriptEligibility", () => {
     expect(result.outcome).toBe("eligible");
   });
 
+  it("marks UC credit assessment requests and sends the authenticated session", async () => {
+    fetchMock.mockResolvedValueOnce(
+      makeJsonResponse({
+        confidence: 0.87,
+        outcome: "eligible",
+        requirementsChecked: [],
+      }),
+    );
+
+    await evaluateTranscriptEligibility(
+      new File(["transcript"], "transcript.txt", { type: "text/plain" }),
+      {},
+      { accessToken: "session-token", ucCreditAssessment: true },
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/evaluate-transcript-eligibility?flow=uc-credit-assessment",
+      expect.objectContaining({
+        headers: { authorization: "Bearer session-token" },
+        method: "POST",
+      }),
+    );
+  });
+
   it("throws a typed request error for non-OK responses", async () => {
     fetchMock.mockResolvedValueOnce(
       makeJsonResponse(
@@ -85,4 +109,3 @@ describe("evaluateTranscriptEligibility", () => {
     });
   });
 });
-

@@ -33,6 +33,9 @@ beforeEach(() => {
   delete process.env.POSTHOG_PROJECT_API_KEY;
   delete process.env.POSTHOG_HOST;
   delete process.env.VITE_POSTHOG_HOST;
+  delete process.env.VITE_SUPABASE_ANON_KEY;
+  delete process.env.VITE_SUPABASE_URL;
+  delete process.env.VERCEL_ENV;
 });
 
 afterEach(() => {
@@ -44,6 +47,9 @@ afterEach(() => {
   delete process.env.POSTHOG_PROJECT_API_KEY;
   delete process.env.POSTHOG_HOST;
   delete process.env.VITE_POSTHOG_HOST;
+  delete process.env.VITE_SUPABASE_ANON_KEY;
+  delete process.env.VITE_SUPABASE_URL;
+  delete process.env.VERCEL_ENV;
 });
 
 describe("evaluate-transcript-eligibility api route", () => {
@@ -83,6 +89,31 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(payload.outcome).toBe("insufficient_data");
     expect(payload.programCode).toBe("MDA900");
     expect(Array.isArray(payload.requirementsChecked)).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unauthenticated UC credit assessment before reading the transcript", async () => {
+    process.env.VITE_SUPABASE_URL = "https://project.supabase.co";
+    process.env.VITE_SUPABASE_ANON_KEY = "anon-key";
+    process.env.VERCEL_ENV = "preview";
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new File(["private transcript"], "transcript.txt", {
+        type: "text/plain",
+      }),
+    );
+
+    const response = await eligibilityRoute.fetch(
+      new Request(
+        "https://example.test/api/evaluate-transcript-eligibility?flow=uc-credit-assessment",
+        { body: formData, method: "POST" },
+      ),
+    );
+    const payload = await parseJsonResponse(response);
+
+    expect(response.status).toBe(401);
+    expect(payload.code).toBe("UC_CREDIT_ASSESSMENT_UNAUTHORIZED");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

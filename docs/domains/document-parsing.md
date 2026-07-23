@@ -97,6 +97,20 @@ The Applications proxy retries one transient eligibility-service response (`502`
 describe the evidence service as temporarily unavailable; “try a clearer file” is reserved
 for successful assessments that genuinely contain no draftable transcript fields.
 
+### UC pre-application credit comparison
+
+After an applicant shortlists three UC demo courses, the browser may call
+`/api/evaluate-transcript-eligibility?flow=uc-credit-assessment` once with the
+three-course context. This flow is authenticated at both the UI and route; the
+route rejects an invalid bearer session before reading the multipart file.
+
+The eligibility route extracts transcript study evidence once. Applications then
+combines that evidence with the existing CV course-match signal and current
+course cost/duration data to produce an indicative comparison for the three
+cards. The result is not persisted, is not a formal RPL/credit decision, and must
+not be used as admission evidence. Starting an application continues to use the
+ordinary shared CV/transcript document flow.
+
 ## Approved entry points
 
 For a new ordinary parser kind:
