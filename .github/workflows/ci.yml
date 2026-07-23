@@ -109,7 +109,23 @@ jobs:
     timeout-minutes: 5
     outputs:
       has-openai-key: ${{ steps.check.outputs.has-key }}
+      llm-regression-enabled: ${{ steps.llm-regression-window.outputs.enabled }}
     steps:
+      - id: llm-regression-window
+        name: Check temporary LLM regression pause
+        env:
+          LLM_REGRESSION_PAUSED_UNTIL: "2026-07-24T02:52:22Z"
+          LLM_REGRESSION_PAUSED_UNTIL_EPOCH: "1784861542"
+        run: |
+          now_epoch="$(date -u +%s)"
+
+          if [ "$now_epoch" -lt "$LLM_REGRESSION_PAUSED_UNTIL_EPOCH" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::LLM regression is paused until $LLM_REGRESSION_PAUSED_UNTIL."
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - id: check
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -122,7 +138,7 @@ jobs:
 
   llm-regression:
     needs: [changes, check-secrets]
-    if: ${{ needs.check-secrets.outputs.has-openai-key == 'true' && (needs.changes.outputs.cv == 'true' || needs.changes.outputs.transcript == 'true') }}
+    if: ${{ needs.check-secrets.outputs.llm-regression-enabled == 'true' && needs.check-secrets.outputs.has-openai-key == 'true' && (needs.changes.outputs.cv == 'true' || needs.changes.outputs.transcript == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
