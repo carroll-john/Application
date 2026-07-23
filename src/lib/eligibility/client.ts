@@ -4,6 +4,7 @@ import type {
   TranscriptEligibilityAssessment,
   TranscriptEligibilityRequestContext,
 } from "./types";
+import { addUcCreditAssessmentFlow } from "../ucCreditAssessmentContract";
 
 export class TranscriptEligibilityRequestError extends Error {
   code?: string;
@@ -41,13 +42,27 @@ function parseErrorPayload(payload: unknown) {
 export async function evaluateTranscriptEligibility(
   file: File,
   context: TranscriptEligibilityRequestContext,
+  options: {
+    accessToken?: string;
+    ucCreditAssessment?: boolean;
+  } = {},
 ): Promise<TranscriptEligibilityAssessment> {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("context", serializeTranscriptEligibilityContext(context));
 
-  const response = await fetch("/api/evaluate-transcript-eligibility", {
+  const url = options.ucCreditAssessment
+    ? addUcCreditAssessmentFlow("/api/evaluate-transcript-eligibility")
+    : "/api/evaluate-transcript-eligibility";
+  const headers: HeadersInit = {};
+
+  if (options.accessToken) {
+    headers.authorization = `Bearer ${options.accessToken}`;
+  }
+
+  const response = await fetch(url, {
     body: formData,
+    headers,
     method: "POST",
   });
 
@@ -70,4 +85,3 @@ export async function evaluateTranscriptEligibility(
 
   return normalizeTranscriptEligibilityAssessment(payload);
 }
-

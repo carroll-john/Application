@@ -1,11 +1,25 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import route, { normalizeWorkExperienceRoleClassification } from "./evaluate-work-experience";
 
-const originalApiKey = process.env.OPENAI_API_KEY;
+const AUTH_ENV_KEYS = [
+  "SUPABASE_ANON_KEY",
+  "SUPABASE_URL",
+  "VITE_SUPABASE_ANON_KEY",
+  "VITE_SUPABASE_URL",
+] as const;
+const originalEnv = new Map(
+  ["OPENAI_API_KEY", ...AUTH_ENV_KEYS].map((key) => [key, process.env[key]]),
+);
+
+beforeEach(() => {
+  for (const key of AUTH_ENV_KEYS) delete process.env[key];
+});
 
 afterEach(() => {
-  if (originalApiKey === undefined) delete process.env.OPENAI_API_KEY;
-  else process.env.OPENAI_API_KEY = originalApiKey;
+  for (const [key, value] of originalEnv) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
 });
 
 function post(body: unknown) {

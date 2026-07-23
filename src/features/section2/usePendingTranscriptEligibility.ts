@@ -18,7 +18,9 @@ import {
   buildTertiaryTranscriptFlashMessage,
   getDraftedFieldCountFromParseResult,
   needsHubTranscriptEligibilityProcessing,
+  needsSelectedCourseEligibilityReview,
   parseTranscriptForQualification,
+  reviewExtractedTranscriptForSelectedCourse,
   shouldUseCachedTranscriptAssessment,
   tertiaryTranscriptParseCopy,
 } from "./tertiaryTranscriptParsePolicy";
@@ -202,6 +204,53 @@ export function usePendingTranscriptEligibility({
     ],
   );
 
+  const runSelectedCourseReview = useCallback(
+    async (qualification: TertiaryQualification) => {
+      if (!qualification.transcriptEligibility) {
+        return;
+      }
+
+      setIsProcessingEligibility(true);
+      setEligibilityProgress({
+        detail: tertiaryTranscriptParseCopy.eligibilityDetail,
+        title: tertiaryTranscriptParseCopy.eligibilityTitle,
+      });
+
+      try {
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, CACHED_ASSESSMENT_MIN_PROGRESS_MS),
+        );
+        const transcriptEligibility = reviewExtractedTranscriptForSelectedCourse({
+          applicationData,
+          assessment: qualification.transcriptEligibility,
+          qualification,
+        });
+
+        await updateTertiaryQualification(qualification.id, {
+          ...qualification,
+          transcriptEligibility,
+        });
+        setStatusMessage({
+          message:
+            "Your qualification was pre-filled from the transcript you already supplied and reviewed against your selected course. Check the details below.",
+          type: "success",
+        });
+      } catch (error) {
+        setStatusMessage({
+          message:
+            error instanceof Error
+              ? error.message
+              : "We couldn't complete the transcript evidence review right now.",
+          type: "warning",
+        });
+      } finally {
+        setIsProcessingEligibility(false);
+        setEligibilityProgress(null);
+      }
+    },
+    [applicationData, setStatusMessage, updateTertiaryQualification],
+  );
+
   useEffect(() => {
     const navigationState = readSection2NavigationState(location.state);
     const pendingJob = navigationState?.pendingTranscriptEligibility;
@@ -242,26 +291,64 @@ export function usePendingTranscriptEligibility({
         }),
     );
 
-    if (!staleQualification) {
+    if (staleQualification) {
+      queuedQualificationIdsRef.current.add(staleQualification.id);
+      void runPendingJob({
+        qualificationId: staleQualification.id,
+        savedQualification: staleQualification,
+      });
       return;
     }
 
-    queuedQualificationIdsRef.current.add(staleQualification.id);
-    void runPendingJob({
-      qualificationId: staleQualification.id,
-      savedQualification: staleQualification,
-    });
+    const carriedTranscriptQualification =
+      applicationData.tertiaryQualifications.find(
+        (qualification) =>
+          !queuedQualificationIdsRef.current.has(qualification.id) &&
+          needsSelectedCourseEligibilityReview({
+            assessment: qualification.transcriptEligibility,
+            selectedCourseCode:
+              applicationData.applicationMeta.selectedCourse?.code,
+          }),
+      );
+
+    if (!carriedTranscriptQualification) {
+      return;
+    }
+
+    queuedQualificationIdsRef.current.add(carriedTranscriptQualification.id);
+    void runSelectedCourseReview(carriedTranscriptQualification);
   }, [
+    applicationData.applicationMeta.selectedCourse?.code,
     applicationData.tertiaryQualifications,
     clearNavigationState,
     isProcessingEligibility,
     location.state,
     runPendingJob,
+    runSelectedCourseReview,
     setStatusMessage,
   ]);
 
+  const hasUnqueuedSelectedCourseReview =
+    applicationData.tertiaryQualifications.some(
+      (qualification) =>
+        !queuedQualificationIdsRef.current.has(qualification.id) &&
+        needsSelectedCourseEligibilityReview({
+          assessment: qualification.transcriptEligibility,
+          selectedCourseCode:
+            applicationData.applicationMeta.selectedCourse?.code,
+        }),
+    );
+
   return {
-    eligibilityProgress,
-    isProcessingEligibility,
+    eligibilityProgress:
+      eligibilityProgress ??
+      (hasUnqueuedSelectedCourseReview
+        ? {
+            detail: tertiaryTranscriptParseCopy.eligibilityDetail,
+            title: tertiaryTranscriptParseCopy.eligibilityTitle,
+          }
+        : null),
+    isProcessingEligibility:
+      isProcessingEligibility || hasUnqueuedSelectedCourseReview,
   };
 }

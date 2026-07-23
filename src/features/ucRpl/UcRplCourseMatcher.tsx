@@ -1,4 +1,6 @@
 import {
+  BookmarkCheck,
+  BookmarkPlus,
   CircleAlert,
   ClipboardCheck,
   FileText,
@@ -16,6 +18,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
   type RefObject,
 } from "react";
 import { useNavigate } from "react-router-dom";
@@ -29,7 +32,17 @@ import {
   getCvParserErrorMessage,
   parseCvForRecognition,
 } from "../../lib/cvParserClient";
+import {
+  evaluateTranscriptEligibility,
+  TranscriptEligibilityRequestError,
+} from "../../lib/eligibility/client";
+import type { TranscriptEligibilityAssessment } from "../../lib/eligibility/types";
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
+import {
+  assessUcShortlistCredit,
+  hasUcTranscriptStudyEvidence,
+  type UcCreditAssessmentResult,
+} from "../../lib/ucCreditAssessment";
 import {
   assessUcAdmission,
   formatUcExperienceDuration,
@@ -44,6 +57,11 @@ import {
   type UcOscaExperienceSummary,
 } from "../../lib/ucRplAssessment";
 import { UcRplExperienceReview } from "./UcRplExperienceReview";
+import { UcCreditAssessmentComparison } from "./UcCreditAssessmentComparison";
+import {
+  UcCreditAssessmentPanel,
+  type UcCreditAssessmentStatus,
+} from "./UcCreditAssessmentPanel";
 import type { UcRplAssessmentStage } from "./ucRplAssessmentStage";
 
 type MatchFilter = "best_match" | "needs_review" | "all";
@@ -159,7 +177,7 @@ function IntroState({
             {
               icon: Upload,
               label: "Upload your CV",
-              copy: "Add your current CV. You’ll only need to sign in if you start an application.",
+              copy: "Add your current CV. You can explore matches without signing in; sign-in is required before a credit assessment or application.",
             },
             {
               icon: UserRoundCheck,
@@ -217,60 +235,99 @@ function ParsingState() {
 }
 
 function MatchCard({
+  assessmentResult,
+  isAssessmentComplete,
+  isShortlistFull,
+  isShortlisted,
   match,
   mediaVariantIndex,
   isStarting,
   onStart,
+  onToggleShortlist,
   onView,
 }: {
+  assessmentResult?: UcCreditAssessmentResult;
+  isAssessmentComplete: boolean;
+  isShortlistFull: boolean;
+  isShortlisted: boolean;
   isStarting: boolean;
   match: UcCourseMatch;
   mediaVariantIndex: number;
   onStart: () => void;
+  onToggleShortlist: () => void;
   onView: () => void;
 }) {
+  const shortlistDisabled =
+    isAssessmentComplete || (isShortlistFull && !isShortlisted);
+
   return (
     <UcCourseBrowseCard
       course={match.course}
       mediaVariantIndex={mediaVariantIndex}
       showSummary={false}
       footer={(
-        <div className="border-t border-[var(--border)] bg-white p-5 sm:p-6">
-          <div className="space-y-4">
-            <div>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                  <SearchCheck className="h-4 w-4 text-green-700" aria-hidden="true" />
-                  Entry guidance
+        <div className="border-t border-[var(--border)] bg-white">
+          <div className="p-5 sm:p-6">
+            <div className="space-y-4">
+              <div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <SearchCheck className="h-4 w-4 text-green-700" aria-hidden="true" />
+                    Entry guidance
+                  </p>
+                  <ConfidenceBadge confidence={match.entryConfidence} />
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {match.admissionDetail}
                 </p>
-                <ConfidenceBadge confidence={match.entryConfidence} />
               </div>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                {match.admissionDetail}
-              </p>
-            </div>
-            <div className="border-t border-[var(--border)] pt-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                  <FileText
-                    className="h-4 w-4 text-[var(--cta-secondary)]"
-                    aria-hidden="true"
-                  />
-                  Credit potential
+              <div className="border-t border-[var(--border)] pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                    <FileText
+                      className="h-4 w-4 text-[var(--cta-secondary)]"
+                      aria-hidden="true"
+                    />
+                    {assessmentResult ? "Initial credit potential" : "Credit potential"}
+                  </p>
+                  <ConfidenceBadge confidence={match.creditConfidence} />
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {match.creditDetail}
                 </p>
-                <ConfidenceBadge confidence={match.creditConfidence} />
               </div>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                {match.creditDetail}
-              </p>
             </div>
           </div>
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
-            <Button disabled={isStarting} onClick={onStart}>
-              {isStarting ? (
+
+          {assessmentResult ? (
+            <UcCreditAssessmentComparison result={assessmentResult} />
+          ) : null}
+
+          <div className="grid gap-2 border-t border-[var(--border)] p-5 sm:grid-cols-2 sm:p-6">
+            <Button
+              aria-pressed={!assessmentResult ? isShortlisted : undefined}
+              disabled={assessmentResult ? isStarting : shortlistDisabled}
+              variant={!assessmentResult && isShortlisted ? "soft" : "default"}
+              onClick={assessmentResult ? onStart : onToggleShortlist}
+            >
+              {assessmentResult && isStarting ? (
                 <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
               ) : null}
-              {isStarting ? "Starting…" : "Start application"}
+              {!assessmentResult && isShortlisted ? (
+                <BookmarkCheck className="h-4 w-4" aria-hidden="true" />
+              ) : null}
+              {!assessmentResult && !isShortlisted ? (
+                <BookmarkPlus className="h-4 w-4" aria-hidden="true" />
+              ) : null}
+              {assessmentResult
+                ? isStarting
+                  ? "Starting…"
+                  : "Start application"
+                : isShortlisted
+                  ? "Shortlisted"
+                  : isShortlistFull
+                    ? "Shortlist full"
+                    : "Shortlist"}
             </Button>
             <Button variant="neutralOutline" onClick={onView}>
               View course
@@ -284,6 +341,9 @@ function MatchCard({
 
 function ResultsState({
   admission,
+  assessmentPanel,
+  assessmentResults,
+  assessmentStatus,
   experienceSummary,
   experienceGuidance,
   filter,
@@ -291,9 +351,14 @@ function ResultsState({
   onEdit,
   onFilter,
   onStart,
+  onToggleShortlist,
+  shortlistedCourseCodes,
   startingCourseCode,
 }: {
   admission: ReturnType<typeof assessUcAdmission>;
+  assessmentPanel: ReactNode;
+  assessmentResults: Map<string, UcCreditAssessmentResult>;
+  assessmentStatus: UcCreditAssessmentStatus;
   experienceSummary: UcOscaExperienceSummary | null;
   experienceGuidance: string;
   filter: MatchFilter;
@@ -301,6 +366,8 @@ function ResultsState({
   onEdit: () => void;
   onFilter: (filter: MatchFilter) => void;
   onStart: (match: UcCourseMatch) => void;
+  onToggleShortlist: (match: UcCourseMatch) => void;
+  shortlistedCourseCodes: string[];
   startingCourseCode: string | null;
 }) {
   const navigate = useNavigate();
@@ -314,6 +381,7 @@ function ResultsState({
   const displayedSkillLevel = experienceSummary?.skillLevel ?? admission.skillLevel;
   const displayedExperienceMonths =
     experienceSummary?.experienceMonths ?? admission.experienceMonths;
+  const isShortlistFull = shortlistedCourseCodes.length === 3;
 
   return (
     <section aria-labelledby="course-matches-heading" className="space-y-6">
@@ -379,6 +447,31 @@ function ResultsState({
         </div>
       </div>
 
+      <div className="content-block flex flex-wrap items-center justify-between gap-4 border border-[var(--border)] bg-white p-5 sm:p-6">
+        <div>
+          <p className="font-semibold text-slate-950">
+            {shortlistedCourseCodes.length} of 3 courses shortlisted
+          </p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Choose three courses to compare potential credit, study time and tuition.
+          </p>
+        </div>
+        <div className="flex gap-2" aria-hidden="true">
+          {[0, 1, 2].map((index) => (
+            <span
+              key={index}
+              className={`h-3 w-3 rounded-full border ${
+                index < shortlistedCourseCodes.length
+                  ? "border-[var(--cta-secondary)] bg-[var(--cta-secondary)]"
+                  : "border-slate-300 bg-white"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {assessmentPanel}
+
       <div className="content-block flex flex-wrap gap-6 border border-[var(--border)] bg-white px-5 pt-4">
         {(Object.keys(FILTER_LABELS) as MatchFilter[]).map((item) => (
           <button
@@ -401,10 +494,15 @@ function ResultsState({
           {visibleMatches.map((match) => (
             <MatchCard
               key={match.course.code}
+              assessmentResult={assessmentResults.get(match.course.code)}
+              isAssessmentComplete={assessmentStatus === "complete"}
+              isShortlistFull={isShortlistFull}
+              isShortlisted={shortlistedCourseCodes.includes(match.course.code)}
               isStarting={startingCourseCode === match.course.code}
               match={match}
               mediaVariantIndex={mediaVariantByCourseCode.get(match.course.code) ?? 0}
               onStart={() => onStart(match)}
+              onToggleShortlist={() => onToggleShortlist(match)}
               onView={() => navigate(`/courses/${match.course.code}`)}
             />
           ))}
@@ -426,15 +524,26 @@ export function UcRplCourseMatcher({
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { beginCourseApplication } = useApplication();
-  const { isAuthenticated, userEmail } = useAuth();
+  const { isAuthenticated, session, userEmail } = useAuth();
   const [draft, setDraft] = useState<CvRecognitionDraft | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authIntent, setAuthIntent] = useState<"application" | "credit" | null>(null);
   const [pendingStartMatch, setPendingStartMatch] = useState<UcCourseMatch | null>(null);
   const [awaitingAuthenticatedStart, setAwaitingAuthenticatedStart] = useState(false);
   const [filter, setFilter] = useState<MatchFilter>("best_match");
   const [startingCourseCode, setStartingCourseCode] = useState<string | null>(null);
+  const [shortlistedCourseCodes, setShortlistedCourseCodes] = useState<string[]>([]);
+  const [assessmentStatus, setAssessmentStatus] =
+    useState<UcCreditAssessmentStatus>("ready");
+  const [transcriptFile, setTranscriptFile] = useState<File | null>(null);
+  const [assessmentError, setAssessmentError] = useState<string | null>(null);
+  const [transcriptAssessment, setTranscriptAssessment] =
+    useState<TranscriptEligibilityAssessment | null>(null);
+  const [assessmentResults, setAssessmentResults] = useState(
+    new Map<string, UcCreditAssessmentResult>(),
+  );
 
   const admission = useMemo(
     () => (draft ? assessUcAdmission(draft.experiences) : null),
@@ -443,6 +552,15 @@ export function UcRplCourseMatcher({
   const matches = useMemo(
     () => (draft && admission ? rankUcCourses(courses, draft, admission) : []),
     [admission, courses, draft],
+  );
+  const shortlist = useMemo(
+    () =>
+      shortlistedCourseCodes
+        .map((courseCode) =>
+          matches.find((match) => match.course.code === courseCode),
+        )
+        .filter((match): match is UcCourseMatch => Boolean(match)),
+    [matches, shortlistedCourseCodes],
   );
   const experienceSummaries = useMemo(
     () => (draft ? summarizeUcExperienceByOscaLevel(draft.experiences) : []),
@@ -465,6 +583,12 @@ export function UcRplCourseMatcher({
 
   async function parseSelectedFile(file: File) {
     setError(null);
+    setAssessmentError(null);
+    setAssessmentResults(new Map());
+    setAssessmentStatus("ready");
+    setTranscriptAssessment(null);
+    setShortlistedCourseCodes([]);
+    setTranscriptFile(null);
     setSelectedFile(file);
     onStageChange("parsing");
 
@@ -490,10 +614,124 @@ export function UcRplCourseMatcher({
     void parseSelectedFile(file);
   }
 
+  function toggleShortlist(match: UcCourseMatch) {
+    if (assessmentStatus === "complete") return;
+    const isSelected = shortlistedCourseCodes.includes(match.course.code);
+    const next = isSelected
+      ? shortlistedCourseCodes.filter(
+          (courseCode) => courseCode !== match.course.code,
+        )
+      : shortlistedCourseCodes.length < 3
+        ? [...shortlistedCourseCodes, match.course.code]
+        : shortlistedCourseCodes;
+
+    if (next === shortlistedCourseCodes) return;
+
+    setShortlistedCourseCodes(next);
+    setAssessmentStatus("ready");
+    setAssessmentError(null);
+    setAssessmentResults(new Map());
+    setTranscriptAssessment(null);
+    setTranscriptFile(null);
+
+    if (next.length === 3 && shortlistedCourseCodes.length !== 3) {
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById("uc-credit-assessment-heading")
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }
+  }
+
+  function requestCreditAssessment() {
+    if (shortlist.length !== 3) return;
+
+    if (!isAuthenticated) {
+      setAuthIntent("credit");
+      setShowAuthModal(true);
+      return;
+    }
+
+    setAssessmentError(null);
+    setAssessmentStatus("upload");
+  }
+
+  async function runCreditAssessment() {
+    if (
+      !draft ||
+      shortlist.length !== 3 ||
+      !transcriptFile ||
+      assessmentStatus === "processing"
+    ) {
+      return;
+    }
+
+    const accessToken = session?.access_token;
+    if (!isAuthenticated || !accessToken) {
+      setAuthIntent("credit");
+      setShowAuthModal(true);
+      return;
+    }
+
+    setAssessmentError(null);
+    setAssessmentStatus("processing");
+
+    try {
+      const transcriptAssessment = await evaluateTranscriptEligibility(
+        transcriptFile,
+        {
+          courseCode: shortlist.map((match) => match.course.code).join(","),
+          courseTitle: shortlist.map((match) => match.course.title).join("; "),
+          cvUploaded: true,
+          employmentCount: draft.experiences.filter(
+            (experience) => experience.includeInAssessment,
+          ).length,
+        },
+        { accessToken, ucCreditAssessment: true },
+      );
+
+      if (!hasUcTranscriptStudyEvidence(transcriptAssessment)) {
+        throw new Error(
+          "We couldn’t identify enough study information in this transcript. Try a clearer file or a transcript that lists your course and units.",
+        );
+      }
+
+      const results = assessUcShortlistCredit(shortlist, transcriptAssessment);
+      setTranscriptAssessment(transcriptAssessment);
+      setAssessmentResults(
+        new Map(results.map((result) => [result.courseCode, result])),
+      );
+      setAssessmentStatus("complete");
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById(`course-card-title-${shortlist[0]?.course.code}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    } catch (assessmentFailure) {
+      console.error("Failed to complete UC credit assessment", assessmentFailure);
+      if (
+        assessmentFailure instanceof TranscriptEligibilityRequestError &&
+        assessmentFailure.status === 401
+      ) {
+        setAssessmentError("Your session expired. Sign in again to continue.");
+        setAuthIntent("credit");
+        setShowAuthModal(true);
+      } else {
+        setAssessmentError(
+          assessmentFailure instanceof Error
+            ? assessmentFailure.message
+            : "We couldn’t complete the credit assessment right now. Please try again.",
+        );
+      }
+      setAssessmentStatus("upload");
+    }
+  }
+
   const startApplication = useCallback(async (match: UcCourseMatch) => {
     if (!draft || !selectedFile || startingCourseCode) return;
     if (!isAuthenticated) {
       setPendingStartMatch(match);
+      setAuthIntent("application");
       setShowAuthModal(true);
       return;
     }
@@ -513,6 +751,8 @@ export function UcRplCourseMatcher({
           cvFile: selectedFile,
           startFresh: true,
           ucCvPrefill: draft,
+          ucTranscriptFile: transcriptFile ?? undefined,
+          ucTranscriptPrefill: transcriptAssessment ?? undefined,
         },
       );
       navigate("/overview");
@@ -529,6 +769,8 @@ export function UcRplCourseMatcher({
     navigate,
     selectedFile,
     startingCourseCode,
+    transcriptAssessment,
+    transcriptFile,
     userEmail,
   ]);
 
@@ -578,6 +820,11 @@ export function UcRplCourseMatcher({
           onStartOver={() => {
             setDraft(null);
             setSelectedFile(null);
+            setShortlistedCourseCodes([]);
+            setAssessmentResults(new Map());
+            setAssessmentStatus("ready");
+            setTranscriptAssessment(null);
+            setTranscriptFile(null);
             onStageChange("intro");
           }}
         />
@@ -585,6 +832,29 @@ export function UcRplCourseMatcher({
       {stage === "results" && admission ? (
         <ResultsState
           admission={admission}
+          assessmentPanel={(
+            <UcCreditAssessmentPanel
+              error={assessmentError}
+              isAuthenticated={isAuthenticated}
+              shortlist={shortlist}
+              status={assessmentStatus}
+              transcriptFile={transcriptFile}
+              onAssess={() => void runCreditAssessment()}
+              onClearTranscript={() => {
+                setAssessmentError(null);
+                setTranscriptAssessment(null);
+                setTranscriptFile(null);
+              }}
+              onFileSelect={(file) => {
+                setAssessmentError(null);
+                setTranscriptAssessment(null);
+                setTranscriptFile(file);
+              }}
+              onRequestAssessment={requestCreditAssessment}
+            />
+          )}
+          assessmentResults={assessmentResults}
+          assessmentStatus={assessmentStatus}
           experienceSummary={experienceSummary}
           experienceGuidance={experienceGuidance}
           filter={filter}
@@ -592,23 +862,31 @@ export function UcRplCourseMatcher({
           onEdit={() => onStageChange("review")}
           onFilter={setFilter}
           onStart={(match) => void startApplication(match)}
+          onToggleShortlist={toggleShortlist}
+          shortlistedCourseCodes={shortlistedCourseCodes}
           startingCourseCode={startingCourseCode}
         />
       ) : null}
 
       {showAuthModal ? (
         <AuthModal
-          context="apply"
+          context={authIntent === "credit" ? "eligibility" : "apply"}
           signUpRedirectPath="/"
           onAuthenticated={() => {
             setShowAuthModal(false);
-            if (pendingStartMatch) {
+            if (authIntent === "credit") {
+              setAssessmentStatus("upload");
+            } else if (pendingStartMatch) {
               setAwaitingAuthenticatedStart(true);
             }
+            setAuthIntent(null);
           }}
           onClose={() => {
             setShowAuthModal(false);
-            setPendingStartMatch(null);
+            if (authIntent === "application") {
+              setPendingStartMatch(null);
+            }
+            setAuthIntent(null);
           }}
         />
       ) : null}

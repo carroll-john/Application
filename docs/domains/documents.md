@@ -21,6 +21,14 @@ authoritative for applicant documents.
 - `localDocumentStore.ts` and its tests remain as a legacy implementation pending
   Phase 2 removal. They are not an approved path for new or changed product flows.
 - Never store file names only; preserve binary content.
+- The authenticated UC demo credit comparison is a narrow pre-application
+  processing exception, not a stored applicant document. It sends one transcript
+  to the marked eligibility route, keeps the file/result in memory, and creates no
+  application or document metadata row during comparison. If the applicant
+  explicitly starts an application, extracted study fields may prefill blank
+  qualification data and the full file is attached to the matching qualification
+  through the shared authenticated remote path. The three-course comparison result
+  remains transient.
 
 ### Document kinds (Section 2 + feedback)
 
