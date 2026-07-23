@@ -82,11 +82,11 @@ export function UcCreditAssessmentComparison({
         </div>
       </div>
 
-      <p className="mt-4 text-sm font-semibold text-green-950">
-        {result.potentialCreditPoints > 0
-          ? `Up to ${result.potentialCreditPoints} credit points indicated`
-          : "No automatic credit estimate — faculty review required"}
-      </p>
+      {result.potentialCreditPoints > 0 ? (
+        <p className="mt-4 text-sm font-semibold text-green-950">
+          Up to {result.potentialCreditPoints} credit points indicated
+        </p>
+      ) : null}
     </div>
   );
 }
