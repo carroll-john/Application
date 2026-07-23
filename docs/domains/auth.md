@@ -41,6 +41,9 @@ and password-recovery state. Shared route gates own access enforcement.
   credit-assessment transcript upload is shown. The marked transcript endpoint
   independently verifies the bearer session before reading the file. The
   transcript and comparison remain in memory and do not create a hidden draft.
+- Once an authenticated applicant explicitly starts an application, extracted
+  study fields from that comparison may enter the normal application state to
+  prefill blank qualification data. The original file is not silently persisted.
 - Troubleshooting: [auth-password.md](../runbooks/auth-password.md)
 
 ## Approved entry points
@@ -136,8 +139,9 @@ npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
 - The UC pre-application assessment is temporary browser state, not an
   application draft. Closing or refreshing the page discards it.
 - The UC credit comparison is also temporary browser state. Its transcript is
-  authenticated and processed ephemerally; starting an application later uses
-  the ordinary authenticated document system.
+  authenticated and processed ephemerally. An explicit Start application action
+  may carry extracted study fields into blank authenticated qualification data,
+  but later file attachment still uses the ordinary authenticated document system.
 
 ## Profile
 

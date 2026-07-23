@@ -3,6 +3,8 @@ import { initialApplicationData } from "../../lib/applicationData";
 import {
   buildTertiaryTranscriptFlashMessage,
   needsHubTranscriptEligibilityProcessing,
+  needsSelectedCourseEligibilityReview,
+  reviewExtractedTranscriptForSelectedCourse,
   shouldAutoFillQualificationFromTranscript,
   shouldEvaluateTranscriptEligibility,
   shouldReplaceQualificationFromTranscript,
@@ -104,6 +106,71 @@ describe("tertiaryTranscriptParsePolicy", () => {
           requirementsChecked: [],
         },
         transcriptRemoved: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("reviews carried transcript evidence once for the selected course", () => {
+    const selectedCourse = {
+      code: "UC-MBA-GOVERNMENT",
+      intake: "2026",
+      provider: "University of Canberra",
+      title: "Master of Business Administration (Government)",
+    };
+    const assessment = {
+      checkedAt: "2026-07-23T00:00:00.000Z",
+      confidence: 0.9,
+      extractedData: {
+        applicantDetails: {
+          institutionName: { normalizedValue: "University of Melbourne" },
+        },
+        studyDetails: {
+          completionStatus: { normalizedValue: "completed" },
+          highestEducationLevel: { normalizedValue: "Masters" },
+          programName: {
+            normalizedValue: "Master of Business Administration",
+          },
+        },
+      },
+      manualReviewRequired: false,
+      missingInformation: [],
+      outcome: "eligible" as const,
+      programCode: "UC-A,UC-B,UC-C",
+      recommendedNextStep: "Continue",
+      requirementsChecked: [],
+    };
+    const qualification = {
+      ...emptyFormData(),
+      institution: "University of Melbourne",
+      level: "Masters",
+      courseName: "Master of Business Administration",
+      transcriptEligibility: assessment,
+    };
+    const applicationData = {
+      ...initialApplicationData,
+      applicationMeta: { selectedCourse },
+      tertiaryQualifications: [qualification],
+    };
+
+    expect(
+      needsSelectedCourseEligibilityReview({
+        assessment,
+        selectedCourseCode: selectedCourse.code,
+      }),
+    ).toBe(true);
+
+    const reviewed = reviewExtractedTranscriptForSelectedCourse({
+      applicationData,
+      assessment,
+      qualification,
+    });
+
+    expect(reviewed.programCode).toBe(selectedCourse.code);
+    expect(reviewed.programTitle).toBe(selectedCourse.title);
+    expect(
+      needsSelectedCourseEligibilityReview({
+        assessment: reviewed,
+        selectedCourseCode: selectedCourse.code,
       }),
     ).toBe(false);
   });

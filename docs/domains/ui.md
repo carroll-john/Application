@@ -112,6 +112,10 @@ See [PR #202](https://github.com/carroll-john/Application/pull/202).
 - During an automatic transcript evidence review, the results panel remains hidden while the
   dedicated progress panel is visible. Once processing completes, result cards reveal in reading
   order; reduced-motion users receive the completed result immediately without staggered delays.
+- A UC application started after the pre-application transcript comparison arrives with blank
+  qualification fields prefilled from the extracted evidence. On the first hydrated qualifications
+  visit, show the standard program-evidence progress state while that evidence is rematched to the
+  selected course; do not ask for the same transcript again just to perform this landing review.
 - Extracted WAM/GPA is not listed as standalone eligibility evidence. It appears only in the
   result copy for a published academic-threshold requirement; courses without a threshold omit it.
 - `EligibilityFeedbackForm` — per-row dispute notes; CTA copy in `uiCopy.ts`

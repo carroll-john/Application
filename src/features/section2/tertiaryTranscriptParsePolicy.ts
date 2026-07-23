@@ -1,3 +1,4 @@
+import { applyEligibilityResolution } from "@johncarroll/eligibility-rules";
 import type { ApplicationData, TertiaryQualification } from "../../lib/applicationData";
 import { getCourseByCode } from "../../lib/courseCatalog";
 import { parseEntryRequirementThresholds } from "../../lib/courseCatalog/normalize";
@@ -18,6 +19,7 @@ import {
 } from "../../lib/eligibility/mapToTertiaryQualification";
 import type { TranscriptEligibilityRequestContext } from "../../lib/eligibility/contextSchema";
 import type { TranscriptEligibilityAssessment } from "../../lib/eligibility/types";
+import { normalizeTranscriptEligibilityAssessment } from "../../lib/eligibility/normalize";
 import type { UploadedDocument } from "../../lib/documentStorage";
 
 export interface TertiaryTranscriptParseContext {
@@ -141,6 +143,49 @@ export function shouldUseCachedTranscriptAssessment(options: {
       options.transcriptFile &&
       options.hasParsedTranscriptFile?.(options.transcriptFile),
   );
+}
+
+export function needsSelectedCourseEligibilityReview(options: {
+  assessment?: TranscriptEligibilityAssessment;
+  selectedCourseCode?: string;
+}) {
+  const selectedCourseCode = options.selectedCourseCode?.trim();
+
+  return Boolean(
+    selectedCourseCode &&
+      options.assessment &&
+      options.assessment.programCode !== selectedCourseCode,
+  );
+}
+
+/**
+ * Reuses the evidence extracted during the authenticated UC comparison, but applies the canonical
+ * Applications-owned requirements for the single course that was ultimately selected.
+ */
+export function reviewExtractedTranscriptForSelectedCourse(options: {
+  applicationData: ApplicationData;
+  assessment: TranscriptEligibilityAssessment;
+  qualification: TertiaryQualification;
+}) {
+  const context = buildTranscriptEligibilityContext(
+    options.applicationData,
+    options.qualification,
+  );
+  const extractedData = options.assessment.extractedData;
+  const resolved = applyEligibilityResolution(
+    {
+      ...options.assessment,
+      academicPerformance: extractedData.academicPerformance,
+      applicantDetails: extractedData.applicantDetails,
+      englishLanguageEvidence: extractedData.englishLanguageEvidence,
+      programCode: context.courseCode,
+      programTitle: context.courseTitle,
+      studyDetails: extractedData.studyDetails,
+    },
+    context,
+  );
+
+  return normalizeTranscriptEligibilityAssessment(resolved);
 }
 
 export async function parseTranscriptForQualification(

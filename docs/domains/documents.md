@@ -25,7 +25,9 @@ authoritative for applicant documents.
   processing exception, not a stored applicant document. It sends one transcript
   to the marked eligibility route, keeps the file/result in memory only, and
   creates no application or document metadata row. If the applicant starts an
-  application, ordinary transcript upload still uses the shared remote path.
+  application, extracted study fields may prefill blank qualification data, but
+  the earlier file is not silently attached. Any later transcript attachment still
+  uses the shared authenticated remote path.
 
 ### Document kinds (Section 2 + feedback)
 
