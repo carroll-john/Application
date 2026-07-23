@@ -62,6 +62,43 @@ function StudyNextWordmark({ size = 20 }: { size?: number }) {
   );
 }
 
+export function KeypathTechServiceMark() {
+  return (
+    <span
+      aria-label="Powered by KeypathTECH"
+      className="hidden h-11 w-[210px] shrink-0 items-center gap-2.5 bg-[var(--brand-service-bg)] px-2.5 text-[var(--brand-service-text)] sm:inline-flex"
+      data-keypath-tech-service-mark
+      role="img"
+    >
+      <span className="whitespace-nowrap text-[10px] font-extrabold leading-none">
+        Powered by{" "}
+      </span>
+      <span aria-hidden="true" className="relative inline-flex items-center pl-4">
+        <svg
+          className="absolute left-0 h-8 w-8 text-[var(--brand-service-accent)]"
+          fill="none"
+          viewBox="0 0 36 36"
+        >
+          <circle
+            cx="18"
+            cy="18"
+            r="15"
+            stroke="currentColor"
+            strokeDasharray="12 4"
+            strokeLinecap="butt"
+            strokeWidth="4"
+            transform="rotate(-38 18 18)"
+          />
+        </svg>
+        <span className="relative inline-flex items-baseline whitespace-nowrap text-[17px] leading-none tracking-[-0.045em]">
+          <span className="font-normal">Keypath</span>
+          <span className="font-black tracking-[-0.035em]">TECH</span>
+        </span>
+      </span>
+    </span>
+  );
+}
+
 export function AppBrandHeader({
   children,
   maxWidthClassName = "max-w-7xl",
@@ -98,15 +135,13 @@ export function AppBrandHeader({
           ) : (
             <StudyNextWordmark />
           )}
-          <span
-            className={`brand-service-label hidden h-6 items-center rounded-full bg-[var(--brand-service-bg)] px-2.5 text-[10px] font-semibold text-[var(--brand-service-text)] sm:inline-flex ${
-              isUcBrand
-                ? "normal-case tracking-[0.06em]"
-                : "uppercase tracking-[0.18em]"
-            }`}
-          >
-            {activeBrand.serviceLabel}
-          </span>
+          {isUcBrand ? (
+            <KeypathTechServiceMark />
+          ) : (
+            <span className="brand-service-label hidden h-6 items-center rounded-full bg-[var(--brand-service-bg)] px-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-service-text)] sm:inline-flex">
+              {activeBrand.serviceLabel}
+            </span>
+          )}
         </NavLink>
         <div className="flex items-center gap-3">
           {canShowAccountLink ? (

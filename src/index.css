@@ -7,6 +7,8 @@
   /* Keypath Tech brand — stable even when a partner theme is active. */
   --keypath-tech-navy: #1f2a3a;
   --keypath-tech-yellow: #f4b400;
+  --keypath-tech-ocean: #168aa4;
+  --keypath-tech-cyan: #00c6ee;
 
   /* StudyNext brand */
   --sn-navy: var(--keypath-tech-navy);
@@ -23,6 +25,7 @@
   --brand-header-shadow: none;
   --brand-service-bg: rgba(255, 255, 255, 0.1);
   --brand-service-text: rgba(255, 255, 255, 0.85);
+  --brand-service-accent: var(--sn-mint);
   --brand-accent: var(--sn-mint);
   --brand-accent-strong: var(--sn-mint);
   --brand-footer: var(--sn-navy-deep);
@@ -148,8 +151,9 @@
   --brand-header-border: rgba(65, 64, 66, 0.14);
   --brand-header-link-border: rgba(65, 64, 66, 0.28);
   --brand-header-shadow: 0 1px 3px rgba(65, 64, 66, 0.05);
-  --brand-service-bg: var(--keypath-tech-yellow);
-  --brand-service-text: var(--keypath-tech-navy);
+  --brand-service-bg: var(--keypath-tech-ocean);
+  --brand-service-text: #ffffff;
+  --brand-service-accent: var(--keypath-tech-cyan);
   --brand-accent: var(--uc-blue);
   --brand-accent-strong: var(--uc-dark-teal);
   --brand-footer: var(--uc-hale-navy);

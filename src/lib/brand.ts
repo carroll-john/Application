@@ -36,7 +36,7 @@ export const brandConfigs: Record<BrandId, BrandConfig> = {
   uc: {
     id: "uc",
     displayName: "University of Canberra",
-    serviceLabel: "Powered by Keypath Tech",
+    serviceLabel: "Powered by KeypathTECH",
     catalogId: "uc",
     logo: {
       fullColour: ucLogoInline,

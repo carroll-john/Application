@@ -51,9 +51,15 @@ try {
         const ucCourseImages = [
           ...document.querySelectorAll('img[src^="/content/dam/uc/"]'),
         ];
-        const brandServiceLabel = document.querySelector(".brand-service-label");
+        const brandServiceLabel = document.querySelector(
+          "[data-keypath-tech-service-mark]",
+        );
         const brandServiceStyle = brandServiceLabel
           ? window.getComputedStyle(brandServiceLabel)
+          : null;
+        const brandServiceAccent = brandServiceLabel?.querySelector("svg");
+        const brandServiceAccentStyle = brandServiceAccent
+          ? window.getComputedStyle(brandServiceAccent)
           : null;
 
         return {
@@ -61,6 +67,7 @@ try {
             ? {
                 backgroundColor: brandServiceStyle.backgroundColor,
                 color: brandServiceStyle.color,
+                accentColor: brandServiceAccentStyle?.color ?? null,
                 isVisible: isVisible(brandServiceLabel),
                 text: brandServiceLabel.textContent.trim(),
               }
@@ -83,17 +90,21 @@ try {
 
       if (result.hasStudyNext) failures.push(`${viewport.name} ${route}: StudyNext visible`);
       if (!result.hasUcLogo) failures.push(`${viewport.name} ${route}: UC logo missing`);
-      if (result.brandServiceLabel?.text !== "Powered by Keypath Tech") {
-        failures.push(`${viewport.name} ${route}: unexpected Keypath badge copy`);
+      if (result.brandServiceLabel?.text !== "Powered by KeypathTECH") {
+        failures.push(`${viewport.name} ${route}: unexpected Keypath service-mark copy`);
       }
       if (
-        result.brandServiceLabel?.backgroundColor !== "rgb(244, 180, 0)" ||
-        result.brandServiceLabel?.color !== "rgb(31, 42, 58)"
+        result.brandServiceLabel?.backgroundColor !== "rgb(22, 138, 164)" ||
+        result.brandServiceLabel?.color !== "rgb(255, 255, 255)" ||
+        result.brandServiceLabel?.accentColor !== "rgb(0, 198, 238)"
       ) {
-        failures.push(`${viewport.name} ${route}: unexpected Keypath badge colours`);
+        failures.push(`${viewport.name} ${route}: unexpected Keypath service-mark colours`);
       }
       if (viewport.name === "desktop" && !result.brandServiceLabel?.isVisible) {
-        failures.push(`${viewport.name} ${route}: Keypath badge hidden`);
+        failures.push(`${viewport.name} ${route}: Keypath service mark hidden`);
+      }
+      if (viewport.name === "mobile" && result.brandServiceLabel?.isVisible) {
+        failures.push(`${viewport.name} ${route}: Keypath service mark visible`);
       }
       if (result.nonSquareContentBlocks > 0) {
         failures.push(
