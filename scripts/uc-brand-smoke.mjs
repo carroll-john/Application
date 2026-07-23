@@ -51,30 +51,13 @@ try {
         const ucCourseImages = [
           ...document.querySelectorAll('img[src^="/content/dam/uc/"]'),
         ];
-        const brandServiceLabel = document.querySelector(
-          "[data-keypath-tech-service-mark]",
-        );
-        const brandServiceStyle = brandServiceLabel
-          ? window.getComputedStyle(brandServiceLabel)
-          : null;
-        const brandServiceAccent = brandServiceLabel?.querySelector("svg");
-        const brandServiceAccentStyle = brandServiceAccent
-          ? window.getComputedStyle(brandServiceAccent)
-          : null;
-
         return {
-          brandServiceLabel: brandServiceLabel
-            ? {
-                backgroundColor: brandServiceStyle.backgroundColor,
-                color: brandServiceStyle.color,
-                accentColor: brandServiceAccentStyle?.color ?? null,
-                isVisible: isVisible(brandServiceLabel),
-                text: brandServiceLabel.textContent.trim(),
-              }
-            : null,
           brokenUcCourseImages: ucCourseImages.filter(
             (image) => !image.complete || image.naturalWidth === 0,
           ).length,
+          hasKeypathTechServiceMark: Boolean(
+            document.querySelector("[data-keypath-tech-service-mark]"),
+          ),
           hasStudyNext: /studynext/i.test(document.body.innerText),
           hasUcLogo: Boolean(document.querySelector('img[alt="University of Canberra"]')),
           nonSquareContentBlocks: contentBlocks.filter((element) => radius(element) !== 0).length,
@@ -90,21 +73,8 @@ try {
 
       if (result.hasStudyNext) failures.push(`${viewport.name} ${route}: StudyNext visible`);
       if (!result.hasUcLogo) failures.push(`${viewport.name} ${route}: UC logo missing`);
-      if (result.brandServiceLabel?.text !== "Powered by KeypathTECH") {
-        failures.push(`${viewport.name} ${route}: unexpected Keypath service-mark copy`);
-      }
-      if (
-        result.brandServiceLabel?.backgroundColor !== "rgb(22, 138, 164)" ||
-        result.brandServiceLabel?.color !== "rgb(255, 255, 255)" ||
-        result.brandServiceLabel?.accentColor !== "rgb(0, 198, 238)"
-      ) {
-        failures.push(`${viewport.name} ${route}: unexpected Keypath service-mark colours`);
-      }
-      if (viewport.name === "desktop" && !result.brandServiceLabel?.isVisible) {
-        failures.push(`${viewport.name} ${route}: Keypath service mark hidden`);
-      }
-      if (viewport.name === "mobile" && result.brandServiceLabel?.isVisible) {
-        failures.push(`${viewport.name} ${route}: Keypath service mark visible`);
+      if (result.hasKeypathTechServiceMark) {
+        failures.push(`${viewport.name} ${route}: Keypath service mark present`);
       }
       if (result.nonSquareContentBlocks > 0) {
         failures.push(

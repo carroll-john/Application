@@ -7,7 +7,7 @@ export type CatalogId = "default" | "uc";
 export interface BrandConfig {
   id: BrandId;
   displayName: string;
-  serviceLabel: string;
+  serviceLabel?: string;
   catalogId: CatalogId;
   logo?: {
     fullColour: string;
@@ -36,7 +36,6 @@ export const brandConfigs: Record<BrandId, BrandConfig> = {
   uc: {
     id: "uc",
     displayName: "University of Canberra",
-    serviceLabel: "Powered by KeypathTECH",
     catalogId: "uc",
     logo: {
       fullColour: ucLogoInline,
