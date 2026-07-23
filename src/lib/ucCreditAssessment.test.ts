@@ -3,6 +3,7 @@ import { getCourseCatalogFor } from "./courseCatalog";
 import { normalizeTranscriptEligibilityAssessment } from "./eligibility/normalize";
 import type { UcCourseMatch } from "./ucRplAssessment";
 import {
+  assessUcShortlistCredit,
   assessUcShortlistedCourseCredit,
   formatUcAssessmentCost,
   formatUcAssessmentDuration,
@@ -71,6 +72,27 @@ const unrelatedTranscript = normalizeTranscriptEligibilityAssessment({
   },
 });
 
+const billShortenDemoTranscript = normalizeTranscriptEligibilityAssessment({
+  confidence: 0.97,
+  outcome: "eligible",
+  applicantDetails: {
+    institutionName: {
+      confidence: 0.98,
+      normalizedValue: "Monash University",
+    },
+  },
+  studyDetails: {
+    highestEducationLevel: {
+      confidence: 0.98,
+      normalizedValue: "Bachelor",
+    },
+    programName: {
+      confidence: 0.98,
+      normalizedValue: "Bachelor of Arts and Bachelor of Laws",
+    },
+  },
+});
+
 describe("UC shortlisted-course credit assessment", () => {
   it("combines related transcript study and CV relevance into time and cost estimates", () => {
     const result = assessUcShortlistedCourseCredit(
@@ -112,6 +134,82 @@ describe("UC shortlisted-course credit assessment", () => {
     expect(result.afterCost).toBe(result.originalCost);
     expect(result.afterDurationMonths).toBe(result.originalDurationMonths);
     expect(result.confidence).toBe("low");
+  });
+
+  it("applies the fixed UC demo estimate to Bill Shorten's two education master's courses only", () => {
+    const results = assessUcShortlistCredit(
+      [
+        matchFor("Master of Education (Leadership)"),
+        matchFor("Master of Education (STEM)"),
+        matchFor("Graduate Certificate in Educational Leadership"),
+      ],
+      billShortenDemoTranscript,
+      { applicant: { firstName: "Bill", lastName: "Shorten" } },
+    );
+
+    expect(results).toEqual([
+      expect.objectContaining({
+        afterCost: 17737.5,
+        afterDurationMonths: 12,
+        confidence: "medium",
+        originalCost: 23650,
+        originalDurationMonths: 16,
+        potentialCreditPoints: 6,
+        potentialSavings: 5912.5,
+      }),
+      expect.objectContaining({
+        afterCost: 17737.5,
+        afterDurationMonths: 12,
+        confidence: "medium",
+        originalCost: 23650,
+        originalDurationMonths: 16,
+        potentialCreditPoints: 6,
+        potentialSavings: 5912.5,
+      }),
+      expect.objectContaining({
+        afterCost: 11825,
+        afterDurationMonths: 8,
+        confidence: "low",
+        originalCost: 11825,
+        originalDurationMonths: 8,
+        potentialCreditPoints: 0,
+        potentialSavings: 0,
+      }),
+    ]);
+    expect(results[0]?.evidenceSummary).toMatch(/transcript.*CV/i);
+    expect(results[1]?.evidenceSummary).toMatch(/transcript.*CV/i);
+  });
+
+  it("does not apply the UC demo estimate to another applicant", () => {
+    const result = assessUcShortlistedCourseCredit(
+      matchFor("Master of Education (Leadership)"),
+      billShortenDemoTranscript,
+      { applicant: { firstName: "Another", lastName: "Applicant" } },
+    );
+
+    expect(result.potentialCreditPoints).toBe(0);
+    expect(result.afterCost).toBe(result.originalCost);
+    expect(result.afterDurationMonths).toBe(result.originalDurationMonths);
+  });
+
+  it("does not apply the UC demo estimate to a different Bill Shorten transcript", () => {
+    const result = assessUcShortlistedCourseCredit(
+      matchFor("Master of Education (Leadership)"),
+      unrelatedTranscript,
+      { applicant: { firstName: "Bill", lastName: "Shorten" } },
+    );
+
+    expect(result.potentialCreditPoints).toBe(0);
+  });
+
+  it("does not apply the UC demo estimate to an unlisted course", () => {
+    const result = assessUcShortlistedCourseCredit(
+      matchFor("Master of Education"),
+      billShortenDemoTranscript,
+      { applicant: { firstName: "Bill", lastName: "Shorten" } },
+    );
+
+    expect(result.potentialCreditPoints).toBe(0);
   });
 
   it("shows explicit confirmation copy when published cost data is unavailable", () => {

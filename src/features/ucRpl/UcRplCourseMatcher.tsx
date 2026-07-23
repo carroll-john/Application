@@ -698,7 +698,9 @@ export function UcRplCourseMatcher({
         );
       }
 
-      const results = assessUcShortlistCredit(shortlist, transcriptAssessment);
+      const results = assessUcShortlistCredit(shortlist, transcriptAssessment, {
+        applicant: draft.profile,
+      });
       setTranscriptAssessment(transcriptAssessment);
       setAssessmentResults(
         new Map(results.map((result) => [result.courseCode, result])),
