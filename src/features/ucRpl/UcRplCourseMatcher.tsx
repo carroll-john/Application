@@ -46,6 +46,7 @@ import {
   hasUcTranscriptStudyEvidence,
   isBillShortenUcCreditDemoFixture,
   prepareUcCreditAssessment,
+  resolveUcTranscriptAssessmentForApplication,
   type UcCreditAssessmentResult,
 } from "../../lib/ucCreditAssessment";
 import { sleep } from "../../lib/utils";
@@ -77,6 +78,36 @@ interface UcRplCourseMatcherProps {
   courses: CourseCatalogEntry[];
   onStageChange: (stage: UcRplAssessmentStage) => void;
   stage: UcRplAssessmentStage;
+}
+
+function requestUcTranscriptAssessment(options: {
+  accessToken: string;
+  draft: CvRecognitionDraft;
+  shortlist: UcCourseMatch[];
+  transcriptFile: File;
+}) {
+  const { accessToken, draft, shortlist, transcriptFile } = options;
+
+  return evaluateTranscriptEligibility(
+    transcriptFile,
+    {
+      courseCode: shortlist.map((match) => match.course.code).join(","),
+      courseTitle: shortlist.map((match) => match.course.title).join("; "),
+      cvUploaded: true,
+      employmentCount: draft.experiences.filter(
+        (experience) => experience.includeInAssessment,
+      ).length,
+    },
+    { accessToken, ucCreditAssessment: true },
+  ).then((assessment) => {
+    if (!hasUcTranscriptStudyEvidence(assessment)) {
+      throw new Error(
+        "We couldn’t identify enough study information in this transcript. Try a clearer file or a transcript that lists your course and units.",
+      );
+    }
+
+    return assessment;
+  });
 }
 
 const CONFIDENCE_BADGE: Record<
@@ -752,24 +783,12 @@ export function UcRplCourseMatcher({
         isDemoMode &&
         isBillShortenUcCreditDemoFixture(shortlist, draft.profile);
       let parsedTranscriptAssessment: TranscriptEligibilityAssessment | null = null;
-      const parserAssessment = evaluateTranscriptEligibility(
+      const parserAssessment = requestUcTranscriptAssessment({
+        accessToken,
+        draft,
+        shortlist,
         transcriptFile,
-        {
-          courseCode: shortlist.map((match) => match.course.code).join(","),
-          courseTitle: shortlist.map((match) => match.course.title).join("; "),
-          cvUploaded: true,
-          employmentCount: draft.experiences.filter(
-            (experience) => experience.includeInAssessment,
-          ).length,
-        },
-        { accessToken, ucCreditAssessment: true },
-      ).then((assessment) => {
-        if (!hasUcTranscriptStudyEvidence(assessment)) {
-          throw new Error(
-            "We couldn’t identify enough study information in this transcript. Try a clearer file or a transcript that lists your course and units.",
-          );
-        }
-
+      }).then((assessment) => {
         parsedTranscriptAssessment = assessment;
         if (
           usesFastDemoAssessment &&
@@ -851,10 +870,33 @@ export function UcRplCourseMatcher({
     setStartingCourseCode(match.course.code);
 
     try {
-      const parserAssessment = transcriptAssessmentRequestRef.current;
-      const applicationTranscriptAssessment = parserAssessment
-        ? await parserAssessment
-        : transcriptAssessment;
+      let applicationTranscriptAssessment = transcriptAssessment;
+
+      if (transcriptFile) {
+        const accessToken = session?.access_token;
+        if (!accessToken) {
+          throw new TranscriptEligibilityRequestError(
+            "Your session expired. Sign in again to continue.",
+            401,
+          );
+        }
+
+        applicationTranscriptAssessment =
+          await resolveUcTranscriptAssessmentForApplication({
+            parserAssessment: transcriptAssessmentRequestRef.current,
+            startParserAssessment: () => {
+              const retryAssessment = requestUcTranscriptAssessment({
+                accessToken,
+                draft,
+                shortlist,
+                transcriptFile,
+              });
+              transcriptAssessmentRequestRef.current = retryAssessment;
+              return retryAssessment;
+            },
+          });
+        setTranscriptAssessment(applicationTranscriptAssessment);
+      }
 
       await beginCourseApplication(
         {
@@ -875,7 +917,21 @@ export function UcRplCourseMatcher({
       navigate("/overview");
     } catch (startError) {
       console.error("Failed to start application from UC recognition assessment", startError);
-      setError("We couldn't start your application right now. Please try again.");
+      if (
+        startError instanceof TranscriptEligibilityRequestError &&
+        startError.status === 401
+      ) {
+        setError("Your session expired. Sign in again to continue.");
+        setPendingStartMatch(match);
+        setAuthIntent("application");
+        setShowAuthModal(true);
+      } else if (startError instanceof TypeError) {
+        setError(
+          "We couldn't finish preparing your transcript. Check your connection and try Start application again.",
+        );
+      } else {
+        setError("We couldn't start your application right now. Please try again.");
+      }
       setStartingCourseCode(null);
       window.scrollTo({ behavior: "smooth", top: 0 });
     }
@@ -885,6 +941,8 @@ export function UcRplCourseMatcher({
     isAuthenticated,
     navigate,
     selectedFile,
+    session,
+    shortlist,
     startingCourseCode,
     transcriptAssessment,
     transcriptFile,

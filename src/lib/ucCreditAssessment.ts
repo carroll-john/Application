@@ -153,6 +153,21 @@ export function prepareUcCreditAssessment(options: {
   };
 }
 
+export async function resolveUcTranscriptAssessmentForApplication(options: {
+  parserAssessment: Promise<TranscriptEligibilityAssessment> | null;
+  startParserAssessment: () => Promise<TranscriptEligibilityAssessment>;
+}) {
+  const { parserAssessment, startParserAssessment } = options;
+  const initialAssessment = parserAssessment ?? startParserAssessment();
+
+  try {
+    return await initialAssessment;
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    return startParserAssessment();
+  }
+}
+
 function getBillShortenDemoCreditPoints(
   match: UcCourseMatch,
   context: UcCreditAssessmentContext,

@@ -11,6 +11,7 @@ import {
   hasUcTranscriptStudyEvidence,
   isBillShortenUcCreditDemoFixture,
   prepareUcCreditAssessment,
+  resolveUcTranscriptAssessmentForApplication,
   UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS,
 } from "./ucCreditAssessment";
 
@@ -161,6 +162,31 @@ describe("UC shortlisted-course credit assessment", () => {
 
     expect(run.cardAssessment).toBe(parserAssessment);
     expect(run.parserAssessment).toBe(parserAssessment);
+  });
+
+  it("retries a failed background parser request before application handoff", async () => {
+    const retryParserAssessment = vi.fn().mockResolvedValue(relatedTranscript);
+
+    await expect(
+      resolveUcTranscriptAssessmentForApplication({
+        parserAssessment: Promise.reject(new TypeError("Failed to fetch")),
+        startParserAssessment: retryParserAssessment,
+      }),
+    ).resolves.toBe(relatedTranscript);
+    expect(retryParserAssessment).toHaveBeenCalledOnce();
+  });
+
+  it("does not retry a completed parser response that lacks study evidence", async () => {
+    const retryParserAssessment = vi.fn();
+    const evidenceFailure = new Error("Transcript study evidence is missing");
+
+    await expect(
+      resolveUcTranscriptAssessmentForApplication({
+        parserAssessment: Promise.reject(evidenceFailure),
+        startParserAssessment: retryParserAssessment,
+      }),
+    ).rejects.toBe(evidenceFailure);
+    expect(retryParserAssessment).not.toHaveBeenCalled();
   });
 
   it("combines related transcript study and CV relevance into time and cost estimates", () => {
