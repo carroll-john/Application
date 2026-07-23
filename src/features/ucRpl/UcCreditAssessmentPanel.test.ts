@@ -86,6 +86,30 @@ describe("UC credit assessment interface", () => {
     expect(html).not.toContain("2026 indicative tuition only");
   });
 
+  it("omits the redundant zero-credit summary while retaining faculty review status", () => {
+    const html = renderToStaticMarkup(
+      createElement(UcCreditAssessmentComparison, {
+        result: {
+          afterCost: 23650,
+          afterDurationMonths: 16,
+          confidence: "low",
+          courseCode: "master-of-education-leadership",
+          evidenceSummary:
+            "Your transcript and CV will need faculty review for a formal credit decision.",
+          originalCost: 23650,
+          originalDurationMonths: 16,
+          potentialCreditPoints: 0,
+          potentialSavings: 0,
+        },
+      }),
+    );
+
+    expect(html).toContain("Faculty review");
+    expect(html).not.toContain(
+      "No automatic credit estimate — faculty review required",
+    );
+  });
+
   it("hides the provisional credit section after assessment", () => {
     const match = shortlist()[0]!;
     const html = renderToStaticMarkup(
