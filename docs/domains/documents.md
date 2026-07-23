@@ -23,11 +23,12 @@ authoritative for applicant documents.
 - Never store file names only; preserve binary content.
 - The authenticated UC demo credit comparison is a narrow pre-application
   processing exception, not a stored applicant document. It sends one transcript
-  to the marked eligibility route, keeps the file/result in memory only, and
-  creates no application or document metadata row. If the applicant starts an
-  application, extracted study fields may prefill blank qualification data, but
-  the earlier file is not silently attached. Any later transcript attachment still
-  uses the shared authenticated remote path.
+  to the marked eligibility route, keeps the file/result in memory, and creates no
+  application or document metadata row during comparison. If the applicant
+  explicitly starts an application, extracted study fields may prefill blank
+  qualification data and the full file is attached to the matching qualification
+  through the shared authenticated remote path. The three-course comparison result
+  remains transient.
 
 ### Document kinds (Section 2 + feedback)
 

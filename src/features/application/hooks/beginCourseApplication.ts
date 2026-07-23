@@ -1,4 +1,8 @@
-import type { ApplicationData, SelectedCourse } from "../../../lib/applicationData";
+import type {
+  ApplicationData,
+  SelectedCourse,
+  TertiaryQualification,
+} from "../../../lib/applicationData";
 import { createApplicationDraft } from "../../../lib/applicationRecords";
 import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageAdapter";
 import type { ApplicationSummary } from "../../../lib/applicationRecords";
@@ -51,6 +55,59 @@ function applyUcPrefills(
     : cvPrefilled;
 }
 
+function isCarriedTranscriptAssessment(
+  candidate: TertiaryQualification["transcriptEligibility"],
+  carried: NonNullable<BeginCourseApplicationOptions["ucTranscriptPrefill"]>,
+) {
+  return Boolean(
+    candidate &&
+      (candidate === carried ||
+        (candidate.checkedAt === carried.checkedAt &&
+          candidate.programCode === carried.programCode)),
+  );
+}
+
+async function attachUcTranscript(
+  application: ApplicationData,
+  options: BeginCourseApplicationOptions | undefined,
+  saveApplication: (nextData: ApplicationData) => Promise<ApplicationData>,
+) {
+  const transcriptFile = options?.ucTranscriptFile;
+  const transcriptAssessment = options?.ucTranscriptPrefill;
+  const applicationId = application.applicationMeta.recordId;
+
+  if (!transcriptFile || !transcriptAssessment || !applicationId) {
+    return application;
+  }
+
+  const qualification = application.tertiaryQualifications.find((record) =>
+    isCarriedTranscriptAssessment(record.transcriptEligibility, transcriptAssessment),
+  );
+
+  if (!qualification) {
+    return application;
+  }
+
+  const transcriptDocument = await replaceStoredDocument(
+    transcriptFile,
+    qualification.transcriptDocument,
+    { applicationId, kind: "tertiary_transcript" },
+  );
+
+  return saveApplication({
+    ...application,
+    tertiaryQualifications: application.tertiaryQualifications.map((record) =>
+      record.id === qualification.id
+        ? {
+            ...record,
+            transcriptDocument,
+            transcriptDocumentName: transcriptDocument?.name,
+          }
+        : record,
+    ),
+  });
+}
+
 export async function beginCourseApplication(
   course: SelectedCourse,
   options: BeginCourseApplicationOptions | undefined,
@@ -89,6 +146,11 @@ export async function beginCourseApplication(
         cvUploaded: Boolean(cvDocument),
       });
     }
+    reopenedApplication = await attachUcTranscript(
+      reopenedApplication,
+      options,
+      (nextData) => deps.storageAdapter.saveApplication(nextData),
+    );
     await deps.openApplication(existingApplication.id);
     deps.trackDraftResumed(course, existingApplication.id);
     return reopenedApplication;
@@ -132,6 +194,15 @@ export async function beginCourseApplication(
       cvUploaded: Boolean(cvDocument),
     });
   }
+
+  persisted = await attachUcTranscript(
+    persisted,
+    options,
+    (nextData) =>
+      deps.persistApplication(nextData, {
+        applicantProfileId: resolvedApplicantProfile?.id ?? null,
+      }),
+  );
 
   if (isStartingFromPreviousApplication && reusableSourceApplication) {
     const clonedApplication = await cloneSourceApplicationDocuments(

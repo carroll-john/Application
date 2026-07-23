@@ -14,5 +14,6 @@ export interface BeginCourseApplicationOptions {
   prefillFromApplicationId?: string | null;
   startFresh?: boolean;
   ucCvPrefill?: CvRecognitionDraft;
+  ucTranscriptFile?: File;
   ucTranscriptPrefill?: TranscriptEligibilityAssessment;
 }

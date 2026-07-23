@@ -24,8 +24,9 @@ but it is not anonymous. Sign-in is required before the transcript control is
 shown, and the marked API route validates the bearer session before reading the
 file. The transcript and comparison are ephemeral and create no hidden draft.
 After the applicant explicitly starts an application, extracted study fields may
-fill blank authenticated qualification data and be rematched to the selected
-course. The earlier file is not silently persisted.
+fill blank authenticated qualification data, the full file is attached to the
+matching qualification through the shared authenticated document layer, and the
+evidence is rematched to the selected course.
 
 ## Why
 
@@ -46,6 +47,6 @@ assessment without creating a draft.
 Authenticated UC demo visitors may process one transcript for a three-course
 credit comparison. Refreshing or closing the page discards the shortlist,
 transcript and results before an application is started. Starting an application
-may transfer extracted study fields into blank qualification data, while the
-comparison file and result remain transient. A later document attachment uses
-the ordinary persisted document flow.
+may transfer extracted study fields into blank qualification data and attach the
+transcript through the ordinary persisted document flow. The three-course
+comparison result remains transient.

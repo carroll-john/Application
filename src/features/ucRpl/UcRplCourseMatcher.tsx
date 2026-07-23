@@ -751,6 +751,7 @@ export function UcRplCourseMatcher({
           cvFile: selectedFile,
           startFresh: true,
           ucCvPrefill: draft,
+          ucTranscriptFile: transcriptFile ?? undefined,
           ucTranscriptPrefill: transcriptAssessment ?? undefined,
         },
       );
@@ -769,6 +770,7 @@ export function UcRplCourseMatcher({
     selectedFile,
     startingCourseCode,
     transcriptAssessment,
+    transcriptFile,
     userEmail,
   ]);
 

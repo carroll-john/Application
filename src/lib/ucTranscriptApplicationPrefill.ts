@@ -74,8 +74,8 @@ function createQualification(
 }
 
 /**
- * Transfers only extracted study data after the applicant explicitly starts an authenticated
- * application. The earlier transcript file and credit-comparison result remain outside the draft.
+ * Transfers extracted study data after the applicant explicitly starts an authenticated
+ * application. Document attachment is handled separately through the shared document layer.
  */
 export function applyUcTranscriptApplicationPrefill(
   application: ApplicationData,
