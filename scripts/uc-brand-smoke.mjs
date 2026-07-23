@@ -60,6 +60,9 @@ try {
           ),
           hasStudyNext: /studynext/i.test(document.body.innerText),
           hasUcLogo: Boolean(document.querySelector('img[alt="University of Canberra"]')),
+          courseSearchPlaceholder: document
+            .querySelector('input[aria-label="Search courses"]')
+            ?.getAttribute("placeholder"),
           nonSquareContentBlocks: contentBlocks.filter((element) => radius(element) !== 0).length,
           overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
           squareControls: controls.filter((element) => radius(element) === 0).length,
@@ -73,6 +76,11 @@ try {
 
       if (result.hasStudyNext) failures.push(`${viewport.name} ${route}: StudyNext visible`);
       if (!result.hasUcLogo) failures.push(`${viewport.name} ${route}: UC logo missing`);
+      if (route === "/" && result.courseSearchPlaceholder !== "Search courses") {
+        failures.push(
+          `${viewport.name} ${route}: unexpected course search placeholder`,
+        );
+      }
       if (result.hasKeypathTechServiceMark) {
         failures.push(`${viewport.name} ${route}: Keypath service mark present`);
       }
