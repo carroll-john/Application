@@ -115,6 +115,15 @@ shared document flow. The qualifications hub then reuses the extracted evidence
 with the Applications-owned matcher for the single selected course. The
 three-course credit-comparison result remains transient.
 
+For the explicitly documented synthetic demo fixture, the fixed card comparison
+may appear after a short presentation delay without awaiting extraction. The real
+eligibility request still starts immediately in the background and is normally
+the single parser call. Starting an application reuses and, when necessary,
+awaits that in-flight request. If the browser request failed before receiving a
+response, Start application retries it once before handing genuine extracted
+study data and the file to the shared qualification flow; the synthetic card
+assessment is never used as a parser substitute.
+
 ## Approved entry points
 
 For a new ordinary parser kind:

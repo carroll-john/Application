@@ -6,6 +6,10 @@ import type {
   TertiaryQualification,
 } from "./applicationData";
 import type { CourseCatalogEntry } from "./courseCatalog";
+import {
+  BILL_SHORTEN_UC_DEMO_COURSES,
+  isBillShortenUcDemoName,
+} from "./ucDemoFixture";
 
 export type OscaSkillLevel = 1 | 2 | 3 | 4 | 5;
 export type OscaConfidence = "high" | "medium" | "low";
@@ -71,6 +75,16 @@ export interface UcOscaExperienceSummary {
   roles: CvRecognitionExperience[];
   skillLevel: OscaSkillLevel | null;
 }
+
+const BILL_SHORTEN_DEMO_CREDIT_CONFIDENCE = new Map<
+  string,
+  UcGuidanceConfidence
+>(
+  BILL_SHORTEN_UC_DEMO_COURSES.map(({ creditConfidence, title }) => [
+    title,
+    creditConfidence,
+  ]),
+);
 
 const MONTH_INDEX = new Map(
   [
@@ -704,6 +718,8 @@ function getCourseDurationYears(duration: string | undefined) {
 export function getUcIndicativeCreditPoints(
   course: CourseCatalogEntry,
 ): 6 | 12 | 18 {
+  if (/^master\b/i.test(course.title)) return 12;
+
   const durationYears = getCourseDurationYears(course.duration);
 
   if (durationYears !== null) {
@@ -723,6 +739,11 @@ export function rankUcCourses(
   admission: UcAdmissionAssessment,
 ): UcCourseMatch[] {
   const profile = buildCourseMatchProfile(draft);
+  const billShortenDemoConfidenceByTitle = isBillShortenUcDemoName(
+    `${draft.profile.firstName} ${draft.profile.lastName}`,
+  )
+    ? BILL_SHORTEN_DEMO_CREDIT_CONFIDENCE
+    : null;
   const ranked = courses
     .map((course) => ({ course, ...courseRelevance(course, profile) }))
     .sort(
@@ -753,7 +774,8 @@ export function rankUcCourses(
         : "UC Admissions will review your work experience against this course’s entry requirements.",
       category,
       creditConfidence:
-        relevanceScore >= 17 ? "high" : relevanceScore > 0 ? "medium" : "low",
+        billShortenDemoConfidenceByTitle?.get(course.title) ??
+        (relevanceScore >= 17 ? "high" : relevanceScore > 0 ? "medium" : "low"),
       course,
       creditDetail,
       creditPoints,

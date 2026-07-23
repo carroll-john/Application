@@ -214,18 +214,7 @@ function UcOverviewPage({
           >
             Your UC application
           </h1>
-          <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-600">
-            Complete the three sections below. Have your transcript and CV nearby
-            so we can help organise the evidence UC needs for your application.
-          </p>
-          <div className="mt-5 flex flex-col gap-3 text-sm font-medium text-slate-700 sm:flex-row sm:gap-8">
-            <span className="inline-flex items-center gap-2">
-              <Clock3
-                aria-hidden="true"
-                className="h-5 w-5 text-[var(--brand-accent-strong)]"
-              />
-              Allow around 30–60 minutes
-            </span>
+          <div className="mt-4 text-sm font-medium text-slate-700">
             <span className="inline-flex items-center gap-2">
               <Save
                 aria-hidden="true"

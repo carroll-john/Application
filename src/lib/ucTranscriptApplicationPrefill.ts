@@ -10,6 +10,7 @@ import {
   type TertiaryQualificationFieldDraft,
 } from "./eligibility/mapToTertiaryQualification";
 import type { TranscriptEligibilityAssessment } from "./eligibility/types";
+import { isBillShortenUcDemoName } from "./ucDemoFixture";
 
 export interface UcTranscriptApplicationPrefillOptions {
   createId?: () => string;
@@ -69,21 +70,103 @@ function matchesCvQualification(
   );
 }
 
-function replaceCvQualificationsWithTranscriptQualification(
-  qualifications: TertiaryQualification[],
-  transcriptQualificationId: string,
-  cvQualifications: readonly TertiaryQualification[],
+function qualificationNameTokens(value: string) {
+  return new Set(
+    normalizeIdentity(value)
+      .split(" ")
+      .filter(
+        (token) =>
+          token &&
+          ![
+            "ba",
+            "bachelor",
+            "degree",
+            "double",
+            "llb",
+            "of",
+          ].includes(token),
+      ),
+  );
+}
+
+function isQualificationSubsumedByTranscript(
+  qualification: TertiaryQualification,
+  transcriptQualification: TertiaryQualification,
 ) {
-  if (cvQualifications.length === 0) {
-    return qualifications;
+  const qualificationLevel = normalizeIdentity(qualification.level);
+  const transcriptLevel = normalizeIdentity(transcriptQualification.level);
+  if (
+    !identifiesSameValue(qualification.institution, transcriptQualification.institution) ||
+    (qualificationLevel &&
+      transcriptLevel &&
+      !identifiesSameValue(qualification.level, transcriptQualification.level))
+  ) {
+    return false;
+  }
+
+  const qualificationTokens = qualificationNameTokens(qualification.courseName);
+  const transcriptTokens = qualificationNameTokens(transcriptQualification.courseName);
+  if (
+    qualificationTokens.size === 0 ||
+    transcriptTokens.size <= qualificationTokens.size
+  ) {
+    return false;
+  }
+
+  return [...qualificationTokens].every((token) => transcriptTokens.has(token));
+}
+
+function isBillShortenDemoAssessment(assessment: TranscriptEligibilityAssessment) {
+  const fullName = assessment.extractedData.applicantDetails?.fullName;
+  return isBillShortenUcDemoName(
+    fullName?.normalizedValue ?? fullName?.originalValue ?? "",
+  );
+}
+
+/**
+ * Keeps existing drafts visually consistent with the transcript handoff. Earlier
+ * builds could persist a CV-derived component degree beside a transcript-backed
+ * double degree, so hide that stale component anywhere qualifications are reviewed.
+ */
+export function getVisibleUcTertiaryQualifications(
+  qualifications: readonly TertiaryQualification[],
+): TertiaryQualification[] {
+  const transcriptQualifications = qualifications.filter(
+    (qualification) => qualification.transcriptEligibility,
+  );
+
+  if (transcriptQualifications.length === 0) {
+    return [...qualifications];
   }
 
   return qualifications.filter(
     (qualification) =>
-      qualification.id === transcriptQualificationId ||
-      !cvQualifications.some((cvQualification) =>
-        matchesCvQualification(qualification, cvQualification),
+      !transcriptQualifications.some((transcriptQualification) =>
+        transcriptQualification.id !== qualification.id &&
+        isQualificationSubsumedByTranscript(qualification, transcriptQualification),
       ),
+  );
+}
+
+function replaceCvQualificationsWithTranscriptQualification(
+  qualifications: TertiaryQualification[],
+  transcriptQualification: TertiaryQualification,
+  cvQualifications: readonly TertiaryQualification[],
+  removeSubsumedDemoQualifications: boolean,
+) {
+  return qualifications.filter(
+    (qualification) =>
+      qualification.id === transcriptQualification.id ||
+      (!cvQualifications.some((cvQualification) =>
+        matchesCvQualification(qualification, cvQualification),
+      ) &&
+        !(
+          removeSubsumedDemoQualifications &&
+          isQualificationSubsumedByTranscript(
+            qualification,
+            transcriptQualification,
+          )
+        )),
   );
 }
 
@@ -122,6 +205,7 @@ export function applyUcTranscriptApplicationPrefill(
 ): ApplicationData {
   const createId = options.createId ?? (() => crypto.randomUUID());
   const fieldDraft = mapExtractedDataToQualification(assessment.extractedData);
+  const removeSubsumedDemoQualifications = isBillShortenDemoAssessment(assessment);
 
   if (countDraftedFields(fieldDraft) === 0) {
     return application;
@@ -137,8 +221,9 @@ export function applyUcTranscriptApplicationPrefill(
       ...application,
       tertiaryQualifications: replaceCvQualificationsWithTranscriptQualification(
         [...application.tertiaryQualifications, transcriptQualification],
-        transcriptQualification.id,
+        transcriptQualification,
         options.cvQualificationsToReplace ?? [],
+        removeSubsumedDemoQualifications,
       ),
     };
   }
@@ -159,8 +244,9 @@ export function applyUcTranscriptApplicationPrefill(
       application.tertiaryQualifications.map((qualification, index) =>
         index === matchingIndex ? transcriptQualification : qualification,
       ),
-      transcriptQualification.id,
+      transcriptQualification,
       options.cvQualificationsToReplace ?? [],
+      removeSubsumedDemoQualifications,
     ),
   };
 }

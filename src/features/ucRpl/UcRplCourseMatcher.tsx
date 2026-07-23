@@ -1,8 +1,10 @@
 import {
   BookmarkCheck,
   BookmarkPlus,
+  Briefcase,
   CircleAlert,
   ClipboardCheck,
+  Clock3,
   FileText,
   GraduationCap,
   Info,
@@ -38,11 +40,16 @@ import {
 } from "../../lib/eligibility/client";
 import type { TranscriptEligibilityAssessment } from "../../lib/eligibility/types";
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
+import { isDemoMode } from "../../lib/brand";
 import {
   assessUcShortlistCredit,
   hasUcTranscriptStudyEvidence,
+  isBillShortenUcCreditDemoFixture,
+  prepareUcCreditAssessment,
+  resolveUcTranscriptAssessmentForApplication,
   type UcCreditAssessmentResult,
 } from "../../lib/ucCreditAssessment";
+import { sleep } from "../../lib/utils";
 import {
   assessUcAdmission,
   formatUcExperienceDuration,
@@ -53,6 +60,7 @@ import {
   rankUcCourses,
   summarizeUcExperienceByOscaLevel,
   type CvRecognitionDraft,
+  type OscaSkillLevel,
   type UcCourseMatch,
   type UcOscaExperienceSummary,
 } from "../../lib/ucRplAssessment";
@@ -70,6 +78,36 @@ interface UcRplCourseMatcherProps {
   courses: CourseCatalogEntry[];
   onStageChange: (stage: UcRplAssessmentStage) => void;
   stage: UcRplAssessmentStage;
+}
+
+function requestUcTranscriptAssessment(options: {
+  accessToken: string;
+  draft: CvRecognitionDraft;
+  shortlist: UcCourseMatch[];
+  transcriptFile: File;
+}) {
+  const { accessToken, draft, shortlist, transcriptFile } = options;
+
+  return evaluateTranscriptEligibility(
+    transcriptFile,
+    {
+      courseCode: shortlist.map((match) => match.course.code).join(","),
+      courseTitle: shortlist.map((match) => match.course.title).join("; "),
+      cvUploaded: true,
+      employmentCount: draft.experiences.filter(
+        (experience) => experience.includeInAssessment,
+      ).length,
+    },
+    { accessToken, ucCreditAssessment: true },
+  ).then((assessment) => {
+    if (!hasUcTranscriptStudyEvidence(assessment)) {
+      throw new Error(
+        "We couldn’t identify enough study information in this transcript. Try a clearer file or a transcript that lists your course and units.",
+      );
+    }
+
+    return assessment;
+  });
 }
 
 const CONFIDENCE_BADGE: Record<
@@ -234,7 +272,89 @@ function ParsingState() {
   );
 }
 
-function MatchCard({
+export function UcCourseMatchSummaryRail({
+  experienceMonths,
+  includedRoleCount,
+  onEdit,
+  skillLevel,
+}: {
+  experienceMonths: number;
+  includedRoleCount: number;
+  onEdit: () => void;
+  skillLevel: OscaSkillLevel | null;
+}) {
+  const roleCountLabel = `${includedRoleCount} ${
+    includedRoleCount === 1 ? "role" : "roles"
+  } from CV`;
+  const items = [
+    {
+      emphasis: undefined,
+      icon: ClipboardCheck,
+      label: roleCountLabel,
+    },
+    {
+      emphasis: undefined,
+      icon: Clock3,
+      label: formatUcExperienceDuration(experienceMonths),
+    },
+    {
+      emphasis: undefined,
+      icon: Briefcase,
+      label: getUcExperienceGroupLabel(skillLevel),
+    },
+    {
+      emphasis: "info",
+      icon: GraduationCap,
+      label: getUcWorkEntryGuidance(skillLevel, experienceMonths),
+    },
+  ] as const;
+
+  return (
+    <div
+      aria-label="Experience summary"
+      className="mt-7 grid gap-px border border-[var(--border)] bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-5"
+    >
+      {items.map((item) => {
+        const isProminent = item.emphasis === "info";
+
+        return (
+          <div
+            key={item.label}
+            className={`flex min-h-24 items-center gap-3 p-4 ${
+              isProminent ? "bg-[var(--info-bg)]" : "bg-white"
+            }`}
+          >
+            <item.icon
+              className={`h-5 w-5 shrink-0 ${
+                isProminent
+                  ? "text-[var(--info-text)]"
+                  : "text-[var(--cta-secondary)]"
+              }`}
+              aria-hidden="true"
+            />
+            <span
+              className={`text-sm font-semibold ${
+                isProminent ? "text-[var(--info-text)]" : "text-slate-800"
+              }`}
+            >
+              {item.label}
+            </span>
+          </div>
+        );
+      })}
+      <button
+        type="button"
+        className="flex min-h-20 items-center justify-center gap-2 bg-[var(--cta-secondary)] p-4 text-sm font-bold text-white transition-colors hover:bg-[var(--cta-secondary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-white sm:col-span-2 lg:col-span-1"
+        onClick={onEdit}
+      >
+        <Pencil className="h-4 w-4" aria-hidden="true" />
+        Edit
+      </button>
+    </div>
+  );
+}
+
+export function UcRplMatchCard({
   assessmentResult,
   isAssessmentComplete,
   isShortlistFull,
@@ -281,21 +401,23 @@ function MatchCard({
                   {match.admissionDetail}
                 </p>
               </div>
-              <div className="border-t border-[var(--border)] pt-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                    <FileText
-                      className="h-4 w-4 text-[var(--cta-secondary)]"
-                      aria-hidden="true"
-                    />
-                    {assessmentResult ? "Initial credit potential" : "Credit potential"}
+              {!assessmentResult ? (
+                <div className="border-t border-[var(--border)] pt-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                      <FileText
+                        className="h-4 w-4 text-[var(--cta-secondary)]"
+                        aria-hidden="true"
+                      />
+                      Credit potential
+                    </p>
+                    <ConfidenceBadge confidence={match.creditConfidence} />
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    {match.creditDetail}
                   </p>
-                  <ConfidenceBadge confidence={match.creditConfidence} />
                 </div>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {match.creditDetail}
-                </p>
-              </div>
+              ) : null}
             </div>
           </div>
 
@@ -347,6 +469,7 @@ function ResultsState({
   experienceSummary,
   experienceGuidance,
   filter,
+  includedRoleCount,
   matches,
   onEdit,
   onFilter,
@@ -362,6 +485,7 @@ function ResultsState({
   experienceSummary: UcOscaExperienceSummary | null;
   experienceGuidance: string;
   filter: MatchFilter;
+  includedRoleCount: number;
   matches: UcCourseMatch[];
   onEdit: () => void;
   onFilter: (filter: MatchFilter) => void;
@@ -399,44 +523,12 @@ function ResultsState({
           This is a guide only. It is not an admission offer or credit decision.
         </p>
 
-        <div className="mt-7 grid border border-[var(--border)] sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              icon: SearchCheck,
-              label: getUcExperienceGroupLabel(displayedSkillLevel),
-            },
-            {
-              icon: ClipboardCheck,
-              label: formatUcExperienceDuration(displayedExperienceMonths),
-            },
-            {
-              icon: GraduationCap,
-              label: getUcWorkEntryGuidance(
-                displayedSkillLevel,
-                displayedExperienceMonths,
-              ),
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="flex min-h-24 items-center gap-3 border-b border-[var(--border)] p-4 last:border-b-0 sm:border-r lg:border-b-0"
-            >
-              <item.icon
-                className="h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
-                aria-hidden="true"
-              />
-              <span className="text-sm font-semibold text-slate-800">{item.label}</span>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="flex min-h-20 items-center justify-center gap-2 p-4 text-sm font-semibold text-[var(--cta-secondary)] hover:bg-blue-50"
-            onClick={onEdit}
-          >
-            <Pencil className="h-4 w-4" aria-hidden="true" />
-            Review my experience
-          </button>
-        </div>
+        <UcCourseMatchSummaryRail
+          experienceMonths={displayedExperienceMonths}
+          includedRoleCount={includedRoleCount}
+          skillLevel={displayedSkillLevel}
+          onEdit={onEdit}
+        />
 
         <div className="mt-5 flex gap-3 border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-slate-700 sm:p-5">
           <Info
@@ -492,7 +584,7 @@ function ResultsState({
       {visibleMatches.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {visibleMatches.map((match) => (
-            <MatchCard
+            <UcRplMatchCard
               key={match.course.code}
               assessmentResult={assessmentResults.get(match.course.code)}
               isAssessmentComplete={assessmentStatus === "complete"}
@@ -541,6 +633,8 @@ export function UcRplCourseMatcher({
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
   const [transcriptAssessment, setTranscriptAssessment] =
     useState<TranscriptEligibilityAssessment | null>(null);
+  const transcriptAssessmentRequestRef =
+    useRef<Promise<TranscriptEligibilityAssessment> | null>(null);
   const [assessmentResults, setAssessmentResults] = useState(
     new Map<string, UcCreditAssessmentResult>(),
   );
@@ -580,6 +674,12 @@ export function UcRplCourseMatcher({
     () => getUcExperienceReviewGuidance(experienceSummaries),
     [experienceSummaries],
   );
+  const includedRoleCount = useMemo(
+    () =>
+      draft?.experiences.filter((experience) => experience.includeInAssessment)
+        .length ?? 0,
+    [draft],
+  );
 
   async function parseSelectedFile(file: File) {
     setError(null);
@@ -587,6 +687,7 @@ export function UcRplCourseMatcher({
     setAssessmentResults(new Map());
     setAssessmentStatus("ready");
     setTranscriptAssessment(null);
+    transcriptAssessmentRequestRef.current = null;
     setShortlistedCourseCodes([]);
     setTranscriptFile(null);
     setSelectedFile(file);
@@ -632,6 +733,7 @@ export function UcRplCourseMatcher({
     setAssessmentError(null);
     setAssessmentResults(new Map());
     setTranscriptAssessment(null);
+    transcriptAssessmentRequestRef.current = null;
     setTranscriptFile(null);
 
     if (next.length === 3 && shortlistedCourseCodes.length !== 3) {
@@ -677,18 +779,44 @@ export function UcRplCourseMatcher({
     setAssessmentStatus("processing");
 
     try {
-      const transcriptAssessment = await evaluateTranscriptEligibility(
+      const usesFastDemoAssessment =
+        isDemoMode &&
+        isBillShortenUcCreditDemoFixture(shortlist, draft.profile);
+      let parsedTranscriptAssessment: TranscriptEligibilityAssessment | null = null;
+      const parserAssessment = requestUcTranscriptAssessment({
+        accessToken,
+        draft,
+        shortlist,
         transcriptFile,
-        {
-          courseCode: shortlist.map((match) => match.course.code).join(","),
-          courseTitle: shortlist.map((match) => match.course.title).join("; "),
-          cvUploaded: true,
-          employmentCount: draft.experiences.filter(
-            (experience) => experience.includeInAssessment,
-          ).length,
-        },
-        { accessToken, ucCreditAssessment: true },
-      );
+      }).then((assessment) => {
+        parsedTranscriptAssessment = assessment;
+        if (
+          usesFastDemoAssessment &&
+          transcriptAssessmentRequestRef.current === parserAssessment
+        ) {
+          setTranscriptAssessment(assessment);
+        }
+        return assessment;
+      });
+      transcriptAssessmentRequestRef.current = parserAssessment;
+      const assessmentRun = prepareUcCreditAssessment({
+        parserAssessment,
+        usesFastDemoAssessment,
+        wait: sleep,
+      });
+
+      if (usesFastDemoAssessment) {
+        void parserAssessment.catch((backgroundFailure) => {
+          if (transcriptAssessmentRequestRef.current === parserAssessment) {
+            console.error(
+              "Failed to parse the UC demo transcript in the background",
+              backgroundFailure,
+            );
+          }
+        });
+      }
+
+      const transcriptAssessment = await assessmentRun.cardAssessment;
 
       if (!hasUcTranscriptStudyEvidence(transcriptAssessment)) {
         throw new Error(
@@ -696,8 +824,10 @@ export function UcRplCourseMatcher({
         );
       }
 
-      const results = assessUcShortlistCredit(shortlist, transcriptAssessment);
-      setTranscriptAssessment(transcriptAssessment);
+      const results = assessUcShortlistCredit(shortlist, transcriptAssessment, {
+        applicant: draft.profile,
+      });
+      setTranscriptAssessment(parsedTranscriptAssessment ?? transcriptAssessment);
       setAssessmentResults(
         new Map(results.map((result) => [result.courseCode, result])),
       );
@@ -708,6 +838,7 @@ export function UcRplCourseMatcher({
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     } catch (assessmentFailure) {
+      transcriptAssessmentRequestRef.current = null;
       console.error("Failed to complete UC credit assessment", assessmentFailure);
       if (
         assessmentFailure instanceof TranscriptEligibilityRequestError &&
@@ -739,6 +870,34 @@ export function UcRplCourseMatcher({
     setStartingCourseCode(match.course.code);
 
     try {
+      let applicationTranscriptAssessment = transcriptAssessment;
+
+      if (transcriptFile) {
+        const accessToken = session?.access_token;
+        if (!accessToken) {
+          throw new TranscriptEligibilityRequestError(
+            "Your session expired. Sign in again to continue.",
+            401,
+          );
+        }
+
+        applicationTranscriptAssessment =
+          await resolveUcTranscriptAssessmentForApplication({
+            parserAssessment: transcriptAssessmentRequestRef.current,
+            startParserAssessment: () => {
+              const retryAssessment = requestUcTranscriptAssessment({
+                accessToken,
+                draft,
+                shortlist,
+                transcriptFile,
+              });
+              transcriptAssessmentRequestRef.current = retryAssessment;
+              return retryAssessment;
+            },
+          });
+        setTranscriptAssessment(applicationTranscriptAssessment);
+      }
+
       await beginCourseApplication(
         {
           code: match.course.code,
@@ -752,13 +911,27 @@ export function UcRplCourseMatcher({
           startFresh: true,
           ucCvPrefill: draft,
           ucTranscriptFile: transcriptFile ?? undefined,
-          ucTranscriptPrefill: transcriptAssessment ?? undefined,
+          ucTranscriptPrefill: applicationTranscriptAssessment ?? undefined,
         },
       );
       navigate("/overview");
     } catch (startError) {
       console.error("Failed to start application from UC recognition assessment", startError);
-      setError("We couldn't start your application right now. Please try again.");
+      if (
+        startError instanceof TranscriptEligibilityRequestError &&
+        startError.status === 401
+      ) {
+        setError("Your session expired. Sign in again to continue.");
+        setPendingStartMatch(match);
+        setAuthIntent("application");
+        setShowAuthModal(true);
+      } else if (startError instanceof TypeError) {
+        setError(
+          "We couldn't finish preparing your transcript. Check your connection and try Start application again.",
+        );
+      } else {
+        setError("We couldn't start your application right now. Please try again.");
+      }
       setStartingCourseCode(null);
       window.scrollTo({ behavior: "smooth", top: 0 });
     }
@@ -768,6 +941,8 @@ export function UcRplCourseMatcher({
     isAuthenticated,
     navigate,
     selectedFile,
+    session,
+    shortlist,
     startingCourseCode,
     transcriptAssessment,
     transcriptFile,
@@ -824,6 +999,7 @@ export function UcRplCourseMatcher({
             setAssessmentResults(new Map());
             setAssessmentStatus("ready");
             setTranscriptAssessment(null);
+            transcriptAssessmentRequestRef.current = null;
             setTranscriptFile(null);
             onStageChange("intro");
           }}
@@ -843,11 +1019,13 @@ export function UcRplCourseMatcher({
               onClearTranscript={() => {
                 setAssessmentError(null);
                 setTranscriptAssessment(null);
+                transcriptAssessmentRequestRef.current = null;
                 setTranscriptFile(null);
               }}
               onFileSelect={(file) => {
                 setAssessmentError(null);
                 setTranscriptAssessment(null);
+                transcriptAssessmentRequestRef.current = null;
                 setTranscriptFile(file);
               }}
               onRequestAssessment={requestCreditAssessment}
@@ -858,6 +1036,7 @@ export function UcRplCourseMatcher({
           experienceSummary={experienceSummary}
           experienceGuidance={experienceGuidance}
           filter={filter}
+          includedRoleCount={includedRoleCount}
           matches={matches}
           onEdit={() => onStageChange("review")}
           onFilter={setFilter}

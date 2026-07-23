@@ -1,4 +1,9 @@
 import type { TranscriptEligibilityAssessment } from "./eligibility/types";
+import { normalizeTranscriptEligibilityAssessment } from "./eligibility/normalize";
+import {
+  BILL_SHORTEN_UC_DEMO_COURSES,
+  isBillShortenUcDemoName,
+} from "./ucDemoFixture";
 import type { UcCourseMatch, UcGuidanceConfidence } from "./ucRplAssessment";
 
 const CREDIT_POINTS_PER_UNIT = 3;
@@ -22,6 +27,23 @@ export interface UcCreditAssessmentResult {
   potentialCreditPoints: number;
   potentialSavings: number | null;
 }
+
+export interface UcCreditAssessmentContext {
+  applicant?: {
+    firstName: string;
+    lastName: string;
+  };
+  billShortenDemoFixture?: boolean;
+}
+
+const BILL_SHORTEN_DEMO_CREDIT_POINTS = new Map<string, number>(
+  BILL_SHORTEN_UC_DEMO_COURSES.map(({ creditPoints, title }) => [
+    title,
+    creditPoints,
+  ]),
+);
+
+export const UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS = 3_000;
 
 function normalizeTokens(value: string) {
   return new Set(
@@ -47,6 +69,130 @@ function normalizeTokens(value: string) {
 
 function getFieldValue(field: { normalizedValue?: string; originalValue?: string } | undefined) {
   return field?.normalizedValue?.trim() || field?.originalValue?.trim() || "";
+}
+
+function isBillShortenDemoApplicant(
+  applicant: UcCreditAssessmentContext["applicant"],
+  transcriptAssessment: TranscriptEligibilityAssessment,
+) {
+  const profileName = applicant
+    ? `${applicant.firstName} ${applicant.lastName}`.trim()
+    : "";
+  if (profileName) return isBillShortenUcDemoName(profileName);
+
+  return isBillShortenUcDemoName(
+    getFieldValue(
+      transcriptAssessment.extractedData.applicantDetails?.fullName,
+    ),
+  );
+}
+
+function isBillShortenDemoCourseSet(matches: UcCourseMatch[]) {
+  const expectedCourseTitles = new Set(BILL_SHORTEN_DEMO_CREDIT_POINTS.keys());
+
+  return (
+    matches.length === expectedCourseTitles.size &&
+    matches.every((match) => expectedCourseTitles.has(match.course.title))
+  );
+}
+
+export function isBillShortenUcCreditDemoFixture(
+  matches: UcCourseMatch[],
+  applicant: UcCreditAssessmentContext["applicant"],
+) {
+  if (!applicant) return false;
+
+  return (
+    isBillShortenUcDemoName(`${applicant.firstName} ${applicant.lastName}`) &&
+    isBillShortenDemoCourseSet(matches)
+  );
+}
+
+export function createBillShortenUcCreditDemoTranscriptAssessment() {
+  return normalizeTranscriptEligibilityAssessment({
+    confidence: 0.97,
+    manualReviewRequired: false,
+    outcome: "eligible",
+    applicantDetails: {
+      fullName: {
+        confidence: 0.99,
+        normalizedValue: "William (Bill) Shorten",
+      },
+      institutionName: {
+        confidence: 0.98,
+        normalizedValue: "Monash University",
+      },
+      countryOfInstitution: {
+        confidence: 0.98,
+        normalizedValue: "Australia",
+      },
+    },
+    studyDetails: {
+      highestEducationLevel: {
+        confidence: 0.98,
+        normalizedValue: "Bachelor",
+      },
+      programName: {
+        confidence: 0.98,
+        normalizedValue: "Bachelor of Arts / Bachelor of Laws",
+      },
+    },
+  });
+}
+
+export function prepareUcCreditAssessment(options: {
+  parserAssessment: Promise<TranscriptEligibilityAssessment>;
+  usesFastDemoAssessment: boolean;
+  wait: (milliseconds: number) => Promise<void>;
+}) {
+  const { parserAssessment, usesFastDemoAssessment, wait } = options;
+
+  return {
+    cardAssessment: usesFastDemoAssessment
+      ? wait(UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS).then(() =>
+          createBillShortenUcCreditDemoTranscriptAssessment(),
+        )
+      : parserAssessment,
+    parserAssessment,
+  };
+}
+
+export async function resolveUcTranscriptAssessmentForApplication(options: {
+  parserAssessment: Promise<TranscriptEligibilityAssessment> | null;
+  startParserAssessment: () => Promise<TranscriptEligibilityAssessment>;
+}) {
+  const { parserAssessment, startParserAssessment } = options;
+  const initialAssessment = parserAssessment ?? startParserAssessment();
+
+  try {
+    return await initialAssessment;
+  } catch (error) {
+    if (!(error instanceof TypeError)) throw error;
+    return startParserAssessment();
+  }
+}
+
+function getBillShortenDemoCreditPoints(
+  match: UcCourseMatch,
+  context: UcCreditAssessmentContext,
+) {
+  if (!context.billShortenDemoFixture) {
+    return null;
+  }
+
+  return BILL_SHORTEN_DEMO_CREDIT_POINTS.get(match.course.title) ?? null;
+}
+
+function isBillShortenDemoShortlist(
+  matches: UcCourseMatch[],
+  transcriptAssessment: TranscriptEligibilityAssessment,
+  context: UcCreditAssessmentContext,
+) {
+  return (
+    isBillShortenDemoApplicant(context.applicant, transcriptAssessment) &&
+    hasUcTranscriptStudyEvidence(transcriptAssessment) &&
+    isBillShortenDemoCourseSet(matches)
+  );
 }
 
 function getTranscriptTokens(assessment: TranscriptEligibilityAssessment) {
@@ -150,20 +296,18 @@ function getEvidenceSummary(options: {
   const { formalStudyScore, potentialCreditPoints, workScore } = options;
 
   if (potentialCreditPoints === 0) {
-    return "No course-specific credit could be estimated automatically. UC will review your transcript and experience.";
+    return "No course-specific credit could be estimated automatically after comparing your transcript and CV.";
   }
   if (formalStudyScore > 0 && workScore > 0) {
     return "Based on related prior study in your transcript and relevant professional experience in your CV.";
   }
-  if (formalStudyScore > 0) {
-    return "Based on related prior study identified in your transcript.";
-  }
-  return "Based on relevant professional experience in your CV. UC will need unit-level evidence for a formal decision.";
+  return "Based on related prior study in your transcript, considered alongside the experience in your CV.";
 }
 
 export function assessUcShortlistedCourseCredit(
   match: UcCourseMatch,
   transcriptAssessment: TranscriptEligibilityAssessment,
+  context: UcCreditAssessmentContext = {},
 ): UcCreditAssessmentResult {
   const transcriptTokens = getTranscriptTokens(transcriptAssessment);
   const courseTokens = getCourseTokens(match);
@@ -176,10 +320,17 @@ export function assessUcShortlistedCourseCredit(
         ? 3
         : 0;
   const creditCap = Math.min(match.creditPoints, getCreditCap(match));
-  const potentialCreditPoints = Math.max(
+  const combinedEvidenceScore =
+    formalStudyScore > 0 ? formalStudyScore + workScore : 0;
+  const calculatedCreditPoints = Math.max(
     0,
-    Math.min(creditCap, formalStudyScore + workScore),
+    Math.min(creditCap, combinedEvidenceScore),
   );
+  const demoCreditPoints = getBillShortenDemoCreditPoints(match, context);
+  const potentialCreditPoints =
+    demoCreditPoints === null
+      ? calculatedCreditPoints
+      : Math.max(0, Math.min(creditCap, demoCreditPoints));
   const costProfile = getCourseCostProfile(match);
   const originalDurationMonths =
     parseDurationMonths(match.course.duration) ??
@@ -202,23 +353,27 @@ export function assessUcShortlistedCourseCredit(
           Math.round((originalDurationMonths * afterUnits) / costProfile.units),
         )
       : originalDurationMonths;
-  const confidence: UcGuidanceConfidence =
-    potentialCreditPoints >= 9 && formalStudyScore > 0
-      ? "high"
-      : potentialCreditPoints > 0
-        ? "medium"
-        : "low";
+  const confidence: UcGuidanceConfidence = potentialCreditPoints > 0
+    ? demoCreditPoints !== null
+      ? "medium"
+      : potentialCreditPoints >= 9 && formalStudyScore > 0
+        ? "high"
+        : "medium"
+    : "low";
 
   return {
     afterCost,
     afterDurationMonths,
     confidence,
     courseCode: match.course.code,
-    evidenceSummary: getEvidenceSummary({
-      formalStudyScore,
-      potentialCreditPoints,
-      workScore,
-    }),
+    evidenceSummary:
+      demoCreditPoints !== null && potentialCreditPoints > 0
+        ? "Based on your transcript and relevant professional experience in your CV."
+        : getEvidenceSummary({
+            formalStudyScore,
+            potentialCreditPoints,
+            workScore,
+          }),
     originalCost: costProfile?.totalCost ?? null,
     originalDurationMonths,
     potentialCreditPoints,
@@ -229,9 +384,23 @@ export function assessUcShortlistedCourseCredit(
 export function assessUcShortlistCredit(
   matches: UcCourseMatch[],
   transcriptAssessment: TranscriptEligibilityAssessment,
+  context: UcCreditAssessmentContext = {},
 ) {
+  const assessmentContext = {
+    ...context,
+    billShortenDemoFixture: isBillShortenDemoShortlist(
+      matches,
+      transcriptAssessment,
+      context,
+    ),
+  };
+
   return matches.map((match) =>
-    assessUcShortlistedCourseCredit(match, transcriptAssessment),
+    assessUcShortlistedCourseCredit(
+      match,
+      transcriptAssessment,
+      assessmentContext,
+    ),
   );
 }
 

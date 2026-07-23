@@ -37,6 +37,7 @@ import {
 } from "../lib/eligibility/programEvidence";
 import { orderEmploymentExperiencesByMostRecent } from "../lib/employmentExperienceOrder";
 import { getSection2EditPath, getSection2Step } from "../lib/section2Steps";
+import { getVisibleUcTertiaryQualifications } from "../lib/ucTranscriptApplicationPrefill";
 import { getEmploymentExperienceSubmissionMissingFields } from "../lib/validation/rules/section2";
 
 const addMoreSections: Array<{
@@ -70,6 +71,9 @@ export default function Section2Qualifications() {
   } = useApplication();
   const latestTranscriptAssessment = getLatestTranscriptAssessment(
     data.tertiaryQualifications.map((qualification) => qualification.transcriptEligibility),
+  );
+  const visibleTertiaryQualifications = getVisibleUcTertiaryQualifications(
+    data.tertiaryQualifications,
   );
   const selectedCourseEntry = getCourseByCode(data.applicationMeta?.selectedCourse?.code);
   const selectedCourseTitle =
@@ -203,7 +207,7 @@ export default function Section2Qualifications() {
             icon={
               <GraduationCap className="h-5 w-5 shrink-0 text-[var(--cta-secondary)] sm:h-6 sm:w-6" />
             }
-            items={data.tertiaryQualifications}
+            items={visibleTertiaryQualifications}
             onSkip={() => handleSkipSection("tertiary")}
             renderItem={(qualification) => (
               <QualificationsListItem

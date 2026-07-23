@@ -1,6 +1,7 @@
 import type { ApplicationData } from "../../lib/applicationData";
 import { viewStoredDocument } from "../../lib/documentStorage";
 import { orderEmploymentExperiencesByMostRecent } from "../../lib/employmentExperienceOrder";
+import { getVisibleUcTertiaryQualifications } from "../../lib/ucTranscriptApplicationPrefill";
 import { ReviewCard, ReviewDocumentRow, ReviewList } from "./ReviewSections";
 
 interface ReviewSection2SummaryProps {
@@ -9,16 +10,19 @@ interface ReviewSection2SummaryProps {
 }
 
 export function ReviewSection2Summary({ data, onEdit }: ReviewSection2SummaryProps) {
+  const visibleTertiaryQualifications = getVisibleUcTertiaryQualifications(
+    data.tertiaryQualifications,
+  );
   const orderedEmploymentExperiences = orderEmploymentExperiencesByMostRecent(
     data.employmentExperiences,
   );
 
   return (
     <>
-      {data.tertiaryQualifications.length > 0 ? (
+      {visibleTertiaryQualifications.length > 0 ? (
         <ReviewCard title="Tertiary qualifications">
           <ReviewList
-            items={data.tertiaryQualifications.map((qualification) => ({
+            items={visibleTertiaryQualifications.map((qualification) => ({
               attachments: [
                 qualification.transcriptDocumentName
                   ? {

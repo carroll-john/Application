@@ -69,7 +69,7 @@ export function UcCreditAssessmentComparison({
 
         <div className="border border-green-300 bg-white p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-green-800">
-            After potential credit
+            After credit
           </p>
           <p className="mt-3 flex items-center gap-2 text-sm font-bold text-green-950">
             <Clock3 className="h-4 w-4 text-green-700" aria-hidden="true" />
@@ -82,15 +82,11 @@ export function UcCreditAssessmentComparison({
         </div>
       </div>
 
-      <p className="mt-4 text-sm font-semibold text-green-950">
-        {result.potentialCreditPoints > 0
-          ? `Up to ${result.potentialCreditPoints} credit points indicated`
-          : "No automatic credit estimate — faculty review required"}
-      </p>
-      <p className="mt-1 text-xs leading-5 text-slate-600">
-        2026 indicative tuition only. UC confirms final credit, study duration and
-        fees after formal assessment.
-      </p>
+      {result.potentialCreditPoints > 0 ? (
+        <p className="mt-4 text-sm font-semibold text-green-950">
+          Up to {result.potentialCreditPoints} credit points indicated
+        </p>
+      ) : null}
     </div>
   );
 }

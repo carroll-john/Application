@@ -26,6 +26,56 @@ await mkdir(outputDirectory, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const failures = [];
 
+async function verifyExperienceSummary(page, viewportName, route, stateName) {
+  const summaryRail = await page.evaluate(() => {
+    const rail = document.querySelector('[aria-label="Experience summary"]');
+    if (!rail) return null;
+
+    const children = [...rail.children];
+    return {
+      backgroundColors: children.map(
+        (child) => window.getComputedStyle(child).backgroundColor,
+      ),
+      labels: children.map((child) => child.textContent?.trim() ?? ""),
+      tagNames: children.map((child) => child.tagName),
+    };
+  });
+  const prefix = `${viewportName} ${route} ${stateName}`;
+
+  if (!summaryRail) {
+    failures.push(`${prefix}: experience summary rail missing`);
+    return;
+  }
+
+  const [roleCount, duration, roleLevel, entryGuidance, edit] =
+    summaryRail.labels;
+  if (roleCount !== "1 role from CV") {
+    failures.push(`${prefix}: role count is not first`);
+  }
+  if (!/years? experience$|months? experience$/.test(duration ?? "")) {
+    failures.push(`${prefix}: experience duration is not second`);
+  }
+  if (roleLevel !== "Senior or highly specialised roles") {
+    failures.push(`${prefix}: role level is not third`);
+  }
+  if (entryGuidance !== "May be eligible for direct entry") {
+    failures.push(`${prefix}: entry guidance is not fourth`);
+  }
+  if (edit !== "Edit" || summaryRail.tagNames[4] !== "BUTTON") {
+    failures.push(`${prefix}: Edit is not the final action`);
+  }
+  if (summaryRail.backgroundColors[3] === summaryRail.backgroundColors[2]) {
+    failures.push(`${prefix}: entry guidance is not visually prominent`);
+  }
+  if (summaryRail.backgroundColors[4] === summaryRail.backgroundColors[3]) {
+    failures.push(`${prefix}: Edit is not visually prominent`);
+  }
+
+  await page.locator('[aria-label="Experience summary"]').screenshot({
+    path: `${outputDirectory}/${viewportName}-${stateName}-experience-summary.png`,
+  });
+}
+
 try {
   for (const viewport of viewports) {
     const page = await browser.newPage({ viewport });
@@ -214,6 +264,13 @@ try {
             }
           }
 
+          await verifyExperienceSummary(
+            page,
+            viewport.name,
+            route,
+            "review",
+          );
+
           await page.getByRole("button", { name: "Find my course matches" }).click();
           const matchesHeading = "Courses matched to your experience";
           await page.getByRole("heading", { name: matchesHeading }).waitFor();
@@ -226,6 +283,17 @@ try {
               `${viewport.name} ${route}: course catalogue visible on ${matchesHeading}`,
             );
           }
+
+          await verifyExperienceSummary(
+            page,
+            viewport.name,
+            route,
+            "results",
+          );
+          await page.getByRole("button", { name: "Edit" }).click();
+          await page
+            .getByRole("heading", { name: "Review your experience" })
+            .waitFor();
         } finally {
           await page.unroute(parserRoute);
         }
