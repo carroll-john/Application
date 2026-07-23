@@ -284,6 +284,34 @@ describe("buildSection2EvidencePlan in generic mode", () => {
     expect(complete.isEvidenceReady).toBe(true);
   });
 
+  it("does not request English evidence when the transcript assessment already satisfies it", () => {
+    const plan = buildSection2EvidencePlan({
+      data: application({
+        cvUploaded: true,
+        tertiaryQualifications: [tertiaryQualification()],
+      }),
+      groupedRows: [
+        evidenceRow({
+          actionLabel: undefined,
+          actionPath: undefined,
+          heading: "English language proficiency",
+          id: "english-met",
+          isBlocking: false,
+          kindLabel: "English language proficiency",
+          requirementId: "english-proficiency",
+          status: "met",
+          statusLabel: "Met",
+        }),
+      ],
+      hasPublishedRequirements: false,
+      skippedSections: noSkips,
+    });
+
+    expect(plan.nextPrompt).toBeNull();
+    expect(plan.remainingPromptCount).toBe(0);
+    expect(plan.isEvidenceReady).toBe(true);
+  });
+
   it("skipping a generic step advances to the next one", () => {
     const plan = buildSection2EvidencePlan({
       data: application(),

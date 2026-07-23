@@ -11,6 +11,12 @@ import {
 } from "./eligibility/mapToTertiaryQualification";
 import type { TranscriptEligibilityAssessment } from "./eligibility/types";
 
+export interface UcTranscriptApplicationPrefillOptions {
+  createId?: () => string;
+  /** CV-derived qualification suggestions to replace when transcript evidence identifies one. */
+  cvQualificationsToReplace?: readonly TertiaryQualification[];
+}
+
 function normalizeIdentity(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
@@ -49,6 +55,38 @@ function matchesTranscriptQualification(
   );
 }
 
+function matchesCvQualification(
+  qualification: TertiaryQualification,
+  cvQualification: TertiaryQualification,
+) {
+  if (qualification.id === cvQualification.id) {
+    return true;
+  }
+
+  return (
+    identifiesSameValue(qualification.courseName, cvQualification.courseName) &&
+    identifiesSameValue(qualification.institution, cvQualification.institution)
+  );
+}
+
+function replaceCvQualificationsWithTranscriptQualification(
+  qualifications: TertiaryQualification[],
+  transcriptQualificationId: string,
+  cvQualifications: readonly TertiaryQualification[],
+) {
+  if (cvQualifications.length === 0) {
+    return qualifications;
+  }
+
+  return qualifications.filter(
+    (qualification) =>
+      qualification.id === transcriptQualificationId ||
+      !cvQualifications.some((cvQualification) =>
+        matchesCvQualification(qualification, cvQualification),
+      ),
+  );
+}
+
 function createQualification(
   draft: TertiaryQualificationFieldDraft,
   assessment: TranscriptEligibilityAssessment,
@@ -80,8 +118,9 @@ function createQualification(
 export function applyUcTranscriptApplicationPrefill(
   application: ApplicationData,
   assessment: TranscriptEligibilityAssessment,
-  createId: () => string = () => crypto.randomUUID(),
+  options: UcTranscriptApplicationPrefillOptions = {},
 ): ApplicationData {
+  const createId = options.createId ?? (() => crypto.randomUUID());
   const fieldDraft = mapExtractedDataToQualification(assessment.extractedData);
 
   if (countDraftedFields(fieldDraft) === 0) {
@@ -93,26 +132,35 @@ export function applyUcTranscriptApplicationPrefill(
   );
 
   if (matchingIndex < 0) {
+    const transcriptQualification = createQualification(fieldDraft, assessment, createId);
     return {
       ...application,
-      tertiaryQualifications: [
-        ...application.tertiaryQualifications,
-        createQualification(fieldDraft, assessment, createId),
-      ],
+      tertiaryQualifications: replaceCvQualificationsWithTranscriptQualification(
+        [...application.tertiaryQualifications, transcriptQualification],
+        transcriptQualification.id,
+        options.cvQualificationsToReplace ?? [],
+      ),
     };
   }
 
+  const transcriptQualification = {
+    ...mergeQualificationDraft(
+      application.tertiaryQualifications[matchingIndex],
+      fieldDraft,
+    ),
+    transcriptEligibility:
+      application.tertiaryQualifications[matchingIndex].transcriptEligibility ??
+      assessment,
+  };
+
   return {
     ...application,
-    tertiaryQualifications: application.tertiaryQualifications.map(
-      (qualification, index) =>
-        index === matchingIndex
-          ? {
-              ...mergeQualificationDraft(qualification, fieldDraft),
-              transcriptEligibility:
-                qualification.transcriptEligibility ?? assessment,
-            }
-          : qualification,
+    tertiaryQualifications: replaceCvQualificationsWithTranscriptQualification(
+      application.tertiaryQualifications.map((qualification, index) =>
+        index === matchingIndex ? transcriptQualification : qualification,
+      ),
+      transcriptQualification.id,
+      options.cvQualificationsToReplace ?? [],
     ),
   };
 }

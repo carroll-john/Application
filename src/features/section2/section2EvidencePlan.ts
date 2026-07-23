@@ -1,5 +1,6 @@
 import type { ApplicationData } from "../../lib/applicationData";
 import type { ProgramEvidenceRow } from "../../lib/eligibility/programEvidence";
+import { requirementKindLabel } from "../../lib/eligibility/requirements";
 import {
   getSection2Step,
   getSection2StepByPath,
@@ -53,6 +54,23 @@ const stepKeyToSectionKey: Partial<Record<Section2StepKey, Section2EvidenceSecti
   secondary: "secondary",
   tertiary: "tertiary",
 };
+
+const ENGLISH_PROFICIENCY_KIND_LABEL = requirementKindLabel("english_proficiency");
+
+function sectionIsSatisfiedByEvidence(
+  rows: readonly ProgramEvidenceRow[],
+  key: Section2EvidenceSectionKey,
+) {
+  if (key !== "languageTest") {
+    return false;
+  }
+
+  return rows.some(
+    (row) =>
+      row.kindLabel === ENGLISH_PROFICIENCY_KIND_LABEL &&
+      (row.status === "met" || row.status === "provisionally_met"),
+  );
+}
 
 export function sectionHasData(
   data: ApplicationData,
@@ -163,7 +181,11 @@ export function buildSection2EvidencePlan(options: {
     isEvidenceReady = blockingRows.length === 0;
   } else {
     prompts = genericEvidenceSequence
-      .filter((entry) => !sectionHasData(data, entry.sectionKey))
+      .filter(
+        (entry) =>
+          !sectionHasData(data, entry.sectionKey) &&
+          !sectionIsSatisfiedByEvidence(groupedRows, entry.sectionKey),
+      )
       .map((entry) => ({
         actionLabel: entry.actionLabel,
         actionPath: getSection2Step(entry.stepKey).addPath ?? "",
