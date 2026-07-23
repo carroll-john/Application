@@ -1,8 +1,10 @@
 import {
   BookmarkCheck,
   BookmarkPlus,
+  Briefcase,
   CircleAlert,
   ClipboardCheck,
+  Clock3,
   FileText,
   GraduationCap,
   Info,
@@ -53,6 +55,7 @@ import {
   rankUcCourses,
   summarizeUcExperienceByOscaLevel,
   type CvRecognitionDraft,
+  type OscaSkillLevel,
   type UcCourseMatch,
   type UcOscaExperienceSummary,
 } from "../../lib/ucRplAssessment";
@@ -234,6 +237,88 @@ function ParsingState() {
   );
 }
 
+export function UcCourseMatchSummaryRail({
+  experienceMonths,
+  includedRoleCount,
+  onEdit,
+  skillLevel,
+}: {
+  experienceMonths: number;
+  includedRoleCount: number;
+  onEdit: () => void;
+  skillLevel: OscaSkillLevel | null;
+}) {
+  const roleCountLabel = `${includedRoleCount} ${
+    includedRoleCount === 1 ? "role" : "roles"
+  } from CV`;
+  const items = [
+    {
+      emphasis: undefined,
+      icon: ClipboardCheck,
+      label: roleCountLabel,
+    },
+    {
+      emphasis: undefined,
+      icon: Clock3,
+      label: formatUcExperienceDuration(experienceMonths),
+    },
+    {
+      emphasis: undefined,
+      icon: Briefcase,
+      label: getUcExperienceGroupLabel(skillLevel),
+    },
+    {
+      emphasis: "info",
+      icon: GraduationCap,
+      label: getUcWorkEntryGuidance(skillLevel, experienceMonths),
+    },
+  ] as const;
+
+  return (
+    <div
+      aria-label="Experience summary"
+      className="mt-7 grid gap-px border border-[var(--border)] bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-5"
+    >
+      {items.map((item) => {
+        const isProminent = item.emphasis === "info";
+
+        return (
+          <div
+            key={item.label}
+            className={`flex min-h-24 items-center gap-3 p-4 ${
+              isProminent ? "bg-[var(--info-bg)]" : "bg-white"
+            }`}
+          >
+            <item.icon
+              className={`h-5 w-5 shrink-0 ${
+                isProminent
+                  ? "text-[var(--info-text)]"
+                  : "text-[var(--cta-secondary)]"
+              }`}
+              aria-hidden="true"
+            />
+            <span
+              className={`text-sm font-semibold ${
+                isProminent ? "text-[var(--info-text)]" : "text-slate-800"
+              }`}
+            >
+              {item.label}
+            </span>
+          </div>
+        );
+      })}
+      <button
+        type="button"
+        className="flex min-h-20 items-center justify-center gap-2 bg-[var(--cta-secondary)] p-4 text-sm font-bold text-white transition-colors hover:bg-[var(--cta-secondary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-white sm:col-span-2 lg:col-span-1"
+        onClick={onEdit}
+      >
+        <Pencil className="h-4 w-4" aria-hidden="true" />
+        Edit
+      </button>
+    </div>
+  );
+}
+
 export function UcRplMatchCard({
   assessmentResult,
   isAssessmentComplete,
@@ -349,6 +434,7 @@ function ResultsState({
   experienceSummary,
   experienceGuidance,
   filter,
+  includedRoleCount,
   matches,
   onEdit,
   onFilter,
@@ -364,6 +450,7 @@ function ResultsState({
   experienceSummary: UcOscaExperienceSummary | null;
   experienceGuidance: string;
   filter: MatchFilter;
+  includedRoleCount: number;
   matches: UcCourseMatch[];
   onEdit: () => void;
   onFilter: (filter: MatchFilter) => void;
@@ -401,44 +488,12 @@ function ResultsState({
           This is a guide only. It is not an admission offer or credit decision.
         </p>
 
-        <div className="mt-7 grid border border-[var(--border)] sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              icon: SearchCheck,
-              label: getUcExperienceGroupLabel(displayedSkillLevel),
-            },
-            {
-              icon: ClipboardCheck,
-              label: formatUcExperienceDuration(displayedExperienceMonths),
-            },
-            {
-              icon: GraduationCap,
-              label: getUcWorkEntryGuidance(
-                displayedSkillLevel,
-                displayedExperienceMonths,
-              ),
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="flex min-h-24 items-center gap-3 border-b border-[var(--border)] p-4 last:border-b-0 sm:border-r lg:border-b-0"
-            >
-              <item.icon
-                className="h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
-                aria-hidden="true"
-              />
-              <span className="text-sm font-semibold text-slate-800">{item.label}</span>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="flex min-h-20 items-center justify-center gap-2 p-4 text-sm font-semibold text-[var(--cta-secondary)] hover:bg-blue-50"
-            onClick={onEdit}
-          >
-            <Pencil className="h-4 w-4" aria-hidden="true" />
-            Review my experience
-          </button>
-        </div>
+        <UcCourseMatchSummaryRail
+          experienceMonths={displayedExperienceMonths}
+          includedRoleCount={includedRoleCount}
+          skillLevel={displayedSkillLevel}
+          onEdit={onEdit}
+        />
 
         <div className="mt-5 flex gap-3 border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-slate-700 sm:p-5">
           <Info
@@ -581,6 +636,12 @@ export function UcRplCourseMatcher({
   const experienceGuidance = useMemo(
     () => getUcExperienceReviewGuidance(experienceSummaries),
     [experienceSummaries],
+  );
+  const includedRoleCount = useMemo(
+    () =>
+      draft?.experiences.filter((experience) => experience.includeInAssessment)
+        .length ?? 0,
+    [draft],
   );
 
   async function parseSelectedFile(file: File) {
@@ -862,6 +923,7 @@ export function UcRplCourseMatcher({
           experienceSummary={experienceSummary}
           experienceGuidance={experienceGuidance}
           filter={filter}
+          includedRoleCount={includedRoleCount}
           matches={matches}
           onEdit={() => onStageChange("review")}
           onFilter={setFilter}

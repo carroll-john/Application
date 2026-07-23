@@ -158,7 +158,7 @@ function ExperienceSummaryEditor({
   );
 }
 
-function ExperienceSummaryRow({
+export function ExperienceSummaryRow({
   draft,
   isEditing,
   onChange,
@@ -172,18 +172,21 @@ function ExperienceSummaryRow({
   summary: UcOscaExperienceSummary;
 }) {
   const cellClassName =
-    "flex min-h-24 items-center gap-3 border-b border-[var(--border)] px-4 py-5 sm:min-h-28 sm:border-r xl:border-b-0";
+    "flex min-h-24 items-center gap-3 bg-white px-4 py-5 sm:min-h-28";
 
   return (
     <article className="border-b border-[var(--border)] last:border-b-0">
-      <div className="grid sm:grid-cols-2 xl:grid-cols-[1.05fr_1fr_0.9fr_1.15fr_0.72fr]">
+      <div
+        aria-label="Experience summary"
+        className="grid gap-px bg-[var(--border)] sm:grid-cols-2 xl:grid-cols-[0.9fr_1fr_1.05fr_1.15fr_0.72fr]"
+      >
         <div className={cellClassName}>
-          <BriefcaseBusiness
+          <ListChecks
             className="h-6 w-6 shrink-0 text-[var(--cta-secondary)]"
             aria-hidden="true"
           />
           <span className="font-semibold text-slate-900">
-            {getUcExperienceGroupLabel(summary.skillLevel)}
+            {roleCountLabel(summary)}
           </span>
         </div>
         <div className={cellClassName}>
@@ -198,27 +201,27 @@ function ExperienceSummaryRow({
           </span>
         </div>
         <div className={cellClassName}>
-          <ListChecks
+          <BriefcaseBusiness
             className="h-6 w-6 shrink-0 text-[var(--cta-secondary)]"
             aria-hidden="true"
           />
           <span className="font-semibold text-slate-900">
-            {roleCountLabel(summary)}
+            {getUcExperienceGroupLabel(summary.skillLevel)}
           </span>
         </div>
-        <div className={cellClassName}>
+        <div className="flex min-h-24 items-center gap-3 bg-[var(--info-bg)] px-4 py-5 sm:min-h-28">
           <GraduationCap
-            className="h-6 w-6 shrink-0 text-[var(--cta-secondary)]"
+            className="h-6 w-6 shrink-0 text-[var(--info-text)]"
             aria-hidden="true"
           />
-          <span className="font-semibold text-slate-900">
+          <span className="font-semibold text-[var(--info-text)]">
             {getUcWorkEntryGuidance(summary.skillLevel, summary.experienceMonths)}
           </span>
         </div>
         <button
           type="button"
           aria-expanded={isEditing}
-          className="flex min-h-20 items-center justify-center gap-2 px-4 py-5 font-semibold text-[var(--cta-secondary)] transition hover:bg-blue-50 sm:min-h-28"
+          className="flex min-h-20 items-center justify-center gap-2 bg-[var(--cta-secondary)] px-4 py-5 font-bold text-white transition-colors hover:bg-[var(--cta-secondary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-white sm:col-span-2 sm:min-h-28 xl:col-span-1"
           onClick={onEdit}
         >
           <Pencil className="h-5 w-5" aria-hidden="true" />
