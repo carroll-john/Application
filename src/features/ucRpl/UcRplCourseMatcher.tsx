@@ -44,12 +44,14 @@ import {
   type UcOscaExperienceSummary,
 } from "../../lib/ucRplAssessment";
 import { UcRplExperienceReview } from "./UcRplExperienceReview";
+import type { UcRplAssessmentStage } from "./ucRplAssessmentStage";
 
-type AssessmentStage = "intro" | "parsing" | "review" | "results";
 type MatchFilter = "best_match" | "needs_review" | "all";
 
 interface UcRplCourseMatcherProps {
   courses: CourseCatalogEntry[];
+  onStageChange: (stage: UcRplAssessmentStage) => void;
+  stage: UcRplAssessmentStage;
 }
 
 const CONFIDENCE_BADGE: Record<
@@ -416,12 +418,15 @@ function ResultsState({
   );
 }
 
-export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
+export function UcRplCourseMatcher({
+  courses,
+  onStageChange,
+  stage,
+}: UcRplCourseMatcherProps) {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { beginCourseApplication } = useApplication();
   const { isAuthenticated, userEmail } = useAuth();
-  const [stage, setStage] = useState<AssessmentStage>("intro");
   const [draft, setDraft] = useState<CvRecognitionDraft | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -461,7 +466,7 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
   async function parseSelectedFile(file: File) {
     setError(null);
     setSelectedFile(file);
-    setStage("parsing");
+    onStageChange("parsing");
 
     try {
       const parsed = await parseCvForRecognition(file);
@@ -469,14 +474,14 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
         throw new Error("We couldn't find any employment roles in this CV.");
       }
       setDraft(parsed);
-      setStage("review");
+      onStageChange("review");
     } catch (parseError) {
       setError(
         parseError instanceof Error && parseError.message.includes("employment roles")
           ? parseError.message
           : getCvParserErrorMessage(parseError),
       );
-      setStage("intro");
+      onStageChange("intro");
     }
   }
 
@@ -569,11 +574,11 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
           draft={draft}
           fileName={selectedFile.name}
           onChange={setDraft}
-          onContinue={() => setStage("results")}
+          onContinue={() => onStageChange("results")}
           onStartOver={() => {
             setDraft(null);
             setSelectedFile(null);
-            setStage("intro");
+            onStageChange("intro");
           }}
         />
       ) : null}
@@ -584,7 +589,7 @@ export function UcRplCourseMatcher({ courses }: UcRplCourseMatcherProps) {
           experienceGuidance={experienceGuidance}
           filter={filter}
           matches={matches}
-          onEdit={() => setStage("review")}
+          onEdit={() => onStageChange("review")}
           onFilter={setFilter}
           onStart={(match) => void startApplication(match)}
           startingCourseCode={startingCourseCode}

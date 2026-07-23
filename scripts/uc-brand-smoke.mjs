@@ -120,6 +120,85 @@ try {
           fullPage: true,
         });
       }
+
+      if (route === "/") {
+        const parserRoute = "**/api/parse-cv?flow=uc-pre-application";
+        const consoleErrorCountBeforeFlow = consoleErrors.length;
+        await page.route(parserRoute, async (requestRoute) => {
+          await new Promise((resolve) => setTimeout(resolve, 750));
+          await requestRoute.fulfill({
+            body: JSON.stringify({
+              applicant: {},
+              experiences: [
+                {
+                  company: "University of Canberra",
+                  currentRole: true,
+                  duties: "Led education programs and strategic projects.",
+                  oscaConfidence: "high",
+                  oscaOccupationCode: "131134",
+                  oscaOccupationTitle: "Project Manager",
+                  oscaRationale: "The role leads complex programs and projects.",
+                  oscaSkillLevel: 1,
+                  position: "Program Manager",
+                  startMonth: "January",
+                  startYear: "2020",
+                  type: "Full-time",
+                },
+              ],
+              professionalAccreditations: [],
+              secondaryQualifications: [],
+              tertiaryQualifications: [],
+            }),
+            contentType: "application/json",
+            status: 200,
+          });
+        });
+
+        try {
+          await page.locator('input[type="file"]').setInputFiles({
+            buffer: Buffer.from("UC CV assessment smoke fixture"),
+            mimeType: "text/plain",
+            name: "uc-assessment-smoke.txt",
+          });
+
+          for (const heading of [
+            "Reviewing your CV",
+            "Review your experience",
+          ]) {
+            await page.getByRole("heading", { name: heading }).waitFor();
+            if (
+              await page
+                .getByRole("heading", { name: "Explore postgraduate courses" })
+                .isVisible()
+            ) {
+              failures.push(
+                `${viewport.name} ${route}: course catalogue visible on ${heading}`,
+              );
+            }
+          }
+
+          await page.getByRole("button", { name: "Find my course matches" }).click();
+          const matchesHeading = "Courses matched to your experience";
+          await page.getByRole("heading", { name: matchesHeading }).waitFor();
+          if (
+            await page
+              .getByRole("heading", { name: "Explore postgraduate courses" })
+              .isVisible()
+          ) {
+            failures.push(
+              `${viewport.name} ${route}: course catalogue visible on ${matchesHeading}`,
+            );
+          }
+        } finally {
+          await page.unroute(parserRoute);
+        }
+
+        if (consoleErrors.length > consoleErrorCountBeforeFlow) {
+          failures.push(
+            `${viewport.name} ${route}: ${consoleErrors.length - consoleErrorCountBeforeFlow} console errors in CV assessment flow`,
+          );
+        }
+      }
     }
 
     await page.close();
