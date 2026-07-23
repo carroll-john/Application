@@ -56,6 +56,26 @@ describe("mapExtractedDataToQualification", () => {
     expect(draft.completed).toBe(true);
   });
 
+  it("separates a country suffix from the parsed institution name", () => {
+    const draft = mapExtractedDataToQualification({
+      applicantDetails: {
+        institutionName: {
+          confidence: 0.98,
+          normalizedValue: "Monash University, Australia",
+        },
+      },
+      studyDetails: {
+        programName: {
+          confidence: 0.98,
+          normalizedValue: "Bachelor of Arts / Bachelor of Laws",
+        },
+      },
+    });
+
+    expect(draft.institution).toBe("Monash University");
+    expect(draft.country).toBe("Australia");
+  });
+
   it("parses start and completion dates when present", () => {
     const draft = mapExtractedDataToQualification({
       studyDetails: {

@@ -20,6 +20,17 @@ const AU_UNIVERSITIES = new Set(
   AU_TERTIARY_INSTITUTION_NAMES.map((item) => item.trim().toLowerCase()),
 );
 
+function normalizeAustralianInstitution(value: string) {
+  const normalized = value.trim().toLowerCase();
+  if (AU_UNIVERSITIES.has(normalized)) {
+    return normalized;
+  }
+
+  return AU_TERTIARY_INSTITUTION_NAMES.find((institution) =>
+    normalized === `${institution.toLowerCase()}, australia`,
+  )?.toLowerCase();
+}
+
 type LooseRecord = Record<string, unknown>;
 
 function asRecord(value: unknown): LooseRecord | undefined {
@@ -92,7 +103,10 @@ function evaluateAuEnglishProficiency(
     return false;
   }
 
-  const isAustralianInstitution = AU_UNIVERSITIES.has(institution.toLowerCase());
+  const normalizedInstitution = normalizeAustralianInstitution(institution);
+  const isAustralianInstitution = Boolean(
+    normalizedInstitution && AU_UNIVERSITIES.has(normalizedInstitution),
+  );
   const countryIsAustralia = country.toLowerCase() === "australia";
   if (!isAustralianInstitution || !countryIsAustralia) {
     return false;

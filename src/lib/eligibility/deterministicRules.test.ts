@@ -211,7 +211,7 @@ describe("applyDeterministicEligibilityRules", () => {
     });
   });
 
-  it("passes English proficiency for Australian institutions completed in Australia", () => {
+  it("passes English proficiency when the parser includes Australia in the institution name", () => {
     const result = applyDeterministicEligibilityRules(
       {
         outcome: "eligible",
@@ -220,14 +220,8 @@ describe("applyDeterministicEligibilityRules", () => {
           institutionName: {
             confidence: 0.8,
             missingOrAmbiguous: false,
-            normalizedValue: "The University of Melbourne",
-            originalValue: "The University of Melbourne",
-          },
-          countryOfInstitution: {
-            confidence: 0.8,
-            missingOrAmbiguous: false,
-            normalizedValue: "Australia",
-            originalValue: "Australia",
+            normalizedValue: "Monash University, Australia",
+            originalValue: "Monash University, Australia",
           },
         },
         studyDetails: {
@@ -241,6 +235,7 @@ describe("applyDeterministicEligibilityRules", () => {
       },
       {
         completed: true,
+        country: "Australia",
       },
     );
 

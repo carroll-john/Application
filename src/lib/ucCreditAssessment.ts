@@ -120,7 +120,11 @@ export function createBillShortenUcCreditDemoTranscriptAssessment() {
       },
       institutionName: {
         confidence: 0.98,
-        normalizedValue: "Monash University, Australia",
+        normalizedValue: "Monash University",
+      },
+      countryOfInstitution: {
+        confidence: 0.98,
+        normalizedValue: "Australia",
       },
     },
     studyDetails: {

@@ -85,6 +85,32 @@ function normalizeCountry(value: string) {
   return aliases.get(trimmed.toLowerCase()) ?? trimmed;
 }
 
+function normalizeInstitutionAndCountry(
+  institutionValue: string,
+  countryValue: string,
+) {
+  const explicitCountry = normalizeCountry(countryValue);
+  const normalizedInstitution = institutionValue.trim();
+  const lowerInstitution = normalizedInstitution.toLowerCase();
+  const countryFromInstitution = countries.find((country) =>
+    lowerInstitution.endsWith(`, ${country.toLowerCase()}`),
+  );
+
+  if (!countryFromInstitution) {
+    return {
+      country: explicitCountry,
+      institution: normalizedInstitution,
+    };
+  }
+
+  return {
+    country: explicitCountry || countryFromInstitution,
+    institution: normalizedInstitution
+      .slice(0, -`, ${countryFromInstitution}`.length)
+      .trim(),
+  };
+}
+
 export function normalizeQualificationLevel(value: string) {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -182,8 +208,8 @@ function classifyCompletionStatus(completionStatus: string): CompletionState | u
 export function mapExtractedDataToQualification(
   extractedData: TranscriptExtractedData,
 ): TertiaryQualificationFieldDraft {
-  const institution = readFieldValue(extractedData.applicantDetails?.institutionName);
-  const country = normalizeCountry(
+  const { country, institution } = normalizeInstitutionAndCountry(
+    readFieldValue(extractedData.applicantDetails?.institutionName),
     readFieldValue(extractedData.applicantDetails?.countryOfInstitution),
   );
   const courseName = readFieldValue(extractedData.studyDetails?.programName);

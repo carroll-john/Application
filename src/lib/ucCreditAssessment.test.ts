@@ -141,6 +141,14 @@ describe("UC shortlisted-course credit assessment", () => {
 
     await expect(run.cardAssessment).resolves.toMatchObject({
       extractedData: {
+        applicantDetails: {
+          countryOfInstitution: {
+            normalizedValue: "Australia",
+          },
+          institutionName: {
+            normalizedValue: "Monash University",
+          },
+        },
         studyDetails: {
           programName: {
             normalizedValue: "Bachelor of Arts / Bachelor of Laws",

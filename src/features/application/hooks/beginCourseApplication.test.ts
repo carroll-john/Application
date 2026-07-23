@@ -45,6 +45,24 @@ function transcriptAssessment(): TranscriptEligibilityAssessment {
   };
 }
 
+function billDoubleDegreeAssessment(): TranscriptEligibilityAssessment {
+  const assessment = transcriptAssessment();
+  return {
+    ...assessment,
+    extractedData: {
+      applicantDetails: {
+        fullName: { normalizedValue: "William (Bill) Shorten" },
+        institutionName: { normalizedValue: "Monash University, Australia" },
+      },
+      studyDetails: {
+        completionStatus: { normalizedValue: "completed" },
+        highestEducationLevel: { normalizedValue: "Bachelor" },
+        programName: { normalizedValue: "Bachelor of Arts / Bachelor of Laws" },
+      },
+    },
+  };
+}
+
 function qualification(
   overrides: Partial<TertiaryQualification> = {},
 ): TertiaryQualification {
@@ -202,5 +220,77 @@ describe("beginCourseApplication UC transcript handoff", () => {
       transcriptEligibility: assessment,
     });
     expect(openApplication).toHaveBeenCalledWith(applicationId);
+  });
+
+  it("removes a stale standalone law degree when the Bill demo resumes an existing draft", async () => {
+    const assessment = billDoubleDegreeAssessment();
+    const transcriptFile = new File(["transcript"], "academic-transcript.pdf", {
+      type: "application/pdf",
+    });
+    const loadedApplication: ApplicationData = {
+      ...initialApplicationData,
+      applicationMeta: {
+        recordId: applicationId,
+        selectedCourse: course,
+        status: "draft",
+      },
+      tertiaryQualifications: [
+        qualification({
+          id: "double-degree",
+          institution: "Monash University",
+          level: "Bachelor",
+          courseName: "Bachelor of Arts / Bachelor of Laws",
+        }),
+        qualification({
+          id: "stale-law-degree",
+          institution: "Monash University",
+          level: "Bachelor",
+          courseName: "Bachelor of Laws (LLB)",
+        }),
+      ],
+    };
+    const saveApplication = vi.fn(async (data: ApplicationData) => data);
+    const storageAdapter = makeStorageAdapter({
+      findOpenDraftForCourse: vi.fn().mockResolvedValue({
+        completedStepCount: 0,
+        completionPercentage: 0,
+        course,
+        id: applicationId,
+        status: "draft",
+        totalStepCount: 1,
+        updatedAt: "2026-07-23T03:00:00.000Z",
+      }),
+      loadApplicationById: vi.fn().mockResolvedValue(loadedApplication),
+      saveApplication,
+    });
+
+    const result = await beginCourseApplication(
+      course,
+      {
+        startFresh: true,
+        ucTranscriptFile: transcriptFile,
+        ucTranscriptPrefill: assessment,
+      },
+      {
+        applications: [],
+        data: initialApplicationData,
+        ensureApplicantProfile: vi.fn().mockResolvedValue(null),
+        openApplication: vi.fn(),
+        persistApplication: vi.fn(),
+        storageAdapter,
+        trackDraftCreated: vi.fn(),
+        trackDraftResumed: vi.fn(),
+      },
+    );
+
+    expect(result.tertiaryQualifications).toHaveLength(1);
+    expect(result.tertiaryQualifications[0]).toMatchObject({
+      id: "double-degree",
+      institution: "Monash University",
+      country: "Australia",
+      courseName: "Bachelor of Arts / Bachelor of Laws",
+      transcriptDocument: storedTranscript,
+      transcriptEligibility: assessment,
+    });
   });
 });
