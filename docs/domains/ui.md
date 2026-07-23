@@ -114,9 +114,11 @@ See [PR #202](https://github.com/carroll-john/Application/pull/202).
   order; reduced-motion users receive the completed result immediately without staggered delays.
 - A UC application started after the pre-application transcript comparison arrives with blank
   qualification fields prefilled from the extracted evidence and the transcript attached to the
-  matching qualification. On the first hydrated qualifications visit, show the standard
+  matching qualification. It excludes other qualification suggestions from the incoming CV while
+  preserving unrelated saved or user-added qualifications. On the first hydrated qualifications visit, show the standard
   program-evidence progress state while that evidence is rematched to the selected course; do not
-  ask for the same transcript again just to perform this landing review.
+  ask for the same transcript again just to perform this landing review, or request English evidence
+  when the transcript assessment already marks English language proficiency as met.
 - Extracted WAM/GPA is not listed as standalone eligibility evidence. It appears only in the
   result copy for a published academic-threshold requirement; courses without a threshold omit it.
 - `EligibilityFeedbackForm` — per-row dispute notes; CTA copy in `uiCopy.ts`

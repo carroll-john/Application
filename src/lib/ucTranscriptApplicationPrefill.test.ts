@@ -58,7 +58,7 @@ describe("applyUcTranscriptApplicationPrefill", () => {
     const result = applyUcTranscriptApplicationPrefill(
       initialApplicationData,
       assessment,
-      () => "transcript-qualification",
+      { createId: () => "transcript-qualification" },
     );
 
     expect(result.tertiaryQualifications).toEqual([
@@ -123,6 +123,58 @@ describe("applyUcTranscriptApplicationPrefill", () => {
     expect(result.tertiaryQualifications[0].transcriptEligibility).toBe(
       savedAssessment,
     );
+  });
+
+  it("replaces CV qualification suggestions with only the transcript-backed qualification", () => {
+    const assessment = transcriptAssessment();
+    assessment.extractedData.applicantDetails.institutionName = {
+      normalizedValue: "Monash University",
+    };
+    assessment.extractedData.studyDetails.highestEducationLevel = {
+      normalizedValue: "Bachelor",
+    };
+    assessment.extractedData.studyDetails.programName = {
+      normalizedValue: "Bachelor of Arts and Bachelor of Laws",
+    };
+
+    const mbaFromCv = existingQualification({
+      id: "cv-mba",
+      institution: "University of Melbourne",
+    });
+    const bachelorFromCv = existingQualification({
+      id: "cv-bachelor",
+      institution: "Monash University",
+      level: "Bachelor",
+      courseName: "Bachelor of Arts and Bachelor of Laws",
+    });
+    const unrelatedSavedQualification = existingQualification({
+      id: "saved-doctorate",
+      institution: "Saved University",
+      level: "Doctorate",
+      courseName: "Doctor of Philosophy",
+    });
+    const application = {
+      ...initialApplicationData,
+      tertiaryQualifications: [
+        mbaFromCv,
+        bachelorFromCv,
+        unrelatedSavedQualification,
+      ],
+    };
+
+    const result = applyUcTranscriptApplicationPrefill(application, assessment, {
+      cvQualificationsToReplace: [mbaFromCv, bachelorFromCv],
+    });
+
+    expect(result.tertiaryQualifications.map((qualification) => qualification.id)).toEqual([
+      "cv-bachelor",
+      "saved-doctorate",
+    ]);
+    expect(result.tertiaryQualifications[0]).toMatchObject({
+      institution: "Monash University",
+      courseName: "Bachelor of Arts and Bachelor of Laws",
+      transcriptEligibility: assessment,
+    });
   });
 
   it("leaves the application unchanged when no qualification fields were extracted", () => {

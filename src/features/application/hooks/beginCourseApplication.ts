@@ -51,6 +51,10 @@ function applyUcPrefills(
     ? applyUcTranscriptApplicationPrefill(
         cvPrefilled,
         options.ucTranscriptPrefill,
+        {
+          cvQualificationsToReplace:
+            options.ucCvPrefill?.tertiaryQualifications,
+        },
       )
     : cvPrefilled;
 }
