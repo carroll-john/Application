@@ -30,6 +30,7 @@ import { useReviewReturn } from "../hooks/useReviewReturn";
 import { getCourseByCode } from "../lib/courseCatalog";
 import { deleteStoredDocument } from "../lib/documentStorage";
 import {
+  buildAssessmentCheckEvidenceRows,
   buildProgramEvidenceRows,
   dedupeProgramEvidenceRowsByHeading,
   groupTranscriptVerifiableEvidenceRows,
@@ -78,8 +79,12 @@ export default function Section2Qualifications() {
     course: selectedCourseEntry,
     transcriptAssessment: latestTranscriptAssessment,
   });
+  const evidencePlanSourceRows =
+    programEvidenceRows.length === 0 && latestTranscriptAssessment
+      ? buildAssessmentCheckEvidenceRows(latestTranscriptAssessment)
+      : programEvidenceRows;
   const displayProgramEvidenceRows = dedupeProgramEvidenceRowsByHeading(
-    groupTranscriptVerifiableEvidenceRows(programEvidenceRows),
+    groupTranscriptVerifiableEvidenceRows(evidencePlanSourceRows),
   );
   const {
     evidencePlan,
