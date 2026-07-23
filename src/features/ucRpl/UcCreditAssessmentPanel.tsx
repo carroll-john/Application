@@ -178,8 +178,8 @@ export function UcCreditAssessmentPanel({
                 Assessment added to your course cards
               </p>
               <p className="mt-2">
-                Compare the original and after-credit estimates below. These are
-                guides only, not a formal UC RPL or credit transfer decision.
+                Compare the original and after-credit estimates below. The
+                assessment uses evidence from your transcript and CV.
               </p>
             </div>
           ) : null}

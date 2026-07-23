@@ -704,6 +704,8 @@ function getCourseDurationYears(duration: string | undefined) {
 export function getUcIndicativeCreditPoints(
   course: CourseCatalogEntry,
 ): 6 | 12 | 18 {
+  if (/^master\b/i.test(course.title)) return 12;
+
   const durationYears = getCourseDurationYears(course.duration);
 
   if (durationYears !== null) {

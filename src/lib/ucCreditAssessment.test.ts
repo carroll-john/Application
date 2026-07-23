@@ -50,6 +50,27 @@ const relatedTranscript = normalizeTranscriptEligibilityAssessment({
   },
 });
 
+const unrelatedTranscript = normalizeTranscriptEligibilityAssessment({
+  confidence: 0.92,
+  outcome: "eligible",
+  academicPerformance: {
+    unitResults: [
+      {
+        counted: true,
+        creditPoints: 12,
+        grade: "D",
+        title: "Coral Reef Ecology",
+      },
+    ],
+  },
+  studyDetails: {
+    programName: {
+      confidence: 0.95,
+      normalizedValue: "Graduate Certificate in Marine Biology",
+    },
+  },
+});
+
 describe("UC shortlisted-course credit assessment", () => {
   it("combines related transcript study and CV relevance into time and cost estimates", () => {
     const result = assessUcShortlistedCourseCredit(
@@ -67,6 +88,18 @@ describe("UC shortlisted-course credit assessment", () => {
       potentialSavings: 11825,
     });
     expect(result.evidenceSummary).toMatch(/prior study.*professional experience/i);
+  });
+
+  it("does not estimate credit from CV relevance without related transcript study", () => {
+    const result = assessUcShortlistedCourseCredit(
+      matchFor("Master of Education (Leadership)"),
+      unrelatedTranscript,
+    );
+
+    expect(result.potentialCreditPoints).toBe(0);
+    expect(result.afterCost).toBe(result.originalCost);
+    expect(result.afterDurationMonths).toBe(result.originalDurationMonths);
+    expect(result.evidenceSummary).toMatch(/transcript and CV/i);
   });
 
   it("keeps graduate certificates on formal review when no approved credit arrangement is published", () => {

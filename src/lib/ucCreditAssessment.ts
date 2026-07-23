@@ -150,15 +150,12 @@ function getEvidenceSummary(options: {
   const { formalStudyScore, potentialCreditPoints, workScore } = options;
 
   if (potentialCreditPoints === 0) {
-    return "No course-specific credit could be estimated automatically. UC will review your transcript and experience.";
+    return "No course-specific credit could be estimated automatically after comparing your transcript and CV.";
   }
   if (formalStudyScore > 0 && workScore > 0) {
     return "Based on related prior study in your transcript and relevant professional experience in your CV.";
   }
-  if (formalStudyScore > 0) {
-    return "Based on related prior study identified in your transcript.";
-  }
-  return "Based on relevant professional experience in your CV. UC will need unit-level evidence for a formal decision.";
+  return "Based on related prior study in your transcript, considered alongside the experience in your CV.";
 }
 
 export function assessUcShortlistedCourseCredit(
@@ -176,9 +173,11 @@ export function assessUcShortlistedCourseCredit(
         ? 3
         : 0;
   const creditCap = Math.min(match.creditPoints, getCreditCap(match));
+  const combinedEvidenceScore =
+    formalStudyScore > 0 ? formalStudyScore + workScore : 0;
   const potentialCreditPoints = Math.max(
     0,
-    Math.min(creditCap, formalStudyScore + workScore),
+    Math.min(creditCap, combinedEvidenceScore),
   );
   const costProfile = getCourseCostProfile(match);
   const originalDurationMonths =

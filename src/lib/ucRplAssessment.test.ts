@@ -324,7 +324,7 @@ describe("UC course matching", () => {
 
     expect(graduateCertificate && getUcIndicativeCreditPoints(graduateCertificate)).toBe(6);
     expect(graduateDiploma && getUcIndicativeCreditPoints(graduateDiploma)).toBe(12);
-    expect(masters && getUcIndicativeCreditPoints(masters)).toBe(18);
+    expect(masters && getUcIndicativeCreditPoints(masters)).toBe(12);
   });
 
   it("uses Bill Shorten's current education role and completed MBA to avoid redundant matches", () => {

@@ -1,10 +1,12 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { getCourseCatalogFor } from "../../lib/courseCatalog";
 import type { UcCourseMatch } from "../../lib/ucRplAssessment";
 import { UcCreditAssessmentComparison } from "./UcCreditAssessmentComparison";
 import { UcCreditAssessmentPanel } from "./UcCreditAssessmentPanel";
+import { UcRplMatchCard } from "./UcRplCourseMatcher";
 
 function shortlist() {
   return getCourseCatalogFor("uc").slice(0, 3).map((course) => ({
@@ -29,7 +31,7 @@ const baseProps = {
   transcriptFile: null,
 };
 
-describe("UC credit assessment UI", () => {
+describe("UC credit assessment interface", () => {
   it("prompts for authentication after three courses are shortlisted", () => {
     const html = renderToStaticMarkup(
       createElement(UcCreditAssessmentPanel, {
@@ -81,5 +83,57 @@ describe("UC credit assessment UI", () => {
     expect(html).toContain("8 months");
     expect(html).toContain("$23,650");
     expect(html).toContain("$11,825");
+    expect(html).not.toContain("2026 indicative tuition only");
+  });
+
+  it("hides the provisional credit section after assessment", () => {
+    const match = shortlist()[0]!;
+    const html = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(UcRplMatchCard, {
+          assessmentResult: {
+            afterCost: 11825,
+            afterDurationMonths: 8,
+            confidence: "high",
+            courseCode: match.course.code,
+            evidenceSummary:
+              "Based on related prior study in your transcript and relevant professional experience in your CV.",
+            originalCost: 23650,
+            originalDurationMonths: 16,
+            potentialCreditPoints: 12,
+            potentialSavings: 11825,
+          },
+          isAssessmentComplete: true,
+          isShortlistFull: true,
+          isShortlisted: true,
+          isStarting: false,
+          match,
+          mediaVariantIndex: 0,
+          onStart: vi.fn(),
+          onToggleShortlist: vi.fn(),
+          onView: vi.fn(),
+        }),
+      ),
+    );
+
+    expect(html).toContain("Entry guidance");
+    expect(html).toContain("Your indicative credit assessment");
+    expect(html).not.toContain("Initial credit potential");
+    expect(html).not.toContain(match.creditDetail);
+  });
+
+  it("describes the completed assessment as using the transcript and CV", () => {
+    const html = renderToStaticMarkup(
+      createElement(UcCreditAssessmentPanel, {
+        ...baseProps,
+        isAuthenticated: true,
+        status: "complete",
+      }),
+    );
+
+    expect(html).toContain("uses evidence from your transcript and CV");
+    expect(html).not.toContain("guides only");
   });
 });
