@@ -78,7 +78,7 @@ const billShortenDemoTranscript = normalizeTranscriptEligibilityAssessment({
   applicantDetails: {
     institutionName: {
       confidence: 0.98,
-      normalizedValue: "Monash University",
+      normalizedValue: "Monash University, Australia",
     },
   },
   studyDetails: {
@@ -88,7 +88,7 @@ const billShortenDemoTranscript = normalizeTranscriptEligibilityAssessment({
     },
     programName: {
       confidence: 0.98,
-      normalizedValue: "Bachelor of Arts and Bachelor of Laws",
+      normalizedValue: "Bachelor of Arts / Bachelor of Laws",
     },
   },
 });
@@ -190,6 +190,36 @@ describe("UC shortlisted-course credit assessment", () => {
     expect(result.potentialCreditPoints).toBe(0);
     expect(result.afterCost).toBe(result.originalCost);
     expect(result.afterDurationMonths).toBe(result.originalDurationMonths);
+  });
+
+  it("recognizes the same Monash dual degree when its awards are listed in reverse order", () => {
+    const transcript = normalizeTranscriptEligibilityAssessment({
+      confidence: 0.97,
+      outcome: "eligible",
+      applicantDetails: {
+        institutionName: {
+          confidence: 0.98,
+          normalizedValue: "Monash University",
+        },
+      },
+      studyDetails: {
+        programName: {
+          confidence: 0.98,
+          normalizedValue: "Bachelor of Laws & Bachelor of Arts",
+        },
+      },
+    });
+    const result = assessUcShortlistedCourseCredit(
+      matchFor("Master of Education (STEM)"),
+      transcript,
+      { applicant: { firstName: "Bill", lastName: "Shorten" } },
+    );
+
+    expect(result).toMatchObject({
+      afterCost: 17737.5,
+      afterDurationMonths: 12,
+      potentialCreditPoints: 6,
+    });
   });
 
   it("does not apply the UC demo estimate to a different Bill Shorten transcript", () => {

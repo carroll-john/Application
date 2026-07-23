@@ -63,7 +63,13 @@ function getFieldValue(field: { normalizedValue?: string; originalValue?: string
 }
 
 function normalizeDemoIdentity(value: string) {
-  return value.trim().replace(/\s+/g, " ").toLowerCase();
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function getBillShortenDemoCreditPoints(
@@ -81,11 +87,17 @@ function getBillShortenDemoCreditPoints(
   const programName = normalizeDemoIdentity(
     getFieldValue(assessment.extractedData.studyDetails?.programName),
   );
+  const isMonashTranscript =
+    institutionName === "monash university" ||
+    institutionName.startsWith("monash university ");
+  const isArtsAndLawsDualDegree =
+    programName.includes("bachelor of arts") &&
+    programName.includes("bachelor of laws");
 
   if (
     applicantName !== "bill shorten" ||
-    institutionName !== "monash university" ||
-    programName !== "bachelor of arts and bachelor of laws"
+    !isMonashTranscript ||
+    !isArtsAndLawsDualDegree
   ) {
     return null;
   }
