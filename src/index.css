@@ -19,6 +19,8 @@
   --brand-header: var(--sn-navy);
   --brand-header-text: #ffffff;
   --brand-header-border: transparent;
+  --brand-header-utility: var(--sn-navy-deep);
+  --brand-header-utility-text: rgba(255, 255, 255, 0.88);
   --brand-header-link-border: rgba(255, 255, 255, 0.3);
   --brand-header-shadow: none;
   --brand-service-bg: rgba(255, 255, 255, 0.1);
@@ -26,6 +28,8 @@
   --brand-accent: var(--sn-mint);
   --brand-accent-strong: var(--sn-mint);
   --brand-footer: var(--sn-navy-deep);
+  --brand-footer-links: #ffffff;
+  --brand-footer-link-text: rgba(255, 255, 255, 0.78);
 
   /* Keypath Apply — aliased to StudyNext so legacy components pick up the new brand. */
   --keypath-yellow: var(--sn-yellow);
@@ -146,11 +150,15 @@
   --brand-header: #ffffff;
   --brand-header-text: var(--uc-dark-grey);
   --brand-header-border: rgba(65, 64, 66, 0.14);
+  --brand-header-utility: var(--uc-hale-navy);
+  --brand-header-utility-text: rgba(255, 255, 255, 0.88);
   --brand-header-link-border: rgba(65, 64, 66, 0.28);
   --brand-header-shadow: 0 1px 3px rgba(65, 64, 66, 0.05);
   --brand-accent: var(--uc-blue);
   --brand-accent-strong: var(--uc-dark-teal);
   --brand-footer: var(--uc-hale-navy);
+  --brand-footer-links: rgba(0, 154, 188, 0.05);
+  --brand-footer-link-text: var(--uc-light-blue);
 
   --background: #ffffff;
   --background-dark: var(--uc-hale-navy);
@@ -234,6 +242,11 @@ body {
 :root[data-brand="uc"] .font-display {
   font-family: var(--font-display);
   letter-spacing: -0.015em;
+}
+
+:root[data-brand="uc"] h2.brand-footer-heading {
+  font-family: var(--font-body);
+  letter-spacing: normal;
 }
 
 :focus-visible {
