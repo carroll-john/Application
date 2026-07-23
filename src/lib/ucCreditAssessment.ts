@@ -1,5 +1,9 @@
 import type { TranscriptEligibilityAssessment } from "./eligibility/types";
 import { normalizeTranscriptEligibilityAssessment } from "./eligibility/normalize";
+import {
+  BILL_SHORTEN_UC_DEMO_COURSES,
+  isBillShortenUcDemoName,
+} from "./ucDemoFixture";
 import type { UcCourseMatch, UcGuidanceConfidence } from "./ucRplAssessment";
 
 const CREDIT_POINTS_PER_UNIT = 3;
@@ -32,11 +36,12 @@ export interface UcCreditAssessmentContext {
   billShortenDemoFixture?: boolean;
 }
 
-const BILL_SHORTEN_DEMO_CREDIT_POINTS = new Map<string, number>([
-  ["Master of Education (Leadership)", 6],
-  ["Master of Education (STEM)", 6],
-  ["Graduate Certificate in Educational Leadership", 0],
-]);
+const BILL_SHORTEN_DEMO_CREDIT_POINTS = new Map<string, number>(
+  BILL_SHORTEN_UC_DEMO_COURSES.map(({ creditPoints, title }) => [
+    title,
+    creditPoints,
+  ]),
+);
 
 export const UC_CREDIT_DEMO_ASSESSMENT_DELAY_MS = 3_000;
 
@@ -66,24 +71,6 @@ function getFieldValue(field: { normalizedValue?: string; originalValue?: string
   return field?.normalizedValue?.trim() || field?.originalValue?.trim() || "";
 }
 
-function normalizeDemoIdentity(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/&/g, " and ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-    .replace(/\s+/g, " ");
-}
-
-function isBillShortenDemoName(value: string) {
-  const tokens = new Set(normalizeDemoIdentity(value).split(" ").filter(Boolean));
-  return (
-    tokens.has("shorten") &&
-    (tokens.has("bill") || tokens.has("william"))
-  );
-}
-
 function isBillShortenDemoApplicant(
   applicant: UcCreditAssessmentContext["applicant"],
   transcriptAssessment: TranscriptEligibilityAssessment,
@@ -91,9 +78,9 @@ function isBillShortenDemoApplicant(
   const profileName = applicant
     ? `${applicant.firstName} ${applicant.lastName}`.trim()
     : "";
-  if (profileName) return isBillShortenDemoName(profileName);
+  if (profileName) return isBillShortenUcDemoName(profileName);
 
-  return isBillShortenDemoName(
+  return isBillShortenUcDemoName(
     getFieldValue(
       transcriptAssessment.extractedData.applicantDetails?.fullName,
     ),
@@ -116,7 +103,7 @@ export function isBillShortenUcCreditDemoFixture(
   if (!applicant) return false;
 
   return (
-    isBillShortenDemoName(`${applicant.firstName} ${applicant.lastName}`) &&
+    isBillShortenUcDemoName(`${applicant.firstName} ${applicant.lastName}`) &&
     isBillShortenDemoCourseSet(matches)
   );
 }

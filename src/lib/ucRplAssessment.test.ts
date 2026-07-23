@@ -396,7 +396,16 @@ describe("UC course matching", () => {
       (match) => match.course.title === "Master of Education (Leadership)",
     );
 
-    expect(matches[0].course.title).toBe("Master of Education (Leadership)");
+    expect(matches.slice(0, 3).map((match) => match.course.title)).toEqual([
+      "Master of Education (Leadership)",
+      "Master of Education (STEM)",
+      "Graduate Certificate in Educational Leadership",
+    ]);
+    expect(matches.slice(0, 3).map((match) => match.creditConfidence)).toEqual([
+      "high",
+      "medium",
+      "medium",
+    ]);
     expect(bestMatches.every((match) => /Education|Teaching/i.test(match.course.title))).toBe(
       true,
     );
