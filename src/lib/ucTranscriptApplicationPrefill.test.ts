@@ -4,7 +4,10 @@ import {
   type TertiaryQualification,
 } from "./applicationData";
 import type { TranscriptEligibilityAssessment } from "./eligibility/types";
-import { applyUcTranscriptApplicationPrefill } from "./ucTranscriptApplicationPrefill";
+import {
+  applyUcTranscriptApplicationPrefill,
+  getVisibleUcTertiaryQualifications,
+} from "./ucTranscriptApplicationPrefill";
 
 function transcriptAssessment(): TranscriptEligibilityAssessment {
   return {
@@ -202,8 +205,9 @@ describe("applyUcTranscriptApplicationPrefill", () => {
     const staleLawDegree = existingQualification({
       id: "stale-cv-law-degree",
       institution: "Monash University",
-      level: "Bachelor",
+      level: "",
       courseName: "Bachelor of Laws (LLB)",
+      transcriptEligibility: assessment,
     });
     const unrelatedSavedQualification = existingQualification({
       id: "saved-doctorate",
@@ -234,6 +238,42 @@ describe("applyUcTranscriptApplicationPrefill", () => {
       courseName: "Bachelor of Arts / Bachelor of Laws",
       transcriptEligibility: assessment,
     });
+  });
+
+  it("hides a stale standalone law degree in an existing Bill Shorten demo draft", () => {
+    const assessment = transcriptAssessment();
+    assessment.extractedData.applicantDetails.fullName = {
+      normalizedValue: "William (Bill) Shorten",
+    };
+
+    const doubleDegree = existingQualification({
+      id: "transcript-double-degree",
+      institution: "Monash University",
+      level: "Bachelor",
+      courseName: "Bachelor of Arts / Bachelor of Laws",
+      transcriptEligibility: assessment,
+    });
+    const staleLawDegree = existingQualification({
+      id: "stale-cv-law-degree",
+      institution: "Monash University",
+      level: "",
+      courseName: "Bachelor of Laws (LLB)",
+      transcriptEligibility: assessment,
+    });
+    const unrelatedSavedQualification = existingQualification({
+      id: "saved-doctorate",
+      institution: "Saved University",
+      level: "Doctorate",
+      courseName: "Doctor of Philosophy",
+    });
+
+    expect(
+      getVisibleUcTertiaryQualifications([
+        doubleDegree,
+        staleLawDegree,
+        unrelatedSavedQualification,
+      ]).map((qualification) => qualification.id),
+    ).toEqual(["transcript-double-degree", "saved-doctorate"]);
   });
 
   it("leaves the application unchanged when no qualification fields were extracted", () => {

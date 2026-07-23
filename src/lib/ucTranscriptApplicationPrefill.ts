@@ -93,9 +93,13 @@ function isQualificationSubsumedByTranscript(
   qualification: TertiaryQualification,
   transcriptQualification: TertiaryQualification,
 ) {
+  const qualificationLevel = normalizeIdentity(qualification.level);
+  const transcriptLevel = normalizeIdentity(transcriptQualification.level);
   if (
     !identifiesSameValue(qualification.institution, transcriptQualification.institution) ||
-    !identifiesSameValue(qualification.level, transcriptQualification.level)
+    (qualificationLevel &&
+      transcriptLevel &&
+      !identifiesSameValue(qualification.level, transcriptQualification.level))
   ) {
     return false;
   }
@@ -116,6 +120,31 @@ function isBillShortenDemoAssessment(assessment: TranscriptEligibilityAssessment
   const fullName = assessment.extractedData.applicantDetails?.fullName;
   return isBillShortenUcDemoName(
     fullName?.normalizedValue ?? fullName?.originalValue ?? "",
+  );
+}
+
+/**
+ * Keeps existing drafts visually consistent with the transcript handoff. Earlier
+ * builds could persist a CV-derived component degree beside a transcript-backed
+ * double degree, so hide that stale component anywhere qualifications are reviewed.
+ */
+export function getVisibleUcTertiaryQualifications(
+  qualifications: readonly TertiaryQualification[],
+): TertiaryQualification[] {
+  const transcriptQualifications = qualifications.filter(
+    (qualification) => qualification.transcriptEligibility,
+  );
+
+  if (transcriptQualifications.length === 0) {
+    return [...qualifications];
+  }
+
+  return qualifications.filter(
+    (qualification) =>
+      !transcriptQualifications.some((transcriptQualification) =>
+        transcriptQualification.id !== qualification.id &&
+        isQualificationSubsumedByTranscript(qualification, transcriptQualification),
+      ),
   );
 }
 
