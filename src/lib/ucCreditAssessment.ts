@@ -28,6 +28,7 @@ export interface UcCreditAssessmentContext {
     firstName: string;
     lastName: string;
   };
+  billShortenDemoFixture?: boolean;
 }
 
 const BILL_SHORTEN_DEMO_CREDIT_POINTS = new Map<string, number>([
@@ -72,37 +73,54 @@ function normalizeDemoIdentity(value: string) {
     .replace(/\s+/g, " ");
 }
 
+function isBillShortenDemoName(value: string) {
+  const tokens = new Set(normalizeDemoIdentity(value).split(" ").filter(Boolean));
+  return (
+    tokens.has("shorten") &&
+    (tokens.has("bill") || tokens.has("william"))
+  );
+}
+
+function isBillShortenDemoApplicant(
+  applicant: UcCreditAssessmentContext["applicant"],
+  transcriptAssessment: TranscriptEligibilityAssessment,
+) {
+  const profileName = applicant
+    ? `${applicant.firstName} ${applicant.lastName}`.trim()
+    : "";
+  if (profileName) return isBillShortenDemoName(profileName);
+
+  return isBillShortenDemoName(
+    getFieldValue(
+      transcriptAssessment.extractedData.applicantDetails?.fullName,
+    ),
+  );
+}
+
 function getBillShortenDemoCreditPoints(
   match: UcCourseMatch,
-  assessment: TranscriptEligibilityAssessment,
   context: UcCreditAssessmentContext,
 ) {
-  const applicant = context.applicant;
-  const applicantName = applicant
-    ? normalizeDemoIdentity(`${applicant.firstName} ${applicant.lastName}`)
-    : "";
-  const institutionName = normalizeDemoIdentity(
-    getFieldValue(assessment.extractedData.applicantDetails?.institutionName),
-  );
-  const programName = normalizeDemoIdentity(
-    getFieldValue(assessment.extractedData.studyDetails?.programName),
-  );
-  const isMonashTranscript =
-    institutionName === "monash university" ||
-    institutionName.startsWith("monash university ");
-  const isArtsAndLawsDualDegree =
-    programName.includes("bachelor of arts") &&
-    programName.includes("bachelor of laws");
-
-  if (
-    applicantName !== "bill shorten" ||
-    !isMonashTranscript ||
-    !isArtsAndLawsDualDegree
-  ) {
+  if (!context.billShortenDemoFixture) {
     return null;
   }
 
   return BILL_SHORTEN_DEMO_CREDIT_POINTS.get(match.course.title) ?? null;
+}
+
+function isBillShortenDemoShortlist(
+  matches: UcCourseMatch[],
+  transcriptAssessment: TranscriptEligibilityAssessment,
+  context: UcCreditAssessmentContext,
+) {
+  const expectedCourseTitles = new Set(BILL_SHORTEN_DEMO_CREDIT_POINTS.keys());
+
+  return (
+    isBillShortenDemoApplicant(context.applicant, transcriptAssessment) &&
+    hasUcTranscriptStudyEvidence(transcriptAssessment) &&
+    matches.length === expectedCourseTitles.size &&
+    matches.every((match) => expectedCourseTitles.has(match.course.title))
+  );
 }
 
 function getTranscriptTokens(assessment: TranscriptEligibilityAssessment) {
@@ -236,11 +254,7 @@ export function assessUcShortlistedCourseCredit(
     0,
     Math.min(creditCap, combinedEvidenceScore),
   );
-  const demoCreditPoints = getBillShortenDemoCreditPoints(
-    match,
-    transcriptAssessment,
-    context,
-  );
+  const demoCreditPoints = getBillShortenDemoCreditPoints(match, context);
   const potentialCreditPoints =
     demoCreditPoints === null
       ? calculatedCreditPoints
@@ -300,8 +314,21 @@ export function assessUcShortlistCredit(
   transcriptAssessment: TranscriptEligibilityAssessment,
   context: UcCreditAssessmentContext = {},
 ) {
+  const assessmentContext = {
+    ...context,
+    billShortenDemoFixture: isBillShortenDemoShortlist(
+      matches,
+      transcriptAssessment,
+      context,
+    ),
+  };
+
   return matches.map((match) =>
-    assessUcShortlistedCourseCredit(match, transcriptAssessment, context),
+    assessUcShortlistedCourseCredit(
+      match,
+      transcriptAssessment,
+      assessmentContext,
+    ),
   );
 }
 

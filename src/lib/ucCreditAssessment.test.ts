@@ -76,6 +76,10 @@ const billShortenDemoTranscript = normalizeTranscriptEligibilityAssessment({
   confidence: 0.97,
   outcome: "eligible",
   applicantDetails: {
+    fullName: {
+      confidence: 0.99,
+      normalizedValue: "William (Bill) Shorten",
+    },
     institutionName: {
       confidence: 0.98,
       normalizedValue: "Monash University, Australia",
@@ -192,44 +196,71 @@ describe("UC shortlisted-course credit assessment", () => {
     expect(result.afterDurationMonths).toBe(result.originalDurationMonths);
   });
 
-  it("recognizes the same Monash dual degree when its awards are listed in reverse order", () => {
-    const transcript = normalizeTranscriptEligibilityAssessment({
-      confidence: 0.97,
-      outcome: "eligible",
-      applicantDetails: {
-        institutionName: {
-          confidence: 0.98,
-          normalizedValue: "Monash University",
-        },
-      },
-      studyDetails: {
-        programName: {
-          confidence: 0.98,
-          normalizedValue: "Bachelor of Laws & Bachelor of Arts",
-        },
-      },
-    });
-    const result = assessUcShortlistedCourseCredit(
-      matchFor("Master of Education (STEM)"),
-      transcript,
-      { applicant: { firstName: "Bill", lastName: "Shorten" } },
+  it("keeps the exact Bill Shorten demo result stable when transcript fields vary", () => {
+    const results = assessUcShortlistCredit(
+      [
+        matchFor("Master of Education (Leadership)"),
+        matchFor("Master of Education (STEM)"),
+        matchFor("Graduate Certificate in Educational Leadership"),
+      ],
+      unrelatedTranscript,
+      { applicant: { firstName: "William (Bill)", lastName: "Shorten" } },
     );
 
-    expect(result).toMatchObject({
+    expect(results.map((result) => result.potentialCreditPoints)).toEqual([
+      6,
+      6,
+      0,
+    ]);
+    expect(results[0]).toMatchObject({
       afterCost: 17737.5,
       afterDurationMonths: 12,
-      potentialCreditPoints: 6,
     });
   });
 
-  it("does not apply the UC demo estimate to a different Bill Shorten transcript", () => {
+  it("does not apply the UC demo estimate outside the exact three-course shortlist", () => {
     const result = assessUcShortlistedCourseCredit(
       matchFor("Master of Education (Leadership)"),
-      unrelatedTranscript,
+      billShortenDemoTranscript,
       { applicant: { firstName: "Bill", lastName: "Shorten" } },
     );
 
     expect(result.potentialCreditPoints).toBe(0);
+  });
+
+  it("uses the transcript identity when the CV profile name is unavailable", () => {
+    const results = assessUcShortlistCredit(
+      [
+        matchFor("Master of Education (Leadership)"),
+        matchFor("Master of Education (STEM)"),
+        matchFor("Graduate Certificate in Educational Leadership"),
+      ],
+      billShortenDemoTranscript,
+    );
+
+    expect(results.map((result) => result.potentialCreditPoints)).toEqual([
+      6,
+      6,
+      0,
+    ]);
+  });
+
+  it("does not apply the UC demo estimate without usable transcript study evidence", () => {
+    const results = assessUcShortlistCredit(
+      [
+        matchFor("Master of Education (Leadership)"),
+        matchFor("Master of Education (STEM)"),
+        matchFor("Graduate Certificate in Educational Leadership"),
+      ],
+      normalizeTranscriptEligibilityAssessment({ outcome: "insufficient_data" }),
+      { applicant: { firstName: "Bill", lastName: "Shorten" } },
+    );
+
+    expect(results.map((result) => result.potentialCreditPoints)).toEqual([
+      0,
+      0,
+      0,
+    ]);
   });
 
   it("does not apply the UC demo estimate to an unlisted course", () => {
