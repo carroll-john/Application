@@ -101,13 +101,6 @@ function UcBrandHeader({
               src={activeBrand.logo?.fullColour}
             />
           </NavLink>
-          <span
-            aria-hidden="true"
-            className="hidden h-9 border-l border-[var(--brand-header-border)] sm:block"
-          />
-          <span className="hidden text-sm font-semibold text-[var(--brand-accent-strong)] sm:inline">
-            Online applications
-          </span>
 
           <nav
             aria-label="Application navigation"

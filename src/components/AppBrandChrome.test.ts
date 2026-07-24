@@ -42,6 +42,11 @@ describe("shared brand chrome", () => {
     expect(html).toContain("University accessibility links");
     expect(html).toContain("Application navigation");
     expect(html).toContain("Online applications");
+    const headerHtml = html.slice(
+      html.indexOf("<header"),
+      html.indexOf("</header>") + "</header>".length,
+    );
+    expect(headerHtml.match(/Online applications/g)).toHaveLength(1);
     expect(html).toContain("data-uc-brand-footer");
     expect(html).toContain("Other quick links");
     expect(html).toContain("University of Canberra, Bruce ACT 2617 Australia");
