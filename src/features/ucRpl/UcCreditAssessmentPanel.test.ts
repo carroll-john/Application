@@ -46,6 +46,24 @@ describe("UC credit assessment interface", () => {
     expect(html).toContain("Complete credit assessment");
   });
 
+  it("balances the shortlist summary around a prominent primary action", () => {
+    const html = renderToStaticMarkup(
+      createElement(UcCreditAssessmentPanel, {
+        ...baseProps,
+        isAuthenticated: true,
+        status: "ready",
+      }),
+    );
+
+    expect(html).toContain(
+      "lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]",
+    );
+    expect(html).toContain("bg-[var(--background-tinted)]");
+    expect(html).toContain("h-14 w-full justify-between");
+    expect(html).toContain("sm:grid-cols-3");
+    expect(html).toContain("Master of Business Administration");
+  });
+
   it("shows the transcript control only after authentication", () => {
     const html = renderToStaticMarkup(
       createElement(UcCreditAssessmentPanel, {

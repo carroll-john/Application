@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   CheckCircle2,
   FileSearch,
   LoaderCircle,
@@ -48,45 +49,41 @@ export function UcCreditAssessmentPanel({
       aria-labelledby="uc-credit-assessment-heading"
       className="content-block border border-[var(--border)] bg-white"
     >
-      <div className="grid lg:grid-cols-[0.9fr_1.1fr]">
-        <div className="border-b border-[var(--border)] p-6 sm:p-8 lg:border-b-0 lg:border-r">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-[var(--cta-secondary)]">
-            {isComplete ? (
-              <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
-            ) : (
-              <FileSearch className="h-6 w-6" aria-hidden="true" />
-            )}
-          </span>
-          <h2
-            id="uc-credit-assessment-heading"
-            className="mt-5 text-3xl font-bold tracking-tight text-slate-950"
-          >
-            {isComplete
-              ? "Your credit assessment is ready"
-              : "Your three-course shortlist is ready"}
-          </h2>
-          <p className="mt-3 leading-7 text-slate-600">
-            {isComplete
-              ? "We’ve added indicative time and tuition comparisons to each shortlisted course below."
-              : "Complete one RPL and credit transfer assessment to compare how your previous study and professional experience could reduce each course."}
-          </p>
-
-          <ol className="mt-6 space-y-2 text-sm text-slate-700">
-            {shortlist.map((match, index) => (
-              <li key={match.course.code} className="flex gap-3">
-                <span className="font-semibold text-[var(--cta-secondary)]">
-                  {index + 1}.
-                </span>
-                <span>{match.course.title}</span>
-              </li>
-            ))}
-          </ol>
+      <div className="grid lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]">
+        <div className="p-6 sm:p-8 lg:p-10">
+          <div className="flex flex-col items-start gap-5 sm:flex-row sm:gap-6">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[var(--cta-secondary)] sm:h-14 sm:w-14">
+              {isComplete ? (
+                <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+              ) : (
+                <FileSearch className="h-6 w-6" aria-hidden="true" />
+              )}
+            </span>
+            <div>
+              <h2
+                id="uc-credit-assessment-heading"
+                className="text-3xl font-bold tracking-tight text-slate-950"
+              >
+                {isComplete
+                  ? "Your credit assessment is ready"
+                  : "Your three-course shortlist is ready"}
+              </h2>
+              <p className="mt-3 max-w-3xl leading-7 text-slate-600">
+                {isComplete
+                  ? "We’ve added indicative time and tuition comparisons to each shortlisted course below."
+                  : "Complete one RPL and credit transfer assessment to compare how your previous study and professional experience could reduce each course."}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="p-6 sm:p-8" aria-live="polite">
+        <div
+          className="flex flex-col justify-center border-t border-[var(--border)] bg-[var(--background-tinted)] p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10"
+          aria-live="polite"
+        >
           {!isAuthenticated && status === "ready" ? (
             <div>
-              <div className="flex items-start gap-3 border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-slate-700">
+              <div className="flex items-start gap-3 border border-blue-200 bg-white/80 p-4 text-sm leading-6 text-slate-700">
                 <LockKeyhole
                   className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
                   aria-hidden="true"
@@ -96,20 +93,28 @@ export function UcCreditAssessmentPanel({
                   Your assessment won’t create an application.
                 </p>
               </div>
-              <Button className="mt-5" onClick={onRequestAssessment}>
-                Complete credit assessment
+              <Button
+                className="mt-6 h-14 w-full justify-between px-6 text-base"
+                onClick={onRequestAssessment}
+              >
+                <span>Complete credit assessment</span>
+                <ArrowRight className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
           ) : null}
 
           {isAuthenticated && status === "ready" ? (
             <div>
-              <p className="text-base leading-7 text-slate-700">
+              <p className="text-base font-medium leading-7 text-slate-800">
                 You’re signed in. Continue to upload the transcript you want UC to
                 consider alongside your CV.
               </p>
-              <Button className="mt-5" onClick={onRequestAssessment}>
-                Complete credit assessment
+              <Button
+                className="mt-6 h-14 w-full justify-between px-6 text-base"
+                onClick={onRequestAssessment}
+              >
+                <span>Complete credit assessment</span>
+                <ArrowRight className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
           ) : null}
@@ -185,6 +190,22 @@ export function UcCreditAssessmentPanel({
           ) : null}
         </div>
       </div>
+
+      <ol className="grid border-t border-[var(--border)] text-sm text-slate-700 sm:grid-cols-3">
+        {shortlist.map((match, index) => (
+          <li
+            key={match.course.code}
+            className="flex min-h-20 items-center gap-3 border-b border-[var(--border)] px-6 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 lg:px-8"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 font-semibold text-[var(--cta-secondary)]">
+              {index + 1}
+            </span>
+            <span className="font-medium leading-5 text-slate-800">
+              {match.course.title}
+            </span>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
