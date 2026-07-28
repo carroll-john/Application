@@ -282,7 +282,7 @@ export function evaluateCourseRequirementAnswers(
       eligible: false,
       manualReview: true,
       reason:
-        "UC Admissions needs to review this course manually. Add your documents and details so the published requirements can be assessed safely.",
+        "The admissions team needs to review this course manually. Add your documents and details so the published requirements can be assessed safely.",
     };
   }
   const requirements = course.requirements ?? [];

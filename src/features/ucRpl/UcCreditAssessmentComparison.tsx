@@ -25,7 +25,7 @@ export function UcCreditAssessmentComparison({
   const afterCost = formatUcAssessmentCost(result.afterCost);
 
   return (
-    <div className="border-t border-[var(--border)] bg-green-50/70 p-5 sm:p-6">
+    <div className="mx-5 mb-5 rounded-[22px] bg-green-50/80 p-5 ring-1 ring-green-200 sm:mx-6 sm:mb-6 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-green-950">
@@ -47,8 +47,8 @@ export function UcCreditAssessmentComparison({
         </StatusPill>
       </div>
 
-      <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
-        <div className="border border-slate-200 bg-white p-3">
+      <div className="mt-5 grid items-stretch gap-2 sm:grid-cols-[1fr_auto_1fr]">
+        <div className="rounded-[18px] border border-slate-200 bg-white p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
             Original
           </p>
@@ -62,12 +62,12 @@ export function UcCreditAssessmentComparison({
           </p>
         </div>
 
-        <span className="flex items-center justify-center text-[var(--cta-secondary)]">
-          <ArrowRight className="h-5 w-5" aria-hidden="true" />
+        <span className="flex items-center justify-center text-[var(--sn-mint)]">
+          <ArrowRight className="h-5 w-5 rotate-90 sm:rotate-0" aria-hidden="true" />
           <span className="sr-only">compared with</span>
         </span>
 
-        <div className="border border-green-300 bg-white p-3">
+        <div className="rounded-[18px] border border-green-300 bg-white p-3">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-green-800">
             After credit
           </p>

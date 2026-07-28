@@ -417,7 +417,7 @@ export function hasUcTranscriptStudyEvidence(
 }
 
 export function formatUcAssessmentCost(cost: number | null) {
-  if (cost === null) return "Confirm with UC";
+  if (cost === null) return "Confirm with provider";
 
   return new Intl.NumberFormat("en-AU", {
     currency: "AUD",
@@ -427,7 +427,7 @@ export function formatUcAssessmentCost(cost: number | null) {
 }
 
 export function formatUcAssessmentDuration(months: number | null) {
-  if (months === null) return "Confirm with UC";
+  if (months === null) return "Confirm with provider";
   if (months < 12) return `${months} month${months === 1 ? "" : "s"}`;
   if (months % 12 === 0) {
     const years = months / 12;

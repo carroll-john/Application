@@ -3,7 +3,7 @@ import { chromium } from "playwright";
 import rawUcCatalog from "../src/data/courses.uc.raw.json" with { type: "json" };
 
 const baseUrl = process.env.UC_DEMO_BASE_URL ?? "http://127.0.0.1:5173";
-const outputDirectory = "output/playwright/uc-brand";
+const outputDirectory = "output/playwright/uc-studynext-brand";
 const viewports = [
   { name: "desktop", width: 1440, height: 900 },
   { name: "mobile", width: 390, height: 844 },
@@ -98,64 +98,58 @@ try {
             'button:not(.content-block), input:not([type="checkbox"]):not([type="radio"]), textarea, select',
           ),
         ].filter(isVisible);
-        const ucCourseImages = [
-          ...document.querySelectorAll('img[src^="/content/dam/uc/"]'),
-        ];
-        const ucHeader = document.querySelector("[data-uc-brand-header]");
+        const studyNextHeader = document.querySelector(
+          "[data-studynext-brand-header]",
+        );
         const ucFooter = document.querySelector("[data-uc-brand-footer]");
+        const rootStyles = window.getComputedStyle(document.documentElement);
         return {
-          brokenUcCourseImages: ucCourseImages.filter(
-            (image) => !image.complete || image.naturalWidth === 0,
-          ).length,
+          bodyFontFamily: window.getComputedStyle(document.body).fontFamily,
+          brandNavy: rootStyles.getPropertyValue("--sn-navy").trim(),
+          brandMint: rootStyles.getPropertyValue("--sn-mint").trim(),
+          brandYellow: rootStyles.getPropertyValue("--sn-yellow").trim(),
           hasKeypathTechServiceMark: Boolean(
             document.querySelector("[data-keypath-tech-service-mark]"),
           ),
-          hasStudyNext: /studynext/i.test(document.body.innerText),
-          hasUcApplicationNavigation: Boolean(
-            ucHeader?.querySelector('nav[aria-label="Application navigation"]'),
+          hasStudyNext: /studynext/i.test(
+            document.body.innerText.replace(/\s+/g, ""),
           ),
           hasUcFooter: Boolean(ucFooter),
-          hasUcFooterAddress: Boolean(
-            ucFooter?.textContent?.includes(
-              "University of Canberra, Bruce ACT 2617 Australia",
-            ),
-          ),
-          hasUcFooterLegalNavigation: Boolean(
-            ucFooter?.querySelector('nav[aria-label="University legal links"]'),
-          ),
-          hasUcHeader: Boolean(ucHeader),
+          hasStudyNextHeader: Boolean(studyNextHeader),
+          hasUcHeader: Boolean(document.querySelector("[data-uc-brand-header]")),
           hasUcLogo: Boolean(document.querySelector('img[alt="University of Canberra"]')),
           courseSearchPlaceholder: document
             .querySelector('input[aria-label="Search courses"]')
             ?.getAttribute("placeholder"),
-          nonSquareContentBlocks: contentBlocks.filter((element) => radius(element) !== 0).length,
           overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          squareContentBlocks: contentBlocks.filter((element) => radius(element) === 0).length,
           squareControls: controls.filter((element) => radius(element) === 0).length,
           title: document.title,
-          ucCourseImageCount: ucCourseImages.length,
-          uniqueUcCourseImageCount: new Set(
-            ucCourseImages.map((image) => image.currentSrc || image.src),
-          ).size,
         };
       });
 
-      if (result.hasStudyNext) failures.push(`${viewport.name} ${route}: StudyNext visible`);
-      if (!result.hasUcHeader) failures.push(`${viewport.name} ${route}: UC header missing`);
-      if (!result.hasUcApplicationNavigation) {
-        failures.push(`${viewport.name} ${route}: UC application navigation missing`);
+      if (!result.hasStudyNext) failures.push(`${viewport.name} ${route}: StudyNext wordmark missing`);
+      if (!result.hasStudyNextHeader) failures.push(`${viewport.name} ${route}: StudyNext header missing`);
+      if (result.hasUcHeader) failures.push(`${viewport.name} ${route}: UC header still present`);
+      if (result.hasUcLogo) failures.push(`${viewport.name} ${route}: UC logo still present`);
+      if (result.hasUcFooter) failures.push(`${viewport.name} ${route}: UC footer still present`);
+      if (!result.bodyFontFamily.toLowerCase().includes("montserrat")) {
+        failures.push(`${viewport.name} ${route}: Montserrat is not the active font`);
       }
-      if (!result.hasUcLogo) failures.push(`${viewport.name} ${route}: UC logo missing`);
-      const expectsFooter = route !== "/sign-in";
-      if (expectsFooter && !result.hasUcFooter) {
-        failures.push(`${viewport.name} ${route}: UC footer missing`);
+      if (result.brandNavy !== "#1f2a3a") {
+        failures.push(`${viewport.name} ${route}: unexpected StudyNext navy ${result.brandNavy}`);
       }
-      if (expectsFooter && !result.hasUcFooterAddress) {
-        failures.push(`${viewport.name} ${route}: UC footer address missing`);
+      if (result.brandMint !== "#4cd2b6") {
+        failures.push(`${viewport.name} ${route}: unexpected StudyNext mint ${result.brandMint}`);
       }
-      if (expectsFooter && !result.hasUcFooterLegalNavigation) {
-        failures.push(`${viewport.name} ${route}: UC footer legal navigation missing`);
+      if (result.brandYellow !== "#f4b400") {
+        failures.push(`${viewport.name} ${route}: unexpected StudyNext yellow ${result.brandYellow}`);
       }
-      if (route === "/" && result.courseSearchPlaceholder !== "Search courses") {
+      if (
+        route === "/" &&
+        result.courseSearchPlaceholder !==
+          "Search by subject, course or institution..."
+      ) {
         failures.push(
           `${viewport.name} ${route}: unexpected course search placeholder`,
         );
@@ -163,30 +157,17 @@ try {
       if (result.hasKeypathTechServiceMark) {
         failures.push(`${viewport.name} ${route}: Keypath service mark present`);
       }
-      if (result.nonSquareContentBlocks > 0) {
+      if (result.squareContentBlocks > 0) {
         failures.push(
-          `${viewport.name} ${route}: ${result.nonSquareContentBlocks} content blocks are rounded`,
+          `${viewport.name} ${route}: ${result.squareContentBlocks} content blocks are square`,
         );
       }
       if (result.overflow) failures.push(`${viewport.name} ${route}: horizontal overflow`);
       if (result.squareControls > 0) {
         failures.push(`${viewport.name} ${route}: ${result.squareControls} controls are square`);
       }
-      if (result.title !== "Applications | University of Canberra") {
+      if (result.title !== "StudyNext Apply") {
         failures.push(`${viewport.name} ${route}: unexpected title ${result.title}`);
-      }
-      if (route === "/" && result.ucCourseImageCount === 0) {
-        failures.push(`${viewport.name} ${route}: UC course imagery missing`);
-      }
-      if (route === "/" && result.brokenUcCourseImages > 0) {
-        failures.push(
-          `${viewport.name} ${route}: ${result.brokenUcCourseImages} UC course images failed`,
-        );
-      }
-      if (route === "/" && result.uniqueUcCourseImageCount < 20) {
-        failures.push(
-          `${viewport.name} ${route}: only ${result.uniqueUcCourseImageCount} unique UC course images`,
-        );
       }
       if (consoleErrors.length > 0) {
         failures.push(`${viewport.name} ${route}: ${consoleErrors.length} console errors`);
@@ -199,11 +180,8 @@ try {
           fullPage: true,
         });
         if (route === "/") {
-          await page.locator("[data-uc-brand-header]").screenshot({
+          await page.locator("[data-studynext-brand-header]").screenshot({
             path: `${outputDirectory}/${viewport.name}-header.png`,
-          });
-          await page.locator("[data-uc-brand-footer]").screenshot({
-            path: `${outputDirectory}/${viewport.name}-footer.png`,
           });
         }
       }
@@ -255,7 +233,7 @@ try {
             await page.getByRole("heading", { name: heading }).waitFor();
             if (
               await page
-                .getByRole("heading", { name: "Explore postgraduate courses" })
+                .getByRole("heading", { name: "All courses" })
                 .isVisible()
             ) {
               failures.push(
@@ -276,7 +254,7 @@ try {
           await page.getByRole("heading", { name: matchesHeading }).waitFor();
           if (
             await page
-              .getByRole("heading", { name: "Explore postgraduate courses" })
+              .getByRole("heading", { name: "All courses" })
               .isVisible()
           ) {
             failures.push(
@@ -317,4 +295,4 @@ if (failures.length > 0) {
   process.exit(1);
 }
 
-console.log(`UC brand smoke passed across ${routes.length} routes and ${viewports.length} viewports.`);
+console.log(`UC StudyNext brand smoke passed across ${routes.length} routes and ${viewports.length} viewports.`);

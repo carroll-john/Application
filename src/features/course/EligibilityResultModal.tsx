@@ -180,6 +180,7 @@ export function EligibilityResultModal({
     <ModalShell
       maxWidthClassName="max-w-xl"
       onClose={onClose}
+      panelClassName="border border-white/70 shadow-[0_28px_80px_rgba(15,23,42,0.28)]"
       title={
         isManualReview
           ? "Admissions review needed"
@@ -196,20 +197,37 @@ export function EligibilityResultModal({
         />
       ) : (
         <>
-          <p
-            className={`mb-4 text-lg font-semibold ${
-              isEligible ? "text-green-700" : "text-red-700"
+          <div
+            className={`rounded-[22px] p-5 ${
+              isEligible || isManualReview
+                ? "bg-[var(--sn-mint-soft)]/45"
+                : "bg-[var(--error-bg)]"
             }`}
           >
-            {isManualReview
-              ? "We’ll assess your evidence against the published course rules"
-              : isEligible
-              ? "Your answers match the program evidence requirements"
-              : "Some program evidence needs attention"}
-          </p>
-          <p className="text-sm leading-6 text-slate-600">
-            {eligibilityReason}
-          </p>
+            <p
+              className={`flex items-start gap-3 text-lg font-semibold ${
+                isEligible || isManualReview
+                  ? "text-[var(--sn-navy)]"
+                  : "text-[var(--error-text)]"
+              }`}
+            >
+              {isEligible ? (
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-700" />
+              ) : (
+                <Clock className="mt-0.5 h-5 w-5 shrink-0" />
+              )}
+              <span>
+                {isManualReview
+                  ? "We’ll assess your evidence against the published course rules"
+                  : isEligible
+                    ? "Your answers match the program evidence requirements"
+                    : "Some program evidence needs attention"}
+              </span>
+            </p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              {eligibilityReason}
+            </p>
+          </div>
           {applyError ? (
             <p className="mt-4 text-sm font-medium text-[var(--error-text)]">
               {applyError}

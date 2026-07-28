@@ -24,12 +24,13 @@ import {
   type RefObject,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { AccentIconBadge } from "../../components/AccentIconBadge";
 import { Button } from "../../components/ui/button";
 import { StatusPill } from "../../components/StatusPill";
 import { useApplication } from "../../context/ApplicationContext";
 import { useAuth } from "../../context/AuthContext";
 import { AuthModal } from "../auth";
-import { UcCourseBrowseCard } from "../course";
+import { StudyNextCourseBrowseCard } from "../course";
 import {
   getCvParserErrorMessage,
   parseCvForRecognition,
@@ -160,7 +161,7 @@ function IntroState({
             Find courses that recognise your experience
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-            Upload your CV to see which UC courses may match your work experience
+            Upload your CV to see which courses may match your work experience
             and qualifications.
           </p>
 
@@ -312,7 +313,7 @@ export function UcCourseMatchSummaryRail({
   return (
     <div
       aria-label="Experience summary"
-      className="mt-7 grid gap-px border border-[var(--border)] bg-[var(--border)] sm:grid-cols-2 lg:grid-cols-5"
+      className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_1.35fr_auto]"
     >
       {items.map((item) => {
         const isProminent = item.emphasis === "info";
@@ -320,21 +321,25 @@ export function UcCourseMatchSummaryRail({
         return (
           <div
             key={item.label}
-            className={`flex min-h-24 items-center gap-3 p-4 ${
-              isProminent ? "bg-[var(--info-bg)]" : "bg-white"
+            className={`flex min-h-20 items-center gap-3 rounded-[20px] px-4 py-4 ${
+              isProminent
+                ? "border border-[var(--sn-mint)]/40 bg-[var(--sn-mint-soft)]/45 shadow-[var(--shadow-xs)]"
+                : "border border-slate-200 bg-slate-50"
             }`}
           >
-            <item.icon
-              className={`h-5 w-5 shrink-0 ${
-                isProminent
-                  ? "text-[var(--info-text)]"
-                  : "text-[var(--cta-secondary)]"
-              }`}
-              aria-hidden="true"
-            />
+            {isProminent ? (
+              <AccentIconBadge className="shrink-0" tone="mint">
+                <item.icon className="h-5 w-5" aria-hidden="true" />
+              </AccentIconBadge>
+            ) : (
+              <item.icon
+                className="h-5 w-5 shrink-0 text-[var(--sn-mint)]"
+                aria-hidden="true"
+              />
+            )}
             <span
               className={`text-sm font-semibold ${
-                isProminent ? "text-[var(--info-text)]" : "text-slate-800"
+                isProminent ? "text-[var(--sn-navy)]" : "text-slate-800"
               }`}
             >
               {item.label}
@@ -344,12 +349,52 @@ export function UcCourseMatchSummaryRail({
       })}
       <button
         type="button"
-        className="flex min-h-20 items-center justify-center gap-2 bg-[var(--cta-secondary)] p-4 text-sm font-bold text-white transition-colors hover:bg-[var(--cta-secondary-hover)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-white sm:col-span-2 lg:col-span-1"
+        className="flex min-h-12 items-center justify-center gap-2 self-stretch rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-[var(--sn-navy)] transition hover:border-[var(--sn-mint)] hover:bg-[var(--sn-mint)]/10 sm:col-span-2 xl:col-span-1"
         onClick={onEdit}
       >
         <Pencil className="h-4 w-4" aria-hidden="true" />
         Edit
       </button>
+    </div>
+  );
+}
+
+export function ShortlistProgressHighlight({
+  shortlistedCount,
+}: {
+  shortlistedCount: number;
+}) {
+  return (
+    <div className="content-block relative flex flex-wrap items-center justify-between gap-4 overflow-hidden border border-[var(--sn-yellow)]/45 bg-white p-5 pl-7 shadow-sm sm:p-6 sm:pl-8">
+      <span
+        aria-hidden="true"
+        className="absolute inset-y-0 left-0 w-2 bg-[var(--sn-yellow)]"
+      />
+      <div className="flex items-center gap-4">
+        <AccentIconBadge className="shrink-0" tone="yellow">
+          <BookmarkCheck className="h-5 w-5" aria-hidden="true" />
+        </AccentIconBadge>
+        <div>
+          <p className="font-semibold text-[var(--sn-navy)]">
+            {shortlistedCount} of 3 courses shortlisted
+          </p>
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            Choose three courses to compare potential credit, study time and tuition.
+          </p>
+        </div>
+      </div>
+      <div className="flex gap-2.5" aria-hidden="true">
+        {[0, 1, 2].map((index) => (
+          <span
+            key={index}
+            className={`h-3.5 w-3.5 rounded-full border transition-colors ${
+              index < shortlistedCount
+                ? "border-[var(--sn-yellow)] bg-[var(--sn-yellow)] ring-4 ring-[var(--sn-yellow)]/20"
+                : "border-slate-300 bg-white"
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -360,11 +405,11 @@ export function UcRplMatchCard({
   isShortlistFull,
   isShortlisted,
   match,
-  mediaVariantIndex,
   isStarting,
   onStart,
   onToggleShortlist,
   onView,
+  variantIndex = 0,
 }: {
   assessmentResult?: UcCreditAssessmentResult;
   isAssessmentComplete: boolean;
@@ -372,24 +417,27 @@ export function UcRplMatchCard({
   isShortlisted: boolean;
   isStarting: boolean;
   match: UcCourseMatch;
-  mediaVariantIndex: number;
   onStart: () => void;
   onToggleShortlist: () => void;
   onView: () => void;
+  variantIndex?: number;
 }) {
   const shortlistDisabled =
     isAssessmentComplete || (isShortlistFull && !isShortlisted);
 
   return (
-    <UcCourseBrowseCard
+    <StudyNextCourseBrowseCard
+      appearance="match"
       course={match.course}
-      mediaVariantIndex={mediaVariantIndex}
+      onViewCourse={onView}
       showSummary={false}
+      showMedia
+      variantIndex={(variantIndex % 2) + 2}
       footer={(
-        <div className="border-t border-[var(--border)] bg-white">
-          <div className="p-5 sm:p-6">
-            <div className="space-y-4">
-              <div>
+        <div className="flex flex-1 flex-col border-t border-slate-100 bg-white">
+          <div className="flex-1 p-5 pt-0 sm:p-6 sm:pt-0">
+            <div className="space-y-3">
+              <div className="rounded-[20px] bg-[var(--success-bg)]/75 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                     <SearchCheck className="h-4 w-4 text-green-700" aria-hidden="true" />
@@ -402,7 +450,7 @@ export function UcRplMatchCard({
                 </p>
               </div>
               {!assessmentResult ? (
-                <div className="border-t border-[var(--border)] pt-4">
+                <div className="rounded-[20px] bg-slate-50 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                       <FileText
@@ -425,7 +473,7 @@ export function UcRplMatchCard({
             <UcCreditAssessmentComparison result={assessmentResult} />
           ) : null}
 
-          <div className="grid gap-2 border-t border-[var(--border)] p-5 sm:grid-cols-2 sm:p-6">
+          <div className="grid gap-2 px-5 pb-5 sm:grid-cols-2 sm:px-6 sm:pb-6">
             <Button
               aria-pressed={!assessmentResult ? isShortlisted : undefined}
               disabled={assessmentResult ? isStarting : shortlistDisabled}
@@ -499,9 +547,6 @@ function ResultsState({
     if (filter === "all") return true;
     return match.category === filter;
   });
-  const mediaVariantByCourseCode = new Map(
-    matches.map((match, index) => [match.course.code, index]),
-  );
   const displayedSkillLevel = experienceSummary?.skillLevel ?? admission.skillLevel;
   const displayedExperienceMonths =
     experienceSummary?.experienceMonths ?? admission.experienceMonths;
@@ -509,7 +554,11 @@ function ResultsState({
 
   return (
     <section aria-labelledby="course-matches-heading" className="space-y-6">
-      <div className="content-block border border-[var(--border)] bg-white p-6 sm:p-9">
+      <div className="content-block relative overflow-hidden border border-slate-200 bg-white p-6 shadow-[0_18px_48px_rgba(31,42,58,0.08)] sm:p-9">
+        <span
+          aria-hidden="true"
+          className="absolute inset-x-0 top-0 h-1.5 bg-[var(--sn-mint)]"
+        />
         <h1
           id="course-matches-heading"
           className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl"
@@ -530,7 +579,7 @@ function ResultsState({
           onEdit={onEdit}
         />
 
-        <div className="mt-5 flex gap-3 border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-slate-700 sm:p-5">
+        <div className="mt-5 flex gap-3 rounded-[20px] border border-[var(--info-border)] bg-[var(--info-bg)] p-4 text-sm leading-6 text-[var(--info-text)] sm:p-5">
           <Info
             className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
             aria-hidden="true"
@@ -539,40 +588,21 @@ function ResultsState({
         </div>
       </div>
 
-      <div className="content-block flex flex-wrap items-center justify-between gap-4 border border-[var(--border)] bg-white p-5 sm:p-6">
-        <div>
-          <p className="font-semibold text-slate-950">
-            {shortlistedCourseCodes.length} of 3 courses shortlisted
-          </p>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
-            Choose three courses to compare potential credit, study time and tuition.
-          </p>
-        </div>
-        <div className="flex gap-2" aria-hidden="true">
-          {[0, 1, 2].map((index) => (
-            <span
-              key={index}
-              className={`h-3 w-3 rounded-full border ${
-                index < shortlistedCourseCodes.length
-                  ? "border-[var(--cta-secondary)] bg-[var(--cta-secondary)]"
-                  : "border-slate-300 bg-white"
-              }`}
-            />
-          ))}
-        </div>
-      </div>
+      <ShortlistProgressHighlight
+        shortlistedCount={shortlistedCourseCodes.length}
+      />
 
       {assessmentPanel}
 
-      <div className="content-block flex flex-wrap gap-6 border border-[var(--border)] bg-white px-5 pt-4">
+      <div className="content-block flex flex-wrap gap-2 border border-slate-200 bg-white p-2 shadow-sm">
         {(Object.keys(FILTER_LABELS) as MatchFilter[]).map((item) => (
           <button
             key={item}
             type="button"
-            className={`border-b-2 px-1 pb-3 text-sm font-semibold transition ${
+            className={`rounded-full px-5 py-3 text-sm font-semibold transition ${
               filter === item
-                ? "border-[var(--cta-primary)] text-[var(--cta-primary)]"
-                : "border-transparent text-slate-600 hover:text-slate-950"
+                ? "bg-[var(--sn-navy)] text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
             }`}
             onClick={() => onFilter(item)}
           >
@@ -583,7 +613,7 @@ function ResultsState({
 
       {visibleMatches.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {visibleMatches.map((match) => (
+          {visibleMatches.map((match, index) => (
             <UcRplMatchCard
               key={match.course.code}
               assessmentResult={assessmentResults.get(match.course.code)}
@@ -592,10 +622,10 @@ function ResultsState({
               isShortlisted={shortlistedCourseCodes.includes(match.course.code)}
               isStarting={startingCourseCode === match.course.code}
               match={match}
-              mediaVariantIndex={mediaVariantByCourseCode.get(match.course.code) ?? 0}
               onStart={() => onStart(match)}
               onToggleShortlist={() => onToggleShortlist(match)}
               onView={() => navigate(`/courses/${match.course.code}`)}
+              variantIndex={index}
             />
           ))}
         </div>

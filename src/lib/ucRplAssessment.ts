@@ -363,7 +363,7 @@ export function getUcWorkEntryGuidance(
     return "More details needed";
   }
 
-  return "UC will review this experience";
+  return "The admissions team will review this experience";
 }
 
 function formatUcExperienceAmount(months: number) {
@@ -394,7 +394,7 @@ export function getUcExperienceReviewGuidance(
   );
 
   if (includedSummaries.length === 0) {
-    return "Select at least one role to see guidance based on your experience. UC Admissions will review your responsibilities and confirm eligibility.";
+    return "Select at least one role to see guidance based on your experience. The admissions team will review your responsibilities and confirm eligibility.";
   }
 
   const sentences: string[] = [];
@@ -417,8 +417,8 @@ export function getUcExperienceReviewGuidance(
     const prefix = sentences.length === 0 ? "Based on your CV, your" : "Your";
     const thresholdCopy =
       technical.experienceMonths >= 24
-        ? "This meets UC’s two-year experience guide."
-        : "UC’s guide usually requires at least two years in these roles.";
+        ? "This meets the two-year experience guide."
+        : "The guide usually requires at least two years in these roles.";
     sentences.push(
       `${prefix} ${includedRoleDescription(technical, "technical or supervisory")}. ${thresholdCopy}`,
     );
@@ -428,7 +428,7 @@ export function getUcExperienceReviewGuidance(
     const roleLabel = otherRoleCount === 1 ? "role" : "roles";
     const prefix = sentences.length === 0 ? "Based on your CV, you have" : "You also have";
     sentences.push(
-      `${prefix} ${otherRoleCount} other ${roleLabel} for UC Admissions to consider against the work-experience entry requirements.`,
+      `${prefix} ${otherRoleCount} other ${roleLabel} for the admissions team to consider against the work-experience entry requirements.`,
     );
   }
 
@@ -442,7 +442,7 @@ export function getUcExperienceReviewGuidance(
   }
 
   sentences.push(
-    "UC Admissions will review your responsibilities and confirm eligibility.",
+    "The admissions team will review your responsibilities and confirm eligibility.",
   );
   return sentences.join(" ");
 }
@@ -766,12 +766,12 @@ export function rankUcCourses(
     const creditDetail =
       relevanceScore >= 17
         ? `Your work appears related to this course. You may be eligible for up to ${creditPoints} credit points.`
-        : "UC will need supporting evidence before deciding whether your experience can count towards this course.";
+        : "The course provider will need supporting evidence before deciding whether your experience can count towards this course.";
 
     return {
       admissionDetail: maySupportDirectEntry
         ? "Your work experience may support direct entry to this course. Additional course specific eligibility requirement may still apply."
-        : "UC Admissions will review your work experience against this course’s entry requirements.",
+        : "The admissions team will review your work experience against this course’s entry requirements.",
       category,
       creditConfidence:
         billShortenDemoConfidenceByTitle?.get(course.title) ??

@@ -379,9 +379,9 @@ describe("UC shortlisted-course credit assessment", () => {
     );
 
     expect(result.originalCost).toBeNull();
-    expect(formatUcAssessmentCost(result.originalCost)).toBe("Confirm with UC");
+    expect(formatUcAssessmentCost(result.originalCost)).toBe("Confirm with provider");
     expect(formatUcAssessmentDuration(result.originalDurationMonths)).toBe(
-      "Confirm with UC",
+      "Confirm with provider",
     );
   });
 

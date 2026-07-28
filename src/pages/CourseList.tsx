@@ -5,8 +5,8 @@ import { AppBrandFooter } from "../components/AppBrandFooter";
 import {
   CourseBrowseCard,
   CourseBrowseFilters,
-  CourseBrowsePageIntro,
   CourseBrowseResultsPanel,
+  StudyNextHomeHero,
   type CourseCategoryFilter,
 } from "../features/course";
 import {
@@ -27,11 +27,6 @@ export default function CourseList() {
     useState<UcRplAssessmentStage>("intro");
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const totalCourses = courses.length;
-  const mediaVariantByCourseCode = useMemo(
-    () => new Map(courses.map((course, index) => [course.code, index])),
-    [courses],
-  );
-
   const filteredCourses = useMemo(
     () =>
       courses.filter((course) => {
@@ -80,35 +75,50 @@ export default function CourseList() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <AppBrandHeader maxWidthClassName="max-w-7xl" />
+    <div className="min-h-screen bg-white">
+      <AppBrandHeader
+        maxWidthClassName="max-w-[1536px]"
+        showApplicantProfileLink={false}
+        variant="marketing"
+      />
 
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+      {!isUcBrand || ucRplStage === "intro" ? (
+        <StudyNextHomeHero
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
+      ) : null}
+
+      <main className="mx-auto max-w-[1536px] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         {isUcBrand ? (
-          <UcRplCourseMatcher
-            courses={courses}
-            stage={ucRplStage}
-            onStageChange={setUcRplStage}
-          />
-        ) : (
-          <CourseBrowsePageIntro />
-        )}
+          <div id="experience-assessment">
+            <UcRplCourseMatcher
+              courses={courses}
+              stage={ucRplStage}
+              onStageChange={setUcRplStage}
+            />
+          </div>
+        ) : null}
 
         {showCourseCatalogue ? (
-          <div id="course-catalogue" className={isUcBrand ? "scroll-mt-6 pt-14" : ""}>
-            {isUcBrand ? (
-              <div className="max-w-3xl">
-                <h2 className="text-4xl font-bold tracking-tight text-slate-950">
-                  Explore postgraduate courses
-                </h2>
-                <p className="mt-3 text-lg leading-8 text-slate-600">
-                  Browse all 33 online University of Canberra postgraduate courses.
-                </p>
-              </div>
-            ) : null}
+          <div
+            id="course-catalogue"
+            className={isUcBrand ? "scroll-mt-6 pt-16" : "scroll-mt-6"}
+          >
+            <div className="max-w-3xl">
+              <h2 className="text-4xl font-extrabold tracking-[-0.03em] text-slate-950 sm:text-5xl">
+                All courses
+              </h2>
+              <p className="mt-4 text-lg leading-8 text-slate-600">
+                {isUcBrand
+                  ? "Explore 33 online postgraduate courses and choose the next step that fits your goals."
+                  : "Explore courses from leading Australian institutions and choose the next step that fits your goals."}
+              </p>
+            </div>
             <CourseBrowseFilters
               activeCategory={activeCategory}
               searchQuery={searchQuery}
+              showSearch={false}
               onCategoryChange={setActiveCategory}
               onSearchChange={setSearchQuery}
             />
@@ -117,25 +127,19 @@ export default function CourseList() {
               onClearFilters={clearFilters}
             />
 
-            <div
-              className={
-                isUcBrand
-                  ? "mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3"
-                  : "mt-7 grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              }
-            >
-              {filteredCourses.map((course) => (
+            <div className="mt-7 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {filteredCourses.map((course, index) => (
                 <CourseBrowseCard
                   key={course.code}
                   course={course}
-                  mediaVariantIndex={mediaVariantByCourseCode.get(course.code)}
+                  variantIndex={index}
                   onViewCourse={(courseCode) => navigate(`/courses/${courseCode}`)}
                 />
               ))}
             </div>
           </div>
         ) : null}
-      </section>
+      </main>
       <AppBrandFooter />
     </div>
   );

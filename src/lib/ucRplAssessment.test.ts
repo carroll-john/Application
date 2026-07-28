@@ -207,7 +207,7 @@ describe("UC OSCA experience review summaries", () => {
     expect(getUcWorkEntryGuidance(2, 23)).toBe("More experience may be needed");
     expect(getUcWorkEntryGuidance(2, 24)).toBe("May be eligible for direct entry");
     expect(getUcWorkEntryGuidance(4, 120)).toBe(
-      "UC will review this experience",
+      "The admissions team will review this experience",
     );
     expect(getUcWorkEntryGuidance(null, 120)).toBe("More details needed");
   });
@@ -222,7 +222,7 @@ describe("UC OSCA experience review summaries", () => {
     );
 
     expect(getUcExperienceReviewGuidance(summaries)).toBe(
-      "Given your experience in senior and highly specialised roles, you may be eligible for direct entry. UC Admissions will review your responsibilities and confirm eligibility.",
+      "Given your experience in senior and highly specialised roles, you may be eligible for direct entry. The admissions team will review your responsibilities and confirm eligibility.",
     );
   });
 
@@ -237,10 +237,10 @@ describe("UC OSCA experience review summaries", () => {
     );
 
     expect(getUcExperienceReviewGuidance(belowGuide)).toContain(
-      "UC’s guide usually requires at least two years in these roles.",
+      "The guide usually requires at least two years in these roles.",
     );
     expect(getUcExperienceReviewGuidance(meetsGuide)).toContain(
-      "This meets UC’s two-year experience guide.",
+      "This meets the two-year experience guide.",
     );
   });
 
@@ -255,7 +255,7 @@ describe("UC OSCA experience review summaries", () => {
     );
 
     expect(getUcExperienceReviewGuidance(summaries)).toBe(
-      "Based on your CV, you have 1 other role for UC Admissions to consider against the work-experience entry requirements. We also need more detail about 1 role before it can be included in this guidance. UC Admissions will review your responsibilities and confirm eligibility.",
+      "Based on your CV, you have 1 other role for the admissions team to consider against the work-experience entry requirements. We also need more detail about 1 role before it can be included in this guidance. The admissions team will review your responsibilities and confirm eligibility.",
     );
   });
 });
