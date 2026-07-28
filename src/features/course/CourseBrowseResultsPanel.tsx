@@ -1,5 +1,4 @@
 import { StatusPill } from "../../components/StatusPill";
-import { SurfaceCard } from "../../components/SurfaceCard";
 import { Button } from "../../components/ui/button";
 import type { CourseBrowseResultsState } from "../../lib/courseBrowse";
 
@@ -13,7 +12,7 @@ export function CourseBrowseResultsPanel({
   resultsState,
 }: CourseBrowseResultsPanelProps) {
   return (
-    <SurfaceCard className="mt-4 border-[var(--border)] bg-[var(--background-tinted)] p-4 sm:p-5">
+    <div className="mt-4 border-b border-slate-200 pb-5">
       <div
         aria-live="polite"
         className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
@@ -51,6 +50,6 @@ export function CourseBrowseResultsPanel({
           </Button>
         ) : null}
       </div>
-    </SurfaceCard>
+    </div>
   );
 }

@@ -79,7 +79,10 @@ export function FormActionBar({
   }
 
   return (
-    <div className={`mb-10 mt-6 ${gridClassName}`} data-form-action-bar="">
+    <div
+      className={`mb-10 mt-6 rounded-[28px] border border-[var(--border)] bg-white p-4 shadow-sm ${gridClassName}`}
+      data-form-action-bar=""
+    >
       {hasPrevious ? (
         <Button
           className={hasSecondary ? "order-3 w-full sm:order-1" : "order-2 w-full sm:order-1"}

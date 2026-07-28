@@ -47,12 +47,12 @@ export function UcCreditAssessmentPanel({
   return (
     <section
       aria-labelledby="uc-credit-assessment-heading"
-      className="content-block border border-[var(--border)] bg-white"
+      className="content-block overflow-hidden border border-slate-200 bg-white shadow-[0_18px_48px_rgba(31,42,58,0.08)]"
     >
-      <div className="grid lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]">
+      <div className="grid gap-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(21rem,0.9fr)]">
         <div className="p-6 sm:p-8 lg:p-10">
           <div className="flex flex-col items-start gap-5 sm:flex-row sm:gap-6">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-50 text-[var(--cta-secondary)] sm:h-14 sm:w-14">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--sn-mint-soft)]/60 text-[var(--sn-navy)] sm:h-14 sm:w-14">
               {isComplete ? (
                 <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
               ) : (
@@ -78,12 +78,12 @@ export function UcCreditAssessmentPanel({
         </div>
 
         <div
-          className="flex flex-col justify-center border-t border-[var(--border)] bg-[var(--background-tinted)] p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10"
+          className="m-4 flex flex-col justify-center rounded-[24px] bg-[linear-gradient(145deg,#edf9f6_0%,#f7fbfb_100%)] p-6 ring-1 ring-[var(--sn-mint)]/20 sm:m-6 sm:p-8 lg:ml-0 lg:p-8"
           aria-live="polite"
         >
           {!isAuthenticated && status === "ready" ? (
             <div>
-              <div className="flex items-start gap-3 border border-blue-200 bg-white/80 p-4 text-sm leading-6 text-slate-700">
+              <div className="flex items-start gap-3 rounded-[20px] bg-white/90 p-4 text-sm leading-6 text-slate-700 shadow-sm">
                 <LockKeyhole
                   className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
                   aria-hidden="true"
@@ -106,8 +106,8 @@ export function UcCreditAssessmentPanel({
           {isAuthenticated && status === "ready" ? (
             <div>
               <p className="text-base font-medium leading-7 text-slate-800">
-                You’re signed in. Continue to upload the transcript you want UC to
-                consider alongside your CV.
+                You’re signed in. Continue to upload the transcript you want assessed
+                alongside your CV.
               </p>
               <Button
                 className="mt-6 h-14 w-full justify-between px-6 text-base"
@@ -155,9 +155,9 @@ export function UcCreditAssessmentPanel({
               <p className="mt-4 text-xs leading-5 text-slate-500">
                 The transcript is processed for this comparison without creating an
                 application. If you start an application, it will be securely added to
-                your qualification so you do not need to upload it again. UC will confirm
-                any formal credit after reviewing supporting evidence and unit learning
-                outcomes.
+                your qualification so you do not need to upload it again. The course
+                provider will confirm any formal credit after reviewing supporting
+                evidence and unit learning outcomes.
               </p>
             </div>
           ) : null}
@@ -179,7 +179,7 @@ export function UcCreditAssessmentPanel({
           ) : null}
 
           {isComplete ? (
-            <div className="border border-green-200 bg-green-50 p-5 text-sm leading-6 text-green-900">
+            <div className="rounded-[20px] border border-green-200 bg-green-50 p-5 text-sm leading-6 text-green-900">
               <p className="flex items-center gap-2 font-semibold">
                 <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
                 Assessment added to your course cards
@@ -193,13 +193,13 @@ export function UcCreditAssessmentPanel({
         </div>
       </div>
 
-      <ol className="grid border-t border-[var(--border)] text-sm text-slate-700 sm:grid-cols-3">
+      <ol className="grid gap-3 border-t border-slate-100 bg-slate-50/80 p-5 text-sm text-slate-700 sm:grid-cols-3 sm:p-6">
         {shortlist.map((match, index) => (
           <li
             key={match.course.code}
-            className="flex min-h-20 items-center gap-3 border-b border-[var(--border)] px-6 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 lg:px-8"
+            className="flex min-h-20 items-center gap-3 rounded-[20px] border border-slate-200 bg-white px-4 py-4 shadow-sm"
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 font-semibold text-[var(--cta-secondary)]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--sn-mint-soft)]/60 font-semibold text-[var(--sn-navy)]">
               {index + 1}
             </span>
             <span className="font-medium leading-5 text-slate-800">

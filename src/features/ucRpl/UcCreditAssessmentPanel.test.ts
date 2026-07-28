@@ -56,10 +56,11 @@ describe("UC credit assessment interface", () => {
     );
 
     expect(html).toContain(
-      "lg:grid-cols-[minmax(0,1.25fr)_minmax(20rem,0.75fr)]",
+      "lg:grid-cols-[minmax(0,1.1fr)_minmax(21rem,0.9fr)]",
     );
-    expect(html).toContain("bg-[var(--background-tinted)]");
+    expect(html).toContain("bg-[linear-gradient(145deg,#edf9f6_0%,#f7fbfb_100%)]");
     expect(html).toContain("h-14 w-full justify-between");
+    expect(html).toContain("rounded-[20px]");
     expect(html).toContain("sm:grid-cols-3");
     expect(html).toContain("Master of Business Administration");
   });
@@ -153,7 +154,6 @@ describe("UC credit assessment interface", () => {
           isShortlisted: true,
           isStarting: false,
           match,
-          mediaVariantIndex: 0,
           onStart: vi.fn(),
           onToggleShortlist: vi.fn(),
           onView: vi.fn(),

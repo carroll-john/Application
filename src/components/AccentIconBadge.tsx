@@ -9,7 +9,8 @@ type AccentIconBadgeTone =
   | "accentSoft"
   | "inverseSoft"
   | "mint"
-  | "mintSoft";
+  | "mintSoft"
+  | "yellow";
 type AccentIconBadgeSize = "md" | "lg";
 
 const toneClasses: Record<AccentIconBadgeTone, string> = {
@@ -19,10 +20,11 @@ const toneClasses: Record<AccentIconBadgeTone, string> = {
   inverseSoft: "bg-white/10 text-white",
   mint: "bg-[var(--sn-mint)] text-[var(--sn-navy)]",
   mintSoft: "bg-[var(--sn-mint)]/20 text-[var(--sn-navy)]",
+  yellow: "bg-[var(--sn-yellow)] text-[var(--sn-navy)]",
 };
 
 const sizeClasses: Record<AccentIconBadgeSize, string> = {
-  lg: "h-14 w-14 rounded-[28px]",
+  lg: "h-14 w-14 rounded-[24px]",
   md: "h-12 w-12 rounded-full",
 };
 

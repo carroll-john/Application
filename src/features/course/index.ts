@@ -1,13 +1,16 @@
 export { AuthModal } from "../auth/AuthModal";
-export { CourseBrowseCard, UcCourseBrowseCard } from "./CourseBrowseCard";
+export {
+  CourseBrowseCard,
+  StudyNextCourseBrowseCard,
+} from "./CourseBrowseCard";
 export { CourseBrowseFilters } from "./CourseBrowseFilters";
 export { CourseBrowsePageIntro } from "./CourseBrowsePageIntro";
 export { CourseBrowseResultsPanel } from "./CourseBrowseResultsPanel";
+export { StudyNextHomeHero } from "./StudyNextHomeHero";
 export { CourseChecklist } from "./CourseChecklist";
 export { CourseDetailsHero } from "./CourseDetailsHero";
 export { CourseDetailsPresentation } from "./CourseDetailsPresentation";
 export { EligibilityCheckModal } from "./EligibilityCheckModal";
-export { getUcCourseCardMedia } from "./ucCourseCardMedia";
 export {
   COURSE_CATEGORY_FILTERS,
   type CourseCategoryFilter,

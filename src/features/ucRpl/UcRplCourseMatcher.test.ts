@@ -5,7 +5,10 @@ import type {
   CvRecognitionDraft,
   UcOscaExperienceSummary,
 } from "../../lib/ucRplAssessment";
-import { UcCourseMatchSummaryRail } from "./UcRplCourseMatcher";
+import {
+  ShortlistProgressHighlight,
+  UcCourseMatchSummaryRail,
+} from "./UcRplCourseMatcher";
 import { ExperienceSummaryRow } from "./UcRplExperienceReview";
 
 const expectedSummaryLabels = [
@@ -48,10 +51,24 @@ describe("UC course-match experience summary", () => {
       }),
     );
 
-    expect(html).toContain("bg-[var(--info-bg)]");
-    expect(html).toContain("text-[var(--info-text)]");
-    expect(html).toContain("bg-[var(--cta-secondary)]");
+    expect(html).toContain("border-[var(--sn-mint)]/40");
+    expect(html).toContain("bg-[var(--sn-mint)]");
+    expect(html).toContain("text-[var(--sn-navy)]");
+    expect(html).toContain("rounded-full");
+    expect(html).toContain("bg-white");
     expect(html).not.toContain("Review my experience");
+  });
+
+  it("uses the StudyNext yellow accent for shortlist progress", () => {
+    const html = renderToStaticMarkup(
+      createElement(ShortlistProgressHighlight, { shortlistedCount: 2 }),
+    );
+
+    expect(html).toContain("2 of 3 courses shortlisted");
+    expect(html).toContain("border-[var(--sn-yellow)]/45");
+    expect(html).toContain("bg-[var(--sn-yellow)]");
+    expect(html).not.toContain("border-amber");
+    expect(html).not.toContain("background-soft-yellow");
   });
 
   it("uses the same ordered, prominent rail on the experience-review screen", () => {

@@ -2,7 +2,7 @@ import * as React from "react";
 import { cn } from "../../lib/utils";
 
 type ButtonVariant = "default" | "neutralOutline" | "outline" | "soft";
-type ButtonSize = "default" | "sm";
+type ButtonSize = "default" | "lg" | "sm";
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -21,7 +21,8 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  default: "h-11 px-5 py-2.5 text-sm sm:text-base",
+  default: "h-11 px-5 text-sm",
+  lg: "h-12 px-6 text-base",
   sm: "h-9 px-3 text-sm",
 };
 

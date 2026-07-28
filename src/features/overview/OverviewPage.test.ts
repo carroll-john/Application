@@ -10,7 +10,7 @@ afterEach(() => {
 });
 
 describe("OverviewPage", () => {
-  it("renders the UC course image, useful facts and purposeful application sections", async () => {
+  it("renders the StudyNext overview for the UC catalogue context", async () => {
     vi.stubEnv("VITE_APP_BRAND", "uc");
     vi.doMock("../../context/AuthContext", () => ({
       useAuth: () => ({ isAuthenticated: true }),
@@ -32,10 +32,6 @@ describe("OverviewPage", () => {
         { initialEntries: ["/overview"] },
         createElement(OverviewPage, {
           course: course!,
-          courseMedia: {
-            alt: "A University of Canberra business student",
-            src: "/content/dam/uc/imagery/faculties/business/business-meets-govt.jpg",
-          },
           nextAction: {
             description: "Default description",
             label: "Next step",
@@ -49,18 +45,15 @@ describe("OverviewPage", () => {
       ),
     );
 
-    expect(html).toContain("A University of Canberra business student");
-    expect(html).toContain("Your UC application");
-    expect(html).toContain("Next intake");
-    expect(html).toContain("Study mode");
-    expect(html).toContain("Study length");
-    expect(html).toContain("About you");
-    expect(html).toContain("Study and experience");
-    expect(html).toContain("Check and submit");
-    expect(html).toContain("Start my application");
-    expect(html).toContain("Your progress is saved as you go");
-    expect(html).not.toContain("Complete the three sections below");
-    expect(html).not.toContain("Allow around 30–60 minutes");
-    expect(html).not.toContain("Application Overview");
+    expect(html).toContain("Study");
+    expect(html).toContain("Next.");
+    expect(html).toContain("Application overview");
+    expect(html).toContain("Desired course intake");
+    expect(html).toContain("Personal details");
+    expect(html).toContain("Your qualifications");
+    expect(html).toContain("Review and submit");
+    expect(html).toContain("Start application");
+    expect(html).not.toContain("A University of Canberra business student");
+    expect(html).not.toContain("Your UC application");
   });
 });
