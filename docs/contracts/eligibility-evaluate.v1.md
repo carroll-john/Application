@@ -99,9 +99,11 @@ So the **final** outcome the app returns to its client may differ from the servi
 
 ## Fallback (service optional)
 
-If `ELIGIBILITY_SERVICE_URL` is **unset**, the app does not call the service at all: it tries a
-local OpenAI evaluation, then a static `insufficient_data` response. The app keeps working with
-no service deployed, so extraction never blocks the applicant flow.
+If `ELIGIBILITY_SERVICE_URL` is **unset**, the app does not call the service at all. If a
+configured service request does not return within 45 seconds, the proxy aborts that request
+instead of waiting for the platform timeout. In either case it tries a local OpenAI evaluation,
+then a static `insufficient_data` response. The app keeps working with no responsive service,
+so extraction does not hold the applicant flow indefinitely.
 
 ## Versioning
 

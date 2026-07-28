@@ -38,6 +38,7 @@ const DEFAULT_MODEL = "gpt-4.1-mini";
 const INITIAL_MAX_OUTPUT_TOKENS = 3_000;
 const RETRY_MAX_OUTPUT_TOKENS = 7_000;
 const ELIGIBILITY_SERVICE_MAX_ATTEMPTS = 2;
+export const ELIGIBILITY_SERVICE_REQUEST_TIMEOUT_MS = 45_000;
 const TRANSIENT_ELIGIBILITY_SERVICE_STATUSES = new Set([502, 503, 504]);
 
 function getSafeFileExtension(fileName: string) {
@@ -221,6 +222,79 @@ async function evaluateWithLocalModel(
   };
 }
 
+async function evaluateWithLocalFallback(
+  file: ParsedUploadFile,
+  fileBuffer: ArrayBuffer,
+  mimeType: string,
+  context: TranscriptEligibilityRequestContext,
+  options: {
+    document: ReturnType<typeof buildTranscriptDocumentMetadata>;
+    startedAt: number;
+  },
+) {
+  const localAssessment = await evaluateWithLocalModel(
+    file,
+    fileBuffer,
+    mimeType,
+    context,
+  );
+
+  if (localAssessment) {
+    await captureTranscriptAiGeneration({
+      context: context as Record<string, unknown>,
+      document: options.document,
+      evaluationSource: "local_openai",
+      latencyMs: Date.now() - options.startedAt,
+      model: localAssessment.model,
+      output: localAssessment.assessment,
+      provider: "openai",
+      tokenUsage: localAssessment.tokenUsage,
+    });
+
+    return jsonResponse(localAssessment.assessment, 200);
+  }
+
+  const fallbackAssessment = buildFallbackResponse(context);
+  await captureTranscriptAiGeneration({
+    context: context as Record<string, unknown>,
+    document: options.document,
+    evaluationSource: "fallback_response",
+    latencyMs: Date.now() - options.startedAt,
+    model: "fallback",
+    output: fallbackAssessment as Record<string, unknown>,
+    provider: "none",
+  });
+
+  return jsonResponse(fallbackAssessment, 200);
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+async function fetchEligibilityService(
+  serviceUrl: string,
+  payload: FormData,
+  headers: Headers,
+) {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    ELIGIBILITY_SERVICE_REQUEST_TIMEOUT_MS,
+  );
+
+  try {
+    return await fetch(serviceUrl, {
+      body: payload,
+      headers,
+      method: "POST",
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function forwardToEligibilityService(
   file: ParsedUploadFile,
   fileBuffer: ArrayBuffer,
@@ -232,40 +306,13 @@ async function forwardToEligibilityService(
   const document = buildTranscriptDocumentMetadata(file, mimeType);
 
   if (!serviceUrl) {
-    const localAssessment = await evaluateWithLocalModel(
+    return evaluateWithLocalFallback(
       file,
       fileBuffer,
       mimeType,
       context,
+      { document, startedAt },
     );
-
-    if (localAssessment) {
-      await captureTranscriptAiGeneration({
-        context: context as Record<string, unknown>,
-        document,
-        evaluationSource: "local_openai",
-        latencyMs: Date.now() - startedAt,
-        model: localAssessment.model,
-        output: localAssessment.assessment,
-        provider: "openai",
-        tokenUsage: localAssessment.tokenUsage,
-      });
-
-      return jsonResponse(localAssessment.assessment, 200);
-    }
-
-    const fallbackAssessment = buildFallbackResponse(context);
-    await captureTranscriptAiGeneration({
-      context: context as Record<string, unknown>,
-      document,
-      evaluationSource: "fallback_response",
-      latencyMs: Date.now() - startedAt,
-      model: "fallback",
-      output: fallbackAssessment as Record<string, unknown>,
-      provider: "none",
-    });
-
-    return jsonResponse(fallbackAssessment, 200);
   }
 
   const headers = new Headers();
@@ -285,11 +332,7 @@ async function forwardToEligibilityService(
     forwardPayload.append("context", JSON.stringify(context));
 
     try {
-      upstream = await fetch(serviceUrl, {
-        body: forwardPayload,
-        headers,
-        method: "POST",
-      });
+      upstream = await fetchEligibilityService(serviceUrl, forwardPayload, headers);
       lastRequestError = undefined;
 
       if (
@@ -300,14 +343,27 @@ async function forwardToEligibilityService(
       }
     } catch (error) {
       lastRequestError = error;
+      if (isAbortError(error)) {
+        break;
+      }
       if (attempt === ELIGIBILITY_SERVICE_MAX_ATTEMPTS) {
-        throw error;
+        break;
       }
     }
   }
 
   if (!upstream) {
-    throw lastRequestError ?? new Error("Eligibility service request failed.");
+    console.warn(
+      "[eligibility] Eligibility service unavailable; using the local fallback.",
+      { timedOut: isAbortError(lastRequestError) },
+    );
+    return evaluateWithLocalFallback(
+      file,
+      fileBuffer,
+      mimeType,
+      context,
+      { document, startedAt },
+    );
   }
 
   let payload: unknown;

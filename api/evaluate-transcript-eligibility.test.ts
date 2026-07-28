@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import eligibilityRoute from "./evaluate-transcript-eligibility";
+import eligibilityRoute, {
+  ELIGIBILITY_SERVICE_REQUEST_TIMEOUT_MS,
+} from "./evaluate-transcript-eligibility";
 import { RULES_VERSION } from "../src/lib/eligibility/version";
 
 const originalFetch = globalThis.fetch;
@@ -39,6 +41,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   globalThis.fetch = originalFetch;
   delete process.env.ELIGIBILITY_SERVICE_URL;
   delete process.env.ELIGIBILITY_SERVICE_TOKEN;
@@ -283,6 +286,78 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(response.status).toBe(200);
     expect(payload.outcome).toBe("eligible");
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("bounds a stalled service request and uses the local OpenAI fallback", async () => {
+    vi.useFakeTimers();
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    process.env.OPENAI_API_KEY = "test-key";
+    process.env.OPENAI_TRANSCRIPT_ELIGIBILITY_MODEL = "gpt-4.1-mini";
+    fetchMock
+      .mockImplementationOnce((_url, init) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("The request was aborted.", "AbortError")),
+            { once: true },
+          );
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            output_parsed: {
+              confidence: 0.88,
+              manualReviewRequired: false,
+              missingInformation: [],
+              outcome: "eligible",
+              recommendedNextStep: "Proceed to formal admissions assessment.",
+              requirementsChecked: [],
+              studyDetails: {
+                programName: {
+                  confidence: 0.9,
+                  missingOrAmbiguous: false,
+                  normalizedValue: "Bachelor of Arts / Bachelor of Laws",
+                  originalValue: "Bachelor of Arts / Bachelor of Laws",
+                },
+              },
+            },
+            status: "completed",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new File(["fixture"], "transcript.txt", { type: "text/plain" }),
+    );
+    formData.append(
+      "context",
+      JSON.stringify({ completed: true, courseCode: "UC-A,UC-B,UC-C" }),
+    );
+
+    const responsePromise = eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await vi.advanceTimersByTimeAsync(ELIGIBILITY_SERVICE_REQUEST_TIMEOUT_MS);
+    const response = await responsePromise;
+    const payload = await parseJsonResponse(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.outcome).toBe("eligible");
+    expect(payload.serviceVersion).toBe("local-openai-fallback");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      "https://eligibility.example.com/evaluate",
+    );
+    expect(fetchMock.mock.calls[1][0]).toBe("https://api.openai.com/v1/responses");
   });
 
   it("uses local OpenAI evaluation when service URL is unset", async () => {
