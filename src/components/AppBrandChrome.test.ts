@@ -38,16 +38,15 @@ async function renderBrandChrome(
 }
 
 describe("shared brand chrome", () => {
-  it("uses StudyNext application chrome for the UC catalogue context", async () => {
+  it("uses UC partner chrome for the UC pilot catalogue", async () => {
     const html = await renderBrandChrome("uc");
 
-    expect(html).toContain("data-studynext-brand-header");
-    expect(html).toContain("Study");
-    expect(html).toContain("Next.");
-    expect(html).toContain("Apply");
-    expect(html).not.toContain("data-uc-brand-header");
+    expect(html).toContain("data-uc-brand-header");
+    expect(html).toContain('alt="University of Canberra"');
+    expect(html).toContain("UC pilot navigation");
+    expect(html).toContain("Pilot assessment");
+    expect(html).not.toContain("data-studynext-brand-header");
     expect(html).not.toContain("data-uc-brand-footer");
-    expect(html).not.toContain("University of Canberra, Bruce ACT 2617 Australia");
   });
 
   it("keeps the same StudyNext header and footer behavior for the default catalogue", async () => {
@@ -62,13 +61,13 @@ describe("shared brand chrome", () => {
     expect(html).not.toContain("Other quick links");
   });
 
-  it("offers StudyNext marketing navigation on course discovery", async () => {
+  it("keeps UC partner chrome on the UC course-discovery variant", async () => {
     const html = await renderBrandChrome("uc", "marketing");
 
-    expect(html).toContain("data-studynext-marketing-header");
+    expect(html).toContain("data-uc-brand-header");
     expect(html).toContain("Courses");
-    expect(html).toContain("Institutions");
-    expect(html).toContain("Resources");
+    expect(html).toContain("Future students");
+    expect(html).toContain("How to apply");
     expect(html).not.toContain("brand-service-label");
   });
 });

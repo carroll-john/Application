@@ -23,17 +23,17 @@ External design files are not a project source of truth.
 
 ### Catalogue contexts and visual brand
 
-- Shared UI consumes semantic StudyNext tokens and shared primitives; route components must not define page-local brand palettes or logos.
+- Shared UI consumes semantic tokens and shared primitives; route components must not define page-local brand palettes or logos.
 - `VITE_APP_BRAND=uc` selects the University of Canberra catalogue and prototype-only UC assessment flows. Absence selects the default StudyNext catalogue.
-- Both catalogue contexts use the StudyNext Apply visual system. The catalogue selection and active visual theme are recorded separately on the document before React renders.
+- The UC pilot keeps UC partner chrome and its token theme so participants can identify the assessment context. StudyNext remains the default catalogue and visual theme. Catalogue selection and active visual theme are recorded separately on the document before React renders.
 - StudyNext Apply uses the StudyNext wordmark with an `Apply` service label, Montserrat across UI and display copy, navy/mint/yellow tokens, pill controls, and large-radius light surfaces.
-- Provider names, course data, policy copy, support details, and UC-specific assessment behavior remain contextual content. They must not reactivate partner-specific logos, typography, colour overrides, site navigation, footers, square panels, or course-card anatomy.
+- UC branding is owned centrally by `brand.ts`, `AppBrandHeader`, and the UC token block in `index.css`; route components still reuse the shared controls, layouts, and course-card anatomy.
 - Course discovery uses the StudyNext marketing-header variant and a full-width photographic search hero. The generated hero asset is repository-owned; navigation, search, filters, topic shortcuts, and course content remain code-native. Public application, sign-in, overview, dashboard, and form surfaces continue to use the compact StudyNext Apply header. Application forms retain navigation ownership in `ApplicationShell`; application surfaces do not use the StudyNext marketing footer.
 - Browse catalogue cards use the shared image-first StudyNext card anatomy: stable media crop, provider/title hierarchy, mint directional mark, concise provider summary, and compact study-fact pills. Matched-course cards reuse the provider/title and fact treatment without catalogue media or summary so entry and credit guidance remain primary.
 - The invitation-only treatment journey lives at `/assessment`; control participants continue through the ordinary 33-course catalogue. Its CV review uses applicant-friendly experience groups and advisory course ranking. CV/OSCA evidence never produces credit points.
 - Matched-course CTAs shortlist exactly three courses. Sign-in precedes transcript upload. Completed cards show “Up to X credit points”, published cap, confidence, mapped transcript evidence, manual-review reasons, and mandatory UC confirmation. They do not show course-length, duration, tuition, savings, identity-specific, or zero-credit claims. `null` is rendered as UC manual review.
 - `/staff/reviews` is a sensitive authenticated surface. It shows the queue only after TOTP raises the session to AAL2, keeps private notes out of analytics, and exposes only the workflow actions allowed by the server. Reviewers cannot edit applicant evidence or issue a formal admission/credit decision.
-- Application overviews share the StudyNext layout and component styling across catalogue contexts.
+- Application overviews share component styling and layout across catalogue contexts while retaining the active catalogue header.
 - `VITE_DEMO_MODE=true` disables PostHog and support capture; Sentry error capture may remain enabled but replay sampling is forced to zero.
 - Application surfaces remain footer-free.
 

@@ -1,6 +1,9 @@
+import ucLogoInline from "../assets/brands/uc/uc-logo-inline.png";
+import ucLogoInlineWhite from "../assets/brands/uc/uc-logo-inline-white.png";
+
 export type BrandId = "studynext" | "uc";
 export type CatalogId = "default" | "uc";
-export type ThemeId = "studynext";
+export type ThemeId = "studynext" | "uc";
 
 export interface BrandConfig {
   id: BrandId;
@@ -8,6 +11,11 @@ export interface BrandConfig {
   serviceLabel: string;
   catalogId: CatalogId;
   themeId: ThemeId;
+  logo?: {
+    alt: string;
+    fullColour: string;
+    reversed: string;
+  };
   support: {
     email: string;
     phone: string;
@@ -33,7 +41,12 @@ export const brandConfigs: Record<BrandId, BrandConfig> = {
     displayName: "University of Canberra",
     serviceLabel: "Apply",
     catalogId: "uc",
-    themeId: "studynext",
+    themeId: "uc",
+    logo: {
+      alt: "University of Canberra",
+      fullColour: ucLogoInline,
+      reversed: ucLogoInlineWhite,
+    },
     support: {
       email: "study@canberra.edu.au",
       phone: "1800 864 226",
@@ -54,5 +67,7 @@ export function applyBrandToDocument() {
   document.documentElement.dataset.brand = activeBrand.themeId;
   document.documentElement.dataset.catalog = activeBrand.catalogId;
   document.documentElement.dataset.demoMode = String(isDemoMode);
-  document.title = "StudyNext Apply";
+  document.title = isUcBrand
+    ? "Applications | University of Canberra"
+    : "StudyNext Apply";
 }

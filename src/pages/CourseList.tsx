@@ -5,6 +5,7 @@ import { AppBrandFooter } from "../components/AppBrandFooter";
 import {
   CourseBrowseCard,
   CourseBrowseFilters,
+  CourseBrowsePageIntro,
   CourseBrowseResultsPanel,
   StudyNextHomeHero,
   type CourseCategoryFilter,
@@ -80,12 +81,19 @@ export default function CourseList() {
         variant="marketing"
       />
 
-      <StudyNextHomeHero
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-      />
+      {!isUcBrand ? (
+        <StudyNextHomeHero
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+        />
+      ) : null}
 
       <main className="mx-auto max-w-[1536px] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+        {isUcBrand ? (
+          <div className="mb-12">
+            <CourseBrowsePageIntro />
+          </div>
+        ) : null}
         {isUcBrand && showAssessmentEntry ? (
           <div className="content-block mb-12 flex flex-wrap items-center justify-between gap-5 border border-[var(--info-border)] bg-[var(--info-bg)] p-6">
             <div>

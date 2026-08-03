@@ -10,7 +10,7 @@ afterEach(() => {
 });
 
 describe("OverviewPage", () => {
-  it("renders the StudyNext overview for the UC catalogue context", async () => {
+  it("renders the UC-branded overview for the UC catalogue context", async () => {
     vi.stubEnv("VITE_APP_BRAND", "uc");
     vi.doMock("../../context/AuthContext", () => ({
       useAuth: () => ({ isAuthenticated: true }),
@@ -45,8 +45,8 @@ describe("OverviewPage", () => {
       ),
     );
 
-    expect(html).toContain("Study");
-    expect(html).toContain("Next.");
+    expect(html).toContain("data-uc-brand-header");
+    expect(html).toContain('alt="University of Canberra"');
     expect(html).toContain("Application overview");
     expect(html).toContain("Desired course intake");
     expect(html).toContain("Personal details");

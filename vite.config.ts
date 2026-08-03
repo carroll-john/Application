@@ -45,6 +45,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       proxy: {
+        "/api/assessment": {
+          target: `http://127.0.0.1:${env.UC_ASSESSMENT_PORT || "4194"}`,
+          changeOrigin: true,
+        },
+        "/api/parse-cv": {
+          target: `http://127.0.0.1:${env.UC_ASSESSMENT_PORT || "4194"}`,
+          changeOrigin: true,
+        },
         "/content/dam/uc": {
           target: "https://www.canberra.edu.au",
           changeOrigin: true,
