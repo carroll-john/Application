@@ -26,6 +26,19 @@ function requireValue(errors, env, name) {
   return value ?? "";
 }
 
+function requireHttpsUrl(errors, env, name) {
+  const value = requireValue(errors, env, name);
+  if (!value) return "";
+  try {
+    if (new URL(value).protocol !== "https:") {
+      errors.push(`${name} must use HTTPS.`);
+    }
+  } catch {
+    errors.push(`${name} must be a valid HTTPS URL.`);
+  }
+  return value;
+}
+
 export function verifyUcMvpIsolation({ env, project }) {
   const errors = [];
   if (project.projectName !== MVP_PROJECT_NAME) {
@@ -63,6 +76,10 @@ export function verifyUcMvpIsolation({ env, project }) {
   if (pilotPostHogId && pilotPostHogId === demoPostHogId) {
     errors.push("MVP and frozen-demo PostHog project IDs must differ.");
   }
+  requireValue(errors, env, "VITE_POSTHOG_KEY");
+  requireValue(errors, env, "POSTHOG_PROJECT_API_KEY");
+  requireHttpsUrl(errors, env, "VITE_POSTHOG_HOST");
+  requireHttpsUrl(errors, env, "POSTHOG_HOST");
 
   const pilotEligibilityTarget = requireValue(
     errors,
@@ -77,12 +94,18 @@ export function verifyUcMvpIsolation({ env, project }) {
   if (pilotEligibilityTarget && pilotEligibilityTarget === demoEligibilityTarget) {
     errors.push("MVP eligibility deployment must differ from the frozen demo target.");
   }
+  requireHttpsUrl(errors, env, "ELIGIBILITY_SERVICE_URL");
+  requireHttpsUrl(errors, env, "ASSESSMENT_MALWARE_SCANNER_URL");
+  requireValue(errors, env, "ASSESSMENT_MALWARE_SCANNER_TOKEN");
 
   if (env.VITE_APP_BRAND !== "uc") {
     errors.push("VITE_APP_BRAND must be uc.");
   }
   if (env.VITE_DEMO_MODE !== "false") {
     errors.push("VITE_DEMO_MODE must be false for the MVP.");
+  }
+  if (env.UC_ASSESSMENT_TREATMENT_ENABLED !== "false") {
+    errors.push("UC_ASSESSMENT_TREATMENT_ENABLED must remain false before rollout approval.");
   }
   if (
     env.SENTRY_ENVIRONMENT !== "uc-assessment-mvp" ||
@@ -95,6 +118,7 @@ export function verifyUcMvpIsolation({ env, project }) {
     "SUPABASE_URL",
     "VITE_SUPABASE_URL",
     "ELIGIBILITY_SERVICE_URL",
+    "ASSESSMENT_MALWARE_SCANNER_URL",
     "VITE_POSTHOG_HOST",
     "POSTHOG_HOST",
   ];
