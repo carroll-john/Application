@@ -21,14 +21,16 @@ authoritative for applicant documents.
 - `localDocumentStore.ts` and its tests remain as a legacy implementation pending
   Phase 2 removal. They are not an approved path for new or changed product flows.
 - Never store file names only; preserve binary content.
-- The authenticated UC demo credit comparison is a narrow pre-application
-  processing exception, not a stored applicant document. It sends one transcript
-  to the marked eligibility route, keeps the file/result in memory, and creates no
-  application or document metadata row during comparison. If the applicant
-  explicitly starts an application, extracted study fields may prefill blank
-  qualification data and the full file is attached to the matching qualification
-  through the shared authenticated remote path. The three-course comparison result
-  remains transient.
+- Assessment CV and transcript documents use the shared upload policy and the
+  private `assessment-quarantine` scope. Metadata is partner- and owner-scoped;
+  files remain quarantined until MIME/content validation and malware scanning pass.
+- Only passed-scan evidence may be promoted after an application exists. Promotion
+  copies through the shared authenticated application document system and records
+  the assessment source. Abandoned, unpromoted assessment files are deleted after
+  30 days; promoted files follow application retention.
+- Staff document reads require partner role plus AAL2 and are audited. Export is
+  allowed only after an application exists and only for agreed/corrected cases;
+  generated ZIP responses are `no-store` and include passed-scan files only.
 
 ### Document kinds (Section 2 + feedback)
 
@@ -134,3 +136,4 @@ Optional parse layer on top: [document-parsing.md](document-parsing.md).
 
 - [ADR-0001: Authenticated Applicant Data](../decisions/0001-authenticated-applicant-data.md)
 - [ADR-0006: Repository Context Control Plane](../decisions/0006-context-control-plane.md)
+- [ADR-0008: Assessment Sessions and AAL2 Staff Review](../decisions/0008-assessment-sessions-and-aal2-review.md)

@@ -65,12 +65,16 @@ async function requestParseDocumentRoute(
   localFallbackUrl: string | undefined,
   formData: FormData,
   allowAnonymousUcPreApplication: boolean,
+  pilotInvitationToken?: string,
 ) {
   const accessToken = await getAccessToken();
   const headers: HeadersInit = {};
 
   if (accessToken) {
     headers.authorization = `Bearer ${accessToken}`;
+  }
+  if (pilotInvitationToken) {
+    headers["x-uc-pilot-invitation"] = pilotInvitationToken;
   }
 
   const requestInit: RequestInit = {
@@ -97,7 +101,10 @@ async function requestParseDocumentRoute(
 export async function requestParseDocument<TDraft>(
   file: File,
   kind: ParseableDocumentKind,
-  options: { allowAnonymousUcPreApplication?: boolean } = {},
+  options: {
+    allowAnonymousUcPreApplication?: boolean;
+    pilotInvitationToken?: string;
+  } = {},
 ): Promise<TDraft> {
   const config = getDocumentParserConfig(kind);
 
@@ -117,6 +124,9 @@ export async function requestParseDocument<TDraft>(
     config.localFallbackUrl,
     formData,
     options.allowAnonymousUcPreApplication === true,
+    "pilotInvitationToken" in options && typeof options.pilotInvitationToken === "string"
+      ? options.pilotInvitationToken
+      : undefined,
   );
 
   let payload: unknown;

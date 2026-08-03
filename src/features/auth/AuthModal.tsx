@@ -2,6 +2,7 @@ import { ModalShell } from "../../components/ModalShell";
 import { AuthPanel } from "./AuthPanel";
 
 interface AuthModalProps {
+  allowSignUp?: boolean;
   context?: "apply" | "eligibility" | "header" | "route";
   onAuthenticated: () => void;
   onClose: () => void;
@@ -9,6 +10,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({
+  allowSignUp,
   context,
   onAuthenticated,
   onClose,
@@ -21,6 +23,7 @@ export function AuthModal({
       title="Sign in to continue"
     >
       <AuthPanel
+        allowSignUp={allowSignUp}
         context={context}
         onAuthenticated={onAuthenticated}
         signUpRedirectPath={signUpRedirectPath}

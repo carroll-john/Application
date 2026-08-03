@@ -11,7 +11,6 @@ import {
   findExperienceArray,
   normalizeExperienceEntry,
 } from "./_documentParser/kinds/cv/extraction.js";
-import { applyBillShortenDemoOscaMatch } from "./_documentParser/kinds/cv/billShortenDemoOscaMatches.js";
 import { errorResponse, jsonResponse } from "./_documentParser/errors.js";
 import {
   decodeTextFile,
@@ -37,6 +36,11 @@ import {
   normalizeUpstreamErrorCode,
 } from "./_documentParser/upstreamErrors.js";
 import { createRateLimiter } from "./_shared/rateLimiter.js";
+import {
+  AssessmentApiError,
+  requireTreatmentInvitation,
+} from "./_assessment/server.js";
+import { isUcPreApplicationParseRequest } from "../src/lib/ucPreApplicationParseContract.js";
 
 const DEFAULT_MODEL = "gpt-4.1-mini";
 const INITIAL_MAX_OUTPUT_TOKENS = 1_800;
@@ -88,17 +92,14 @@ function normalizeRecognitionPayload(parsed: unknown) {
       ? rawConfidence
       : "low";
 
-    return applyBillShortenDemoOscaMatch(
-      normalizedApplicant,
-      {
+    return {
         ...experience,
         oscaConfidence,
         oscaOccupationCode: stringValue(recognition, "oscaOccupationCode"),
         oscaOccupationTitle: stringValue(recognition, "oscaOccupationTitle"),
         oscaRationale: stringValue(recognition, "oscaRationale"),
         oscaSkillLevel,
-      },
-    );
+      };
   });
 
   const professionalAccreditations = arrayValue(
@@ -163,6 +164,16 @@ async function handleWebRequest(request: Request) {
     }
 
     const authResult = await authenticateRequest(request);
+    if (authResult.kind !== "authenticated" && isUcPreApplicationParseRequest(request)) {
+      try {
+        await requireTreatmentInvitation(request);
+      } catch (error) {
+        if (error instanceof AssessmentApiError) {
+          return errorResponse("CV_PARSER_INVITATION_REQUIRED");
+        }
+        throw error;
+      }
+    }
     const accessError = getCvParserAccessError(
       authResult.kind,
       request,

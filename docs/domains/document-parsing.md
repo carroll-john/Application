@@ -51,16 +51,11 @@ When gating passes, parse starts in parallel with document save. Upload failure 
 
 CV persist exception: after document save, call `uploadCV` / `removeCV` (app-scoped FK on `applications.cv_document_id`).
 
-For the UC Vice-Chancellor prototype only, the supplied Bill Shorten public-profile
-demo CV receives fixed OSCA results for its seven employment roles after extraction.
-This keeps the scripted demo deterministic. Other applicants continue to use the
-duties-based model result.
-
 The UC pre-application course-matching flow calls `/api/parse-cv` with
-`flow=uc-pre-application`. That flow may run before sign-in and is rate-limited by
-client IP. Its extracted data stays in temporary browser state. The ordinary
-Section 2 CV parser remains authenticated, and authentication is required before
-the UC assessment can create or save an application.
+`flow=uc-pre-application` plus a valid treatment invitation. That flow may run
+before sign-in, is protected by a shared participant/IP rate limiter, and keeps
+the file and extraction ephemeral. No production parser behavior depends on an
+applicant identity. The ordinary Section 2 CV parser remains authenticated.
 
 ### Course-specific work-experience assessment
 
@@ -100,32 +95,17 @@ If extraction still fails, applicant copy must describe the evidence service as 
 unavailable; “try a clearer file” is reserved for successful assessments that genuinely
 contain no draftable transcript fields.
 
-### UC pre-application credit comparison
+### UC assessment transcript evaluation
 
-After an applicant shortlists three UC demo courses, the browser may call
-`/api/evaluate-transcript-eligibility?flow=uc-credit-assessment` once with the
-three-course context. This flow is authenticated at both the UI and route; the
-route rejects an invalid bearer session before reading the multipart file.
+`POST /api/assessment/evaluate` requires the pre-invited authenticated owner of a
+treatment session. It validates the multipart upload, quarantines and scans it,
+then calls the transcript evidence extractor. Applications calculates trusted
+guidance server-side; client-supplied points or results are never accepted.
 
-The eligibility route extracts transcript study evidence once. Applications then
-combines that evidence with the existing CV course-match signal and current
-course cost/duration data to produce an indicative comparison for the three
-cards. The result is not persisted, is not a formal RPL/credit decision, and must
-not be used as admission evidence. After an explicit Start application action,
-the extracted study fields may fill blank authenticated qualification data and
-the full file is attached to the matching qualification through the ordinary
-shared document flow. The qualifications hub then reuses the extracted evidence
-with the Applications-owned matcher for the single selected course. The
-three-course credit-comparison result remains transient.
-
-For the explicitly documented synthetic demo fixture, the fixed card comparison
-may appear after a short presentation delay without awaiting extraction. The real
-eligibility request still starts immediately in the background and is normally
-the single parser call. Starting an application reuses and, when necessary,
-awaits that in-flight request. If the browser request failed before receiving a
-response, Start application retries it once before handing genuine extracted
-study data and the file to the shared qualification flow; the synthetic card
-assessment is never used as a parser substitute.
+Only mapped transcript units can contribute points. CV/OSCA context may rank the
+shortlist but cannot add credit. The evaluator fails closed to manual review for
+ungoverned courses, missing UC approval, expired mappings, insufficient evidence,
+or low confidence, and persists the exact catalogue/rules/model versions.
 
 ## Approved entry points
 
@@ -180,3 +160,4 @@ Do **not** copy upload hooks, storage paths, or save orchestration per kind.
 
 - [ADR-0003: Eligibility Ownership](../decisions/0003-eligibility-ownership.md)
 - [ADR-0004: Service Contract Ownership](../decisions/0004-service-contract-ownership.md)
+- [ADR-0008: Assessment Sessions and AAL2 Staff Review](../decisions/0008-assessment-sessions-and-aal2-review.md)

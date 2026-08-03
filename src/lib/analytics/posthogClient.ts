@@ -19,6 +19,7 @@ import { isDemoMode } from "../brand";
 let postHogStarted = false;
 let postHogBlockReason: string | null = null;
 let postHogIdentifyRequestId = 0;
+const PILOT_ANALYTICS_STORAGE_KEY = "uc-assessment-analytics-context-v1";
 
 export const isPostHogEnabled = Boolean(POSTHOG_KEY) && !isDemoMode;
 export const POSTHOG_IDENTITY_VERSION = 1;
@@ -148,11 +149,55 @@ function stripSyntheticTokenFromUrl() {
 // Register the super-properties carried on every event. `synthetic_test: true`
 // is stamped on authorised QA sessions so their events can be filtered out of
 // real metrics. Re-applied after reset() (which clears super-properties).
+function readPilotAnalyticsContext() {
+  try {
+    const value = JSON.parse(
+      window.sessionStorage?.getItem(PILOT_ANALYTICS_STORAGE_KEY) ?? "null",
+    ) as Record<string, unknown> | null;
+    if (
+      !value ||
+      (value.pilot_cohort !== "control" && value.pilot_cohort !== "treatment") ||
+      typeof value.pilot_partner_id !== "string" ||
+      typeof value.pilot_participant_id_hash !== "string"
+    ) {
+      return {};
+    }
+    return value;
+  } catch {
+    return {};
+  }
+}
+
 function registerBaseSuperProperties() {
   posthog.register({
     app_environment: APP_ENVIRONMENT,
+    ...readPilotAnalyticsContext(),
     ...(isSyntheticTestSession() ? { synthetic_test: true } : {}),
   });
+}
+
+export async function registerPilotAnalyticsContext(context: {
+  cohort: "control" | "treatment";
+  participantId: string;
+  partnerId: string;
+}) {
+  const safeContext = {
+    pilot_cohort: context.cohort,
+    pilot_participant_id_hash: await hashAnalyticsIdentifier(context.participantId),
+    pilot_partner_id: context.partnerId,
+  };
+  try {
+    window.sessionStorage?.setItem(
+      PILOT_ANALYTICS_STORAGE_KEY,
+      JSON.stringify(safeContext),
+    );
+  } catch {
+    // The current page can still register the safe context without storage.
+  }
+  if (canCapturePostHog()) {
+    initPostHog();
+    posthog.register(safeContext);
+  }
 }
 
 function detectPostHogBlockReason() {
@@ -303,6 +348,8 @@ const REPLAY_PII_ROUTE_PATTERNS = [
   /^\/review$/,
   /^\/submitted$/,
   /^\/profile-recommendations$/,
+  /^\/assessment$/,
+  /^\/staff(?:\/|$)/,
 ];
 
 export function isReplayPiiRoute(pathname: string) {

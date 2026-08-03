@@ -32,19 +32,17 @@ and password-recovery state. Shared route gates own access enforcement.
 - Local dev: `supabase start` + Mailpit at http://127.0.0.1:54324 (confirmation emails do not go to real inboxes).
 - Applications and applicant data require authentication. Signed-out visitors
   may browse but cannot own drafts or applicant documents.
-- The UC pre-application demo is a narrow exception: a signed-out visitor may
-  parse one CV into temporary in-memory course-matching state. The assessment is
-  IP-rate-limited and is not persisted. Authentication is required when the
-  visitor selects Start application, before the CV or extracted data can enter an
-  application draft.
-- After three UC courses are shortlisted, authentication is required before the
-  credit-assessment transcript upload is shown. The marked transcript endpoint
-  independently verifies the bearer session before reading the file. The
-  transcript and comparison remain in memory and do not create a hidden draft.
-- Once an authenticated applicant explicitly starts an application, extracted
-  study fields from that comparison may enter the normal application state to
-  prefill blank qualification data. The original file is then attached to the
-  matching qualification through the shared authenticated document path.
+- A valid treatment invitation is the narrow exception for anonymous CV parsing.
+  The file and extraction are ephemeral, and a shared cross-instance database
+  limiter is enforced. Authentication is required before transcript upload or
+  assessment persistence.
+- Pilot accounts are pre-invited and confirmed. The authenticated user must match
+  the invitation's `invited_user_id`; the assessment session then preserves the
+  confirmed CV state, shortlist, evidence, result, and exact versions.
+- Staff review requires an invitation-only Supabase account, a verified TOTP
+  factor, current AAL2, and an active non-expired role for the partner. The same
+  requirements are enforced by route gates, APIs, RLS, document access, actions,
+  and exports; UI checks are not authoritative.
 - Troubleshooting: [auth-password.md](../runbooks/auth-password.md)
 
 ## Approved entry points
@@ -137,12 +135,10 @@ npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
 - An authenticated session produces the remote Supabase adapter; no session
   produces a no-write guest adapter.
 - There is no anonymous application draft or draft-import contract.
-- The UC pre-application assessment is temporary browser state, not an
-  application draft. Closing or refreshing the page discards it.
-- The UC credit comparison is also temporary browser state. Its transcript is
-  authenticated and processed ephemerally. An explicit Start application action
-  may carry extracted study fields into blank authenticated qualification data and
-  attach the transcript through the ordinary authenticated document system.
+- Anonymous CV extraction is temporary browser state, not an application draft.
+- After authentication, treatment progress is stored in a resumable,
+  user-owned assessment session. An explicit Start application action is the only
+  path that may promote passed-scan evidence into the ordinary application system.
 
 ## Profile
 
@@ -164,3 +160,4 @@ npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
 
 - [ADR-0001: Authenticated Applicant Data](../decisions/0001-authenticated-applicant-data.md)
 - [ADR-0006: Repository Context Control Plane](../decisions/0006-context-control-plane.md)
+- [ADR-0008: Assessment Sessions and AAL2 Staff Review](../decisions/0008-assessment-sessions-and-aal2-review.md)

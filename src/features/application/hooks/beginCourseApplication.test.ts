@@ -1,20 +1,17 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   initialApplicationData,
   type ApplicationData,
   type SelectedCourse,
-  type TertiaryQualification,
 } from "../../../lib/applicationData";
 import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageAdapter";
-import { replaceStoredDocument } from "../../../lib/documentStorage";
-import type { TranscriptEligibilityAssessment } from "../../../lib/eligibility/types";
+import type { AssessmentStorageAdapter } from "../../../lib/assessment/storageAdapter";
+import type { AssessmentSessionSnapshot } from "../../../lib/assessment/types";
+import { normalizeTranscriptEligibilityAssessment } from "../../../lib/eligibility/normalize";
 import { beginCourseApplication } from "./beginCourseApplication";
 
-vi.mock("../../../lib/documentStorage", () => ({
-  replaceStoredDocument: vi.fn(),
-}));
-
 const applicationId = "123e4567-e89b-42d3-a456-426614174000";
+const assessmentSessionId = "223e4567-e89b-42d3-a456-426614174000";
 const course: SelectedCourse = {
   code: "master-of-education-leadership",
   intake: "2026",
@@ -22,66 +19,56 @@ const course: SelectedCourse = {
   title: "Master of Education (Leadership)",
 };
 
-function transcriptAssessment(): TranscriptEligibilityAssessment {
+function assessmentSession(
+  overrides: Partial<AssessmentSessionSnapshot> = {},
+): AssessmentSessionSnapshot {
   return {
-    checkedAt: "2026-07-23T03:30:00.000Z",
-    confidence: 0.94,
-    extractedData: {
+    applicationId: null,
+    catalogueId: "uc-online",
+    cohort: "treatment",
+    confirmedCv: {
+      experiences: [],
+      professionalAccreditations: [],
+      profile: {
+        firstName: "Alex",
+        lastName: "Jordan",
+        middleName: "",
+        phone: "0400 000 000",
+        title: "Dr",
+      },
+      secondaryQualifications: [],
+      tertiaryQualifications: [],
+    },
+    createdAt: "2026-08-04T00:00:00Z",
+    expiresAt: "2026-09-03T00:00:00Z",
+    id: assessmentSessionId,
+    partnerId: "university-of-canberra",
+    results: [],
+    shortlistCourseCodes: [course.code],
+    status: "evaluated",
+    transcriptAssessment: normalizeTranscriptEligibilityAssessment({
+      confidence: 0.94,
+      outcome: "eligible",
       applicantDetails: {
         institutionName: { normalizedValue: "University of Melbourne" },
       },
       studyDetails: {
         completionStatus: { normalizedValue: "completed" },
         highestEducationLevel: { normalizedValue: "Masters" },
-        programName: { normalizedValue: "Master of Business Administration" },
+        programName: { normalizedValue: "Master of Education" },
       },
+    }),
+    updatedAt: "2026-08-04T00:00:00Z",
+    versions: {
+      catalogueVersion: "uc-online-2026-07-23",
+      modelVersion: "transcript-evidence-v1",
+      rulesVersion: "uc-credit-pilot-2026-08-04.1",
     },
-    manualReviewRequired: false,
-    missingInformation: [],
-    outcome: "eligible",
-    programCode: "UC-A,UC-B,UC-C",
-    recommendedNextStep: "Continue",
-    requirementsChecked: [],
-  };
-}
-
-function billDoubleDegreeAssessment(): TranscriptEligibilityAssessment {
-  const assessment = transcriptAssessment();
-  return {
-    ...assessment,
-    extractedData: {
-      applicantDetails: {
-        fullName: { normalizedValue: "William (Bill) Shorten" },
-        institutionName: { normalizedValue: "Monash University, Australia" },
-      },
-      studyDetails: {
-        completionStatus: { normalizedValue: "completed" },
-        highestEducationLevel: { normalizedValue: "Bachelor" },
-        programName: { normalizedValue: "Bachelor of Arts / Bachelor of Laws" },
-      },
-    },
-  };
-}
-
-function qualification(
-  overrides: Partial<TertiaryQualification> = {},
-): TertiaryQualification {
-  return {
-    id: "qualification-mba",
-    institution: "University of Melbourne",
-    country: "Australia",
-    level: "Masters",
-    courseName: "Master of Business Administration",
-    startMonth: "",
-    startYear: "",
-    completed: true,
-    endMonth: "",
-    endYear: "",
     ...overrides,
   };
 }
 
-function makeStorageAdapter(
+function makeApplicationStorageAdapter(
   overrides: Partial<ApplicationStorageAdapter> = {},
 ): ApplicationStorageAdapter {
   return {
@@ -98,87 +85,90 @@ function makeStorageAdapter(
   };
 }
 
-const storedTranscript = {
-  id: "transcript-document",
-  name: "academic-transcript.pdf",
-  size: 512,
-  type: "application/pdf",
-  lastModified: 1,
-  uploadedAt: "2026-07-23T03:31:00.000Z",
-  source: "remote" as const,
-  storageBucket: "application-documents",
-  storagePath: `${applicationId}/transcript-document/academic-transcript.pdf`,
-};
+function makeAssessmentStorageAdapter(
+  session = assessmentSession(),
+): AssessmentStorageAdapter {
+  return {
+    activateInvitation: vi.fn(),
+    evaluateTranscript: vi.fn(),
+    loadSession: vi.fn().mockResolvedValue(session),
+    promoteToApplication: vi.fn().mockResolvedValue(undefined),
+    saveSession: vi.fn(),
+    uploadDocument: vi.fn(),
+  };
+}
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.mocked(replaceStoredDocument).mockResolvedValue(storedTranscript);
-});
+function dependencies(options: {
+  assessmentAdapter?: AssessmentStorageAdapter;
+  storageAdapter?: ApplicationStorageAdapter;
+} = {}) {
+  const persistApplication = vi.fn(async (data: ApplicationData) => ({
+    ...data,
+    applicationMeta: { ...data.applicationMeta, recordId: applicationId },
+  }));
 
-describe("beginCourseApplication UC transcript handoff", () => {
-  it("attaches the carried transcript to a new application's prefilled qualification", async () => {
-    const assessment = transcriptAssessment();
-    const transcriptFile = new File(["transcript"], "academic-transcript.pdf", {
-      type: "application/pdf",
-    });
-    const storageAdapter = makeStorageAdapter();
-    const persistApplication = vi.fn(async (data: ApplicationData) => ({
-      ...data,
-      applicationMeta: {
-        ...data.applicationMeta,
-        recordId: applicationId,
-      },
-    }));
+  return {
+    applications: [],
+    assessmentStorageAdapter:
+      options.assessmentAdapter ?? makeAssessmentStorageAdapter(),
+    data: initialApplicationData,
+    ensureApplicantProfile: vi.fn().mockResolvedValue(null),
+    openApplication: vi.fn(),
+    persistApplication,
+    storageAdapter: options.storageAdapter ?? makeApplicationStorageAdapter(),
+    trackDraftCreated: vi.fn(),
+    trackDraftResumed: vi.fn(),
+  };
+}
+
+describe("beginCourseApplication assessment handoff", () => {
+  it("loads the trusted assessment by id, fills blanks, and promotes evidence", async () => {
+    const assessmentAdapter = makeAssessmentStorageAdapter();
+    const deps = dependencies({ assessmentAdapter });
 
     const result = await beginCourseApplication(
       course,
       {
+        assessmentSessionId,
+        authenticatedEmail: "alex@example.com",
         startFresh: true,
-        ucTranscriptFile: transcriptFile,
-        ucTranscriptPrefill: assessment,
       },
-      {
-        applications: [],
-        data: initialApplicationData,
-        ensureApplicantProfile: vi.fn().mockResolvedValue(null),
-        openApplication: vi.fn(),
-        persistApplication,
-        storageAdapter,
-        trackDraftCreated: vi.fn(),
-        trackDraftResumed: vi.fn(),
-      },
+      deps,
     );
 
-    expect(replaceStoredDocument).toHaveBeenCalledWith(
-      transcriptFile,
-      undefined,
-      { applicationId, kind: "tertiary_transcript" },
-    );
-    expect(persistApplication).toHaveBeenCalledTimes(2);
-    expect(result.tertiaryQualifications[0]).toMatchObject({
-      courseName: "Master of Business Administration",
-      transcriptDocument: storedTranscript,
-      transcriptDocumentName: "academic-transcript.pdf",
-      transcriptEligibility: assessment,
+    expect(assessmentAdapter.loadSession).toHaveBeenCalledWith(assessmentSessionId);
+    expect(result.personalDetails).toMatchObject({
+      email: "alex@example.com",
+      firstName: "Alex",
+      lastName: "Jordan",
+      phone: "0400 000 000",
     });
+    expect(result.tertiaryQualifications[0]).toMatchObject({
+      courseName: "Master of Education",
+      institution: "University of Melbourne",
+    });
+    expect(assessmentAdapter.promoteToApplication).toHaveBeenCalledWith(
+      assessmentSessionId,
+      applicationId,
+    );
   });
 
-  it("attaches the carried transcript when the selected course resumes an existing draft", async () => {
-    const assessment = transcriptAssessment();
-    const transcriptFile = new File(["transcript"], "academic-transcript.pdf", {
-      type: "application/pdf",
-    });
-    const loadedApplication: ApplicationData = {
+  it("fills blank fields only when resuming an existing application", async () => {
+    const existing: ApplicationData = {
       ...initialApplicationData,
       applicationMeta: {
         recordId: applicationId,
         selectedCourse: course,
         status: "draft",
       },
-      tertiaryQualifications: [qualification()],
+      personalDetails: {
+        ...initialApplicationData.personalDetails,
+        firstName: "Saved",
+        phone: "0411 111 111",
+      },
     };
-    const saveApplication = vi.fn(async (data: ApplicationData) => data);
-    const storageAdapter = makeStorageAdapter({
+    let stored = existing;
+    const storageAdapter = makeApplicationStorageAdapter({
       findOpenDraftForCourse: vi.fn().mockResolvedValue({
         completedStepCount: 0,
         completionPercentage: 0,
@@ -186,111 +176,42 @@ describe("beginCourseApplication UC transcript handoff", () => {
         id: applicationId,
         status: "draft",
         totalStepCount: 1,
-        updatedAt: "2026-07-23T03:00:00.000Z",
+        updatedAt: "2026-08-04T00:00:00Z",
       }),
-      loadApplicationById: vi.fn().mockResolvedValue(loadedApplication),
-      saveApplication,
+      loadApplicationById: vi.fn(async () => stored),
+      saveApplication: vi.fn(async (next: ApplicationData) => {
+        stored = next;
+        return next;
+      }),
     });
-    const openApplication = vi.fn();
+    const deps = dependencies({ storageAdapter });
 
     const result = await beginCourseApplication(
       course,
-      {
-        startFresh: true,
-        ucTranscriptFile: transcriptFile,
-        ucTranscriptPrefill: assessment,
-      },
-      {
-        applications: [],
-        data: initialApplicationData,
-        ensureApplicantProfile: vi.fn().mockResolvedValue(null),
-        openApplication,
-        persistApplication: vi.fn(),
-        storageAdapter,
-        trackDraftCreated: vi.fn(),
-        trackDraftResumed: vi.fn(),
-      },
+      { assessmentSessionId, authenticatedEmail: "alex@example.com" },
+      deps,
     );
 
-    expect(saveApplication).toHaveBeenCalledTimes(2);
-    expect(result.tertiaryQualifications[0]).toMatchObject({
-      id: "qualification-mba",
-      transcriptDocument: storedTranscript,
-      transcriptDocumentName: "academic-transcript.pdf",
-      transcriptEligibility: assessment,
-    });
-    expect(openApplication).toHaveBeenCalledWith(applicationId);
+    expect(result.personalDetails.firstName).toBe("Saved");
+    expect(result.personalDetails.phone).toBe("0411 111 111");
+    expect(result.personalDetails.email).toBe("alex@example.com");
+    expect(deps.openApplication).toHaveBeenCalledWith(applicationId);
   });
 
-  it("removes a stale standalone law degree when the Bill demo resumes an existing draft", async () => {
-    const assessment = billDoubleDegreeAssessment();
-    const transcriptFile = new File(["transcript"], "academic-transcript.pdf", {
-      type: "application/pdf",
-    });
-    const loadedApplication: ApplicationData = {
-      ...initialApplicationData,
-      applicationMeta: {
-        recordId: applicationId,
-        selectedCourse: course,
-        status: "draft",
-      },
-      tertiaryQualifications: [
-        qualification({
-          id: "double-degree",
-          institution: "Monash University",
-          level: "Bachelor",
-          courseName: "Bachelor of Arts / Bachelor of Laws",
-        }),
-        qualification({
-          id: "stale-law-degree",
-          institution: "Monash University",
-          level: "Bachelor",
-          courseName: "Bachelor of Laws (LLB)",
-        }),
-      ],
-    };
-    const saveApplication = vi.fn(async (data: ApplicationData) => data);
-    const storageAdapter = makeStorageAdapter({
-      findOpenDraftForCourse: vi.fn().mockResolvedValue({
-        completedStepCount: 0,
-        completionPercentage: 0,
-        course,
-        id: applicationId,
-        status: "draft",
-        totalStepCount: 1,
-        updatedAt: "2026-07-23T03:00:00.000Z",
-      }),
-      loadApplicationById: vi.fn().mockResolvedValue(loadedApplication),
-      saveApplication,
-    });
-
-    const result = await beginCourseApplication(
-      course,
-      {
-        startFresh: true,
-        ucTranscriptFile: transcriptFile,
-        ucTranscriptPrefill: assessment,
-      },
-      {
-        applications: [],
-        data: initialApplicationData,
-        ensureApplicantProfile: vi.fn().mockResolvedValue(null),
-        openApplication: vi.fn(),
-        persistApplication: vi.fn(),
-        storageAdapter,
-        trackDraftCreated: vi.fn(),
-        trackDraftResumed: vi.fn(),
-      },
+  it("rejects control or incomplete sessions before creating an application", async () => {
+    const assessmentAdapter = makeAssessmentStorageAdapter(
+      assessmentSession({ cohort: "control", status: "shortlist" }),
     );
+    const deps = dependencies({ assessmentAdapter });
 
-    expect(result.tertiaryQualifications).toHaveLength(1);
-    expect(result.tertiaryQualifications[0]).toMatchObject({
-      id: "double-degree",
-      institution: "Monash University",
-      country: "Australia",
-      courseName: "Bachelor of Arts / Bachelor of Laws",
-      transcriptDocument: storedTranscript,
-      transcriptEligibility: assessment,
-    });
+    await expect(
+      beginCourseApplication(
+        course,
+        { assessmentSessionId, startFresh: true },
+        deps,
+      ),
+    ).rejects.toThrow(/complete the treatment assessment/i);
+    expect(deps.persistApplication).not.toHaveBeenCalled();
+    expect(assessmentAdapter.promoteToApplication).not.toHaveBeenCalled();
   });
 });

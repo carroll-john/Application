@@ -30,6 +30,7 @@ jobs:
           filters: |
             cv:
               - api/parse-cv.ts
+              - api/assessment/**
               - api/_documentParser/**
               - api/_ai/**
               - scripts/cv-parser-regression.mjs
@@ -38,9 +39,12 @@ jobs:
               - package-lock.json
             transcript:
               - api/evaluate-transcript-eligibility.ts
+              - api/assessment/**
+              - api/_assessment/**
               - api/_ai/prompts/transcriptEligibility.v1.ts
               - api/_ai/schemas/transcriptEligibility.v1.ts
               - src/lib/eligibility/**
+              - src/lib/assessment/**
               - src/lib/courseCatalog/**
               - tests/fixtures/transcript-v3/**
               - scripts/eligibility-transcript-regression.mjs
@@ -66,6 +70,9 @@ jobs:
 
       - name: Validate repository context
         run: npm run context:check
+
+      - name: Check UC governance source freshness
+        run: npm run check:uc-governance
 
       - name: Lint
         run: npm run lint
@@ -103,6 +110,7 @@ jobs:
           fi
 
           npm run smoke:console -- --base-url http://127.0.0.1:4173
+          APP_BASE_URL=http://127.0.0.1:4173 npm run smoke:accessibility
 
   check-secrets:
     runs-on: ubuntu-latest

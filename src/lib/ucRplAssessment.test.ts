@@ -284,9 +284,7 @@ describe("UC course matching", () => {
     expect(matches.every((match) => ["high", "medium", "low"].includes(match.entryConfidence))).toBe(
       true,
     );
-    expect(matches.every((match) => ["high", "medium", "low"].includes(match.creditConfidence))).toBe(
-      true,
-    );
+    expect(matches.every((match) => match.creditConfidence === "low")).toBe(true);
     expect(
       matches.every((match) =>
         match.entryConfidence ===
@@ -298,36 +296,41 @@ describe("UC course matching", () => {
       ),
     ).toBe(true);
     expect(
-      matches.every((match) =>
-        match.creditConfidence ===
-        (match.relevanceScore >= 17
-          ? "high"
-          : match.relevanceScore > 0
-            ? "medium"
-            : "low"),
-      ),
-    ).toBe(true);
-    expect(matches.find((match) => match.relevanceScore >= 17)?.creditDetail).toMatch(
-      /You may be eligible for up to (6|12|18) credit points\./,
-    );
+      matches.find(
+        (match) => match.course.title === "Master of Education (Leadership)",
+      )?.creditDetail,
+    ).toMatch(/published 12-credit-point cap/i);
+    expect(
+      matches.find((match) =>
+        match.course.title.startsWith("Graduate Certificate"),
+      )?.creditDetail,
+    ).toMatch(/always requires manual review/i);
   });
 
-  it("scales indicative credit points with course length", () => {
+  it("uses explicit governed caps and never derives points from course length", () => {
     const catalogue = getCourseCatalogFor("uc");
-    const graduateCertificate = catalogue.find((course) =>
+    const governed = catalogue.find(
+      (course) => course.title === "Master of Education (Leadership)",
+    );
+    const ungovernedGraduateCertificate = catalogue.find((course) =>
       course.title.startsWith("Graduate Certificate"),
     );
-    const graduateDiploma = catalogue.find((course) =>
+    const ungovernedGraduateDiploma = catalogue.find((course) =>
       course.title.startsWith("Graduate Diploma"),
     );
-    const masters = catalogue.find((course) => course.title.startsWith("Master"));
 
-    expect(graduateCertificate && getUcIndicativeCreditPoints(graduateCertificate)).toBe(6);
-    expect(graduateDiploma && getUcIndicativeCreditPoints(graduateDiploma)).toBe(12);
-    expect(masters && getUcIndicativeCreditPoints(masters)).toBe(12);
+    expect(governed && getUcIndicativeCreditPoints(governed)).toBe(12);
+    expect(
+      ungovernedGraduateCertificate &&
+        getUcIndicativeCreditPoints(ungovernedGraduateCertificate),
+    ).toBeNull();
+    expect(
+      ungovernedGraduateDiploma &&
+        getUcIndicativeCreditPoints(ungovernedGraduateDiploma),
+    ).toBeNull();
   });
 
-  it("uses Bill Shorten's current education role and completed MBA to avoid redundant matches", () => {
+  it("uses an anonymised executive profile and completed MBA to avoid redundant matches", () => {
     const experiences = [
       {
         ...role({
@@ -359,8 +362,8 @@ describe("UC course matching", () => {
     const recognition = draft(experiences);
     recognition.profile = {
       ...recognition.profile,
-      firstName: "Bill",
-      lastName: "Shorten",
+      firstName: "Pilot",
+      lastName: "Participant",
     };
     recognition.tertiaryQualifications = [
       {
@@ -402,9 +405,9 @@ describe("UC course matching", () => {
       "Graduate Certificate in Educational Leadership",
     ]);
     expect(matches.slice(0, 3).map((match) => match.creditConfidence)).toEqual([
-      "high",
-      "medium",
-      "medium",
+      "low",
+      "low",
+      "low",
     ]);
     expect(bestMatches.every((match) => /Education|Teaching/i.test(match.course.title))).toBe(
       true,

@@ -11,6 +11,8 @@ const SENSITIVE_QUERY_KEYS = new Set([
   // Synthetic-test activation token (kp_synthetic) — must never reach analytics
   // in $current_url/$referrer. Keep in sync with SYNTHETIC_TEST_QUERY_PARAM.
   "kp_synthetic",
+  "invite",
+  "invitation",
 ]);
 
 const AUTH_CALLBACK_PATH = "/auth/callback";
@@ -72,6 +74,10 @@ function hasSensitiveQueryParams(search: string) {
 
 export function isPostHogSensitiveRoute(pathname: string, search = "") {
   if (pathname === AUTH_CALLBACK_PATH) {
+    return true;
+  }
+
+  if (pathname === "/assessment") {
     return true;
   }
 

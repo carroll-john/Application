@@ -13,6 +13,9 @@
     "build": "npm run build:eligibility-rules && tsc -b && vite build",
     "lint": "eslint .",
     "context:check": "node --test ./scripts/contextLinkPolicy.test.mjs && node ./scripts/validate-context.mjs",
+    "check:uc-governance": "node --import tsx ./scripts/check-uc-governance.mjs",
+    "check:uc-mvp-isolation": "node --test ./scripts/verify-uc-mvp-isolation.test.mjs && node ./scripts/verify-uc-mvp-isolation.mjs",
+    "pilot:provision": "node ./scripts/provision-uc-pilot-participants.mjs",
     "preview": "vite preview",
     "pretest": "npm run build:eligibility-rules",
     "test": "vitest run",
@@ -25,6 +28,7 @@
     "dev:suggest-api": "tsx ./scripts/dev-suggest-server.mjs",
     "smoke:eligibility-ui": "node ./scripts/smoke-eligibility-ui.mjs",
     "smoke:console": "node ./scripts/console-smoke.mjs",
+    "smoke:accessibility": "node ./scripts/accessibility-smoke.mjs",
     "smoke:uc-brand": "node ./scripts/uc-brand-smoke.mjs",
     "services:health": "node ./scripts/render-service-health.mjs",
     "funnel:bot": "node ./scripts/synthetic-funnel-bot.mjs",
@@ -50,15 +54,20 @@
     "@sentry/react": "^10.62.0",
     "@supabase/supabase-js": "^2.108.2",
     "date-fns": "^4.4.0",
+    "fflate": "^0.8.2",
     "lucide-react": "^1.22.0",
     "posthog-js": "^1.396.2",
     "posthog-node": "^5.38.8",
     "react": "^19.2.7",
     "react-datepicker": "^9.1.0",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.0"
+    "react-router-dom": "7.18.2"
+  },
+  "overrides": {
+    "dompurify": "3.4.13"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^10.0.1",
     "@sentry/vite-plugin": "^5.3.0",
     "@tailwindcss/vite": "^4.3.2",

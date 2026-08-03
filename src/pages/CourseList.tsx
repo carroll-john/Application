@@ -9,11 +9,6 @@ import {
   StudyNextHomeHero,
   type CourseCategoryFilter,
 } from "../features/course";
-import {
-  shouldShowUcCourseCatalogue,
-  UcRplCourseMatcher,
-  type UcRplAssessmentStage,
-} from "../features/ucRpl";
 import { isUcBrand } from "../lib/brand";
 import { getCourseBrowseResultsState } from "../lib/courseBrowse";
 import { getCourseCatalog } from "../lib/courseCatalog";
@@ -23,8 +18,13 @@ export default function CourseList() {
   const courses = getCourseCatalog();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<CourseCategoryFilter>("All");
-  const [ucRplStage, setUcRplStage] =
-    useState<UcRplAssessmentStage>("intro");
+  const [showAssessmentEntry] = useState(() => {
+    try {
+      return window.sessionStorage.getItem("uc-pilot-cohort") === "treatment";
+    } catch {
+      return false;
+    }
+  });
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const totalCourses = courses.length;
   const filteredCourses = useMemo(
@@ -66,8 +66,6 @@ export default function CourseList() {
       }),
     [activeCategory, filteredCourses.length, searchQuery, totalCourses],
   );
-  const showCourseCatalogue =
-    !isUcBrand || shouldShowUcCourseCatalogue(ucRplStage);
 
   function clearFilters() {
     setSearchQuery("");
@@ -82,28 +80,26 @@ export default function CourseList() {
         variant="marketing"
       />
 
-      {!isUcBrand || ucRplStage === "intro" ? (
-        <StudyNextHomeHero
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-        />
-      ) : null}
+      <StudyNextHomeHero
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
       <main className="mx-auto max-w-[1536px] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
-        {isUcBrand ? (
-          <div id="experience-assessment">
-            <UcRplCourseMatcher
-              courses={courses}
-              stage={ucRplStage}
-              onStageChange={setUcRplStage}
-            />
+        {isUcBrand && showAssessmentEntry ? (
+          <div className="content-block mb-12 flex flex-wrap items-center justify-between gap-5 border border-[var(--info-border)] bg-[var(--info-bg)] p-6">
+            <div>
+              <p className="font-semibold text-slate-950">UC pilot assessment</p>
+              <p className="mt-1 text-sm text-slate-600">
+                Reopen your invitation link to resume your assessment.
+              </p>
+            </div>
           </div>
         ) : null}
 
-        {showCourseCatalogue ? (
           <div
             id="course-catalogue"
-            className={isUcBrand ? "scroll-mt-6 pt-16" : "scroll-mt-6"}
+            className="scroll-mt-6"
           >
             <div className="max-w-3xl">
               <h2 className="text-4xl font-extrabold tracking-[-0.03em] text-slate-950 sm:text-5xl">
@@ -138,7 +134,6 @@ export default function CourseList() {
               ))}
             </div>
           </div>
-        ) : null}
       </main>
       <AppBrandFooter />
     </div>

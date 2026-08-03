@@ -20,6 +20,7 @@ import type {
 import type { StepCompletionLabel } from "../lib/applicationValidationSchema";
 import type { WorkExperienceAssessment } from "../lib/eligibility/workExperience";
 import { createApplicationStorageAdapter } from "../lib/applicationStorageAdapter";
+import { createAssessmentStorageAdapter } from "../lib/assessment/storageAdapter";
 import { useApplicationAnalytics } from "../features/application/hooks/useApplicationAnalytics";
 import { useApplicationData } from "../features/application/hooks/useApplicationData";
 import { useWorkExperienceAssessment } from "../features/application/hooks/useWorkExperienceAssessment";
@@ -108,6 +109,10 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     () => createApplicationStorageAdapter({ session }),
     [session],
   );
+  const assessmentStorageAdapter = useMemo(
+    () => createAssessmentStorageAdapter(session),
+    [session],
+  );
 
   const analytics = useApplicationAnalytics();
   const {
@@ -137,6 +142,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     resetApplication,
   } = useApplicationStorageOrchestration({
     applicantProfileId,
+    assessmentStorageAdapter,
     ensureApplicantProfile,
     setApplicantProfile,
     storageAdapter,

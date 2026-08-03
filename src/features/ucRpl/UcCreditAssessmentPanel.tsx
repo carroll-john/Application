@@ -70,8 +70,8 @@ export function UcCreditAssessmentPanel({
               </h2>
               <p className="mt-3 max-w-3xl leading-7 text-slate-600">
                 {isComplete
-                  ? "We’ve added indicative time and tuition comparisons to each shortlisted course below."
-                  : "Complete one RPL and credit transfer assessment to compare how your previous study and professional experience could reduce each course."}
+                  ? "We’ve added indicative, transcript-based credit guidance to each shortlisted course below."
+                  : "Upload a transcript to check whether your previous study maps to published credit guidance for each course."}
               </p>
             </div>
           </div>
@@ -89,15 +89,16 @@ export function UcCreditAssessmentPanel({
                   aria-hidden="true"
                 />
                 <p>
-                  Sign in or create an account before uploading your transcript.
-                  Your assessment won’t create an application.
+                  Sign in with the account prepared for your pilot invitation
+                  before uploading your transcript. Your assessment won’t create
+                  an application.
                 </p>
               </div>
               <Button
                 className="mt-6 h-14 w-full justify-between px-6 text-base"
                 onClick={onRequestAssessment}
               >
-                <span>Complete credit assessment</span>
+                <span>Sign in for credit assessment</span>
                 <ArrowRight className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
@@ -172,8 +173,9 @@ export function UcCreditAssessmentPanel({
                 Assessing your credit
               </p>
               <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
-                We’re comparing the study in your transcript and the experience in
-                your CV with your three shortlisted courses.
+                We’re comparing the study in your transcript with the published
+                guidance for your three shortlisted courses. CV experience cannot
+                add credit points.
               </p>
             </div>
           ) : null}
@@ -185,8 +187,8 @@ export function UcCreditAssessmentPanel({
                 Assessment added to your course cards
               </p>
               <p className="mt-2">
-                Compare the original and after-credit estimates below. The
-                assessment uses evidence from your transcript and CV.
+                Review the evidence and indicative credit guidance below. Your
+                CV can help rank courses, but it cannot add credit points.
               </p>
             </div>
           ) : null}

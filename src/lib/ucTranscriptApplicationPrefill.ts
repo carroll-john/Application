@@ -10,7 +10,6 @@ import {
   type TertiaryQualificationFieldDraft,
 } from "./eligibility/mapToTertiaryQualification";
 import type { TranscriptEligibilityAssessment } from "./eligibility/types";
-import { isBillShortenUcDemoName } from "./ucDemoFixture";
 
 export interface UcTranscriptApplicationPrefillOptions {
   createId?: () => string;
@@ -116,13 +115,6 @@ function isQualificationSubsumedByTranscript(
   return [...qualificationTokens].every((token) => transcriptTokens.has(token));
 }
 
-function isBillShortenDemoAssessment(assessment: TranscriptEligibilityAssessment) {
-  const fullName = assessment.extractedData.applicantDetails?.fullName;
-  return isBillShortenUcDemoName(
-    fullName?.normalizedValue ?? fullName?.originalValue ?? "",
-  );
-}
-
 /**
  * Keeps existing drafts visually consistent with the transcript handoff. Earlier
  * builds could persist a CV-derived component degree beside a transcript-backed
@@ -152,7 +144,6 @@ function replaceCvQualificationsWithTranscriptQualification(
   qualifications: TertiaryQualification[],
   transcriptQualification: TertiaryQualification,
   cvQualifications: readonly TertiaryQualification[],
-  removeSubsumedDemoQualifications: boolean,
 ) {
   return qualifications.filter(
     (qualification) =>
@@ -160,12 +151,9 @@ function replaceCvQualificationsWithTranscriptQualification(
       (!cvQualifications.some((cvQualification) =>
         matchesCvQualification(qualification, cvQualification),
       ) &&
-        !(
-          removeSubsumedDemoQualifications &&
-          isQualificationSubsumedByTranscript(
-            qualification,
-            transcriptQualification,
-          )
+        !isQualificationSubsumedByTranscript(
+          qualification,
+          transcriptQualification,
         )),
   );
 }
@@ -205,7 +193,6 @@ export function applyUcTranscriptApplicationPrefill(
 ): ApplicationData {
   const createId = options.createId ?? (() => crypto.randomUUID());
   const fieldDraft = mapExtractedDataToQualification(assessment.extractedData);
-  const removeSubsumedDemoQualifications = isBillShortenDemoAssessment(assessment);
 
   if (countDraftedFields(fieldDraft) === 0) {
     return application;
@@ -223,7 +210,6 @@ export function applyUcTranscriptApplicationPrefill(
         [...application.tertiaryQualifications, transcriptQualification],
         transcriptQualification,
         options.cvQualificationsToReplace ?? [],
-        removeSubsumedDemoQualifications,
       ),
     };
   }
@@ -246,7 +232,6 @@ export function applyUcTranscriptApplicationPrefill(
       ),
       transcriptQualification,
       options.cvQualificationsToReplace ?? [],
-      removeSubsumedDemoQualifications,
     ),
   };
 }

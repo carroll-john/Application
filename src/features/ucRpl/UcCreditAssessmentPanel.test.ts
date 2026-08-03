@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import type { UcCreditAssessmentResult } from "../../lib/ucCreditAssessment";
 import { getCourseCatalogFor } from "../../lib/courseCatalog";
 import type { UcCourseMatch } from "../../lib/ucRplAssessment";
 import { UcCreditAssessmentComparison } from "./UcCreditAssessmentComparison";
@@ -13,12 +14,45 @@ function shortlist() {
     admissionDetail: "Admissions review required.",
     category: "best_match",
     course,
-    creditConfidence: "high",
-    creditDetail: "Potential credit.",
-    creditPoints: 12,
+    creditConfidence: "low",
+    creditDetail: "Transcript assessment required.",
+    creditPoints: null,
     entryConfidence: "high",
     relevanceScore: 30,
   })) satisfies UcCourseMatch[];
+}
+
+function result(
+  overrides: Partial<UcCreditAssessmentResult> = {},
+): UcCreditAssessmentResult {
+  return {
+    confidence: "medium",
+    courseCode: "master-of-education-leadership",
+    evidenceSummary: "Based only on 2 mapped transcript units.",
+    manualReviewReasons: [],
+    matchedTranscriptEvidence: [
+      {
+        creditPoints: 3,
+        mappingId: "leadership",
+        title: "Educational Leadership",
+        unitCode: "EDU501",
+      },
+      {
+        creditPoints: 3,
+        mappingId: "curriculum",
+        title: "Curriculum Design",
+        unitCode: null,
+      },
+    ],
+    potentialCreditPoints: 6,
+    publishedCap: 12,
+    versions: {
+      catalogueVersion: "uc-online-2026-07-23",
+      modelVersion: "transcript-evidence-v1",
+      rulesVersion: "uc-credit-pilot-2026-08-04.1",
+    },
+    ...overrides,
+  };
 }
 
 const baseProps = {
@@ -32,41 +66,15 @@ const baseProps = {
 };
 
 describe("UC credit assessment interface", () => {
-  it("prompts for authentication after three courses are shortlisted", () => {
-    const html = renderToStaticMarkup(
+  it("requires authentication before transcript upload", () => {
+    const signedOut = renderToStaticMarkup(
       createElement(UcCreditAssessmentPanel, {
         ...baseProps,
         isAuthenticated: false,
         status: "ready",
       }),
     );
-
-    expect(html).toContain("Your three-course shortlist is ready");
-    expect(html).toContain("Sign in or create an account");
-    expect(html).toContain("Complete credit assessment");
-  });
-
-  it("balances the shortlist summary around a prominent primary action", () => {
-    const html = renderToStaticMarkup(
-      createElement(UcCreditAssessmentPanel, {
-        ...baseProps,
-        isAuthenticated: true,
-        status: "ready",
-      }),
-    );
-
-    expect(html).toContain(
-      "lg:grid-cols-[minmax(0,1.1fr)_minmax(21rem,0.9fr)]",
-    );
-    expect(html).toContain("bg-[linear-gradient(145deg,#edf9f6_0%,#f7fbfb_100%)]");
-    expect(html).toContain("h-14 w-full justify-between");
-    expect(html).toContain("rounded-[20px]");
-    expect(html).toContain("sm:grid-cols-3");
-    expect(html).toContain("Master of Business Administration");
-  });
-
-  it("shows the transcript control only after authentication", () => {
-    const html = renderToStaticMarkup(
+    const signedIn = renderToStaticMarkup(
       createElement(UcCreditAssessmentPanel, {
         ...baseProps,
         isAuthenticated: true,
@@ -74,81 +82,50 @@ describe("UC credit assessment interface", () => {
       }),
     );
 
-    expect(html).toContain("Academic transcript");
-    expect(html).toContain("Assess my credit");
-    expect(html).not.toContain("Sign in or create an account");
+    expect(signedOut).toContain("account prepared for your pilot invitation");
+    expect(signedOut).not.toContain("Academic transcript");
+    expect(signedIn).toContain("Academic transcript");
+    expect(signedIn).toContain("Assess my credit");
   });
 
-  it("renders original and after-credit time and tuition together", () => {
+  it("shows indicative points, mapped evidence, the published cap, and UC confirmation", () => {
     const html = renderToStaticMarkup(
-      createElement(UcCreditAssessmentComparison, {
-        result: {
-          afterCost: 11825,
-          afterDurationMonths: 8,
-          confidence: "high",
-          courseCode: "master-of-education-leadership",
-          evidenceSummary: "Based on related prior study and experience.",
-          originalCost: 23650,
-          originalDurationMonths: 16,
-          potentialCreditPoints: 12,
-          potentialSavings: 11825,
-        },
-      }),
+      createElement(UcCreditAssessmentComparison, { result: result() }),
     );
 
-    expect(html).toContain("Original");
-    expect(html).toContain("After credit");
-    expect(html).not.toContain("After potential credit");
-    expect(html).toContain("16 months");
-    expect(html).toContain("8 months");
-    expect(html).toContain("$23,650");
-    expect(html).toContain("$11,825");
-    expect(html).not.toContain("2026 indicative tuition only");
+    expect(html).toContain("Up to 6 credit points");
+    expect(html).toContain("Published course cap: 12 credit points");
+    expect(html).toContain("EDU501: Educational Leadership");
+    expect(html).toContain("not an admission offer or formal credit decision");
+    expect(html).not.toMatch(/tuition|months|saving/i);
   });
 
-  it("omits the redundant zero-credit summary while retaining faculty review status", () => {
+  it("uses manual-review guidance rather than a zero-credit decision", () => {
     const html = renderToStaticMarkup(
       createElement(UcCreditAssessmentComparison, {
-        result: {
-          afterCost: 23650,
-          afterDurationMonths: 16,
+        result: result({
           confidence: "low",
-          courseCode: "master-of-education-leadership",
-          evidenceSummary:
-            "Your transcript and CV will need faculty review for a formal credit decision.",
-          originalCost: 23650,
-          originalDurationMonths: 16,
-          potentialCreditPoints: 0,
-          potentialSavings: 0,
-        },
+          evidenceSummary: "UC will review the transcript.",
+          manualReviewReasons: ["Insufficient mapped study evidence."],
+          matchedTranscriptEvidence: [],
+          potentialCreditPoints: null,
+        }),
       }),
     );
 
-    expect(html).toContain("Faculty review");
-    expect(html).not.toContain(
-      "No automatic credit estimate — faculty review required",
-    );
+    expect(html).toContain("Credit points need UC review");
+    expect(html).toContain("Manual review");
+    expect(html).not.toContain("0 credit points");
   });
 
-  it("hides the provisional credit section after assessment", () => {
+  it("replaces provisional card copy with the trusted assessment", () => {
     const match = shortlist()[0]!;
     const html = renderToStaticMarkup(
       createElement(
         MemoryRouter,
         null,
         createElement(UcRplMatchCard, {
-          assessmentResult: {
-            afterCost: 11825,
-            afterDurationMonths: 8,
-            confidence: "high",
-            courseCode: match.course.code,
-            evidenceSummary:
-              "Based on related prior study in your transcript and relevant professional experience in your CV.",
-            originalCost: 23650,
-            originalDurationMonths: 16,
-            potentialCreditPoints: 12,
-            potentialSavings: 11825,
-          },
+          assessmentResult: result({ courseCode: match.course.code }),
           isAssessmentComplete: true,
           isShortlistFull: true,
           isShortlisted: true,
@@ -161,22 +138,29 @@ describe("UC credit assessment interface", () => {
       ),
     );
 
-    expect(html).toContain("Entry guidance");
-    expect(html).toContain("Your indicative credit assessment");
+    expect(html).toContain("Indicative credit guidance");
     expect(html).not.toContain("Initial credit potential");
     expect(html).not.toContain(match.creditDetail);
   });
 
-  it("describes the completed assessment as using the transcript and CV", () => {
-    const html = renderToStaticMarkup(
+  it("states that the CV may rank courses but cannot add credit points", () => {
+    const complete = renderToStaticMarkup(
       createElement(UcCreditAssessmentPanel, {
         ...baseProps,
         isAuthenticated: true,
         status: "complete",
       }),
     );
+    const processing = renderToStaticMarkup(
+      createElement(UcCreditAssessmentPanel, {
+        ...baseProps,
+        isAuthenticated: true,
+        status: "processing",
+      }),
+    );
 
-    expect(html).toContain("uses evidence from your transcript and CV");
-    expect(html).not.toContain("guides only");
+    expect(complete).toContain("CV can help rank courses");
+    expect(complete).toContain("cannot add credit points");
+    expect(processing).toContain("CV experience cannot");
   });
 });

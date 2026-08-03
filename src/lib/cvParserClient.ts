@@ -22,10 +22,14 @@ export async function parseEmploymentExperiencesFromCv(file: File) {
   }
 }
 
-export async function parseCvForRecognition(file: File) {
+export async function parseCvForRecognition(
+  file: File,
+  options: { pilotInvitationToken: string },
+) {
   try {
     return await requestParseDocument<CvParserDraft>(file, "cv", {
       allowAnonymousUcPreApplication: true,
+      pilotInvitationToken: options.pilotInvitationToken,
     });
   } catch (error) {
     if (error instanceof DocumentParserRequestError) {

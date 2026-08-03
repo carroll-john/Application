@@ -25,6 +25,7 @@ import { SignUpForm } from "./screens/SignUpForm";
 import type { AuthPanelContext, AuthScreen, AuthTab } from "./types";
 
 interface AuthPanelProps {
+  allowSignUp?: boolean;
   context?: AuthPanelContext;
   onAuthenticated?: () => void;
   /**
@@ -36,6 +37,7 @@ interface AuthPanelProps {
 }
 
 export function AuthPanel({
+  allowSignUp = true,
   context = "route",
   onAuthenticated,
   signUpRedirectPath,
@@ -327,6 +329,9 @@ export function AuthPanel({
           />
         );
       case "sign-up":
+        if (!allowSignUp) {
+          return null;
+        }
         return (
           <SignUpForm
             confirmPassword={confirmPassword}
@@ -353,6 +358,30 @@ export function AuthPanel({
         );
       case "sign-in":
       default:
+        if (!allowSignUp) {
+          return (
+            <SignInForm
+              email={email}
+              error={error}
+              isConfigured={isConfigured}
+              isSubmitting={isSubmitting}
+              password={password}
+              onEmailChange={(value) => {
+                setEmail(value);
+                clearFieldErrors();
+              }}
+              onForgotPassword={() => {
+                setScreen("forgot-password");
+                clearFieldErrors();
+              }}
+              onPasswordChange={(value) => {
+                setPassword(value);
+                clearFieldErrors();
+              }}
+              onSubmit={handleSignIn}
+            />
+          );
+        }
         return (
           <>
             <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-1">

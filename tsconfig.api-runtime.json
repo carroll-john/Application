@@ -17,11 +17,13 @@
     "jsx": "react-jsx",
     "types": ["node"]
   },
-  "//include": "Top-level api/*.ts entrypoints only. TypeScript will pull in transitively-reached api/_*/* and src/lib/* modules via the import graph, so orphan files (e.g. unused re-export stubs) are intentionally NOT compiled.",
+  "//include": "API entrypoints, including nested assessment/staff/cron routes. TypeScript pulls transitively-reached api/_*/* and src/lib/* modules via the import graph.",
   "include": [
-    "api/*.ts"
+    "api/**/*.ts",
+    "src/vite-env.d.ts"
   ],
   "exclude": [
+    "api/_*/**",
     "**/__fixtures__/**",
     "**/*.test.ts",
     "**/*.spec.ts"

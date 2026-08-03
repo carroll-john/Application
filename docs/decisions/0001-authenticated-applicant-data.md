@@ -2,7 +2,7 @@
 id: ADR-0001
 status: active
 date: 2026-07-15
-updated: 2026-07-23
+updated: 2026-08-04
 ---
 
 # Authenticated Applicant Data
@@ -13,20 +13,15 @@ Applications, applicant profiles, eligibility evidence, and documents require an
 authenticated session. Supabase is authoritative. Browser storage may hold only
 non-authoritative UI/session conveniences.
 
-The UC pre-application course-matching demo is a narrow exception. It may parse a
-CV before sign-in into temporary, in-memory assessment state. It does not create
-or persist an application, profile, eligibility record, or document. Sign-in is
-required before Start application can transfer the CV and confirmed details into
-the authenticated application flow.
+The invitation-protected UC treatment journey is a narrow exception. It may parse
+one CV before sign-in into temporary, in-memory state under a shared database
+rate limit. It does not persist the file or extraction. Sign-in with the
+pre-invited account is required before transcript upload and before a resumable
+assessment session may store confirmed CV data, evidence, or results.
 
-The UC three-course credit comparison is a second narrow pre-application case,
-but it is not anonymous. Sign-in is required before the transcript control is
-shown, and the marked API route validates the bearer session before reading the
-file. The transcript and comparison are ephemeral and create no hidden draft.
-After the applicant explicitly starts an application, extracted study fields may
-fill blank authenticated qualification data, the full file is attached to the
-matching qualification through the shared authenticated document layer, and the
-evidence is rematched to the selected course.
+The assessment session is not an application draft. Only an explicit Start
+application action may promote passed-scan documents and fill blank application
+fields through the shared authenticated application systems.
 
 ## Why
 
@@ -39,14 +34,8 @@ reason about.
 Signed-out visitors may browse but cannot own a draft or upload applicant data.
 The legacy IndexedDB document implementation is removed in Phase 2.
 
-Signed-out visitors to the UC pre-application assessment may submit a CV for
-ephemeral parsing. The endpoint is IP-rate-limited, the browser does not persist
-the result, and cancelling sign-in from Start application leaves the user in the
-assessment without creating a draft.
-
-Authenticated UC demo visitors may process one transcript for a three-course
-credit comparison. Refreshing or closing the page discards the shortlist,
-transcript and results before an application is started. Starting an application
-may transfer extracted study fields into blank qualification data and attach the
-transcript through the ordinary persisted document flow. The three-course
-comparison result remains transient.
+Signed-out treatment visitors may submit one CV for ephemeral parsing. The
+endpoint requires an activated invitation and uses a cross-instance limiter.
+Authenticated participants can resume their assessment without creating a hidden
+application. Abandoned assessment documents are deleted after 30 days; promoted
+documents follow application retention.

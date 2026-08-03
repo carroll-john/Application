@@ -6,10 +6,7 @@ import type {
   TertiaryQualification,
 } from "./applicationData";
 import type { CourseCatalogEntry } from "./courseCatalog";
-import {
-  BILL_SHORTEN_UC_DEMO_COURSES,
-  isBillShortenUcDemoName,
-} from "./ucDemoFixture";
+import { UC_GOVERNED_COURSES } from "./assessment/ucGovernance";
 
 export type OscaSkillLevel = 1 | 2 | 3 | 4 | 5;
 export type OscaConfidence = "high" | "medium" | "low";
@@ -58,7 +55,7 @@ export interface UcCourseMatch {
   creditConfidence: UcGuidanceConfidence;
   course: CourseCatalogEntry;
   creditDetail: string;
-  creditPoints: 6 | 12 | 18;
+  creditPoints: number | null;
   entryConfidence: UcGuidanceConfidence;
   relevanceScore: number;
 }
@@ -75,16 +72,6 @@ export interface UcOscaExperienceSummary {
   roles: CvRecognitionExperience[];
   skillLevel: OscaSkillLevel | null;
 }
-
-const BILL_SHORTEN_DEMO_CREDIT_CONFIDENCE = new Map<
-  string,
-  UcGuidanceConfidence
->(
-  BILL_SHORTEN_UC_DEMO_COURSES.map(({ creditConfidence, title }) => [
-    title,
-    creditConfidence,
-  ]),
-);
 
 const MONTH_INDEX = new Map(
   [
@@ -703,34 +690,13 @@ function courseRelevance(
   };
 }
 
-function getCourseDurationYears(duration: string | undefined) {
-  if (!duration) return null;
-
-  const monthMatch = duration.match(/(\d+(?:\.\d+)?)\s*months?/i);
-  if (monthMatch?.[1]) {
-    return Number(monthMatch[1]) / 12;
-  }
-
-  const yearMatch = duration.match(/(\d+(?:\.\d+)?)\s*years?/i);
-  return yearMatch?.[1] ? Number(yearMatch[1]) : null;
-}
-
 export function getUcIndicativeCreditPoints(
   course: CourseCatalogEntry,
-): 6 | 12 | 18 {
-  if (/^master\b/i.test(course.title)) return 12;
-
-  const durationYears = getCourseDurationYears(course.duration);
-
-  if (durationYears !== null) {
-    if (durationYears <= 0.75) return 6;
-    if (durationYears < 2) return 12;
-    return 18;
-  }
-
-  if (/graduate certificate/i.test(course.title)) return 6;
-  if (/graduate diploma/i.test(course.title)) return 12;
-  return 18;
+): number | null {
+  return (
+    UC_GOVERNED_COURSES.find((candidate) => candidate.courseCode === course.code)
+      ?.publishedCap ?? null
+  );
 }
 
 export function rankUcCourses(
@@ -739,11 +705,6 @@ export function rankUcCourses(
   admission: UcAdmissionAssessment,
 ): UcCourseMatch[] {
   const profile = buildCourseMatchProfile(draft);
-  const billShortenDemoConfidenceByTitle = isBillShortenUcDemoName(
-    `${draft.profile.firstName} ${draft.profile.lastName}`,
-  )
-    ? BILL_SHORTEN_DEMO_CREDIT_CONFIDENCE
-    : null;
   const ranked = courses
     .map((course) => ({ course, ...courseRelevance(course, profile) }))
     .sort(
@@ -764,18 +725,16 @@ export function rankUcCourses(
           : "other";
     const creditPoints = getUcIndicativeCreditPoints(course);
     const creditDetail =
-      relevanceScore >= 17
-        ? `Your work appears related to this course. You may be eligible for up to ${creditPoints} credit points.`
-        : "The course provider will need supporting evidence before deciding whether your experience can count towards this course.";
+      creditPoints !== null
+        ? `A transcript assessment can provide guidance up to the published ${creditPoints}-credit-point cap.`
+        : "This course always requires manual review for credit guidance in the UC pilot.";
 
     return {
       admissionDetail: maySupportDirectEntry
         ? "Your work experience may support direct entry to this course. Additional course specific eligibility requirement may still apply."
         : "The admissions team will review your work experience against this course’s entry requirements.",
       category,
-      creditConfidence:
-        billShortenDemoConfidenceByTitle?.get(course.title) ??
-        (relevanceScore >= 17 ? "high" : relevanceScore > 0 ? "medium" : "low"),
+      creditConfidence: "low",
       course,
       creditDetail,
       creditPoints,

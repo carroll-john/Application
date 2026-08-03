@@ -1,20 +1,18 @@
-import type {
-  ApplicationData,
-  SelectedCourse,
-  TertiaryQualification,
-} from "../../../lib/applicationData";
+import type { ApplicationData, SelectedCourse } from "../../../lib/applicationData";
 import { createApplicationDraft } from "../../../lib/applicationRecords";
 import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageAdapter";
 import type { ApplicationSummary } from "../../../lib/applicationRecords";
 import type { StoredApplicantProfile } from "../../../lib/applicantProfileStore";
-import { cloneSourceApplicationDocuments } from "./applicationDocumentClone";
-import type { BeginCourseApplicationOptions } from "./useApplicationStorageOrchestration";
+import type { AssessmentStorageAdapter } from "../../../lib/assessment/storageAdapter";
+import type { AssessmentSessionSnapshot } from "../../../lib/assessment/types";
 import { applyUcCvPrefill } from "../../../lib/ucRplAssessment";
 import { applyUcTranscriptApplicationPrefill } from "../../../lib/ucTranscriptApplicationPrefill";
-import { replaceStoredDocument } from "../../../lib/documentStorage";
+import { cloneSourceApplicationDocuments } from "./applicationDocumentClone";
+import type { BeginCourseApplicationOptions } from "./useApplicationStorageOrchestration";
 
 interface BeginCourseApplicationDeps {
   applications: ApplicationSummary[];
+  assessmentStorageAdapter: AssessmentStorageAdapter;
   data: ApplicationData;
   ensureApplicantProfile: () => Promise<StoredApplicantProfile | null>;
   openApplication: (applicationId: string) => Promise<void>;
@@ -35,81 +33,50 @@ interface BeginCourseApplicationDeps {
   trackDraftResumed: (course: SelectedCourse, applicationId: string) => void;
 }
 
-function applyUcPrefills(
+function applyAssessmentPrefills(
   application: ApplicationData,
-  options: BeginCourseApplicationOptions | undefined,
+  session: AssessmentSessionSnapshot | null,
+  authenticatedEmail: string | null,
 ) {
-  const cvPrefilled = options?.ucCvPrefill
-    ? applyUcCvPrefill(
-        application,
-        options.ucCvPrefill,
-        options.authenticatedEmail ?? null,
-      )
+  if (!session) return application;
+  const cvPrefilled = session.confirmedCv
+    ? applyUcCvPrefill(application, session.confirmedCv, authenticatedEmail)
     : application;
 
-  return options?.ucTranscriptPrefill
-    ? applyUcTranscriptApplicationPrefill(
-        cvPrefilled,
-        options.ucTranscriptPrefill,
-        {
-          cvQualificationsToReplace:
-            options.ucCvPrefill?.tertiaryQualifications,
-        },
-      )
+  return session.transcriptAssessment
+    ? applyUcTranscriptApplicationPrefill(cvPrefilled, session.transcriptAssessment, {
+        cvQualificationsToReplace: session.confirmedCv?.tertiaryQualifications,
+      })
     : cvPrefilled;
 }
 
-function isCarriedTranscriptAssessment(
-  candidate: TertiaryQualification["transcriptEligibility"],
-  carried: NonNullable<BeginCourseApplicationOptions["ucTranscriptPrefill"]>,
+async function loadAssessmentSession(
+  options: BeginCourseApplicationOptions | undefined,
+  deps: BeginCourseApplicationDeps,
 ) {
-  return Boolean(
-    candidate &&
-      (candidate === carried ||
-        (candidate.checkedAt === carried.checkedAt &&
-          candidate.programCode === carried.programCode)),
+  if (!options?.assessmentSessionId) return null;
+  const session = await deps.assessmentStorageAdapter.loadSession(
+    options.assessmentSessionId,
   );
+  if (session.cohort !== "treatment" || session.status !== "evaluated") {
+    throw new Error("Complete the treatment assessment before starting an application.");
+  }
+  return session;
 }
 
-async function attachUcTranscript(
+async function promoteAssessment(
+  assessment: AssessmentSessionSnapshot | null,
   application: ApplicationData,
-  options: BeginCourseApplicationOptions | undefined,
-  saveApplication: (nextData: ApplicationData) => Promise<ApplicationData>,
+  deps: BeginCourseApplicationDeps,
 ) {
-  const transcriptFile = options?.ucTranscriptFile;
-  const transcriptAssessment = options?.ucTranscriptPrefill;
   const applicationId = application.applicationMeta.recordId;
+  if (!assessment || !applicationId) return application;
 
-  if (!transcriptFile || !transcriptAssessment || !applicationId) {
-    return application;
-  }
-
-  const qualification = application.tertiaryQualifications.find((record) =>
-    isCarriedTranscriptAssessment(record.transcriptEligibility, transcriptAssessment),
+  await deps.assessmentStorageAdapter.promoteToApplication(
+    assessment.id,
+    applicationId,
   );
-
-  if (!qualification) {
-    return application;
-  }
-
-  const transcriptDocument = await replaceStoredDocument(
-    transcriptFile,
-    qualification.transcriptDocument,
-    { applicationId, kind: "tertiary_transcript" },
-  );
-
-  return saveApplication({
-    ...application,
-    tertiaryQualifications: application.tertiaryQualifications.map((record) =>
-      record.id === qualification.id
-        ? {
-            ...record,
-            transcriptDocument,
-            transcriptDocumentName: transcriptDocument?.name,
-          }
-        : record,
-    ),
-  });
+  return (await deps.storageAdapter.loadApplicationById(applicationId)) ?? application;
 }
 
 export async function beginCourseApplication(
@@ -117,7 +84,10 @@ export async function beginCourseApplication(
   options: BeginCourseApplicationOptions | undefined,
   deps: BeginCourseApplicationDeps,
 ) {
-  const resolvedApplicantProfile = await deps.ensureApplicantProfile();
+  const [resolvedApplicantProfile, assessment] = await Promise.all([
+    deps.ensureApplicantProfile(),
+    loadAssessmentSession(options, deps),
+  ]);
   const isStartingFromPreviousApplication = Boolean(
     !options?.startFresh && options?.prefillFromApplicationId,
   );
@@ -129,101 +99,60 @@ export async function beginCourseApplication(
   if (existingApplication?.id) {
     const loadedApplication =
       (await deps.storageAdapter.loadApplicationById(existingApplication.id)) ?? deps.data;
-    const applicationWithPrefill = applyUcPrefills(loadedApplication, options);
-    let reopenedApplication =
-      applicationWithPrefill !== loadedApplication
-      ? await deps.storageAdapter.saveApplication(
-          applicationWithPrefill,
-        )
-      : loadedApplication;
-
-    if (options?.cvFile) {
-      const cvDocument = await replaceStoredDocument(
-        options.cvFile,
-        reopenedApplication.cvDocument,
-        { applicationId: existingApplication.id, kind: "cv" },
-      );
-      reopenedApplication = await deps.storageAdapter.saveApplication({
-        ...reopenedApplication,
-        cvDocument,
-        cvFileName: cvDocument?.name,
-        cvUploaded: Boolean(cvDocument),
-      });
-    }
-    reopenedApplication = await attachUcTranscript(
-      reopenedApplication,
-      options,
-      (nextData) => deps.storageAdapter.saveApplication(nextData),
+    const applicationWithPrefill = applyAssessmentPrefills(
+      loadedApplication,
+      assessment,
+      options?.authenticatedEmail ?? null,
     );
+    const reopenedApplication =
+      applicationWithPrefill !== loadedApplication
+        ? await deps.storageAdapter.saveApplication(applicationWithPrefill)
+        : loadedApplication;
+    const promoted = await promoteAssessment(assessment, reopenedApplication, deps);
     await deps.openApplication(existingApplication.id);
     deps.trackDraftResumed(course, existingApplication.id);
-    return reopenedApplication;
+    return promoted;
   }
 
   const reusableSourceApplication =
     !options?.startFresh && options?.prefillFromApplicationId
       ? deps.data.applicationMeta.recordId === options.prefillFromApplicationId
         ? deps.data
-        : await deps.storageAdapter.loadApplicationById(
-            options.prefillFromApplicationId,
-          )
+        : await deps.storageAdapter.loadApplicationById(options.prefillFromApplicationId)
       : null;
-
   const baseDraft = createApplicationDraft(
     course,
     resolvedApplicantProfile?.id ?? undefined,
     resolvedApplicantProfile,
     reusableSourceApplication,
-    isStartingFromPreviousApplication
-      ? { includeSourceDocuments: false }
-      : undefined,
+    isStartingFromPreviousApplication ? { includeSourceDocuments: false } : undefined,
   );
-  const draft = applyUcPrefills(baseDraft, options);
+  const draft = applyAssessmentPrefills(
+    baseDraft,
+    assessment,
+    options?.authenticatedEmail ?? null,
+  );
 
   let persisted = await deps.persistApplication(draft, {
     applicantProfileId: resolvedApplicantProfile?.id ?? null,
     forceCreate: true,
   });
 
-  if (options?.cvFile && persisted.applicationMeta.recordId) {
-    const cvDocument = await replaceStoredDocument(options.cvFile, undefined, {
-      applicationId: persisted.applicationMeta.recordId,
-      kind: "cv",
-    });
-
-    persisted = await deps.persistApplication({
-      ...persisted,
-      cvDocument,
-      cvFileName: cvDocument?.name,
-      cvUploaded: Boolean(cvDocument),
-    });
-  }
-
-  persisted = await attachUcTranscript(
-    persisted,
-    options,
-    (nextData) =>
-      deps.persistApplication(nextData, {
-        applicantProfileId: resolvedApplicantProfile?.id ?? null,
-      }),
-  );
-
   if (isStartingFromPreviousApplication && reusableSourceApplication) {
     const clonedApplication = await cloneSourceApplicationDocuments(
       persisted,
       reusableSourceApplication,
     );
-
     persisted = await deps.persistApplication(clonedApplication, {
       applicantProfileId: resolvedApplicantProfile?.id ?? null,
     });
   }
 
+  persisted = await promoteAssessment(assessment, persisted, deps);
   deps.trackDraftCreated(
     course,
     resolvedApplicantProfile?.id ?? null,
     persisted.applicationMeta.recordId ?? null,
   );
-
   return persisted;
 }

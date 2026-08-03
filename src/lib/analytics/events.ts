@@ -35,6 +35,16 @@ export const ANALYTICS_EVENT_NAMES = [
   "eligibility_check_opened",
   "eligibility_check_completed",
 
+  // UC assessment pilot. Properties are allowlisted in the call sites and must
+  // never contain names, filenames, duties, evidence text, or reviewer notes.
+  "assessment_invitation_activated",
+  "assessment_cv_reviewed",
+  "assessment_shortlist_completed",
+  "assessment_resumed",
+  "assessment_evaluation_completed",
+  "assessment_application_started",
+  "assessment_failed",
+
   // Section 2 supporting-evidence flow (doc-first qualifications hub).
   "application_evidence_prompt_viewed",
   "application_evidence_section_skipped",

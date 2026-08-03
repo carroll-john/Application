@@ -180,10 +180,10 @@ describe("applyUcTranscriptApplicationPrefill", () => {
     });
   });
 
-  it("removes a stale standalone law degree subsumed by the Bill Shorten double degree", () => {
+  it("removes a stale standalone law degree subsumed by an anonymised double degree", () => {
     const assessment = transcriptAssessment();
     assessment.extractedData.applicantDetails.fullName = {
-      normalizedValue: "William (Bill) Shorten",
+      normalizedValue: "Pilot Participant",
     };
     assessment.extractedData.applicantDetails.institutionName = {
       normalizedValue: "Monash University, Australia",
@@ -240,10 +240,10 @@ describe("applyUcTranscriptApplicationPrefill", () => {
     });
   });
 
-  it("hides a stale standalone law degree in an existing Bill Shorten demo draft", () => {
+  it("hides a stale standalone law degree in an existing anonymised pilot draft", () => {
     const assessment = transcriptAssessment();
     assessment.extractedData.applicantDetails.fullName = {
-      normalizedValue: "William (Bill) Shorten",
+      normalizedValue: "Pilot Participant",
     };
 
     const doubleDegree = existingQualification({

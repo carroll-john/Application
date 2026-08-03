@@ -33,6 +33,7 @@ const ApplicationSubmitted = lazyWithRetry(
   "application-submitted",
   () => import("./pages/ApplicationSubmitted"),
 );
+const Assessment = lazyWithRetry("assessment", () => import("./pages/Assessment"));
 const Dashboard = lazyWithRetry("dashboard", () => import("./pages/Dashboard"));
 const DevSentrySmoke = import.meta.env.DEV
   ? lazyWithRetry("dev-sentry-smoke", () => import("./pages/DevSentrySmoke"))
@@ -94,6 +95,10 @@ const Section2AddTertiary = lazyWithRetry(
 const Section2Qualifications = lazyWithRetry(
   "section2-qualifications",
   () => import("./pages/Section2Qualifications"),
+);
+const StaffReviews = lazyWithRetry(
+  "staff-reviews",
+  () => import("./pages/StaffReviews"),
 );
 
 function RouteLoadingScreen() {
@@ -165,7 +170,7 @@ function AuthRequiredLayout() {
 
   if (!isConfigured) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4">
         <div className="content-block max-w-xl rounded-[32px] border border-[var(--warning-border)] bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-semibold text-slate-950">
             Authentication setup required
@@ -175,7 +180,7 @@ function AuthRequiredLayout() {
             using protected application routes.
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
@@ -242,6 +247,10 @@ export const router = createAppRouter([
         element: <AuthCallback />,
       },
       {
+        path: "/assessment",
+        element: <Assessment />,
+      },
+      {
         element: <AuthRequiredLayout />,
         children: [
           { path: "/profile", element: <ApplicantProfile /> },
@@ -300,6 +309,7 @@ export const router = createAppRouter([
           { path: "/review", element: <ReviewAndSubmit /> },
           { path: "/submitted", element: <ApplicationSubmitted /> },
           { path: "/dashboard", element: <Dashboard /> },
+          { path: "/staff/reviews", element: <StaffReviews /> },
           {
             path: "/profile-recommendations",
             element: <ProfileRecommendations />,

@@ -10,8 +10,8 @@ import type {
   EligibilityRequirementStatus,
   RequirementReasonCode,
   TranscriptEligibilityAssessment,
-} from "./types";
-import { ALL_REQUIREMENT_REASON_CODES } from "./types";
+} from "./types.js";
+import { ALL_REQUIREMENT_REASON_CODES } from "./types.js";
 
 const KNOWN_REASON_CODES = new Set<string>(ALL_REQUIREMENT_REASON_CODES);
 

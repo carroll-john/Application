@@ -41,6 +41,7 @@ export {
   isPublicAutocaptureRoute,
   isReplayPiiRoute,
   isSyntheticTestSession,
+  registerPilotAnalyticsContext,
   syncPostHogUser,
   syncReplayRoutePrivacy,
 } from "./analytics/posthogClient";

@@ -6,6 +6,7 @@ import {
   type SelectedCourse,
 } from "../../../lib/applicationData";
 import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageAdapter";
+import type { AssessmentStorageAdapter } from "../../../lib/assessment/storageAdapter";
 import { captureSentryException } from "../../../lib/sentry";
 import { beginCourseApplication as runBeginCourseApplication } from "./beginCourseApplication";
 import type { BeginCourseApplicationOptions } from "./applicationOrchestrationTypes";
@@ -21,6 +22,7 @@ export type {
 
 interface UseApplicationStorageOrchestrationOptions {
   applicantProfileId: string | null;
+  assessmentStorageAdapter: AssessmentStorageAdapter;
   ensureApplicantProfile: () => Promise<StoredApplicantProfile | null>;
   setApplicantProfile: (profile: StoredApplicantProfile | null) => void;
   storageAdapter: ApplicationStorageAdapter;
@@ -35,6 +37,7 @@ interface UseApplicationStorageOrchestrationOptions {
 
 export function useApplicationStorageOrchestration({
   applicantProfileId,
+  assessmentStorageAdapter,
   ensureApplicantProfile,
   setApplicantProfile,
   storageAdapter,
@@ -131,6 +134,7 @@ export function useApplicationStorageOrchestration({
     ) =>
       runBeginCourseApplication(course, options, {
         applications,
+        assessmentStorageAdapter,
         data,
         ensureApplicantProfile,
         openApplication,
@@ -141,6 +145,7 @@ export function useApplicationStorageOrchestration({
       }),
     [
       applications,
+      assessmentStorageAdapter,
       data,
       ensureApplicantProfile,
       openApplication,

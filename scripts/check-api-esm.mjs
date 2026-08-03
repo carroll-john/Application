@@ -62,12 +62,24 @@ function listApiEntryFiles() {
     log("error", `expected compiled output at ${relative(repoRoot, apiOutDir)}.`);
     process.exit(1);
   }
-  return readdirSync(apiOutDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile())
-    .map((entry) => entry.name)
-    .filter((name) => name.endsWith(".js"))
-    .filter((name) => !name.endsWith(".test.js") && !name.endsWith(".spec.js"))
-    .map((name) => join(apiOutDir, name));
+  function visit(directory) {
+    return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+      if (entry.name.startsWith("_")) return [];
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) return visit(path);
+      if (
+        !entry.isFile() ||
+        !entry.name.endsWith(".js") ||
+        entry.name.endsWith(".test.js") ||
+        entry.name.endsWith(".spec.js")
+      ) {
+        return [];
+      }
+      return [path];
+    });
+  }
+
+  return visit(apiOutDir);
 }
 
 async function importOne(filePath) {

@@ -2,6 +2,7 @@ export type CvParserErrorCode =
   | "CV_PARSER_METHOD_NOT_ALLOWED"
   | "CV_PARSER_NOT_CONFIGURED"
   | "CV_PARSER_UNAUTHORIZED"
+  | "CV_PARSER_INVITATION_REQUIRED"
   | "CV_PARSER_RATE_LIMITED"
   | "CV_PARSER_FILE_REQUIRED"
   | "CV_PARSER_FILE_UNSUPPORTED"
@@ -32,6 +33,10 @@ const CV_PARSER_ERROR_DEFINITIONS: Record<
   CV_PARSER_UNAUTHORIZED: {
     message: "Sign in before parsing a CV.",
     status: 401,
+  },
+  CV_PARSER_INVITATION_REQUIRED: {
+    message: "Use your active UC pilot invitation to parse a CV.",
+    status: 403,
   },
   CV_PARSER_RATE_LIMITED: {
     message: "You've parsed too many CVs in a short window. Please wait a moment.",

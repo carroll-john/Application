@@ -86,7 +86,7 @@ export function StudyNextCourseBrowseCard({
       ) : null}
 
       <div className="flex min-w-0 flex-1 flex-col p-5 sm:p-6">
-        <p className="break-words text-sm font-medium text-slate-400">
+        <p className="break-words text-sm font-medium text-slate-600">
           {course.provider}
         </p>
         <div className="mt-2 flex items-start gap-4">

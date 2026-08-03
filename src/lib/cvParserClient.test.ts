@@ -79,16 +79,19 @@ describe("parseEmploymentExperiencesFromCv", () => {
     expect(init.headers).toEqual({});
   });
 
-  it("marks the UC pre-application parser request as anonymous-capable", async () => {
+  it("requires and forwards the UC pilot invitation for anonymous parsing", async () => {
     fetchMock.mockResolvedValueOnce(makeJsonResponse({ experiences: [] }));
 
     await parseCvForRecognition(
       new File(["x"], "cv.pdf", { type: "application/pdf" }),
+      { pilotInvitationToken: "pilot-token" },
     );
 
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/parse-cv?flow=uc-pre-application");
-    expect(init.headers).toEqual({});
+    expect(init.headers).toEqual({
+      "x-uc-pilot-invitation": "pilot-token",
+    });
   });
 
   it("throws a CvParserRequestError carrying the upstream status and message", async () => {

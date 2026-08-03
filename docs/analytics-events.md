@@ -42,6 +42,13 @@ Every client-side event, kept in sync with `src/lib/analytics/events.ts` by
 | `application_sign_in_redirected` | Application progress |
 | `eligibility_check_opened` | Application progress |
 | `eligibility_check_completed` | Application progress |
+| `assessment_invitation_activated` | UC assessment pilot |
+| `assessment_cv_reviewed` | UC assessment pilot |
+| `assessment_shortlist_completed` | UC assessment pilot |
+| `assessment_resumed` | UC assessment pilot |
+| `assessment_evaluation_completed` | UC assessment pilot |
+| `assessment_application_started` | UC assessment pilot |
+| `assessment_failed` | UC assessment pilot |
 | `application_evidence_prompt_viewed` | Supporting evidence flow |
 | `application_evidence_section_skipped` | Supporting evidence flow |
 | `application_evidence_section_unskipped` | Supporting evidence flow |
@@ -156,6 +163,30 @@ Recommended main application funnel:
 4. `application_step_completed`
 5. `application_submit_started`
 6. `application_submitted`
+
+## UC assessment pilot funnel
+
+The pilot registers only `pilot_cohort`, `pilot_partner_id`, and a one-way hashed
+participant ID as session context. This lets existing application-start and
+submission events be compared from activated invitations without sending names,
+emails, filenames, duties, transcript/evidence text, or reviewer notes. Autocapture
+and replay are disabled on `/assessment` and `/staff/*`; invitation query values
+are removed from analytics URLs.
+
+| Event | Trigger and permitted properties |
+| --- | --- |
+| `assessment_invitation_activated` | Valid activation; cohort and partner only. |
+| `assessment_cv_reviewed` | Participant confirms parsed CV; coarse role/qualification counts only. |
+| `assessment_shortlist_completed` | Three courses selected; course and governed counts only. |
+| `assessment_resumed` | Existing authenticated assessment session resumes. |
+| `assessment_evaluation_completed` | Trusted evaluation completes; result, numeric-guidance, and manual-review counts only. |
+| `assessment_application_started` | Assessment handoff creates/resumes an application; governed-course boolean only. |
+| `assessment_failed` | Stable error code and stage only; never the error message. |
+
+The primary decision view compares `assessment_application_started` among
+activated treatment invitations with ordinary `application_start_requested`
+among activated controls. Submission remains the existing
+`application_submitted` event, segmented by the registered pilot cohort.
 
 ## Building the funnel in PostHog
 

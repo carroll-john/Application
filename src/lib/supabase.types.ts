@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -101,6 +101,11 @@ export type Database = {
         Row: {
           applicant_profile_id: string | null
           application_number: string | null
+          assessment_model_version: string | null
+          assessment_rules_version: string | null
+          assessment_session_id: string | null
+          catalogue_id: string | null
+          catalogue_version: string | null
           contact_details: Json
           course_code: string
           course_title: string
@@ -112,6 +117,7 @@ export type Database = {
           english_proficiency_policy: Json | null
           id: string
           intake_label: string
+          partner_id: string | null
           personal_details: Json
           requires_english_proficiency: boolean
           section2_submission_policy: Json | null
@@ -124,6 +130,11 @@ export type Database = {
         Insert: {
           applicant_profile_id?: string | null
           application_number?: string | null
+          assessment_model_version?: string | null
+          assessment_rules_version?: string | null
+          assessment_session_id?: string | null
+          catalogue_id?: string | null
+          catalogue_version?: string | null
           contact_details?: Json
           course_code: string
           course_title: string
@@ -135,6 +146,7 @@ export type Database = {
           english_proficiency_policy?: Json | null
           id?: string
           intake_label: string
+          partner_id?: string | null
           personal_details?: Json
           requires_english_proficiency?: boolean
           section2_submission_policy?: Json | null
@@ -147,6 +159,11 @@ export type Database = {
         Update: {
           applicant_profile_id?: string | null
           application_number?: string | null
+          assessment_model_version?: string | null
+          assessment_rules_version?: string | null
+          assessment_session_id?: string | null
+          catalogue_id?: string | null
+          catalogue_version?: string | null
           contact_details?: Json
           course_code?: string
           course_title?: string
@@ -158,6 +175,7 @@ export type Database = {
           english_proficiency_policy?: Json | null
           id?: string
           intake_label?: string
+          partner_id?: string | null
           personal_details?: Json
           requires_english_proficiency?: boolean
           section2_submission_policy?: Json | null
@@ -176,6 +194,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "applications_assessment_session_id_fkey"
+            columns: ["assessment_session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "applications_cv_document_id_fkey"
             columns: ["cv_document_id"]
             isOneToOne: false
@@ -187,6 +212,357 @@ export type Database = {
             columns: ["eligibility_feedback_document_id"]
             isOneToOne: false
             referencedRelation: "application_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_audit_events: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          assessment_session_id: string | null
+          created_at: string
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          partner_id: string
+          request_id: string
+          target_id: string | null
+          target_type: string
+          user_agent_hash: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          assessment_session_id?: string | null
+          created_at?: string
+          id?: never
+          ip_hash?: string | null
+          metadata?: Json
+          partner_id: string
+          request_id: string
+          target_id?: string | null
+          target_type: string
+          user_agent_hash?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          assessment_session_id?: string | null
+          created_at?: string
+          id?: never
+          ip_hash?: string | null
+          metadata?: Json
+          partner_id?: string
+          request_id?: string
+          target_id?: string | null
+          target_type?: string
+          user_agent_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_audit_events_assessment_session_id_fkey"
+            columns: ["assessment_session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_documents: {
+        Row: {
+          assessment_session_id: string
+          created_at: string
+          file_name: string
+          id: string
+          kind: string
+          mime_type: string
+          owner_user_id: string
+          partner_id: string
+          promoted_application_document_id: string | null
+          promoted_at: string | null
+          rejection_reason: string | null
+          scan_provider: string | null
+          scan_reference: string | null
+          scan_status: Database["public"]["Enums"]["assessment_document_status"]
+          scanned_at: string | null
+          sha256: string
+          size_bytes: number
+          storage_bucket: string
+          storage_path: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_session_id: string
+          created_at?: string
+          file_name: string
+          id?: string
+          kind: string
+          mime_type: string
+          owner_user_id: string
+          partner_id: string
+          promoted_application_document_id?: string | null
+          promoted_at?: string | null
+          rejection_reason?: string | null
+          scan_provider?: string | null
+          scan_reference?: string | null
+          scan_status?: Database["public"]["Enums"]["assessment_document_status"]
+          scanned_at?: string | null
+          sha256: string
+          size_bytes: number
+          storage_bucket?: string
+          storage_path: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_session_id?: string
+          created_at?: string
+          file_name?: string
+          id?: string
+          kind?: string
+          mime_type?: string
+          owner_user_id?: string
+          partner_id?: string
+          promoted_application_document_id?: string | null
+          promoted_at?: string | null
+          rejection_reason?: string | null
+          scan_provider?: string | null
+          scan_reference?: string | null
+          scan_status?: Database["public"]["Enums"]["assessment_document_status"]
+          scanned_at?: string | null
+          sha256?: string
+          size_bytes?: number
+          storage_bucket?: string
+          storage_path?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_documents_assessment_session_id_fkey"
+            columns: ["assessment_session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_documents_promoted_application_document_id_fkey"
+            columns: ["promoted_application_document_id"]
+            isOneToOne: false
+            referencedRelation: "application_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_rate_limits: {
+        Row: {
+          expires_at: string
+          hit_count: number
+          key_hash: string
+          window_started_at: string
+        }
+        Insert: {
+          expires_at: string
+          hit_count?: number
+          key_hash: string
+          window_started_at: string
+        }
+        Update: {
+          expires_at?: string
+          hit_count?: number
+          key_hash?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
+      assessment_results: {
+        Row: {
+          assessment_session_id: string
+          catalogue_version: string
+          confidence: string
+          course_code: string
+          created_at: string
+          id: string
+          manual_review_reasons: Json
+          matched_transcript_evidence: Json
+          model_version: string
+          partner_id: string
+          potential_credit_points: number | null
+          published_cap: number | null
+          rules_version: string
+          updated_at: string
+        }
+        Insert: {
+          assessment_session_id: string
+          catalogue_version: string
+          confidence: string
+          course_code: string
+          created_at?: string
+          id?: string
+          manual_review_reasons?: Json
+          matched_transcript_evidence?: Json
+          model_version: string
+          partner_id: string
+          potential_credit_points?: number | null
+          published_cap?: number | null
+          rules_version: string
+          updated_at?: string
+        }
+        Update: {
+          assessment_session_id?: string
+          catalogue_version?: string
+          confidence?: string
+          course_code?: string
+          created_at?: string
+          id?: string
+          manual_review_reasons?: Json
+          matched_transcript_evidence?: Json
+          model_version?: string
+          partner_id?: string
+          potential_credit_points?: number | null
+          published_cap?: number | null
+          rules_version?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_results_assessment_session_id_fkey"
+            columns: ["assessment_session_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_reviews: {
+        Row: {
+          assessment_session_id: string
+          assigned_to: string | null
+          claimed_at: string | null
+          corrected_credit_points: number | null
+          correction_category: string | null
+          created_at: string
+          exported_at: string | null
+          id: string
+          partner_id: string
+          private_notes: string | null
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["assessment_review_status"]
+          updated_at: string
+        }
+        Insert: {
+          assessment_session_id: string
+          assigned_to?: string | null
+          claimed_at?: string | null
+          corrected_credit_points?: number | null
+          correction_category?: string | null
+          created_at?: string
+          exported_at?: string | null
+          id?: string
+          partner_id: string
+          private_notes?: string | null
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["assessment_review_status"]
+          updated_at?: string
+        }
+        Update: {
+          assessment_session_id?: string
+          assigned_to?: string | null
+          claimed_at?: string | null
+          corrected_credit_points?: number | null
+          correction_category?: string | null
+          created_at?: string
+          exported_at?: string | null
+          id?: string
+          partner_id?: string
+          private_notes?: string | null
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["assessment_review_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_reviews_assessment_session_id_fkey"
+            columns: ["assessment_session_id"]
+            isOneToOne: true
+            referencedRelation: "assessment_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_sessions: {
+        Row: {
+          application_id: string | null
+          catalogue_id: string
+          catalogue_version: string
+          cohort: Database["public"]["Enums"]["assessment_cohort"]
+          completed_at: string | null
+          confirmed_cv: Json | null
+          created_at: string
+          expires_at: string
+          id: string
+          model_version: string
+          owner_user_id: string
+          participant_id: string
+          partner_id: string
+          rules_version: string
+          shortlist_course_codes: string[]
+          status: Database["public"]["Enums"]["assessment_session_status"]
+          transcript_assessment: Json | null
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          catalogue_id: string
+          catalogue_version: string
+          cohort: Database["public"]["Enums"]["assessment_cohort"]
+          completed_at?: string | null
+          confirmed_cv?: Json | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          model_version: string
+          owner_user_id: string
+          participant_id: string
+          partner_id: string
+          rules_version: string
+          shortlist_course_codes?: string[]
+          status?: Database["public"]["Enums"]["assessment_session_status"]
+          transcript_assessment?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          catalogue_id?: string
+          catalogue_version?: string
+          cohort?: Database["public"]["Enums"]["assessment_cohort"]
+          completed_at?: string | null
+          confirmed_cv?: Json | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          model_version?: string
+          owner_user_id?: string
+          participant_id?: string
+          partner_id?: string
+          rules_version?: string
+          shortlist_course_codes?: string[]
+          status?: Database["public"]["Enums"]["assessment_session_status"]
+          transcript_assessment?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_sessions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_sessions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: true
+            referencedRelation: "pilot_participants"
             referencedColumns: ["id"]
           },
         ]
@@ -221,9 +597,9 @@ export type Database = {
           company: string
           created_at: string
           duties: string
-          employment_type: string
           employer_letter_document_id: string | null
           employer_letter_document_name: string | null
+          employment_type: string
           end_month: string | null
           end_year: string | null
           id: string
@@ -238,9 +614,9 @@ export type Database = {
           company: string
           created_at?: string
           duties?: string
-          employment_type: string
           employer_letter_document_id?: string | null
           employer_letter_document_name?: string | null
+          employment_type: string
           end_month?: string | null
           end_year?: string | null
           id?: string
@@ -255,9 +631,9 @@ export type Database = {
           company?: string
           created_at?: string
           duties?: string
-          employment_type?: string
           employer_letter_document_id?: string | null
           employer_letter_document_name?: string | null
+          employment_type?: string
           end_month?: string | null
           end_year?: string | null
           id?: string
@@ -349,6 +725,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pilot_participants: {
+        Row: {
+          activated_at: string | null
+          cohort: Database["public"]["Enums"]["assessment_cohort"] | null
+          created_at: string
+          disabled_at: string | null
+          email_hash: string
+          expires_at: string
+          id: string
+          invitation_token_hash: string
+          invited_user_id: string | null
+          partner_id: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          cohort?: Database["public"]["Enums"]["assessment_cohort"] | null
+          created_at?: string
+          disabled_at?: string | null
+          email_hash: string
+          expires_at: string
+          id?: string
+          invitation_token_hash: string
+          invited_user_id?: string | null
+          partner_id: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          cohort?: Database["public"]["Enums"]["assessment_cohort"] | null
+          created_at?: string
+          disabled_at?: string | null
+          email_hash?: string
+          expires_at?: string
+          id?: string
+          invitation_token_hash?: string
+          invited_user_id?: string | null
+          partner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       professional_accreditations: {
         Row: {
@@ -445,6 +863,42 @@ export type Database = {
           },
         ]
       }
+      staff_roles: {
+        Row: {
+          active: boolean
+          created_at: string
+          expires_at: string | null
+          id: string
+          invited_by: string | null
+          partner_id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          invited_by?: string | null
+          partner_id: string
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          invited_by?: string | null
+          partner_id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       tertiary_qualifications: {
         Row: {
           application_id: string
@@ -538,11 +992,39 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      application_document_is_ready: {
+        Args: { p_application_id: string; p_document_id: string }
+        Returns: boolean
+      }
       application_submission_missing_fields: {
         Args: { target_application_id: string }
         Returns: string[]
       }
+      consume_assessment_rate_limit: {
+        Args: {
+          target_key_hash: string
+          target_max: number
+          target_window_seconds: number
+        }
+        Returns: boolean
+      }
       generate_application_number: { Args: never; Returns: string }
+      is_active_assessment_staff: {
+        Args: { target_partner_id: string }
+        Returns: boolean
+      }
+      parse_application_document_storage_path: {
+        Args: { p_object_name: string }
+        Returns: {
+          application_id: string
+          document_kind: string
+          owner_user_id: string
+        }[]
+      }
+      storage_object_size_bytes: {
+        Args: { object_metadata: Json }
+        Returns: number
+      }
       submit_application: {
         Args: { target_application_id: string }
         Returns: Json
@@ -550,6 +1032,26 @@ export type Database = {
     }
     Enums: {
       application_status: "draft" | "submitted"
+      assessment_cohort: "control" | "treatment"
+      assessment_document_status:
+        | "quarantined"
+        | "scanning"
+        | "passed"
+        | "rejected"
+        | "promoted"
+      assessment_review_status:
+        | "unassigned"
+        | "in_review"
+        | "agreed"
+        | "corrected"
+        | "exported"
+      assessment_session_status:
+        | "cv_review"
+        | "shortlist"
+        | "transcript"
+        | "evaluated"
+        | "application_started"
+        | "abandoned"
       document_kind:
         | "cv"
         | "tertiary_transcript"
@@ -686,6 +1188,29 @@ export const Constants = {
   public: {
     Enums: {
       application_status: ["draft", "submitted"],
+      assessment_cohort: ["control", "treatment"],
+      assessment_document_status: [
+        "quarantined",
+        "scanning",
+        "passed",
+        "rejected",
+        "promoted",
+      ],
+      assessment_review_status: [
+        "unassigned",
+        "in_review",
+        "agreed",
+        "corrected",
+        "exported",
+      ],
+      assessment_session_status: [
+        "cv_review",
+        "shortlist",
+        "transcript",
+        "evaluated",
+        "application_started",
+        "abandoned",
+      ],
       document_kind: [
         "cv",
         "tertiary_transcript",

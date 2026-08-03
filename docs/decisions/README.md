@@ -14,6 +14,7 @@ for that.
 | [`0005-code-based-design-system.md`](0005-code-based-design-system.md) | Active |
 | [`0006-context-control-plane.md`](0006-context-control-plane.md) | Active |
 | [`0007-integration-platform-boundary.md`](0007-integration-platform-boundary.md) | Active |
+| [`0008-assessment-sessions-and-aal2-review.md`](0008-assessment-sessions-and-aal2-review.md) | Active |
 
 The former chronological log is retained only as
 [`../archive/legacy-decisions-log.md`](../archive/legacy-decisions-log.md).

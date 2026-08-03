@@ -35,22 +35,13 @@ import {
   getCvParserErrorMessage,
   parseCvForRecognition,
 } from "../../lib/cvParserClient";
-import {
-  evaluateTranscriptEligibility,
-  TranscriptEligibilityRequestError,
-} from "../../lib/eligibility/client";
-import type { TranscriptEligibilityAssessment } from "../../lib/eligibility/types";
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
-import { isDemoMode } from "../../lib/brand";
+import type { UcCreditAssessmentResult } from "../../lib/ucCreditAssessment";
+import { capturePostHogEvent } from "../../lib/posthog";
 import {
-  assessUcShortlistCredit,
-  hasUcTranscriptStudyEvidence,
-  isBillShortenUcCreditDemoFixture,
-  prepareUcCreditAssessment,
-  resolveUcTranscriptAssessmentForApplication,
-  type UcCreditAssessmentResult,
-} from "../../lib/ucCreditAssessment";
-import { sleep } from "../../lib/utils";
+  AssessmentStorageError,
+  createAssessmentStorageAdapter,
+} from "../../lib/assessment/storageAdapter";
 import {
   assessUcAdmission,
   formatUcExperienceDuration,
@@ -76,39 +67,11 @@ import type { UcRplAssessmentStage } from "./ucRplAssessmentStage";
 type MatchFilter = "best_match" | "needs_review" | "all";
 
 interface UcRplCourseMatcherProps {
+  assessmentSessionId: string | null;
   courses: CourseCatalogEntry[];
+  invitationToken: string;
   onStageChange: (stage: UcRplAssessmentStage) => void;
   stage: UcRplAssessmentStage;
-}
-
-function requestUcTranscriptAssessment(options: {
-  accessToken: string;
-  draft: CvRecognitionDraft;
-  shortlist: UcCourseMatch[];
-  transcriptFile: File;
-}) {
-  const { accessToken, draft, shortlist, transcriptFile } = options;
-
-  return evaluateTranscriptEligibility(
-    transcriptFile,
-    {
-      courseCode: shortlist.map((match) => match.course.code).join(","),
-      courseTitle: shortlist.map((match) => match.course.title).join("; "),
-      cvUploaded: true,
-      employmentCount: draft.experiences.filter(
-        (experience) => experience.includeInAssessment,
-      ).length,
-    },
-    { accessToken, ucCreditAssessment: true },
-  ).then((assessment) => {
-    if (!hasUcTranscriptStudyEvidence(assessment)) {
-      throw new Error(
-        "We couldn’t identify enough study information in this transcript. Try a clearer file or a transcript that lists your course and units.",
-      );
-    }
-
-    return assessment;
-  });
 }
 
 const CONFIDENCE_BADGE: Record<
@@ -208,6 +171,12 @@ function IntroState({
           <p className="mt-6 flex items-start gap-2 text-sm leading-6 text-slate-600">
             <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             This is a guide only, not an admission offer or credit decision.
+          </p>
+          <p className="mt-3 text-xs leading-5 text-slate-500">
+            When you upload, your invitation authorises one secure AI-assisted CV
+            extraction so you can review the drafted fields. Before sign-in, the
+            file and extracted content are not stored by the assessment service.
+            You choose what to confirm before anything enters a resumable session.
           </p>
         </div>
 
@@ -639,7 +608,9 @@ function ResultsState({
 }
 
 export function UcRplCourseMatcher({
+  assessmentSessionId,
   courses,
+  invitationToken,
   onStageChange,
   stage,
 }: UcRplCourseMatcherProps) {
@@ -647,6 +618,10 @@ export function UcRplCourseMatcher({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { beginCourseApplication } = useApplication();
   const { isAuthenticated, session, userEmail } = useAuth();
+  const assessmentStorageAdapter = useMemo(
+    () => createAssessmentStorageAdapter(session),
+    [session],
+  );
   const [draft, setDraft] = useState<CvRecognitionDraft | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -661,10 +636,6 @@ export function UcRplCourseMatcher({
     useState<UcCreditAssessmentStatus>("ready");
   const [transcriptFile, setTranscriptFile] = useState<File | null>(null);
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
-  const [transcriptAssessment, setTranscriptAssessment] =
-    useState<TranscriptEligibilityAssessment | null>(null);
-  const transcriptAssessmentRequestRef =
-    useRef<Promise<TranscriptEligibilityAssessment> | null>(null);
   const [assessmentResults, setAssessmentResults] = useState(
     new Map<string, UcCreditAssessmentResult>(),
   );
@@ -716,21 +687,28 @@ export function UcRplCourseMatcher({
     setAssessmentError(null);
     setAssessmentResults(new Map());
     setAssessmentStatus("ready");
-    setTranscriptAssessment(null);
-    transcriptAssessmentRequestRef.current = null;
     setShortlistedCourseCodes([]);
     setTranscriptFile(null);
     setSelectedFile(file);
     onStageChange("parsing");
 
     try {
-      const parsed = await parseCvForRecognition(file);
+      const parsed = await parseCvForRecognition(file, {
+        pilotInvitationToken: invitationToken,
+      });
       if (parsed.experiences.length === 0) {
         throw new Error("We couldn't find any employment roles in this CV.");
       }
       setDraft(parsed);
       onStageChange("review");
     } catch (parseError) {
+      capturePostHogEvent("assessment_failed", {
+        error_code:
+          parseError instanceof AssessmentStorageError
+            ? parseError.code ?? "ASSESSMENT_CV_PARSE_FAILED"
+            : "ASSESSMENT_CV_PARSE_FAILED",
+        stage: "cv_parse",
+      });
       setError(
         parseError instanceof Error && parseError.message.includes("employment roles")
           ? parseError.message
@@ -762,11 +740,18 @@ export function UcRplCourseMatcher({
     setAssessmentStatus("ready");
     setAssessmentError(null);
     setAssessmentResults(new Map());
-    setTranscriptAssessment(null);
-    transcriptAssessmentRequestRef.current = null;
     setTranscriptFile(null);
 
     if (next.length === 3 && shortlistedCourseCodes.length !== 3) {
+      capturePostHogEvent("assessment_shortlist_completed", {
+        course_count: next.length,
+        governed_course_count: next.filter((courseCode) =>
+          matches.some(
+            (match) =>
+              match.course.code === courseCode && match.creditPoints !== null,
+          ),
+        ).length,
+      });
       window.requestAnimationFrame(() => {
         document
           .getElementById("uc-credit-assessment-heading")
@@ -781,6 +766,12 @@ export function UcRplCourseMatcher({
     if (!isAuthenticated) {
       setAuthIntent("credit");
       setShowAuthModal(true);
+      return;
+    }
+    if (!assessmentSessionId) {
+      setAssessmentError(
+        "Your pilot session is still being prepared. Wait a moment and try again.",
+      );
       return;
     }
 
@@ -798,8 +789,7 @@ export function UcRplCourseMatcher({
       return;
     }
 
-    const accessToken = session?.access_token;
-    if (!isAuthenticated || !accessToken) {
+    if (!isAuthenticated || !session?.access_token) {
       setAuthIntent("credit");
       setShowAuthModal(true);
       return;
@@ -809,69 +799,65 @@ export function UcRplCourseMatcher({
     setAssessmentStatus("processing");
 
     try {
-      const usesFastDemoAssessment =
-        isDemoMode &&
-        isBillShortenUcCreditDemoFixture(shortlist, draft.profile);
-      let parsedTranscriptAssessment: TranscriptEligibilityAssessment | null = null;
-      const parserAssessment = requestUcTranscriptAssessment({
-        accessToken,
-        draft,
-        shortlist,
-        transcriptFile,
-      }).then((assessment) => {
-        parsedTranscriptAssessment = assessment;
-        if (
-          usesFastDemoAssessment &&
-          transcriptAssessmentRequestRef.current === parserAssessment
-        ) {
-          setTranscriptAssessment(assessment);
-        }
-        return assessment;
-      });
-      transcriptAssessmentRequestRef.current = parserAssessment;
-      const assessmentRun = prepareUcCreditAssessment({
-        parserAssessment,
-        usesFastDemoAssessment,
-        wait: sleep,
-      });
-
-      if (usesFastDemoAssessment) {
-        void parserAssessment.catch((backgroundFailure) => {
-          if (transcriptAssessmentRequestRef.current === parserAssessment) {
-            console.error(
-              "Failed to parse the UC demo transcript in the background",
-              backgroundFailure,
-            );
-          }
-        });
-      }
-
-      const transcriptAssessment = await assessmentRun.cardAssessment;
-
-      if (!hasUcTranscriptStudyEvidence(transcriptAssessment)) {
-        throw new Error(
-          "We couldn’t identify enough study information in this transcript. Try a clearer file or a transcript that lists your course and units.",
+      if (!assessmentSessionId || !selectedFile) {
+        throw new AssessmentStorageError(
+          "Your pilot session is not ready. Refresh the invitation and try again.",
+          409,
         );
       }
-
-      const results = assessUcShortlistCredit(shortlist, transcriptAssessment, {
-        applicant: draft.profile,
-      });
-      setTranscriptAssessment(parsedTranscriptAssessment ?? transcriptAssessment);
+      await Promise.all([
+        assessmentStorageAdapter.saveSession(assessmentSessionId, {
+          confirmedCv: draft,
+          shortlistCourseCodes: shortlist.map((match) => match.course.code),
+          status: "transcript",
+        }),
+        assessmentStorageAdapter.uploadDocument(
+          assessmentSessionId,
+          "cv",
+          selectedFile,
+        ),
+      ]);
+      const evaluated = await assessmentStorageAdapter.evaluateTranscript(
+        assessmentSessionId,
+        transcriptFile,
+      );
+      const results: UcCreditAssessmentResult[] = evaluated.results.map((result) => ({
+        ...result,
+        evidenceSummary:
+          result.potentialCreditPoints === null
+            ? result.manualReviewReasons[0] ?? "UC review is required."
+            : `Based only on ${result.matchedTranscriptEvidence.length} mapped transcript units. UC must confirm any formal credit.`,
+      }));
       setAssessmentResults(
         new Map(results.map((result) => [result.courseCode, result])),
       );
       setAssessmentStatus("complete");
+      capturePostHogEvent("assessment_evaluation_completed", {
+        manual_review_count: results.filter(
+          (result) =>
+            result.potentialCreditPoints === null || result.confidence === "low",
+        ).length,
+        numeric_guidance_count: results.filter(
+          (result) => result.potentialCreditPoints !== null,
+        ).length,
+        result_count: results.length,
+      });
       window.requestAnimationFrame(() => {
         document
           .getElementById(`course-card-title-${shortlist[0]?.course.code}`)
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     } catch (assessmentFailure) {
-      transcriptAssessmentRequestRef.current = null;
       console.error("Failed to complete UC credit assessment", assessmentFailure);
+      capturePostHogEvent("assessment_failed", {
+        error_code:
+          assessmentFailure instanceof AssessmentStorageError
+            ? assessmentFailure.code ?? "ASSESSMENT_EVALUATION_FAILED"
+            : "ASSESSMENT_EVALUATION_FAILED",
+        stage: "evaluation",
+      });
       if (
-        assessmentFailure instanceof TranscriptEligibilityRequestError &&
+        assessmentFailure instanceof AssessmentStorageError &&
         assessmentFailure.status === 401
       ) {
         setAssessmentError("Your session expired. Sign in again to continue.");
@@ -889,7 +875,7 @@ export function UcRplCourseMatcher({
   }
 
   const startApplication = useCallback(async (match: UcCourseMatch) => {
-    if (!draft || !selectedFile || startingCourseCode) return;
+    if (!draft || !assessmentSessionId || startingCourseCode) return;
     if (!isAuthenticated) {
       setPendingStartMatch(match);
       setAuthIntent("application");
@@ -900,34 +886,6 @@ export function UcRplCourseMatcher({
     setStartingCourseCode(match.course.code);
 
     try {
-      let applicationTranscriptAssessment = transcriptAssessment;
-
-      if (transcriptFile) {
-        const accessToken = session?.access_token;
-        if (!accessToken) {
-          throw new TranscriptEligibilityRequestError(
-            "Your session expired. Sign in again to continue.",
-            401,
-          );
-        }
-
-        applicationTranscriptAssessment =
-          await resolveUcTranscriptAssessmentForApplication({
-            parserAssessment: transcriptAssessmentRequestRef.current,
-            startParserAssessment: () => {
-              const retryAssessment = requestUcTranscriptAssessment({
-                accessToken,
-                draft,
-                shortlist,
-                transcriptFile,
-              });
-              transcriptAssessmentRequestRef.current = retryAssessment;
-              return retryAssessment;
-            },
-          });
-        setTranscriptAssessment(applicationTranscriptAssessment);
-      }
-
       await beginCourseApplication(
         {
           code: match.course.code,
@@ -937,18 +895,25 @@ export function UcRplCourseMatcher({
         },
         {
           authenticatedEmail: userEmail,
-          cvFile: selectedFile,
+          assessmentSessionId,
           startFresh: true,
-          ucCvPrefill: draft,
-          ucTranscriptFile: transcriptFile ?? undefined,
-          ucTranscriptPrefill: applicationTranscriptAssessment ?? undefined,
         },
       );
+      capturePostHogEvent("assessment_application_started", {
+        governed_course: match.creditPoints !== null,
+      });
       navigate("/overview");
     } catch (startError) {
       console.error("Failed to start application from UC recognition assessment", startError);
+      capturePostHogEvent("assessment_failed", {
+        error_code:
+          startError instanceof AssessmentStorageError
+            ? startError.code ?? "ASSESSMENT_APPLICATION_START_FAILED"
+            : "ASSESSMENT_APPLICATION_START_FAILED",
+        stage: "application_start",
+      });
       if (
-        startError instanceof TranscriptEligibilityRequestError &&
+        startError instanceof AssessmentStorageError &&
         startError.status === 401
       ) {
         setError("Your session expired. Sign in again to continue.");
@@ -967,20 +932,21 @@ export function UcRplCourseMatcher({
     }
   }, [
     beginCourseApplication,
+    assessmentSessionId,
     draft,
     isAuthenticated,
     navigate,
-    selectedFile,
-    session,
-    shortlist,
     startingCourseCode,
-    transcriptAssessment,
-    transcriptFile,
     userEmail,
   ]);
 
   useEffect(() => {
-    if (!awaitingAuthenticatedStart || !isAuthenticated || !pendingStartMatch) {
+    if (
+      !awaitingAuthenticatedStart ||
+      !isAuthenticated ||
+      !assessmentSessionId ||
+      !pendingStartMatch
+    ) {
       return;
     }
 
@@ -990,6 +956,7 @@ export function UcRplCourseMatcher({
     void startApplication(match);
   }, [
     awaitingAuthenticatedStart,
+    assessmentSessionId,
     isAuthenticated,
     pendingStartMatch,
     startApplication,
@@ -1021,15 +988,21 @@ export function UcRplCourseMatcher({
           draft={draft}
           fileName={selectedFile.name}
           onChange={setDraft}
-          onContinue={() => onStageChange("results")}
+          onContinue={() => {
+            capturePostHogEvent("assessment_cv_reviewed", {
+              included_role_count: includedRoleCount,
+              qualification_count:
+                draft.tertiaryQualifications.length +
+                draft.secondaryQualifications.length,
+            });
+            onStageChange("results");
+          }}
           onStartOver={() => {
             setDraft(null);
             setSelectedFile(null);
             setShortlistedCourseCodes([]);
             setAssessmentResults(new Map());
             setAssessmentStatus("ready");
-            setTranscriptAssessment(null);
-            transcriptAssessmentRequestRef.current = null;
             setTranscriptFile(null);
             onStageChange("intro");
           }}
@@ -1048,14 +1021,10 @@ export function UcRplCourseMatcher({
               onAssess={() => void runCreditAssessment()}
               onClearTranscript={() => {
                 setAssessmentError(null);
-                setTranscriptAssessment(null);
-                transcriptAssessmentRequestRef.current = null;
                 setTranscriptFile(null);
               }}
               onFileSelect={(file) => {
                 setAssessmentError(null);
-                setTranscriptAssessment(null);
-                transcriptAssessmentRequestRef.current = null;
                 setTranscriptFile(file);
               }}
               onRequestAssessment={requestCreditAssessment}
@@ -1079,8 +1048,8 @@ export function UcRplCourseMatcher({
 
       {showAuthModal ? (
         <AuthModal
+          allowSignUp={false}
           context={authIntent === "credit" ? "eligibility" : "apply"}
-          signUpRedirectPath="/"
           onAuthenticated={() => {
             setShowAuthModal(false);
             if (authIntent === "credit") {

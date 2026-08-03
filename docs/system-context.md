@@ -2,7 +2,7 @@
 schema_version: 1
 document_type: system_context
 status: active
-last_verified: 2026-07-15
+last_verified: 2026-08-04
 authoritative_for:
   - runtime_topology
   - repository_and_module_ownership
@@ -45,8 +45,10 @@ maintain a separate current-phase list.
 | Application data | Browser → `ApplicationStorageAdapter` → Supabase Postgres | Applications require authentication. Supabase and the submit RPC are authoritative. |
 | Documents | Browser → shared document layer → Supabase Storage/Postgres | Product flows require authentication. A legacy IndexedDB implementation still exists pending Phase 2 removal. |
 | Submission | Browser validation → remote store → `submit_application` RPC | The server is final authority; browser checks are a UX mirror. |
-| CV parsing | Browser → `/api/parse-cv` → OpenAI | The app API owns CV extraction orchestration. Ordinary application parsing requires authentication. The UC pre-application assessment may parse anonymously without persistence; authentication is required before starting or saving an application. |
-| Transcript evidence | Browser → `/api/evaluate-transcript-eligibility` → `eligibility-service` → OpenAI | The service extracts evidence; the Applications proxy owns program decisions. Ordinary application evidence is persisted through the application flow. The authenticated UC demo credit comparison may process one transcript ephemerally without creating a draft. After the applicant explicitly starts an application, the file is attached to the matching qualification through the shared authenticated document layer, extracted study fields may prefill blank qualification data, and Applications rematches that evidence to the selected course on the qualifications hub. A local app OpenAI fallback still exists pending Phase 3 removal. |
+| CV parsing | Browser → `/api/parse-cv` → OpenAI | The app API owns CV extraction orchestration. Ordinary application parsing requires authentication. An activated treatment invitation may parse one anonymous CV ephemerally under the shared database rate limit; the route does not persist the file or extracted content. |
+| UC assessment | Browser → `AssessmentStorageAdapter` → `/api/assessment/*` → pilot Supabase | Only the invitation-assigned treatment cohort enters `/assessment`. Transcript upload and resumable state require the pre-invited authenticated account. Trusted results are calculated server-side from transcript evidence and versioned, UC-approved mappings; ungoverned, expired, unapproved, insufficient, and low-confidence cases fail to manual review. |
+| Staff assessment review | Browser → `/staff/reviews` → `/api/staff/*` → pilot Supabase | Active partner role and AAL2 are enforced at the route, API, RLS, document, action, and export boundaries. Every access/action is audited. Reviewers cannot edit applicant evidence or make formal decisions. |
+| Transcript evidence | Browser → `/api/evaluate-transcript-eligibility` → `eligibility-service` → OpenAI | The service extracts evidence; the Applications proxy owns program decisions. Ordinary application evidence is persisted through the application flow. The treatment assessment stores passed-scan evidence in a private assessment scope, then promotes it through the shared application document system only after an explicit application start. A local app OpenAI fallback still exists pending Phase 3 removal. |
 | Suggestions | Browser → `/api/suggest/*` → `suggest-service` | The service owns institution/address suggestions. Local lists remain as a legacy fallback pending Phase 3 removal. |
 | Analytics | Browser/API → PostHog | Typed analytics wrappers own event shape and privacy controls. |
 | Monitoring | Browser/API → Sentry | Monitoring is fail-open and must not own applicant-flow decisions. |
@@ -73,6 +75,8 @@ recorded here. Verify those through the commands in
 | Browser auth/session | `src/context/AuthContext.tsx` and shared route gates | Pages and features through `useAuth` | Page-local session listeners or auth gates. |
 | Application shape | `src/lib/applicationData.ts` | Context, validation, persistence mappers | Parallel page-specific application models. |
 | Application persistence | `src/lib/applicationStorageAdapter.ts` | Application context/hooks | Pages importing remote stores or branching storage modes. |
+| Assessment persistence | `src/lib/assessment/storageAdapter.ts` and assessment APIs | Assessment UI and application handoff | UI importing pilot persistence or accepting client-supplied outcomes as authoritative. |
+| Assessment governance | `src/lib/assessment/ucGovernance.ts` | Assessment APIs and advisory UI | Identity rules, course-length estimates, CV-derived points, or unapproved numeric guidance. |
 | Submission permission | Supabase `submit_application` and `application_submission_missing_fields` | Client validation as a UX mirror | Treating client readiness as final authority. |
 | Document save/delivery | `src/lib/documentStorage.ts`, `src/lib/storage/*`, `/api/document-delivery` | Shared upload fields and Section 2 save orchestration | Page-local upload, storage, or delivery implementations. |
 | Parser orchestration | `api/_documentParser/*` and registered client policies | Kind-specific parsers | Copying upload/save orchestration per document kind. |
@@ -93,6 +97,7 @@ generated or protected by an executable contract check.
 | English-country and AHPRA constants in TypeScript and SQL | Eligibility rules package | SQL cannot import TypeScript directly | `submitPolicyContract.test.ts`. |
 | Client upload limits vs database/storage limits | Supabase constraints | Friendly preflight plus hard backend limits | Upload-limit and storage-integrity tests. |
 | Consumer service-contract snapshot | Provider-published contract | Compatibility testing at the caller | Contract tests; provider publication/pinning completes in Phase 3. |
+| UC course guidance config vs reviewed catalogue sources | UC-approved versioned rules | Reproducible assessment and staff review | Source-age CI check, approval/version gate, cap tests, and persisted versions. |
 
 No other business-rule duplication is implicitly permitted.
 
