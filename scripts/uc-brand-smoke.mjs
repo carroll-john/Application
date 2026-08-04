@@ -101,6 +101,19 @@ try {
     for (const route of routes) {
       consoleErrors.length = 0;
       await page.goto(`${baseUrl}${route}`, { waitUntil: "networkidle" });
+      if (route === "/") {
+        const currentUrl = new URL(page.url());
+        if (currentUrl.pathname !== "/assessment") {
+          failures.push(
+            `${viewport.name} ${route}: local UC entry did not open the assessment`,
+          );
+        }
+        if (currentUrl.searchParams.has("invite")) {
+          failures.push(
+            `${viewport.name} ${route}: local UC entry still requires an invitation link`,
+          );
+        }
+      }
       const result = await page.evaluate(() => {
         const isVisible = (element) => element.getClientRects().length > 0;
         const radius = (element) =>

@@ -73,7 +73,6 @@ interface UcRplCourseMatcherProps {
   onStageChange: (stage: UcRplAssessmentStage) => void;
   stage: UcRplAssessmentStage;
 }
-
 const CONFIDENCE_BADGE: Record<
   UcCourseMatch["entryConfidence"],
   { label: string; tone: "neutral" | "success" | "warning" }
@@ -154,6 +153,7 @@ function IntroState({
             ref={fileInputRef}
             className="sr-only rounded-full"
             type="file"
+            aria-label="Upload your CV"
             accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
             onChange={(event) => {
               onChooseFile(event.target.files?.[0] ?? null);
@@ -173,10 +173,10 @@ function IntroState({
             This is a guide only, not an admission offer or credit decision.
           </p>
           <p className="mt-3 text-xs leading-5 text-slate-500">
-            When you upload, your invitation authorises one secure AI-assisted CV
-            extraction so you can review the drafted fields. Before sign-in, the
-            file and extracted content are not stored by the assessment service.
-            You choose what to confirm before anything enters a resumable session.
+            When you upload, we use one secure AI-assisted CV extraction so you
+            can review the drafted fields. Before sign-in, the file and extracted
+            content are not stored by the assessment service. You choose what to
+            confirm before anything enters a resumable session.
           </p>
         </div>
 

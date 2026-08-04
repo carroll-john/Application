@@ -9,6 +9,7 @@ import {
   AssessmentStorageError,
   createAssessmentStorageAdapter,
 } from "../lib/assessment/storageAdapter";
+import { resolveAssessmentInvitationToken } from "../lib/assessment/localPreview";
 import type { PilotActivation } from "../lib/assessment/types";
 import { getCourseCatalogFor } from "../lib/courseCatalog";
 import {
@@ -18,7 +19,9 @@ import {
 
 export default function Assessment() {
   const [searchParams] = useSearchParams();
-  const invitationToken = searchParams.get("invite")?.trim() ?? "";
+  const invitationToken = resolveAssessmentInvitationToken(
+    searchParams.get("invite") ?? "",
+  );
   const { session } = useAuth();
   const adapter = useMemo(() => createAssessmentStorageAdapter(session), [session]);
   const [activation, setActivation] = useState<PilotActivation | null>(null);

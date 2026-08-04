@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AppBrandHeader } from "../components/AppBrandHeader";
 import { AppBrandFooter } from "../components/AppBrandFooter";
 import {
@@ -11,6 +11,7 @@ import {
   type CourseCategoryFilter,
 } from "../features/course";
 import { isUcBrand } from "../lib/brand";
+import { isLocalUcAssessmentPreview } from "../lib/assessment/localPreview";
 import { getCourseBrowseResultsState } from "../lib/courseBrowse";
 import { getCourseCatalog } from "../lib/courseCatalog";
 
@@ -71,6 +72,10 @@ export default function CourseList() {
   function clearFilters() {
     setSearchQuery("");
     setActiveCategory("All");
+  }
+
+  if (isLocalUcAssessmentPreview()) {
+    return <Navigate replace to="/assessment" />;
   }
 
   return (
