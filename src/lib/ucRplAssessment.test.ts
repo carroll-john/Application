@@ -405,6 +405,109 @@ describe("UC course matching", () => {
     expect(mba?.relevanceScore).toBe(0);
     expect(mba?.creditConfidence).toBe("low");
   });
+
+  it("gives the synthetic Maya persona comparable education matches from an incomplete bachelor", () => {
+    const experiences = [
+      {
+        ...role({
+          endYear: "",
+          id: "learning-development-lead",
+          level: 1,
+          occupation: "Training and Development Professional",
+          startYear: "2023",
+        }),
+        company: "BrightPath Learning",
+        currentRole: true,
+        duties:
+          "Leads workplace education and learning strategy, manages capability programs, evaluates learner outcomes and develops team leaders.",
+        oscaOccupationCode: "222431",
+        position: "Learning and Development Lead",
+      },
+      {
+        ...role({
+          endYear: "2022",
+          id: "project-coordinator",
+          level: 2,
+          occupation: "Program or Project Administrator",
+          startYear: "2020",
+        }),
+        company: "CivicConnect Services",
+        duties:
+          "Coordinated a digital learning project, milestones, communications, records and stakeholder reporting.",
+        oscaOccupationCode: "511231",
+        position: "Project Coordinator",
+      },
+      {
+        ...role({
+          endYear: "2019",
+          id: "customer-support-adviser",
+          level: 4,
+          occupation: "Call or Contact Centre Operator",
+          startYear: "2018",
+        }),
+        company: "CivicConnect Services",
+        duties:
+          "Answered customer enquiries, provided guided support, maintained records and escalated complex cases.",
+        oscaOccupationCode: "551131",
+        position: "Customer Support Adviser",
+      },
+    ];
+    const recognition = draft(experiences);
+    recognition.profile = {
+      ...recognition.profile,
+      firstName: "Maya",
+      lastName: "Patel",
+    };
+    recognition.tertiaryQualifications = [
+      {
+        id: "incomplete-business-bachelor",
+        completed: false,
+        country: "Australia",
+        courseName: "Bachelor of Business (Management)",
+        endMonth: "August",
+        endYear: "2025",
+        institution: "Harbour City University",
+        level: "Bachelor",
+        startMonth: "February",
+        startYear: "2024",
+      },
+    ];
+
+    const admission = assessUcAdmission(
+      experiences,
+      new Date("2026-08-01T00:00:00Z"),
+    );
+    const summaries = summarizeUcExperienceByOscaLevel(
+      experiences,
+      new Date("2026-08-01T00:00:00Z"),
+    );
+    const matches = rankUcCourses(
+      getCourseCatalogFor("uc"),
+      recognition,
+      admission,
+    );
+    const educationLeadership = matches.find(
+      (match) => match.course.title === "Master of Education (Leadership)",
+    );
+
+    expect(admission).toMatchObject({
+      equivalentGpa: 5,
+      occupationCode: "222431",
+      skillLevel: 1,
+      status: "may_meet",
+    });
+    expect(summaries.map((summary) => summary.key)).toEqual([
+      "level-1",
+      "level-2",
+      "level-4",
+    ]);
+    expect(matches[0].course.title).toBe("Master of Education (Leadership)");
+    expect(educationLeadership).toMatchObject({
+      category: "best_match",
+      creditConfidence: "high",
+      entryConfidence: "high",
+    });
+  });
 });
 
 describe("UC CV application prefill", () => {

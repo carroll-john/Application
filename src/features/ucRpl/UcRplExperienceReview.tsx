@@ -32,6 +32,22 @@ interface UcRplExperienceReviewProps {
   onStartOver: () => void;
 }
 
+export function formatUcExtractedQualificationDetail(
+  qualification: CvRecognitionDraft["tertiaryQualifications"][number],
+) {
+  const completionDetail = qualification.completed
+    ? qualification.endYear
+      ? `Completed ${qualification.endYear}`
+      : "Completed"
+    : qualification.endYear
+      ? `Incomplete (ended ${qualification.endYear})`
+      : "Incomplete";
+
+  return [qualification.level, qualification.institution, completionDetail]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function formatRolePeriod(role: CvRecognitionDraft["experiences"][number]) {
   const start = [role.startMonth, role.startYear].filter(Boolean).join(" ");
   const end = role.currentRole
@@ -245,13 +261,7 @@ function QualificationsFound({ draft }: { draft: CvRecognitionDraft }) {
 
   const rows = [
     ...draft.tertiaryQualifications.map((qualification) => ({
-      detail: [
-        qualification.level,
-        qualification.institution,
-        qualification.endYear ? `Completed ${qualification.endYear}` : "",
-      ]
-        .filter(Boolean)
-        .join(" · "),
+      detail: formatUcExtractedQualificationDetail(qualification),
       icon: GraduationCap,
       id: qualification.id,
       kind: "Tertiary qualification",
