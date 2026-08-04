@@ -8,8 +8,10 @@ import {
   getUcCourseMatchExperienceSummary,
   getUcExperienceGroupLabel,
   getUcExperienceReviewGuidance,
+  getUcExperienceReviewSummary,
   getUcIndicativeCreditPoints,
   getUcWorkEntryGuidance,
+  getUcWorkEntryGuidanceDetail,
   rankUcCourses,
   summarizeUcExperienceByOscaLevel,
   type CvRecognitionDraft,
@@ -210,6 +212,34 @@ describe("UC OSCA experience review summaries", () => {
       "UC will review this experience",
     );
     expect(getUcWorkEntryGuidance(null, 120)).toBe("More details needed");
+
+    expect(getUcWorkEntryGuidanceDetail(2, 24)).toBe(
+      "2 years meets UC’s two-year experience guide.",
+    );
+    expect(getUcWorkEntryGuidanceDetail(2, 0)).toBe(
+      "Check the role dates before continuing.",
+    );
+  });
+
+  it("turns the experience assessment into a scannable review summary", () => {
+    const summaries = summarizeUcExperienceByOscaLevel(
+      [
+        role({ endYear: "2026", id: "senior", level: 1, startYear: "2023" }),
+        role({ endYear: "2026", id: "technical", level: 2, startYear: "2024" }),
+        role({ endYear: "2026", id: "operational", level: 4, startYear: "2025" }),
+      ],
+      now,
+    );
+
+    const summary = getUcExperienceReviewSummary(summaries);
+
+    expect(summary.headline).toBe("Your experience may support direct entry");
+    expect(summary.points).toHaveLength(3);
+    expect(summary.points[0]).toContain("work-experience pathway");
+    expect(summary.points[1]).toContain("meets UC’s two-year experience guide");
+    expect(summary.points[2]).toBe(
+      "1 other role will be considered by UC Admissions alongside the course requirements.",
+    );
   });
 
   it("tailors the review guidance to senior experience found in the CV", () => {

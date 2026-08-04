@@ -99,6 +99,14 @@ describe("UcRplExperienceReview qualifications", () => {
     const html = renderReview(recognitionDraft());
 
     expect(html).toContain("We found the roles below in your CV");
+    expect(html).toContain("Indicative guidance");
+    expect(html).toContain("Your experience may support direct entry");
+    expect(html).toContain("Experience counted");
+    expect(html).toContain("Entry guidance");
+    expect(html).toContain("Review roles");
+    expect(html).not.toContain(
+      "Given your experience in senior and highly specialised roles",
+    );
     expect(html).not.toContain("Qualifications found in your CV");
     expect(html).not.toContain("0 found");
     expect(html).not.toContain("No qualifications were listed in this CV");
