@@ -56,6 +56,9 @@ The UC pre-application course-matching flow calls `/api/parse-cv` with
 before sign-in, is protected by a shared participant/IP rate limiter, and keeps
 the file and extraction ephemeral. No production parser behavior depends on an
 applicant identity. The ordinary Section 2 CV parser remains authenticated.
+Server-side extraction prefers a direct `OPENAI_API_KEY` when configured and
+otherwise accepts the isolated Vercel project's `AI_GATEWAY_API_KEY` or
+short-lived `VERCEL_OIDC_TOKEN`; browser code never receives these credentials.
 
 ### Course-specific work-experience assessment
 

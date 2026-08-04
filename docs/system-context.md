@@ -45,7 +45,7 @@ maintain a separate current-phase list.
 | Application data | Browser → `ApplicationStorageAdapter` → Supabase Postgres | Applications require authentication. Supabase and the submit RPC are authoritative. |
 | Documents | Browser → shared document layer → Supabase Storage/Postgres | Product flows require authentication. A legacy IndexedDB implementation still exists pending Phase 2 removal. |
 | Submission | Browser validation → remote store → `submit_application` RPC | The server is final authority; browser checks are a UX mirror. |
-| CV parsing | Browser → `/api/parse-cv` → OpenAI | The app API owns CV extraction orchestration. Ordinary application parsing requires authentication. An activated treatment invitation may parse one anonymous CV ephemerally under the shared database rate limit; the route does not persist the file or extracted content. |
+| CV parsing | Browser → `/api/parse-cv` → OpenAI Responses API (direct or isolated Vercel AI Gateway) | The app API owns CV extraction orchestration. Ordinary application parsing requires authentication. An activated treatment invitation may parse one anonymous CV ephemerally under the shared database rate limit; the route does not persist the file or extracted content. |
 | UC assessment | Browser → `AssessmentStorageAdapter` → `/api/assessment/*` → pilot Supabase | Only the invitation-assigned treatment cohort enters `/assessment`. Transcript upload and resumable state require the pre-invited authenticated account. Trusted results are calculated server-side from transcript evidence and versioned, UC-approved mappings; ungoverned, expired, unapproved, insufficient, and low-confidence cases fail to manual review. |
 | Staff assessment review | Browser → `/staff/reviews` → `/api/staff/*` → pilot Supabase | Active partner role and AAL2 are enforced at the route, API, RLS, document, action, and export boundaries. Every access/action is audited. Reviewers cannot edit applicant evidence or make formal decisions. |
 | Transcript evidence | Browser → `/api/evaluate-transcript-eligibility` → `eligibility-service` → OpenAI | The service extracts evidence; the Applications proxy owns program decisions. Ordinary application evidence is persisted through the application flow. The treatment assessment stores passed-scan evidence in a private assessment scope, then promotes it through the shared application document system only after an explicit application start. A local app OpenAI fallback still exists pending Phase 3 removal. |
@@ -60,7 +60,7 @@ maintain a separate current-phase list.
 | Supabase | Runtime dependency | Auth, Postgres, private document storage, RLS, submission RPC. |
 | `eligibility-service` | Runtime dependency | Conservative transcript evidence extraction only. It does not own final program eligibility. |
 | `suggest-service` | Runtime dependency | Institution indexing, address suggestion, and Google Places integration. |
-| OpenAI | Runtime dependency | Reached through server-side parsing/extraction routes only. |
+| OpenAI | Runtime dependency | Reached through server-side parsing/extraction routes only, either directly or through the MVP project's Vercel AI Gateway identity. |
 | Integration platform | Context only | Separate repository and release lifecycle; connects through versioned contracts, never shared tables. |
 | `aus-uni-intel` and legacy prototypes | Context only | Research or historical reference; no Applications runtime coupling. |
 

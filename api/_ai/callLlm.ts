@@ -35,16 +35,15 @@ export type {
 // Re-exported for tests; not part of the public callLlm contract.
 export { extractStructuredOutput } from "./openaiResponse.js";
 
-const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-
 async function executeOpenAiRequest(
   apiKey: string,
+  responsesUrl: string,
   requestBody: Record<string, unknown>,
   meta: OpenAiRequestTraceMeta,
   tracingEnabled: boolean,
 ) {
   const issue = async (span?: Sentry.Span) => {
-    const response = await fetch(OPENAI_RESPONSES_URL, {
+    const response = await fetch(responsesUrl, {
       method: "POST",
       headers: {
         authorization: `Bearer ${apiKey}`,
@@ -149,6 +148,7 @@ async function callOpenAi(request: LlmRequest): Promise<LlmResult> {
 
     let result = await executeOpenAiRequest(
       request.apiKey,
+      request.responsesUrl,
       initialBody,
       { ...baseMeta, attempt: 1 },
       request.trace.enabled,
@@ -159,6 +159,7 @@ async function callOpenAi(request: LlmRequest): Promise<LlmResult> {
       attempts = 2;
       result = await executeOpenAiRequest(
         request.apiKey,
+        request.responsesUrl,
         { ...initialBody, max_output_tokens: request.retryMaxOutputTokens },
         { ...baseMeta, attempt: 2 },
         request.trace.enabled,

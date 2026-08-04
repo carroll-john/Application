@@ -28,6 +28,7 @@ export type LlmTraceOptions = {
 export type LlmRequest = {
   provider: "openai";
   apiKey: string;
+  responsesUrl: string;
   model: string;
   prompt: LlmPrompt;
   schema: LlmSchema;

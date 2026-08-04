@@ -6,6 +6,10 @@ import {
   type RequirementInstance,
 } from "@johncarroll/eligibility-rules";
 import { callLlm } from "./_ai/callLlm.js";
+import {
+  resolveLlmModel,
+  resolveLlmRuntimeConfig,
+} from "./_ai/runtimeConfig.js";
 import { workExperienceAssessmentPromptV1 } from "./_ai/prompts/workExperienceAssessment.v1.js";
 import { workExperienceAssessmentSchemaV1 } from "./_ai/schemas/workExperienceAssessment.v1.js";
 import {
@@ -206,18 +210,20 @@ async function handleRequest(request: Request) {
     );
   }
 
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
+  const llmConfig = resolveLlmRuntimeConfig();
+  if (!llmConfig) {
     return jsonResponse({
       assessments: fallbackAssessments(requirements, roles, "Automatic assessment is unavailable."),
       source: "fallback",
     });
   }
 
-  const model =
+  const model = resolveLlmModel(
     process.env.OPENAI_WORK_EXPERIENCE_MODEL?.trim() ||
-    process.env.OPENAI_CV_PARSER_MODEL?.trim() ||
-    DEFAULT_MODEL;
+      process.env.OPENAI_CV_PARSER_MODEL?.trim() ||
+      DEFAULT_MODEL,
+    llmConfig,
+  );
   const modelInput = {
     requirements: requirements.map(({ id, params, sourceText }) => ({ id, params, sourceText })),
     roles: roles.map(({ id, position, duties }) => ({ id, position, duties })),
@@ -226,7 +232,8 @@ async function handleRequest(request: Request) {
   try {
     result = await callLlm({
       provider: "openai",
-      apiKey,
+      apiKey: llmConfig.apiKey,
+      responsesUrl: llmConfig.responsesUrl,
       model,
       prompt: workExperienceAssessmentPromptV1,
       schema: workExperienceAssessmentSchemaV1,

@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../src/lib/supabase.types";
+import { resolveLlmRuntimeConfig } from "../_ai/runtimeConfig.js";
 
 function getBearerToken(headers: Headers) {
   const authorization = headers.get("authorization")?.trim() ?? "";
@@ -36,11 +37,11 @@ export function getClientIp(request: Request) {
   return forwardedFor?.split(",")[0]?.trim() || null;
 }
 
-if (process.env.OPENAI_API_KEY?.trim() && !getSupabaseProjectConfig()) {
+if (resolveLlmRuntimeConfig() && !getSupabaseProjectConfig()) {
   console.warn(
     isDeployedEnvironment()
-      ? "[parse-cv] OPENAI_API_KEY is set but SUPABASE_URL/SUPABASE_ANON_KEY are missing on a deployed environment — the route will reject all requests with CV_PARSER_NOT_CONFIGURED until Supabase auth is configured."
-      : "[parse-cv] OPENAI_API_KEY is set but SUPABASE_URL/SUPABASE_ANON_KEY are missing — running in unauthenticated open mode (local/dev only).",
+      ? "[parse-cv] An LLM credential is set but SUPABASE_URL/SUPABASE_ANON_KEY are missing on a deployed environment — the route will reject all requests with CV_PARSER_NOT_CONFIGURED until Supabase auth is configured."
+      : "[parse-cv] An LLM credential is set but SUPABASE_URL/SUPABASE_ANON_KEY are missing — running in unauthenticated open mode (local/dev only).",
   );
 }
 
