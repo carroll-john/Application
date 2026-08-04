@@ -72,6 +72,11 @@ export interface UcOscaExperienceSummary {
   skillLevel: OscaSkillLevel | null;
 }
 
+export interface UcExperienceReviewSummary {
+  headline: string;
+  points: string[];
+}
+
 const MONTH_INDEX = new Map(
   [
     "January",
@@ -352,6 +357,33 @@ export function getUcWorkEntryGuidance(
   return "UC will review this experience";
 }
 
+export function getUcWorkEntryGuidanceDetail(
+  skillLevel: OscaSkillLevel | null,
+  experienceMonths: number,
+) {
+  const experienceAmount = formatUcExperienceAmount(experienceMonths);
+
+  if (skillLevel === 1) {
+    return "Senior or highly specialised experience can support UC’s work-experience pathway.";
+  }
+
+  if (skillLevel === 2) {
+    if (experienceMonths <= 0) {
+      return "Check the role dates before continuing.";
+    }
+
+    return experienceMonths >= 24
+      ? `${experienceAmount} meets UC’s two-year experience guide.`
+      : `${experienceAmount} is below UC’s two-year experience guide.`;
+  }
+
+  if (skillLevel === null) {
+    return "Check the matched occupation and dates before continuing.";
+  }
+
+  return "UC Admissions will consider these roles alongside the course requirements.";
+}
+
 function formatUcExperienceAmount(months: number) {
   return formatUcExperienceDuration(months).replace(/ experience$/, "");
 }
@@ -370,6 +402,77 @@ function includedRoleDescription(
   const verb = summary.includedRoleCount === 1 ? "adds" : "add";
 
   return `${summary.includedRoleCount} ${description} ${roleLabel} ${verb} up to ${formatUcExperienceAmount(summary.experienceMonths)} of experience`;
+}
+
+export function getUcExperienceReviewSummary(
+  summaries: UcOscaExperienceSummary[],
+): UcExperienceReviewSummary {
+  const includedSummaries = summaries.filter(
+    (summary) => summary.includedRoleCount > 0,
+  );
+
+  if (includedSummaries.length === 0) {
+    return {
+      headline: "Choose the roles to include",
+      points: [
+        "Select at least one role to see guidance based on your experience.",
+      ],
+    };
+  }
+
+  const senior = includedSummaries.find((summary) => summary.skillLevel === 1);
+  const technical = includedSummaries.find((summary) => summary.skillLevel === 2);
+  const otherRoleCount = includedSummaries
+    .filter((summary) => summary.skillLevel !== null && summary.skillLevel >= 3)
+    .reduce((total, summary) => total + summary.includedRoleCount, 0);
+  const needsReview = includedSummaries.find(
+    (summary) => summary.skillLevel === null,
+  );
+  const points: string[] = [];
+
+  if (senior) {
+    points.push(
+      "Your senior or highly specialised experience may support UC’s work-experience pathway.",
+    );
+  }
+
+  if (technical) {
+    const experienceAmount = formatUcExperienceAmount(
+      technical.experienceMonths,
+    );
+    points.push(
+      technical.experienceMonths >= 24
+        ? `${experienceAmount} in technical or supervisory roles meets UC’s two-year experience guide.`
+        : `${experienceAmount} in technical or supervisory roles is below UC’s two-year experience guide.`,
+    );
+  }
+
+  if (otherRoleCount > 0) {
+    points.push(
+      `${otherRoleCount} other ${otherRoleCount === 1 ? "role" : "roles"} will be considered by UC Admissions alongside the course requirements.`,
+    );
+  }
+
+  if (needsReview) {
+    points.push(
+      `${needsReview.includedRoleCount} ${needsReview.includedRoleCount === 1 ? "role needs" : "roles need"} more detail before ${needsReview.includedRoleCount === 1 ? "it can" : "they can"} be included in this guidance.`,
+    );
+  }
+
+  const supportsDirectEntry = Boolean(
+    senior || (technical && technical.experienceMonths >= 24),
+  );
+
+  return {
+    headline: supportsDirectEntry
+      ? "Your experience may support direct entry"
+      : technical
+        ? "More experience may be needed for direct entry"
+        : needsReview && otherRoleCount === 0
+          ? "Review needed before we can show guidance"
+          : "UC will review your experience",
+    points,
+  };
 }
 
 export function getUcExperienceReviewGuidance(

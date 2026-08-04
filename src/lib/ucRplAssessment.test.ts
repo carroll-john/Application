@@ -8,8 +8,10 @@ import {
   getUcCourseMatchExperienceSummary,
   getUcExperienceGroupLabel,
   getUcExperienceReviewGuidance,
+  getUcExperienceReviewSummary,
   getUcIndicativeCreditPoints,
   getUcWorkEntryGuidance,
+  getUcWorkEntryGuidanceDetail,
   rankUcCourses,
   summarizeUcExperienceByOscaLevel,
   type CvRecognitionDraft,
@@ -210,6 +212,34 @@ describe("UC OSCA experience review summaries", () => {
       "UC will review this experience",
     );
     expect(getUcWorkEntryGuidance(null, 120)).toBe("More details needed");
+
+    expect(getUcWorkEntryGuidanceDetail(2, 24)).toBe(
+      "2 years meets UC’s two-year experience guide.",
+    );
+    expect(getUcWorkEntryGuidanceDetail(2, 0)).toBe(
+      "Check the role dates before continuing.",
+    );
+  });
+
+  it("turns the experience assessment into a scannable review summary", () => {
+    const summaries = summarizeUcExperienceByOscaLevel(
+      [
+        role({ endYear: "2026", id: "senior", level: 1, startYear: "2023" }),
+        role({ endYear: "2026", id: "technical", level: 2, startYear: "2024" }),
+        role({ endYear: "2026", id: "operational", level: 4, startYear: "2025" }),
+      ],
+      now,
+    );
+
+    const summary = getUcExperienceReviewSummary(summaries);
+
+    expect(summary.headline).toBe("Your experience may support direct entry");
+    expect(summary.points).toHaveLength(3);
+    expect(summary.points[0]).toContain("work-experience pathway");
+    expect(summary.points[1]).toContain("meets UC’s two-year experience guide");
+    expect(summary.points[2]).toBe(
+      "1 other role will be considered by UC Admissions alongside the course requirements.",
+    );
   });
 
   it("tailors the review guidance to senior experience found in the CV", () => {
@@ -404,6 +434,96 @@ describe("UC course matching", () => {
     expect(mba?.category).not.toBe("best_match");
     expect(mba?.relevanceScore).toBe(0);
     expect(mba?.creditConfidence).toBe("low");
+  });
+
+  it("gives the Maya experience-only CV comparable education matches", () => {
+    const experiences = [
+      {
+        ...role({
+          endYear: "",
+          id: "learning-development-lead",
+          level: 1,
+          occupation: "Training and Development Professional",
+          startYear: "2023",
+        }),
+        company: "BrightPath Learning",
+        currentRole: true,
+        duties:
+          "Leads workplace education and learning strategy, manages capability programs, evaluates learner outcomes and develops team leaders.",
+        oscaOccupationCode: "222431",
+        position: "Learning and Development Lead",
+      },
+      {
+        ...role({
+          endYear: "2022",
+          id: "project-coordinator",
+          level: 2,
+          occupation: "Program or Project Administrator",
+          startYear: "2020",
+        }),
+        company: "CivicConnect Services",
+        duties:
+          "Coordinated a digital learning project, milestones, communications, records and stakeholder reporting.",
+        oscaOccupationCode: "511231",
+        position: "Project Coordinator",
+      },
+      {
+        ...role({
+          endYear: "2019",
+          id: "customer-support-adviser",
+          level: 4,
+          occupation: "Call or Contact Centre Operator",
+          startYear: "2018",
+        }),
+        company: "CivicConnect Services",
+        duties:
+          "Answered customer enquiries, provided guided support, maintained records and escalated complex cases.",
+        oscaOccupationCode: "551131",
+        position: "Customer Support Adviser",
+      },
+    ];
+    const recognition = draft(experiences);
+    recognition.profile = {
+      ...recognition.profile,
+      firstName: "Maya",
+      lastName: "Patel",
+    };
+    recognition.tertiaryQualifications = [];
+
+    const admission = assessUcAdmission(
+      experiences,
+      new Date("2026-08-01T00:00:00Z"),
+    );
+    const summaries = summarizeUcExperienceByOscaLevel(
+      experiences,
+      new Date("2026-08-01T00:00:00Z"),
+    );
+    const matches = rankUcCourses(
+      getCourseCatalogFor("uc"),
+      recognition,
+      admission,
+    );
+    const educationLeadership = matches.find(
+      (match) => match.course.title === "Master of Education (Leadership)",
+    );
+
+    expect(admission).toMatchObject({
+      equivalentGpa: 5,
+      occupationCode: "222431",
+      skillLevel: 1,
+      status: "may_meet",
+    });
+    expect(summaries.map((summary) => summary.key)).toEqual([
+      "level-1",
+      "level-2",
+      "level-4",
+    ]);
+    expect(matches[0].course.title).toBe("Master of Education (Leadership)");
+    expect(educationLeadership).toMatchObject({
+      category: "best_match",
+      creditConfidence: "high",
+      entryConfidence: "high",
+    });
   });
 });
 

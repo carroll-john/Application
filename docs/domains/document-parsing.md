@@ -51,10 +51,11 @@ When gating passes, parse starts in parallel with document save. Upload failure 
 
 CV persist exception: after document save, call `uploadCV` / `removeCV` (app-scoped FK on `applications.cv_document_id`).
 
-For the UC Vice-Chancellor prototype only, the supplied Bill Shorten public-profile
-demo CV receives fixed OSCA results for its seven employment roles after extraction.
-This keeps the scripted demo deterministic. Other applicants continue to use the
-duties-based model result.
+For the UC prototype only, named demo fixtures receive fixed OSCA results after
+extraction. The legacy Bill Shorten public-profile fixture remains supported, and
+the synthetic Maya Patel fixture maps its three evidenced roles across OSCA Skill
+Levels 1, 2 and 4. This keeps scripted demos deterministic. Other applicants and
+unlisted roles continue to use the duties-based model result.
 
 The UC pre-application course-matching flow calls `/api/parse-cv` with
 `flow=uc-pre-application`. That flow may run before sign-in and is rate-limited by

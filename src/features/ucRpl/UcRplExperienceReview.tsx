@@ -2,10 +2,8 @@ import {
   Award,
   BriefcaseBusiness,
   ChevronRight,
-  Clock3,
   GraduationCap,
   Info,
-  ListChecks,
   Pencil,
   School,
 } from "lucide-react";
@@ -16,8 +14,9 @@ import { Label } from "../../components/ui/label";
 import {
   formatUcExperienceDuration,
   getUcExperienceGroupLabel,
-  getUcExperienceReviewGuidance,
+  getUcExperienceReviewSummary,
   getUcWorkEntryGuidance,
+  getUcWorkEntryGuidanceDetail,
   summarizeUcExperienceByOscaLevel,
   type CvRecognitionDraft,
   type UcOscaExperienceSummary,
@@ -30,6 +29,22 @@ interface UcRplExperienceReviewProps {
   onChange: (draft: CvRecognitionDraft) => void;
   onContinue: () => void;
   onStartOver: () => void;
+}
+
+export function formatUcExtractedQualificationDetail(
+  qualification: CvRecognitionDraft["tertiaryQualifications"][number],
+) {
+  const completionDetail = qualification.completed
+    ? qualification.endYear
+      ? `Completed ${qualification.endYear}`
+      : "Completed"
+    : qualification.endYear
+      ? `Incomplete (ended ${qualification.endYear})`
+      : "Incomplete";
+
+  return [qualification.level, qualification.institution, completionDetail]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function formatRolePeriod(role: CvRecognitionDraft["experiences"][number]) {
@@ -46,6 +61,14 @@ function roleCountLabel(summary: UcOscaExperienceSummary) {
   }
 
   return `${summary.includedRoleCount} of ${summary.roles.length} roles included`;
+}
+
+function hasCvQualifications(draft: CvRecognitionDraft) {
+  return (
+    draft.tertiaryQualifications.length > 0 ||
+    draft.secondaryQualifications.length > 0 ||
+    draft.professionalAccreditations.length > 0
+  );
 }
 
 function ExperienceSummaryEditor({
@@ -171,59 +194,60 @@ function ExperienceSummaryRow({
   onEdit: () => void;
   summary: UcOscaExperienceSummary;
 }) {
-  const cellClassName =
-    "flex min-h-24 items-center gap-3 border-b border-[var(--border)] px-4 py-5 sm:min-h-28 sm:border-r xl:border-b-0";
+  const duration =
+    summary.includedRoleCount > 0
+      ? formatUcExperienceDuration(summary.experienceMonths).replace(
+          / experience$/,
+          "",
+        )
+      : "Not included";
 
   return (
     <article className="border-b border-[var(--border)] last:border-b-0">
-      <div className="grid sm:grid-cols-2 xl:grid-cols-[1.05fr_1fr_0.9fr_1.15fr_0.72fr]">
-        <div className={cellClassName}>
-          <BriefcaseBusiness
-            className="h-6 w-6 shrink-0 text-[var(--cta-secondary)]"
-            aria-hidden="true"
-          />
-          <span className="font-semibold text-slate-900">
-            {getUcExperienceGroupLabel(summary.skillLevel)}
+      <div className="grid lg:grid-cols-[minmax(0,1.25fr)_minmax(10rem,0.55fr)_minmax(0,1.1fr)_auto] lg:items-stretch">
+        <div className="flex gap-4 p-5 sm:p-6">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-slate-50 text-[var(--cta-secondary)]">
+            <BriefcaseBusiness className="h-6 w-6" aria-hidden="true" />
           </span>
+          <div className="min-w-0">
+            <h3 className="font-semibold leading-6 text-slate-950">
+              {getUcExperienceGroupLabel(summary.skillLevel)}
+            </h3>
+            <p className="mt-1 text-sm text-slate-600">{roleCountLabel(summary)}</p>
+          </div>
         </div>
-        <div className={cellClassName}>
-          <Clock3
-            className="h-6 w-6 shrink-0 text-[var(--cta-secondary)]"
-            aria-hidden="true"
-          />
-          <span className="font-semibold text-slate-900">
-            {summary.includedRoleCount > 0
-              ? formatUcExperienceDuration(summary.experienceMonths)
-              : "Not included in matching"}
-          </span>
+        <div className="border-t border-[var(--border)] px-5 py-4 sm:px-6 lg:border-l lg:border-t-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Experience counted
+          </p>
+          <p className="mt-1 text-xl font-semibold text-slate-950">{duration}</p>
         </div>
-        <div className={cellClassName}>
-          <ListChecks
-            className="h-6 w-6 shrink-0 text-[var(--cta-secondary)]"
-            aria-hidden="true"
-          />
-          <span className="font-semibold text-slate-900">
-            {roleCountLabel(summary)}
-          </span>
-        </div>
-        <div className={cellClassName}>
-          <GraduationCap
-            className="h-6 w-6 shrink-0 text-[var(--cta-secondary)]"
-            aria-hidden="true"
-          />
-          <span className="font-semibold text-slate-900">
+        <div className="border-t border-[var(--border)] bg-slate-50 px-5 py-4 sm:px-6 lg:border-l lg:border-t-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Entry guidance
+          </p>
+          <p className="mt-1 font-semibold leading-6 text-[var(--cta-secondary)]">
             {getUcWorkEntryGuidance(summary.skillLevel, summary.experienceMonths)}
-          </span>
+          </p>
+          <p className="mt-1 text-sm leading-5 text-slate-600">
+            {getUcWorkEntryGuidanceDetail(
+              summary.skillLevel,
+              summary.experienceMonths,
+            )}
+          </p>
         </div>
-        <button
-          type="button"
-          aria-expanded={isEditing}
-          className="flex min-h-20 items-center justify-center gap-2 px-4 py-5 font-semibold text-[var(--cta-secondary)] transition hover:bg-blue-50 sm:min-h-28"
-          onClick={onEdit}
-        >
-          <Pencil className="h-5 w-5" aria-hidden="true" />
-          {isEditing ? "Close" : "Edit"}
-        </button>
+        <div className="flex items-center border-t border-[var(--border)] p-5 sm:p-6 lg:border-l lg:border-t-0">
+          <Button
+            type="button"
+            aria-expanded={isEditing}
+            className="w-full whitespace-nowrap lg:w-auto"
+            variant="neutralOutline"
+            onClick={onEdit}
+          >
+            <Pencil className="h-4 w-4" aria-hidden="true" />
+            {isEditing ? "Close review" : "Review roles"}
+          </Button>
+        </div>
       </div>
       {isEditing ? (
         <ExperienceSummaryEditor
@@ -238,20 +262,9 @@ function ExperienceSummaryRow({
 }
 
 function QualificationsFound({ draft }: { draft: CvRecognitionDraft }) {
-  const qualificationCount =
-    draft.tertiaryQualifications.length +
-    draft.secondaryQualifications.length +
-    draft.professionalAccreditations.length;
-
   const rows = [
     ...draft.tertiaryQualifications.map((qualification) => ({
-      detail: [
-        qualification.level,
-        qualification.institution,
-        qualification.endYear ? `Completed ${qualification.endYear}` : "",
-      ]
-        .filter(Boolean)
-        .join(" · "),
+      detail: formatUcExtractedQualificationDetail(qualification),
       icon: GraduationCap,
       id: qualification.id,
       kind: "Tertiary qualification",
@@ -275,6 +288,8 @@ function QualificationsFound({ draft }: { draft: CvRecognitionDraft }) {
     })),
   ];
 
+  if (rows.length === 0) return null;
+
   return (
     <section
       aria-labelledby="cv-qualifications-heading"
@@ -289,7 +304,7 @@ function QualificationsFound({ draft }: { draft: CvRecognitionDraft }) {
             Qualifications found in your CV
           </h2>
           <span className="text-sm font-semibold text-slate-500">
-            {qualificationCount} found
+            {rows.length} found
           </span>
         </div>
         <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -298,33 +313,26 @@ function QualificationsFound({ draft }: { draft: CvRecognitionDraft }) {
         </p>
       </div>
 
-      {rows.length > 0 ? (
-        <div className="divide-y divide-[var(--border)]">
-          {rows.map((row) => (
-            <article key={`${row.kind}-${row.id}`} className="flex gap-4 p-5 sm:p-6">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-blue-50 text-[var(--cta-secondary)]">
-                <row.icon className="h-6 w-6" aria-hidden="true" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {row.kind}
-                </p>
-                <h3 className="mt-1 text-lg font-semibold text-slate-950">
-                  {row.title}
-                </h3>
-                {row.detail ? (
-                  <p className="mt-1 text-sm leading-6 text-slate-600">{row.detail}</p>
-                ) : null}
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <p className="p-6 text-sm leading-6 text-slate-600">
-          No qualifications were listed in this CV. You can add them later if you
-          decide to apply.
-        </p>
-      )}
+      <div className="divide-y divide-[var(--border)]">
+        {rows.map((row) => (
+          <article key={`${row.kind}-${row.id}`} className="flex gap-4 p-5 sm:p-6">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-blue-50 text-[var(--cta-secondary)]">
+              <row.icon className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {row.kind}
+              </p>
+              <h3 className="mt-1 text-lg font-semibold text-slate-950">
+                {row.title}
+              </h3>
+              {row.detail ? (
+                <p className="mt-1 text-sm leading-6 text-slate-600">{row.detail}</p>
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -346,6 +354,8 @@ export function UcRplExperienceReview({
     (experience) => experience.includeInAssessment,
   ).length;
   const displayFileName = fileName.startsWith("synthetic-") ? "Sample CV" : fileName;
+  const hasQualifications = hasCvQualifications(draft);
+  const reviewSummary = getUcExperienceReviewSummary(summaries);
 
   return (
     <section aria-labelledby="review-experience-heading" className="space-y-6">
@@ -362,8 +372,9 @@ export function UcRplExperienceReview({
               Review your experience
             </h1>
             <p className="mt-3 max-w-3xl text-lg leading-8 text-slate-600">
-              We found the roles and qualifications below in your CV. Check they
-              look right before we show you courses that may match your experience.
+              We found {hasQualifications ? "the roles and qualifications" : "the roles"}{" "}
+              below in your CV. Check they look right before we show you courses
+              that may match your experience.
             </p>
           </div>
           <Button variant="neutralOutline" onClick={onStartOver}>
@@ -384,10 +395,41 @@ export function UcRplExperienceReview({
             Your work experience
           </h2>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">
-            We’ve grouped similar roles together. If two roles happened at the same
-            time, we’ve only counted those dates once. You can review a group if
-            something doesn’t look right.
+            We grouped similar roles and counted overlapping dates once. Review any
+            group that doesn’t look right.
           </p>
+        </div>
+
+        <div className="border-b border-blue-200 bg-blue-50 p-5 sm:p-6">
+          <div className="flex gap-4">
+            <Info
+              className="mt-0.5 h-6 w-6 shrink-0 text-[var(--cta-secondary)]"
+              aria-hidden="true"
+            />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--cta-secondary)]">
+                Indicative guidance
+              </p>
+              <h3 className="mt-1 text-xl font-semibold text-slate-950">
+                {reviewSummary.headline}
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+                {reviewSummary.points.map((point) => (
+                  <li key={point} className="flex gap-3">
+                    <span
+                      className="mt-[0.65rem] h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--cta-secondary)]"
+                      aria-hidden="true"
+                    />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-4 border-t border-blue-200 pt-4 text-sm leading-6 text-slate-600">
+                UC Admissions will review your responsibilities and confirm
+                eligibility.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div>
@@ -406,17 +448,9 @@ export function UcRplExperienceReview({
             />
           ))}
         </div>
-
-        <div className="flex gap-3 border-t border-blue-200 bg-blue-50 p-5 text-sm leading-6 text-slate-700 sm:p-6">
-          <Info
-            className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
-            aria-hidden="true"
-          />
-          <p>{getUcExperienceReviewGuidance(summaries)}</p>
-        </div>
       </section>
 
-      <QualificationsFound draft={draft} />
+      {hasQualifications ? <QualificationsFound draft={draft} /> : null}
 
       <div className="content-block flex flex-col gap-4 border border-[var(--border)] bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-6 text-slate-600">

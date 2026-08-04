@@ -11,7 +11,7 @@ import {
   findExperienceArray,
   normalizeExperienceEntry,
 } from "./_documentParser/kinds/cv/extraction.js";
-import { applyBillShortenDemoOscaMatch } from "./_documentParser/kinds/cv/billShortenDemoOscaMatches.js";
+import { applyUcDemoOscaMatch } from "./_documentParser/kinds/cv/ucDemoOscaMatches.js";
 import { errorResponse, jsonResponse } from "./_documentParser/errors.js";
 import {
   decodeTextFile,
@@ -88,7 +88,7 @@ function normalizeRecognitionPayload(parsed: unknown) {
       ? rawConfidence
       : "low";
 
-    return applyBillShortenDemoOscaMatch(
+    return applyUcDemoOscaMatch(
       normalizedApplicant,
       {
         ...experience,

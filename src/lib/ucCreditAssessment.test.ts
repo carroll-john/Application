@@ -71,11 +71,61 @@ const unrelatedTranscript = normalizeTranscriptEligibilityAssessment({
   },
 });
 
+const incompleteRelatedTranscript = normalizeTranscriptEligibilityAssessment({
+  confidence: 0.96,
+  outcome: "eligible",
+  academicPerformance: {
+    unitResults: [
+      {
+        counted: true,
+        creditPoints: 6,
+        grade: "D",
+        title: "Educational Leadership and Change",
+      },
+      {
+        counted: true,
+        creditPoints: 6,
+        grade: "C",
+        title: "Learning and Development at Work",
+      },
+    ],
+  },
+  studyDetails: {
+    completionStatus: {
+      confidence: 0.99,
+      normalizedValue: "not_completed",
+      originalValue: "Course discontinued - no award conferred",
+    },
+    programName: {
+      confidence: 0.98,
+      normalizedValue: "Bachelor of Business (Management)",
+    },
+  },
+});
+
 describe("UC shortlisted-course credit assessment", () => {
   it("combines related transcript study and CV relevance into time and cost estimates", () => {
     const result = assessUcShortlistedCourseCredit(
       matchFor("Master of Education (Leadership)"),
       relatedTranscript,
+    );
+
+    expect(result).toMatchObject({
+      afterCost: 11825,
+      afterDurationMonths: 8,
+      confidence: "high",
+      originalCost: 23650,
+      originalDurationMonths: 16,
+      potentialCreditPoints: 12,
+      potentialSavings: 11825,
+    });
+    expect(result.evidenceSummary).toMatch(/prior study.*professional experience/i);
+  });
+
+  it("uses related completed units when the synthetic bachelor award is incomplete", () => {
+    const result = assessUcShortlistedCourseCredit(
+      matchFor("Master of Education (Leadership)"),
+      incompleteRelatedTranscript,
     );
 
     expect(result).toMatchObject({
