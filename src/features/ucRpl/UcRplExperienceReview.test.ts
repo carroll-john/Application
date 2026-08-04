@@ -1,6 +1,12 @@
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { TertiaryQualification } from "../../lib/applicationData";
-import { formatUcExtractedQualificationDetail } from "./UcRplExperienceReview";
+import type { CvRecognitionDraft } from "../../lib/ucRplAssessment";
+import {
+  formatUcExtractedQualificationDetail,
+  UcRplExperienceReview,
+} from "./UcRplExperienceReview";
 
 function qualification(
   overrides: Partial<TertiaryQualification> = {},
@@ -20,6 +26,56 @@ function qualification(
   };
 }
 
+function recognitionDraft(
+  overrides: Partial<CvRecognitionDraft> = {},
+): CvRecognitionDraft {
+  return {
+    experiences: [
+      {
+        id: "role-1",
+        company: "BrightPath Learning",
+        currentRole: true,
+        duties: "Leads workplace learning and capability programs.",
+        endMonth: "",
+        endYear: "",
+        includeInAssessment: true,
+        oscaConfidence: "high",
+        oscaOccupationCode: "222431",
+        oscaOccupationTitle: "Training and Development Professional",
+        oscaRationale: "The duties align with workplace learning and development.",
+        oscaSkillLevel: 1,
+        position: "Learning and Development Lead",
+        startMonth: "January",
+        startYear: "2023",
+        type: "Full-time",
+      },
+    ],
+    professionalAccreditations: [],
+    profile: {
+      firstName: "Maya",
+      lastName: "Patel",
+      middleName: "",
+      phone: "0400 555 019",
+      title: "",
+    },
+    secondaryQualifications: [],
+    tertiaryQualifications: [],
+    ...overrides,
+  };
+}
+
+function renderReview(draft: CvRecognitionDraft) {
+  return renderToStaticMarkup(
+    createElement(UcRplExperienceReview, {
+      draft,
+      fileName: "Maya-Patel-CV.pdf",
+      onChange: () => undefined,
+      onContinue: () => undefined,
+      onStartOver: () => undefined,
+    }),
+  );
+}
+
 describe("formatUcExtractedQualificationDetail", () => {
   it("does not describe an incomplete qualification as completed", () => {
     expect(formatUcExtractedQualificationDetail(qualification())).toBe(
@@ -35,5 +91,27 @@ describe("formatUcExtractedQualificationDetail", () => {
     ).toBe(
       "Bachelor Degree · Harbour City University · Completed 2025",
     );
+  });
+});
+
+describe("UcRplExperienceReview qualifications", () => {
+  it("omits the qualifications section and empty-state copy when none were found", () => {
+    const html = renderReview(recognitionDraft());
+
+    expect(html).toContain("We found the roles below in your CV");
+    expect(html).not.toContain("Qualifications found in your CV");
+    expect(html).not.toContain("0 found");
+    expect(html).not.toContain("No qualifications were listed in this CV");
+  });
+
+  it("shows the qualifications section when the CV contains a qualification", () => {
+    const html = renderReview(
+      recognitionDraft({ tertiaryQualifications: [qualification()] }),
+    );
+
+    expect(html).toContain("We found the roles and qualifications below in your CV");
+    expect(html).toContain("Qualifications found in your CV");
+    expect(html).toContain("1 found");
+    expect(html).toContain("Bachelor of Business (Management)");
   });
 });

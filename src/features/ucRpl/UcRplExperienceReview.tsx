@@ -64,6 +64,14 @@ function roleCountLabel(summary: UcOscaExperienceSummary) {
   return `${summary.includedRoleCount} of ${summary.roles.length} roles included`;
 }
 
+function hasCvQualifications(draft: CvRecognitionDraft) {
+  return (
+    draft.tertiaryQualifications.length > 0 ||
+    draft.secondaryQualifications.length > 0 ||
+    draft.professionalAccreditations.length > 0
+  );
+}
+
 function ExperienceSummaryEditor({
   draft,
   onChange,
@@ -254,11 +262,6 @@ function ExperienceSummaryRow({
 }
 
 function QualificationsFound({ draft }: { draft: CvRecognitionDraft }) {
-  const qualificationCount =
-    draft.tertiaryQualifications.length +
-    draft.secondaryQualifications.length +
-    draft.professionalAccreditations.length;
-
   const rows = [
     ...draft.tertiaryQualifications.map((qualification) => ({
       detail: formatUcExtractedQualificationDetail(qualification),
@@ -285,6 +288,8 @@ function QualificationsFound({ draft }: { draft: CvRecognitionDraft }) {
     })),
   ];
 
+  if (rows.length === 0) return null;
+
   return (
     <section
       aria-labelledby="cv-qualifications-heading"
@@ -299,7 +304,7 @@ function QualificationsFound({ draft }: { draft: CvRecognitionDraft }) {
             Qualifications found in your CV
           </h2>
           <span className="text-sm font-semibold text-slate-500">
-            {qualificationCount} found
+            {rows.length} found
           </span>
         </div>
         <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -308,33 +313,26 @@ function QualificationsFound({ draft }: { draft: CvRecognitionDraft }) {
         </p>
       </div>
 
-      {rows.length > 0 ? (
-        <div className="divide-y divide-[var(--border)]">
-          {rows.map((row) => (
-            <article key={`${row.kind}-${row.id}`} className="flex gap-4 p-5 sm:p-6">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-blue-50 text-[var(--cta-secondary)]">
-                <row.icon className="h-6 w-6" aria-hidden="true" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {row.kind}
-                </p>
-                <h3 className="mt-1 text-lg font-semibold text-slate-950">
-                  {row.title}
-                </h3>
-                {row.detail ? (
-                  <p className="mt-1 text-sm leading-6 text-slate-600">{row.detail}</p>
-                ) : null}
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <p className="p-6 text-sm leading-6 text-slate-600">
-          No qualifications were listed in this CV. You can add them later if you
-          decide to apply.
-        </p>
-      )}
+      <div className="divide-y divide-[var(--border)]">
+        {rows.map((row) => (
+          <article key={`${row.kind}-${row.id}`} className="flex gap-4 p-5 sm:p-6">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-blue-50 text-[var(--cta-secondary)]">
+              <row.icon className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                {row.kind}
+              </p>
+              <h3 className="mt-1 text-lg font-semibold text-slate-950">
+                {row.title}
+              </h3>
+              {row.detail ? (
+                <p className="mt-1 text-sm leading-6 text-slate-600">{row.detail}</p>
+              ) : null}
+            </div>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -356,6 +354,7 @@ export function UcRplExperienceReview({
     (experience) => experience.includeInAssessment,
   ).length;
   const displayFileName = fileName.startsWith("synthetic-") ? "Sample CV" : fileName;
+  const hasQualifications = hasCvQualifications(draft);
 
   return (
     <section aria-labelledby="review-experience-heading" className="space-y-6">
@@ -372,8 +371,9 @@ export function UcRplExperienceReview({
               Review your experience
             </h1>
             <p className="mt-3 max-w-3xl text-lg leading-8 text-slate-600">
-              We found the roles and qualifications below in your CV. Check they
-              look right before we show you courses that may match your experience.
+              We found {hasQualifications ? "the roles and qualifications" : "the roles"}{" "}
+              below in your CV. Check they look right before we show you courses
+              that may match your experience.
             </p>
           </div>
           <Button variant="neutralOutline" onClick={onStartOver}>
@@ -426,7 +426,7 @@ export function UcRplExperienceReview({
         </div>
       </section>
 
-      <QualificationsFound draft={draft} />
+      {hasQualifications ? <QualificationsFound draft={draft} /> : null}
 
       <div className="content-block flex flex-col gap-4 border border-[var(--border)] bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm leading-6 text-slate-600">
