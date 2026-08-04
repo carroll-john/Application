@@ -406,7 +406,7 @@ describe("UC course matching", () => {
     expect(mba?.creditConfidence).toBe("low");
   });
 
-  it("gives the synthetic Maya persona comparable education matches from an incomplete bachelor", () => {
+  it("gives the Maya experience-only CV comparable education matches", () => {
     const experiences = [
       {
         ...role({
@@ -458,20 +458,7 @@ describe("UC course matching", () => {
       firstName: "Maya",
       lastName: "Patel",
     };
-    recognition.tertiaryQualifications = [
-      {
-        id: "incomplete-business-bachelor",
-        completed: false,
-        country: "Australia",
-        courseName: "Bachelor of Business (Management)",
-        endMonth: "August",
-        endYear: "2025",
-        institution: "Harbour City University",
-        level: "Bachelor",
-        startMonth: "February",
-        startYear: "2024",
-      },
-    ];
+    recognition.tertiaryQualifications = [];
 
     const admission = assessUcAdmission(
       experiences,
