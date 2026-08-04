@@ -1,8 +1,4 @@
 import { callLlm, type LlmContent } from "./_ai/callLlm.js";
-import {
-  resolveLlmModel,
-  resolveLlmRuntimeConfig,
-} from "./_ai/runtimeConfig.js";
 import { transcriptEligibilityPromptV2 } from "./_ai/prompts/transcriptEligibility.v2.js";
 import { transcriptEligibilitySchemaV2 } from "./_ai/schemas/transcriptEligibility.v2.js";
 import {
@@ -147,9 +143,9 @@ async function evaluateWithLocalModel(
   mimeType: string,
   context: TranscriptEligibilityRequestContext,
 ) {
-  const llmConfig = resolveLlmRuntimeConfig();
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
 
-  if (!llmConfig) {
+  if (!apiKey) {
     return null;
   }
 
@@ -178,17 +174,14 @@ async function evaluateWithLocalModel(
     });
   }
 
-  const model = resolveLlmModel(
+  const model =
     process.env.OPENAI_TRANSCRIPT_ELIGIBILITY_MODEL?.trim() ||
-      process.env.OPENAI_CV_PARSER_MODEL?.trim() ||
-      DEFAULT_MODEL,
-    llmConfig,
-  );
+    process.env.OPENAI_CV_PARSER_MODEL?.trim() ||
+    DEFAULT_MODEL;
 
   const llmResult = await callLlm({
     provider: "openai",
-    apiKey: llmConfig.apiKey,
-    responsesUrl: llmConfig.responsesUrl,
+    apiKey,
     model,
     prompt: transcriptEligibilityPromptV2,
     schema: transcriptEligibilitySchemaV2,

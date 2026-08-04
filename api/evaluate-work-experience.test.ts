@@ -7,17 +7,11 @@ const AUTH_ENV_KEYS = [
   "VITE_SUPABASE_ANON_KEY",
   "VITE_SUPABASE_URL",
 ] as const;
-const LLM_ENV_KEYS = [
-  "AI_GATEWAY_API_KEY",
-  "OPENAI_API_KEY",
-  "VERCEL_OIDC_TOKEN",
-] as const;
 const originalEnv = new Map(
-  [...LLM_ENV_KEYS, ...AUTH_ENV_KEYS].map((key) => [key, process.env[key]]),
+  ["OPENAI_API_KEY", ...AUTH_ENV_KEYS].map((key) => [key, process.env[key]]),
 );
 
 beforeEach(() => {
-  for (const key of LLM_ENV_KEYS) delete process.env[key];
   for (const key of AUTH_ENV_KEYS) delete process.env[key];
 });
 
@@ -38,6 +32,7 @@ function post(body: unknown) {
 
 describe("evaluate-work-experience", () => {
   it("returns advisory needs-review assessments when AI is not configured", async () => {
+    delete process.env.OPENAI_API_KEY;
     const response = await post({
       requirements: [{
         id: "work-3", kind: "work_experience", params: { minYears: 3 },

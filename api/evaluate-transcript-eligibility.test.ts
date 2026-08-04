@@ -38,9 +38,6 @@ beforeEach(() => {
   delete process.env.VITE_SUPABASE_ANON_KEY;
   delete process.env.VITE_SUPABASE_URL;
   delete process.env.VERCEL_ENV;
-  delete process.env.AI_GATEWAY_API_KEY;
-  delete process.env.OPENAI_API_KEY;
-  delete process.env.VERCEL_OIDC_TOKEN;
 });
 
 afterEach(() => {
@@ -49,7 +46,6 @@ afterEach(() => {
   delete process.env.ELIGIBILITY_SERVICE_URL;
   delete process.env.ELIGIBILITY_SERVICE_TOKEN;
   delete process.env.OPENAI_API_KEY;
-  delete process.env.AI_GATEWAY_API_KEY;
   delete process.env.OPENAI_TRANSCRIPT_ELIGIBILITY_MODEL;
   delete process.env.POSTHOG_PROJECT_API_KEY;
   delete process.env.POSTHOG_HOST;
@@ -57,7 +53,6 @@ afterEach(() => {
   delete process.env.VITE_SUPABASE_ANON_KEY;
   delete process.env.VITE_SUPABASE_URL;
   delete process.env.VERCEL_ENV;
-  delete process.env.VERCEL_OIDC_TOKEN;
 });
 
 describe("evaluate-transcript-eligibility api route", () => {

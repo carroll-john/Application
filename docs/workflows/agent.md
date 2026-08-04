@@ -125,9 +125,7 @@ is a separate companion event.
   `npm run dev:uc-assessment-api` with pilot-local environment variables, then
   start Vite with `VITE_APP_BRAND=uc`. The gateway provisions a local-only
   treatment participant and `/` opens `/assessment` without an invitation
-  query. Pull a fresh `VERCEL_OIDC_TOKEN` from the linked `application-uc-mvp`
-  project before starting the API when `OPENAI_API_KEY` is unavailable. Never
-  reuse the frozen demo project, credentials, or invitation data.
+  query. Never reuse the frozen demo project or invitation data.
 - **Auth wrong locally:** confirm `supabase start`, check `.env.local`, try `npm run sync-supabase-env`.
 - **Clean hosted test:** run `supabase/reset_test_data.sql`, use incognito session.
 - **Schema change:** apply migration in Supabase SQL editor, regenerate types via `npm run supabase:types`.

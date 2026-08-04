@@ -1,8 +1,4 @@
 import { callLlm, type LlmContent } from "./_ai/callLlm.js";
-import {
-  resolveLlmModel,
-  resolveLlmRuntimeConfig,
-} from "./_ai/runtimeConfig.js";
 import { cvRecognitionPromptV2 } from "./_ai/prompts/cvRecognition.v2.js";
 import { cvRecognitionSchemaV2 } from "./_ai/schemas/cvRecognition.v2.js";
 import {
@@ -161,9 +157,9 @@ async function handleWebRequest(request: Request) {
       return errorResponse("CV_PARSER_METHOD_NOT_ALLOWED");
     }
 
-    const llmConfig = resolveLlmRuntimeConfig();
+    const apiKey = process.env.OPENAI_API_KEY?.trim();
 
-    if (!llmConfig) {
+    if (!apiKey) {
       return errorResponse("CV_PARSER_NOT_CONFIGURED");
     }
 
@@ -220,10 +216,7 @@ async function handleWebRequest(request: Request) {
       return errorResponse("CV_PARSER_FILE_UNSUPPORTED");
     }
 
-    const model = resolveLlmModel(
-      process.env.OPENAI_CV_PARSER_MODEL?.trim() || DEFAULT_MODEL,
-      llmConfig,
-    );
+    const model = process.env.OPENAI_CV_PARSER_MODEL?.trim() || DEFAULT_MODEL;
 
     const attachments: LlmContent[] = [];
 
@@ -246,8 +239,7 @@ async function handleWebRequest(request: Request) {
 
     const llmResult = await callLlm({
       provider: "openai",
-      apiKey: llmConfig.apiKey,
-      responsesUrl: llmConfig.responsesUrl,
+      apiKey,
       model,
       prompt: cvRecognitionPromptV2,
       schema: cvRecognitionSchemaV2,

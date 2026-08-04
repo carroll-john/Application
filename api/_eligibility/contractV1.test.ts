@@ -94,9 +94,6 @@ function makeV1ServicePayload(): Record<string, unknown> {
 beforeEach(() => {
   fetchMock.mockReset();
   globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
-  delete process.env.AI_GATEWAY_API_KEY;
-  delete process.env.OPENAI_API_KEY;
-  delete process.env.VERCEL_OIDC_TOKEN;
 });
 
 afterEach(() => {
@@ -104,11 +101,9 @@ afterEach(() => {
   delete process.env.ELIGIBILITY_SERVICE_URL;
   delete process.env.ELIGIBILITY_SERVICE_TOKEN;
   delete process.env.OPENAI_API_KEY;
-  delete process.env.AI_GATEWAY_API_KEY;
   delete process.env.POSTHOG_PROJECT_API_KEY;
   delete process.env.POSTHOG_HOST;
   delete process.env.VITE_POSTHOG_HOST;
-  delete process.env.VERCEL_OIDC_TOKEN;
 });
 
 async function postTranscript(contextJson: string) {
