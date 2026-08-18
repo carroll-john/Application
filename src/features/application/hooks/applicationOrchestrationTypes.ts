@@ -1,4 +1,5 @@
 import type { CvRecognitionDraft } from "../../../lib/ucRplAssessment";
+import type { TranscriptEligibilityAssessment } from "../../../lib/eligibility/types";
 
 export interface PersistApplicationOptions {
   applicantProfileId?: string | null;
@@ -13,4 +14,6 @@ export interface BeginCourseApplicationOptions {
   prefillFromApplicationId?: string | null;
   startFresh?: boolean;
   ucCvPrefill?: CvRecognitionDraft;
+  ucTranscriptFile?: File;
+  ucTranscriptPrefill?: TranscriptEligibilityAssessment;
 }

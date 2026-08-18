@@ -128,6 +128,10 @@ describe("UC credit assessment interface", () => {
 
     expect(html).toContain("Academic transcript");
     expect(html).toContain("Assess my credit");
+    expect(html).toContain(
+      "If you start an application, it will be securely added to your qualification",
+    );
+    expect(html).not.toContain("is not saved to an application");
     expect(html).not.toContain("Sign in or create an account");
   });
 

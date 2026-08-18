@@ -112,8 +112,10 @@ The eligibility route extracts transcript study evidence once. Applications then
 combines that evidence with the existing CV course-match signal and current
 course cost/duration data to produce an indicative comparison for the three
 cards. The result is not persisted, is not a formal RPL/credit decision, and must
-not be used as admission evidence. Starting an application continues to use the
-ordinary shared CV/transcript document flow.
+not be used as admission evidence. After an explicit Start application action,
+the extracted study fields may fill blank authenticated qualification data and
+the file is attached to that qualification through the ordinary shared document
+flow. The three-course credit-comparison result remains transient.
 
 For this ephemeral demo comparison, the route uses the app's configured OpenAI
 extractor before the external eligibility service, avoiding an unnecessary service

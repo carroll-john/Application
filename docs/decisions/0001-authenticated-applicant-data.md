@@ -23,6 +23,9 @@ The UC three-course credit comparison is a second narrow pre-application case,
 but it is not anonymous. Sign-in is required before the transcript control is
 shown, and the marked API route validates the bearer session before reading the
 file. The transcript and comparison are ephemeral and create no hidden draft.
+After the applicant explicitly starts an application, the same in-memory file may
+be persisted through the shared authenticated document layer and attached to a
+transcript-backed qualification. This transfer never happens before that action.
 
 ## Why
 
@@ -42,5 +45,7 @@ assessment without creating a draft.
 
 Authenticated UC demo visitors may process one transcript for a three-course
 credit comparison. Refreshing or closing the page discards the shortlist,
-transcript and results. A later application uses the ordinary persisted document
-flow; the comparison transcript is not silently transferred.
+transcript and results before an application is started. Explicitly starting an
+application transfers the transcript through the ordinary persisted document flow
+and may prefill blank qualification fields; the credit comparison itself remains
+transient.
