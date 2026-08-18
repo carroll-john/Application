@@ -300,10 +300,11 @@ describe("UC course matching", () => {
     );
 
     expect(matches).toHaveLength(33);
-    expect(firstBestMatch?.admissionDetail).toMatch(
-      /published.*entry pathway|published.*work-based entry pathway/i,
-    );
+    expect(firstBestMatch?.admissionDetail).toMatch(/entry to this course/i);
     expect(firstBestMatch?.admissionDetail).not.toMatch(/equivalent GPA/i);
+    expect(matches.map((match) => match.admissionDetail).join(" ")).not.toMatch(
+      /OSCA|Skill Level/i,
+    );
     expect(matches.every((match) => ["high", "medium", "low"].includes(match.entryConfidence))).toBe(
       true,
     );
@@ -541,7 +542,7 @@ describe("UC course matching", () => {
       entryConfidence: "medium",
     });
     expect(educationLeadership?.admissionDetail).toContain(
-      "does not yet demonstrate a published work-experience entry pathway",
+      "does not yet show enough evidence",
     );
     expect(mba).toMatchObject({
       category: "best_match",

@@ -1011,28 +1011,28 @@ function entryDetail(
   skillMonths: ReturnType<typeof oscaSkillLevelMonths>,
 ) {
   if (status === "needs_review" && pathway.status === "may_meet") {
-    return "Your work may support an entry pathway, but this course has additional requirements that UC Admissions must review.";
+    return "Your work experience may support entry to this course. UC Admissions needs to review the other requirements.";
   }
 
   if (pathway.status !== "may_meet") {
-    return "Your CV does not yet demonstrate a published work-experience entry pathway for this course. UC can review additional study or work evidence.";
+    return "Your CV does not yet show enough evidence for this course’s work-experience entry option. UC can review other study or work evidence.";
   }
 
   if (pathway.pathway === "course_specific") {
     const requiredYears = (pathway.requiredMonths ?? 0) / 12;
-    return `Your CV appears to show at least ${requiredYears} years of experience related to this course’s published entry pathway. UC Admissions will confirm relevance and eligibility.`;
+    return `Your CV shows at least ${requiredYears} years of experience related to this course. UC Admissions will confirm.`;
   }
 
   if (pathway.pathway === "skilled_work") {
     return skillMonths[1] > 0
-      ? "Your OSCA Skill Level 1 experience may support UC’s published work-based entry pathway for this course. UC Admissions will confirm eligibility."
-      : "Your OSCA Skill Level 2 experience meets UC’s published two-year work guide for this course. UC Admissions will confirm eligibility.";
+      ? "Your senior or highly specialised work experience may support entry to this course. UC Admissions will confirm."
+      : "Your technical or supervisory work experience meets UC’s two-year guide. UC Admissions will confirm.";
   }
 
   const requiredYears = (pathway.requiredMonths ?? 0) / 12;
   const relevance =
     pathway.pathway === "career_history_relevant" ? "relevant" : "general";
-  return `Your CV appears to meet UC’s ${requiredYears}-year ${relevance} experience guide for this course. UC Admissions will confirm eligibility.`;
+  return `Your CV appears to meet UC’s ${requiredYears}-year ${relevance} experience guide for this course. UC Admissions will confirm.`;
 }
 
 export function rankUcCourses(

@@ -6,7 +6,10 @@ import { getCourseCatalogFor } from "../../lib/courseCatalog";
 import type { UcCourseMatch } from "../../lib/ucRplAssessment";
 import { UcCreditAssessmentComparison } from "./UcCreditAssessmentComparison";
 import { UcCreditAssessmentPanel } from "./UcCreditAssessmentPanel";
-import { UcRplMatchCard } from "./UcRplCourseMatcher";
+import {
+  UcRplExperienceSummaryDisclosure,
+  UcRplMatchCard,
+} from "./UcRplCourseMatcher";
 
 function shortlist() {
   return getCourseCatalogFor("uc")
@@ -35,6 +38,53 @@ const baseProps = {
 };
 
 describe("UC credit assessment interface", () => {
+  it("keeps the reviewed experience summary collapsed by default", () => {
+    const html = renderToStaticMarkup(
+      createElement(UcRplExperienceSummaryDisclosure, {
+        experienceGuidance:
+          "UC Admissions will review your responsibilities and confirm eligibility.",
+        experienceMonths: 44,
+        onEdit: vi.fn(),
+        skillLevel: 1,
+      }),
+    );
+
+    expect(html).toContain("Your experience summary");
+    expect(html).toContain("Senior or highly specialised roles");
+    expect(html).toContain("3.7 years experience");
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain("Show details");
+    expect(html).not.toContain("Review my experience");
+    expect(html).not.toContain("UC Admissions will review your responsibilities");
+  });
+
+  it("shows entry guidance without premature credit content", () => {
+    const match = shortlist()[0]!;
+    const html = renderToStaticMarkup(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(UcRplMatchCard, {
+          isAssessmentComplete: false,
+          isShortlistFull: false,
+          isShortlisted: false,
+          isStarting: false,
+          match,
+          mediaVariantIndex: 0,
+          onStart: vi.fn(),
+          onToggleShortlist: vi.fn(),
+          onView: vi.fn(),
+        }),
+      ),
+    );
+
+    expect(html).toContain("Entry guidance");
+    expect(html).toContain(match.admissionDetail);
+    expect(html).not.toContain("Credit assessment");
+    expect(html).not.toContain("Assessed separately");
+    expect(html).not.toContain(match.creditDetail);
+  });
+
   it("prompts for authentication after three courses are shortlisted", () => {
     const html = renderToStaticMarkup(
       createElement(UcCreditAssessmentPanel, {
@@ -190,7 +240,7 @@ describe("UC credit assessment interface", () => {
     );
   });
 
-  it("hides the provisional credit section after assessment", () => {
+  it("shows course-specific credit only after assessment", () => {
     const match = shortlist()[0]!;
     const html = renderToStaticMarkup(
       createElement(
@@ -223,9 +273,9 @@ describe("UC credit assessment interface", () => {
       ),
     );
 
-    expect(html).toContain("Entry pathway");
+    expect(html).toContain("Entry guidance");
     expect(html).toContain("Your indicative credit assessment");
-    expect(html).not.toContain("Initial credit potential");
+    expect(html).not.toContain("Assessed separately");
     expect(html).not.toContain(match.creditDetail);
   });
 

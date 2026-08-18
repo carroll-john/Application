@@ -1,6 +1,7 @@
 import {
   BookmarkCheck,
   BookmarkPlus,
+  ChevronDown,
   CircleAlert,
   ClipboardCheck,
   FileText,
@@ -75,9 +76,9 @@ const ENTRY_STATUS_BADGE: Record<
   UcCourseMatch["entryStatus"],
   { label: string; tone: "neutral" | "success" | "warning" }
 > = {
-  may_meet: { label: "May meet work-entry pathway", tone: "success" },
+  may_meet: { label: "May meet entry requirements", tone: "success" },
   needs_review: { label: "UC review needed", tone: "warning" },
-  not_demonstrated: { label: "Not demonstrated from CV", tone: "neutral" },
+  not_demonstrated: { label: "More evidence needed", tone: "neutral" },
 };
 
 function EntryStatusBadge({
@@ -267,38 +268,17 @@ export function UcRplMatchCard({
       footer={(
         <div className="border-t border-[var(--border)] bg-white">
           <div className="p-5 sm:p-6">
-            <div className="space-y-4">
-              <div>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                    <SearchCheck className="h-4 w-4 text-green-700" aria-hidden="true" />
-                    Entry pathway
-                  </p>
-                  <EntryStatusBadge status={match.entryStatus} />
-                </div>
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  {match.admissionDetail}
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                  <SearchCheck className="h-4 w-4 text-green-700" aria-hidden="true" />
+                  Entry guidance
                 </p>
+                <EntryStatusBadge status={match.entryStatus} />
               </div>
-              {!assessmentResult ? (
-                <div className="border-t border-[var(--border)] pt-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                      <FileText
-                        className="h-4 w-4 text-[var(--cta-secondary)]"
-                        aria-hidden="true"
-                      />
-                      Credit assessment
-                    </p>
-                    <StatusPill className="px-2.5 py-1 text-xs" tone="neutral">
-                      Assessed separately
-                    </StatusPill>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    {match.creditDetail}
-                  </p>
-                </div>
-              ) : null}
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {match.admissionDetail}
+              </p>
             </div>
           </div>
 
@@ -339,6 +319,98 @@ export function UcRplMatchCard({
         </div>
       )}
     />
+  );
+}
+
+export function UcRplExperienceSummaryDisclosure({
+  experienceGuidance,
+  experienceMonths,
+  onEdit,
+  skillLevel,
+}: {
+  experienceGuidance: string;
+  experienceMonths: number;
+  onEdit: () => void;
+  skillLevel: UcOscaExperienceSummary["skillLevel"];
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="mt-6 border border-[var(--border)]">
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        className="flex w-full items-center justify-between gap-4 bg-slate-50 p-4 text-left transition hover:bg-blue-50 sm:px-5"
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        <span>
+          <span className="block font-semibold text-slate-950">
+            Your experience summary
+          </span>
+          <span className="mt-1 block text-sm text-slate-600">
+            {getUcExperienceGroupLabel(skillLevel)} ·{" "}
+            {formatUcExperienceDuration(experienceMonths)}
+          </span>
+        </span>
+        <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[var(--cta-secondary)]">
+          {isOpen ? "Hide details" : "Show details"}
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
+            aria-hidden="true"
+          />
+        </span>
+      </button>
+
+      {isOpen ? (
+        <div className="border-t border-[var(--border)] p-4 sm:p-5">
+          <div className="grid border border-[var(--border)] sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                icon: SearchCheck,
+                label: getUcExperienceGroupLabel(skillLevel),
+              },
+              {
+                icon: ClipboardCheck,
+                label: formatUcExperienceDuration(experienceMonths),
+              },
+              {
+                icon: GraduationCap,
+                label: getUcWorkEntryGuidance(skillLevel, experienceMonths),
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex min-h-24 items-center gap-3 border-b border-[var(--border)] p-4 last:border-b-0 sm:border-r lg:border-b-0"
+              >
+                <item.icon
+                  className="h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
+                  aria-hidden="true"
+                />
+                <span className="text-sm font-semibold text-slate-800">
+                  {item.label}
+                </span>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="flex min-h-20 items-center justify-center gap-2 p-4 text-sm font-semibold text-[var(--cta-secondary)] hover:bg-blue-50"
+              onClick={onEdit}
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+              Review my experience
+            </button>
+          </div>
+
+          <div className="mt-4 flex gap-3 border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-slate-700">
+            <Info
+              className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
+              aria-hidden="true"
+            />
+            <p>{experienceGuidance}</p>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -406,52 +478,12 @@ function ResultsState({
           This is a guide only. It is not an admission offer or credit decision.
         </p>
 
-        <div className="mt-7 grid border border-[var(--border)] sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              icon: SearchCheck,
-              label: getUcExperienceGroupLabel(displayedSkillLevel),
-            },
-            {
-              icon: ClipboardCheck,
-              label: formatUcExperienceDuration(displayedExperienceMonths),
-            },
-            {
-              icon: GraduationCap,
-              label: getUcWorkEntryGuidance(
-                displayedSkillLevel,
-                displayedExperienceMonths,
-              ),
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="flex min-h-24 items-center gap-3 border-b border-[var(--border)] p-4 last:border-b-0 sm:border-r lg:border-b-0"
-            >
-              <item.icon
-                className="h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
-                aria-hidden="true"
-              />
-              <span className="text-sm font-semibold text-slate-800">{item.label}</span>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="flex min-h-20 items-center justify-center gap-2 p-4 text-sm font-semibold text-[var(--cta-secondary)] hover:bg-blue-50"
-            onClick={onEdit}
-          >
-            <Pencil className="h-4 w-4" aria-hidden="true" />
-            Review my experience
-          </button>
-        </div>
-
-        <div className="mt-5 flex gap-3 border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-slate-700 sm:p-5">
-          <Info
-            className="mt-0.5 h-5 w-5 shrink-0 text-[var(--cta-secondary)]"
-            aria-hidden="true"
-          />
-          <p>{experienceGuidance}</p>
-        </div>
+        <UcRplExperienceSummaryDisclosure
+          experienceGuidance={experienceGuidance}
+          experienceMonths={displayedExperienceMonths}
+          onEdit={onEdit}
+          skillLevel={displayedSkillLevel}
+        />
       </div>
 
       <div className="content-block flex flex-wrap items-center justify-between gap-4 border border-[var(--border)] bg-white p-5 sm:p-6">
