@@ -16,3 +16,4 @@ export * from "./requirementPresentation.js";
 export * from "./contextSchema.js";
 export * from "./submitPolicy.js";
 export * from "./workExperience.js";
+export * from "./ucWorkExperienceEntry.js";

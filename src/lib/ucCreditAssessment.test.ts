@@ -19,8 +19,9 @@ function matchFor(title: string, creditConfidence: UcCourseMatch["creditConfiden
     course,
     creditConfidence,
     creditDetail: "Potential credit.",
-    creditPoints: 18,
     entryConfidence: "high",
+    entryPathway: "skilled_work",
+    entryStatus: "may_meet",
     relevanceScore: 30,
   } satisfies UcCourseMatch;
 }

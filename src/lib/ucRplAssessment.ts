@@ -6,6 +6,14 @@ import type {
   TertiaryQualification,
 } from "./applicationData";
 import type { CourseCatalogEntry } from "./courseCatalog";
+import {
+  assessUcOscaSkilledWorkPathway,
+  assessUcWorkExperienceEntry,
+  type UcPriorStudyCategory,
+  type UcWorkEntryPathwayAssessment,
+  type UcWorkEntryPathwayType,
+  type UcWorkEntryStatus,
+} from "./eligibility/ucWorkExperienceEntry";
 
 export type OscaSkillLevel = 1 | 2 | 3 | 4 | 5;
 export type OscaConfidence = "high" | "medium" | "low";
@@ -38,14 +46,13 @@ export interface CvRecognitionDraft {
 }
 
 export interface UcAdmissionAssessment {
-  equivalentGpa: 4 | 5 | null;
   experienceMonths: number;
   experienceYears: number;
   occupationCode: string;
   occupationTitle: string;
   rationale: string;
   skillLevel: OscaSkillLevel | null;
-  status: "may_meet" | "faculty_review";
+  status: "may_meet" | "needs_review";
 }
 
 export interface UcCourseMatch {
@@ -54,8 +61,9 @@ export interface UcCourseMatch {
   creditConfidence: UcGuidanceConfidence;
   course: CourseCatalogEntry;
   creditDetail: string;
-  creditPoints: 6 | 12 | 18;
   entryConfidence: UcGuidanceConfidence;
+  entryPathway: UcWorkEntryPathwayType;
+  entryStatus: UcWorkEntryStatus;
   relevanceScore: number;
 }
 
@@ -385,12 +393,8 @@ export function getUcWorkEntryGuidance(
   skillLevel: OscaSkillLevel | null,
   experienceMonths: number,
 ) {
-  if (skillLevel === 1) {
-    return "May be eligible for direct entry";
-  }
-
-  if (skillLevel === 2) {
-    return experienceMonths >= 24
+  if (skillLevel === 1 || skillLevel === 2) {
+    return getOscaPathwayStatus(skillLevel, experienceMonths) === "may_meet"
       ? "May be eligible for direct entry"
       : "More experience may be needed";
   }
@@ -400,6 +404,15 @@ export function getUcWorkEntryGuidance(
   }
 
   return "UC will review this experience";
+}
+
+function getOscaPathwayStatus(
+  skillLevel: 1 | 2,
+  experienceMonths: number,
+) {
+  return assessUcOscaSkilledWorkPathway({
+    [skillLevel]: experienceMonths,
+  }).status;
 }
 
 function formatUcExperienceAmount(months: number) {
@@ -459,7 +472,7 @@ export function getUcExperienceReviewSummary(
       technical.experienceMonths,
     );
     points.push(
-      technical.experienceMonths >= 24
+      getOscaPathwayStatus(2, technical.experienceMonths) === "may_meet"
         ? `${experienceAmount} in technical or supervisory roles meets UC’s two-year experience guide.`
         : `${experienceAmount} in technical or supervisory roles is below UC’s two-year experience guide.`,
     );
@@ -478,7 +491,10 @@ export function getUcExperienceReviewSummary(
   }
 
   const supportsDirectEntry = Boolean(
-    senior || (technical && technical.experienceMonths >= 24),
+    (senior &&
+      getOscaPathwayStatus(1, senior.experienceMonths) === "may_meet") ||
+      (technical &&
+        getOscaPathwayStatus(2, technical.experienceMonths) === "may_meet"),
   );
 
   return {
@@ -523,7 +539,7 @@ export function getUcExperienceReviewGuidance(
   if (technical) {
     const prefix = sentences.length === 0 ? "Based on your CV, your" : "Your";
     const thresholdCopy =
-      technical.experienceMonths >= 24
+      getOscaPathwayStatus(2, technical.experienceMonths) === "may_meet"
         ? "This meets UC’s two-year experience guide."
         : "UC’s guide usually requires at least two years in these roles.";
     sentences.push(
@@ -554,20 +570,6 @@ export function getUcExperienceReviewGuidance(
   return sentences.join(" ");
 }
 
-function admissionBand(skillLevel: OscaSkillLevel | null, months: number) {
-  if (skillLevel === 1) {
-    if (months >= 36) return 5 as const;
-    if (months >= 12) return 4 as const;
-  }
-
-  if (skillLevel === 2) {
-    if (months >= 60) return 5 as const;
-    if (months >= 24) return 4 as const;
-  }
-
-  return null;
-}
-
 export function assessUcAdmission(
   experiences: CvRecognitionExperience[],
   now = new Date(),
@@ -589,7 +591,9 @@ export function assessUcAdmission(
     const months = unionMonths(roles, now);
     const skillLevel = roles[0]?.oscaSkillLevel ?? null;
     return {
-      equivalentGpa: admissionBand(skillLevel, months),
+      mayMeet:
+        (skillLevel === 1 || skillLevel === 2) &&
+        getOscaPathwayStatus(skillLevel, months) === "may_meet",
       months,
       roles,
       skillLevel,
@@ -597,35 +601,34 @@ export function assessUcAdmission(
   });
 
   candidates.sort((a, b) => {
-    const gpaDifference = (b.equivalentGpa ?? 0) - (a.equivalentGpa ?? 0);
-    if (gpaDifference !== 0) return gpaDifference;
-    if (b.months !== a.months) return b.months - a.months;
-    return (a.skillLevel ?? 9) - (b.skillLevel ?? 9);
+    if (a.mayMeet !== b.mayMeet) return a.mayMeet ? -1 : 1;
+    const skillDifference = (a.skillLevel ?? 9) - (b.skillLevel ?? 9);
+    return skillDifference !== 0 ? skillDifference : b.months - a.months;
   });
 
   const primary = candidates[0];
   const experienceMonths = primary?.months ?? 0;
   const experienceYears = Math.round((experienceMonths / 12) * 10) / 10;
   const representative = primary?.roles[0];
-  const equivalentGpa = primary?.equivalentGpa ?? null;
   const skillLevel = primary?.skillLevel ?? null;
 
-  if (equivalentGpa !== null && skillLevel !== null) {
+  if (primary?.mayMeet && skillLevel !== null) {
     return {
-      equivalentGpa,
       experienceMonths,
       experienceYears,
       occupationCode: representative?.oscaOccupationCode ?? "",
       occupationTitle:
         representative?.oscaOccupationTitle || representative?.position || "Confirmed occupation",
-      rationale: `OSCA Skill Level ${skillLevel} with ${experienceYears} years of relevant experience maps to a UC equivalent GPA of ${equivalentGpa.toFixed(1)} under the prototype admission matrix.`,
+      rationale:
+        skillLevel === 1
+          ? "This role is classified at OSCA Skill Level 1, which may support UC’s skilled-work entry pathway for an approved course."
+          : `This role is classified at OSCA Skill Level 2 and includes ${experienceYears} years of experience, meeting UC’s published two-year guide for an approved course.`,
       skillLevel,
       status: "may_meet",
     };
   }
 
   return {
-    equivalentGpa: null,
     experienceMonths,
     experienceYears,
     occupationCode: representative?.oscaOccupationCode ?? "",
@@ -633,12 +636,12 @@ export function assessUcAdmission(
       representative?.oscaOccupationTitle || representative?.position || "Experience supplied",
     rationale:
       skillLevel === 1
-        ? "Skill Level 1 requires at least one year of relevant experience for the prototype admission matrix."
+        ? "The Skill Level 1 role needs valid dates before it can support UC’s skilled-work entry pathway."
         : skillLevel === 2
-          ? "Skill Level 2 requires at least two years of relevant experience for the prototype admission matrix."
-          : "This experience needs faculty review because the prototype matrix only provides automatic bands for OSCA Skill Levels 1 and 2.",
+          ? "UC’s published skilled-work guide requires at least two years in an OSCA Skill Level 2 occupation."
+          : "This CV does not yet demonstrate UC’s published OSCA Skill Level 1 or Skill Level 2 work-entry guide.",
     skillLevel,
-    status: "faculty_review",
+    status: "needs_review",
   };
 }
 
@@ -833,36 +836,6 @@ function courseRelevance(
   };
 }
 
-function getCourseDurationYears(duration: string | undefined) {
-  if (!duration) return null;
-
-  const monthMatch = duration.match(/(\d+(?:\.\d+)?)\s*months?/i);
-  if (monthMatch?.[1]) {
-    return Number(monthMatch[1]) / 12;
-  }
-
-  const yearMatch = duration.match(/(\d+(?:\.\d+)?)\s*years?/i);
-  return yearMatch?.[1] ? Number(yearMatch[1]) : null;
-}
-
-export function getUcIndicativeCreditPoints(
-  course: CourseCatalogEntry,
-): 6 | 12 | 18 {
-  if (/^master\b/i.test(course.title)) return 12;
-
-  const durationYears = getCourseDurationYears(course.duration);
-
-  if (durationYears !== null) {
-    if (durationYears <= 0.75) return 6;
-    if (durationYears < 2) return 12;
-    return 18;
-  }
-
-  if (/graduate certificate/i.test(course.title)) return 6;
-  if (/graduate diploma/i.test(course.title)) return 12;
-  return 18;
-}
-
 function publishedExperienceOnlyMinimumYears(course: CourseCatalogEntry) {
   const pathway = course.entryRequirementItems.find((item) =>
     /^Experience pathway\s+[—-]\s+at least\s+/i.test(item),
@@ -887,37 +860,199 @@ function publishedExperienceOnlyMinimumYears(course: CourseCatalogEntry) {
     : EXPERIENCE_YEAR_WORDS[value] ?? null;
 }
 
-function cvSupportsPublishedEntryPathway(
-  course: CourseCatalogEntry,
+function classifyPriorStudy(
   draft: CvRecognitionDraft,
-  admission: UcAdmissionAssessment,
-  relevanceScore: number,
-) {
-  const hasCompletedQualification = draft.tertiaryQualifications.some(
-    (qualification) => qualification.completed,
-  );
+): UcPriorStudyCategory {
+  const completedRanks = draft.tertiaryQualifications
+    .filter((qualification) => qualification.completed)
+    .flatMap((qualification) => {
+      const rank = awardRank(
+        `${qualification.level} ${qualification.courseName}`,
+      );
+      return rank === null ? [] : [rank];
+    });
+  const highestCompletedRank = Math.max(0, ...completedRanks);
 
-  if (hasCompletedQualification) {
-    return true;
+  if (highestCompletedRank >= 7) {
+    return "completed_bachelor_or_higher";
+  }
+  if (highestCompletedRank >= 5) {
+    return "diploma_or_associate";
+  }
+  if (highestCompletedRank === 4) {
+    return "certificate_iv_or_year_12";
   }
 
-  const minimumExperienceYears = publishedExperienceOnlyMinimumYears(course);
-
-  return Boolean(
-    minimumExperienceYears !== null &&
-      relevanceScore > 0 &&
-      admission.experienceMonths >= minimumExperienceYears * 12,
+  const hasPartialBachelor = draft.tertiaryQualifications.some(
+    (qualification) =>
+      !qualification.completed &&
+      (awardRank(`${qualification.level} ${qualification.courseName}`) ?? 0) >=
+        7,
   );
+  if (hasPartialBachelor) {
+    return "partial_bachelor";
+  }
+
+  const secondaryEvidence = normalizeKey(
+    draft.secondaryQualifications
+      .map(
+        (qualification) =>
+          `${qualification.type} ${qualification.qualification}`,
+      )
+      .join(" "),
+  );
+  if (
+    /\b(year 12|secondary school|senior secondary|certificate of education|atar)\b/.test(
+      secondaryEvidence,
+    )
+  ) {
+    return "certificate_iv_or_year_12";
+  }
+
+  // A CV that omits study is not evidence that the applicant has no prior
+  // qualification. The explicit "no prior qualification" form answer must be
+  // collected before the ten/seven-year matrix can be applied.
+  return "unknown";
+}
+
+function courseProfileTokens(course: CourseCatalogEntry) {
+  return tokenize(
+    [
+      course.title,
+      course.subjectArea ?? "",
+      course.summary ?? "",
+      course.outcomes ?? "",
+      course.coreSubjects.join(" "),
+    ].join(" "),
+  );
+}
+
+function roleProfileTokens(role: CvRecognitionExperience) {
+  return tokenize(
+    [role.position, role.duties, role.oscaOccupationTitle].join(" "),
+  );
+}
+
+function hasCourseSpecificRoleEvidence(
+  course: CourseCatalogEntry,
+  role: CvRecognitionExperience,
+) {
+  const roleTokens = roleProfileTokens(role);
+  const courseTokens = courseProfileTokens(course);
+  const policyOrGovernmentCourse =
+    /\b(government|public policy|policy evaluation|gender policy|lgbtqia\+? policy)\b/i.test(
+      course.title,
+    );
+
+  if (policyOrGovernmentCourse) {
+    const directRoleTokens = directTokens(
+      [role.position, role.duties, role.oscaOccupationTitle].join(" "),
+    );
+    const policyEvidence = [
+      "government",
+      "policy",
+      "regulatory",
+      "minister",
+      "department",
+      "council",
+    ];
+    if (!policyEvidence.some((term) => directRoleTokens.has(term))) {
+      return false;
+    }
+  }
+
+  return overlapCount(courseTokens, roleTokens) > 0;
+}
+
+function relevantExperienceMonthsForCourse(
+  course: CourseCatalogEntry,
+  experiences: CvRecognitionExperience[],
+  now: Date,
+) {
+  return unionMonths(
+    experiences.filter((role) => hasCourseSpecificRoleEvidence(course, role)),
+    now,
+  );
+}
+
+function oscaSkillLevelMonths(
+  experiences: CvRecognitionExperience[],
+  now: Date,
+) {
+  return {
+    1: unionMonths(
+      experiences.filter((experience) => experience.oscaSkillLevel === 1),
+      now,
+    ),
+    2: unionMonths(
+      experiences.filter((experience) => experience.oscaSkillLevel === 2),
+      now,
+    ),
+  };
+}
+
+function entryDetail(
+  pathway: UcWorkEntryPathwayAssessment,
+  status: UcWorkEntryStatus,
+  skillMonths: ReturnType<typeof oscaSkillLevelMonths>,
+) {
+  if (status === "needs_review" && pathway.status === "may_meet") {
+    return "Your work may support an entry pathway, but this course has additional requirements that UC Admissions must review.";
+  }
+
+  if (pathway.status !== "may_meet") {
+    return "Your CV does not yet demonstrate a published work-experience entry pathway for this course. UC can review additional study or work evidence.";
+  }
+
+  if (pathway.pathway === "course_specific") {
+    const requiredYears = (pathway.requiredMonths ?? 0) / 12;
+    return `Your CV appears to show at least ${requiredYears} years of experience related to this course’s published entry pathway. UC Admissions will confirm relevance and eligibility.`;
+  }
+
+  if (pathway.pathway === "skilled_work") {
+    return skillMonths[1] > 0
+      ? "Your OSCA Skill Level 1 experience may support UC’s published work-based entry pathway for this course. UC Admissions will confirm eligibility."
+      : "Your OSCA Skill Level 2 experience meets UC’s published two-year work guide for this course. UC Admissions will confirm eligibility.";
+  }
+
+  const requiredYears = (pathway.requiredMonths ?? 0) / 12;
+  const relevance =
+    pathway.pathway === "career_history_relevant" ? "relevant" : "general";
+  return `Your CV appears to meet UC’s ${requiredYears}-year ${relevance} experience guide for this course. UC Admissions will confirm eligibility.`;
 }
 
 export function rankUcCourses(
   courses: CourseCatalogEntry[],
   draft: CvRecognitionDraft,
-  admission: UcAdmissionAssessment,
+  _admission: UcAdmissionAssessment,
+  now = new Date(),
 ): UcCourseMatch[] {
   const profile = buildCourseMatchProfile(draft);
+  const includedExperiences = draft.experiences.filter(
+    (experience) => experience.includeInAssessment,
+  );
+  const generalExperienceMonths = unionMonths(includedExperiences, now);
+  const skillMonths = oscaSkillLevelMonths(includedExperiences, now);
+  const priorStudyCategory = classifyPriorStudy(draft);
   const ranked = courses
-    .map((course) => ({ course, ...courseRelevance(course, profile) }))
+    .map((course) => {
+      const relevance = courseRelevance(course, profile);
+      const workEntry = assessUcWorkExperienceEntry({
+        courseSpecificRelevantYears:
+          publishedExperienceOnlyMinimumYears(course),
+        generalExperienceMonths,
+        officialCourseCode: course.officialCourseCode,
+        oscaSkillLevelMonths: skillMonths,
+        priorStudyCategory,
+        relevantExperienceMonths: relevantExperienceMonthsForCourse(
+          course,
+          includedExperiences,
+          now,
+        ),
+      });
+
+      return { course, ...relevance, workEntry };
+    })
     .sort(
       (a, b) =>
         b.relevanceScore - a.relevanceScore || a.course.title.localeCompare(b.course.title),
@@ -925,20 +1060,9 @@ export function rankUcCourses(
 
   let bestMatchCount = 0;
 
-  return ranked.map(({ course, relevanceScore }) => {
-    const hasAdmissionBand = admission.equivalentGpa !== null;
-    const maySupportDirectEntry =
-      admission.skillLevel === 1 ||
-      (admission.skillLevel === 2 && admission.experienceMonths >= 24);
-    const supportsPublishedEntryPathway = cvSupportsPublishedEntryPathway(
-      course,
-      draft,
-      admission,
-      relevanceScore,
-    );
+  return ranked.map(({ course, relevanceScore, workEntry }) => {
     const isBestMatch = Boolean(
-      hasAdmissionBand &&
-        supportsPublishedEntryPathway &&
+      workEntry.overallStatus === "may_meet" &&
         relevanceScore > 0 &&
         bestMatchCount < BEST_MATCH_LIMIT,
     );
@@ -947,35 +1071,30 @@ export function rankUcCourses(
     }
     const category = isBestMatch
       ? "best_match"
-      : hasAdmissionBand || relevanceScore > 0
+      : workEntry.overallStatus !== "not_demonstrated" || relevanceScore > 0
         ? "needs_review"
         : "other";
-    const creditPoints = getUcIndicativeCreditPoints(course);
-    const creditDetail =
-      relevanceScore >= 17
-        ? `Your work appears related to this course. You may be eligible for up to ${creditPoints} credit points.`
-        : "UC will need supporting evidence before deciding whether your experience can count towards this course.";
 
     return {
-      admissionDetail: !supportsPublishedEntryPathway
-        ? "Your CV does not currently demonstrate a published entry pathway for this course. UC Admissions can review additional qualifications or evidence."
-        : publishedExperienceOnlyMinimumYears(course) !== null
-          ? "Your CV may support this course’s published work-experience entry pathway. UC Admissions will confirm relevance and the remaining requirements."
-          : maySupportDirectEntry
-            ? "Your experience and completed qualifications may support entry to this course. Additional course-specific requirements may still apply."
-            : "UC Admissions will review your experience and qualifications against this course’s entry requirements.",
+      admissionDetail: entryDetail(
+        workEntry.selectedPathway,
+        workEntry.overallStatus,
+        skillMonths,
+      ),
       category,
       creditConfidence:
         relevanceScore >= 17 ? "high" : relevanceScore > 0 ? "medium" : "low",
       course,
-      creditDetail,
-      creditPoints,
+      creditDetail:
+        "Credit is assessed separately from admission. UC will need supporting study and work evidence before confirming any credit.",
       entryConfidence:
-        category === "best_match"
+        workEntry.overallStatus === "may_meet"
           ? "high"
-          : category === "needs_review"
+          : workEntry.overallStatus === "needs_review"
             ? "medium"
             : "low",
+      entryPathway: workEntry.selectedPathway.pathway,
+      entryStatus: workEntry.overallStatus,
       relevanceScore,
     };
   });

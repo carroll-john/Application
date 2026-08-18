@@ -172,7 +172,7 @@ export function assessUcShortlistedCourseCredit(
       : match.creditConfidence === "medium"
         ? 3
         : 0;
-  const creditCap = Math.min(match.creditPoints, getCreditCap(match));
+  const creditCap = getCreditCap(match);
   const combinedEvidenceScore =
     formalStudyScore > 0 ? formalStudyScore + workScore : 0;
   const potentialCreditPoints = Math.max(

@@ -15,8 +15,9 @@ function shortlist() {
     course,
     creditConfidence: "high",
     creditDetail: "Potential credit.",
-    creditPoints: 12,
     entryConfidence: "high",
+    entryPathway: "skilled_work",
+    entryStatus: "may_meet",
     relevanceScore: 30,
   })) satisfies UcCourseMatch[];
 }
@@ -161,7 +162,7 @@ describe("UC credit assessment interface", () => {
       ),
     );
 
-    expect(html).toContain("Entry guidance");
+    expect(html).toContain("Entry pathway");
     expect(html).toContain("Your indicative credit assessment");
     expect(html).not.toContain("Initial credit potential");
     expect(html).not.toContain(match.creditDetail);
