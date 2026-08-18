@@ -140,7 +140,8 @@ describe("UC credit assessment interface", () => {
           confidence: "high",
           costBasis: "full_fee",
           courseCode: "master-of-education-leadership",
-          evidenceSummary: "Based on related prior study and experience.",
+          evidenceSummary:
+            "We used your work experience and previous study to calculate this indicative credit assessment. UC will confirm any credit awarded.",
           originalCost: 23650,
           originalDurationMonths: 16,
           potentialCreditPoints: 12,
@@ -171,7 +172,7 @@ describe("UC credit assessment interface", () => {
           costBasis: null,
           courseCode: "graduate-certificate-digital-marketing",
           evidenceSummary:
-            "Completed transcript subjects including Digital Communication Strategy may align with this course.",
+            "We used your work experience and previous study to calculate this indicative credit assessment. UC will confirm any credit awarded.",
           originalCost: null,
           originalDurationMonths: 12,
           potentialCreditPoints: 3,
@@ -199,7 +200,7 @@ describe("UC credit assessment interface", () => {
           costBasis: "csp",
           courseCode: "graduate-certificate-digital-marketing",
           evidenceSummary:
-            "Completed transcript subjects including Digital Communication Strategy may align with this course.",
+            "We used your work experience and previous study to calculate this indicative credit assessment. UC will confirm any credit awarded.",
           originalCost: 8696,
           originalDurationMonths: 12,
           potentialCreditPoints: 3,
@@ -254,7 +255,7 @@ describe("UC credit assessment interface", () => {
             costBasis: "full_fee",
             courseCode: match.course.code,
             evidenceSummary:
-              "Based on related prior study in your transcript and relevant professional experience in your CV.",
+              "We used your work experience and previous study to calculate this indicative credit assessment. UC will confirm any credit awarded.",
             originalCost: 23650,
             originalDurationMonths: 16,
             potentialCreditPoints: 12,
