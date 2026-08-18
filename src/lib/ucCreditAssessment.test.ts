@@ -110,47 +110,57 @@ const incompleteRelatedTranscript = normalizeTranscriptEligibilityAssessment({
 const mayaTranscript = normalizeTranscriptEligibilityAssessment({
   confidence: 0.98,
   outcome: "eligible",
+  applicantDetails: {
+    countryOfInstitution: {
+      confidence: 0.99,
+      normalizedValue: "Australia",
+    },
+    institutionName: {
+      confidence: 0.99,
+      normalizedValue: "RMIT University",
+    },
+  },
   academicPerformance: {
     unitResults: [
       {
         counted: true,
-        creditPoints: 6,
+        creditPoints: 12,
         grade: "CR",
         title: "Business Foundations",
       },
       {
         counted: true,
-        creditPoints: 6,
+        creditPoints: 12,
         grade: "CR",
         title: "Organisational Behaviour",
       },
       {
         counted: true,
-        creditPoints: 6,
+        creditPoints: 12,
         grade: "D",
         title: "Learning and Development at Work",
       },
       {
         counted: true,
-        creditPoints: 6,
+        creditPoints: 12,
         grade: "CR",
         title: "Project Management Fundamentals",
       },
       {
         counted: true,
-        creditPoints: 6,
+        creditPoints: 12,
         grade: "D",
         title: "Educational Leadership and Change",
       },
       {
         counted: true,
-        creditPoints: 6,
+        creditPoints: 12,
         grade: "CR",
         title: "Business Analytics for Decision Making",
       },
       {
         counted: true,
-        creditPoints: 6,
+        creditPoints: 12,
         grade: "D",
         title: "Digital Communication Strategy",
       },

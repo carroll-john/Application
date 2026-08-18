@@ -13,7 +13,7 @@ function transcriptAssessment(): TranscriptEligibilityAssessment {
     extractedData: {
       applicantDetails: {
         countryOfInstitution: { normalizedValue: "Australia" },
-        institutionName: { normalizedValue: "University of Canberra" },
+        institutionName: { normalizedValue: "RMIT University" },
       },
       studyDetails: {
         completionStatus: {
@@ -65,7 +65,7 @@ describe("applyUcTranscriptApplicationPrefill", () => {
     expect(result.tertiaryQualifications).toEqual([
       expect.objectContaining({
         id: "transcript-qualification",
-        institution: "University of Canberra",
+        institution: "RMIT University",
         country: "Australia",
         level: "Bachelor",
         courseName: "Bachelor of Business (Management)",
