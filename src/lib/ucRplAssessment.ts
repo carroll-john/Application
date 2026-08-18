@@ -110,6 +110,7 @@ const STOP_WORDS = new Set([
 const RELATED_TERMS: Record<string, string[]> = {
   administration: ["business", "management", "leadership", "governance"],
   analyst: ["analytics", "data", "business", "research"],
+  business: ["administration", "leadership", "management", "strategy"],
   chancellor: ["leadership", "management", "strategy"],
   cyber: ["security", "technology", "information", "digital"],
   education: ["teaching", "learning"],
@@ -189,6 +190,19 @@ const SPECIALIST_COURSE_EVIDENCE = [
 ] as const;
 
 const BEST_MATCH_LIMIT = 3;
+
+const EXPERIENCE_YEAR_WORDS: Record<string, number> = {
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+};
 
 function normalizeKey(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -849,6 +863,53 @@ export function getUcIndicativeCreditPoints(
   return 18;
 }
 
+function publishedExperienceOnlyMinimumYears(course: CourseCatalogEntry) {
+  const pathway = course.entryRequirementItems.find((item) =>
+    /^Experience pathway\s+[—-]\s+at least\s+/i.test(item),
+  );
+
+  if (!pathway) {
+    return null;
+  }
+
+  const match = pathway.match(
+    /\bat least\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten)\s+years?\b/i,
+  );
+  const value = match?.[1]?.toLowerCase();
+
+  if (!value) {
+    return null;
+  }
+
+  const numericValue = Number.parseInt(value, 10);
+  return Number.isFinite(numericValue)
+    ? numericValue
+    : EXPERIENCE_YEAR_WORDS[value] ?? null;
+}
+
+function cvSupportsPublishedEntryPathway(
+  course: CourseCatalogEntry,
+  draft: CvRecognitionDraft,
+  admission: UcAdmissionAssessment,
+  relevanceScore: number,
+) {
+  const hasCompletedQualification = draft.tertiaryQualifications.some(
+    (qualification) => qualification.completed,
+  );
+
+  if (hasCompletedQualification) {
+    return true;
+  }
+
+  const minimumExperienceYears = publishedExperienceOnlyMinimumYears(course);
+
+  return Boolean(
+    minimumExperienceYears !== null &&
+      relevanceScore > 0 &&
+      admission.experienceMonths >= minimumExperienceYears * 12,
+  );
+}
+
 export function rankUcCourses(
   courses: CourseCatalogEntry[],
   draft: CvRecognitionDraft,
@@ -862,17 +923,33 @@ export function rankUcCourses(
         b.relevanceScore - a.relevanceScore || a.course.title.localeCompare(b.course.title),
     );
 
-  return ranked.map(({ course, relevanceScore }, index) => {
+  let bestMatchCount = 0;
+
+  return ranked.map(({ course, relevanceScore }) => {
     const hasAdmissionBand = admission.equivalentGpa !== null;
     const maySupportDirectEntry =
       admission.skillLevel === 1 ||
       (admission.skillLevel === 2 && admission.experienceMonths >= 24);
-    const category =
-      hasAdmissionBand && index < BEST_MATCH_LIMIT
-        ? "best_match"
-        : hasAdmissionBand || relevanceScore > 0
-          ? "needs_review"
-          : "other";
+    const supportsPublishedEntryPathway = cvSupportsPublishedEntryPathway(
+      course,
+      draft,
+      admission,
+      relevanceScore,
+    );
+    const isBestMatch = Boolean(
+      hasAdmissionBand &&
+        supportsPublishedEntryPathway &&
+        relevanceScore > 0 &&
+        bestMatchCount < BEST_MATCH_LIMIT,
+    );
+    if (isBestMatch) {
+      bestMatchCount += 1;
+    }
+    const category = isBestMatch
+      ? "best_match"
+      : hasAdmissionBand || relevanceScore > 0
+        ? "needs_review"
+        : "other";
     const creditPoints = getUcIndicativeCreditPoints(course);
     const creditDetail =
       relevanceScore >= 17
@@ -880,9 +957,13 @@ export function rankUcCourses(
         : "UC will need supporting evidence before deciding whether your experience can count towards this course.";
 
     return {
-      admissionDetail: maySupportDirectEntry
-        ? "Your work experience may support direct entry to this course. Additional course specific eligibility requirement may still apply."
-        : "UC Admissions will review your work experience against this course’s entry requirements.",
+      admissionDetail: !supportsPublishedEntryPathway
+        ? "Your CV does not currently demonstrate a published entry pathway for this course. UC Admissions can review additional qualifications or evidence."
+        : publishedExperienceOnlyMinimumYears(course) !== null
+          ? "Your CV may support this course’s published work-experience entry pathway. UC Admissions will confirm relevance and the remaining requirements."
+          : maySupportDirectEntry
+            ? "Your experience and completed qualifications may support entry to this course. Additional course-specific requirements may still apply."
+            : "UC Admissions will review your experience and qualifications against this course’s entry requirements.",
       category,
       creditConfidence:
         relevanceScore >= 17 ? "high" : relevanceScore > 0 ? "medium" : "low",

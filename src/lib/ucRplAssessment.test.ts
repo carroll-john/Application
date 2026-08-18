@@ -297,13 +297,15 @@ describe("UC course matching", () => {
       draft(experiences),
       admission,
     );
+    const firstBestMatch = matches.find(
+      (match) => match.category === "best_match",
+    );
 
     expect(matches).toHaveLength(33);
-    expect(matches[0].category).toBe("best_match");
-    expect(matches[0].admissionDetail).toBe(
-      "Your work experience may support direct entry to this course. Additional course specific eligibility requirement may still apply.",
+    expect(firstBestMatch?.admissionDetail).toBe(
+      "Your CV may support this course’s published work-experience entry pathway. UC Admissions will confirm relevance and the remaining requirements.",
     );
-    expect(matches[0].admissionDetail).not.toMatch(/equivalent GPA|relevant experience/i);
+    expect(firstBestMatch?.admissionDetail).not.toMatch(/equivalent GPA|relevant experience/i);
     expect(matches.every((match) => ["high", "medium", "low"].includes(match.entryConfidence))).toBe(
       true,
     );
@@ -429,7 +431,7 @@ describe("UC course matching", () => {
     expect(mba?.creditConfidence).toBe("low");
   });
 
-  it("gives the Maya experience-only CV comparable education matches", () => {
+  it("only recommends courses with a published experience-only pathway for Maya", () => {
     const experiences = [
       {
         ...role({
@@ -499,6 +501,9 @@ describe("UC course matching", () => {
     const educationLeadership = matches.find(
       (match) => match.course.title === "Master of Education (Leadership)",
     );
+    const mba = matches.find(
+      (match) => match.course.title === "Master of Business Administration",
+    );
     const bestMatchTitles = matches
       .filter((match) => match.category === "best_match")
       .map((match) => match.course.title);
@@ -521,14 +526,21 @@ describe("UC course matching", () => {
       "level-4",
     ]);
     expect(bestMatchTitles).toEqual([
-      "Master of Education (Leadership)",
-      "Master of Business Administration",
-      "Graduate Certificate in Educational Leadership",
+      "Graduate Certificate in Business",
+      "Graduate Certificate in Business Administration (Government)",
+      "Graduate Certificate in Public Policy",
     ]);
     expect(educationLeadership).toMatchObject({
-      category: "best_match",
+      category: "needs_review",
       creditConfidence: "high",
-      entryConfidence: "high",
+      entryConfidence: "medium",
+    });
+    expect(educationLeadership?.admissionDetail).toContain(
+      "does not currently demonstrate a published entry pathway",
+    );
+    expect(mba).toMatchObject({
+      category: "needs_review",
+      entryConfidence: "medium",
     });
     expect(
       matches
@@ -547,6 +559,58 @@ describe("UC course matching", () => {
         })),
       ),
     );
+  });
+
+  it("does not treat an incomplete bachelor degree as a completed entry qualification", () => {
+    const experiences = [
+      {
+        ...role({
+          endYear: "",
+          id: "learning-development-lead",
+          level: 1,
+          occupation: "Training and Development Professional",
+          startYear: "2023",
+        }),
+        currentRole: true,
+        duties:
+          "Leads workplace education and learning strategy, manages capability programs and develops team leaders.",
+        endMonth: "",
+        oscaOccupationCode: "222431",
+        position: "Learning and Development Lead",
+      },
+    ];
+    const recognition = draft(experiences);
+    recognition.tertiaryQualifications = [
+      {
+        id: "incomplete-bachelor",
+        completed: false,
+        country: "Australia",
+        courseName: "Bachelor of Business",
+        endMonth: "November",
+        endYear: "2025",
+        institution: "Example University",
+        level: "Bachelor",
+        startMonth: "February",
+        startYear: "2022",
+      },
+    ];
+
+    const matches = rankUcCourses(
+      getCourseCatalogFor("uc"),
+      recognition,
+      assessUcAdmission(experiences, new Date("2026-08-01T00:00:00Z")),
+    );
+
+    expect(
+      matches.find(
+        (match) => match.course.title === "Master of Business Administration",
+      )?.category,
+    ).toBe("needs_review");
+    expect(
+      matches.find(
+        (match) => match.course.title === "Master of Education (Leadership)",
+      )?.category,
+    ).toBe("needs_review");
   });
 
   it("keeps STEM education courses relevant when the CV contains direct STEM evidence", () => {
@@ -577,9 +641,9 @@ describe("UC course matching", () => {
     expect(
       matches.find((match) => match.course.title === "Master of Education (STEM)"),
     ).toMatchObject({
-      category: "best_match",
+      category: "needs_review",
       creditConfidence: "high",
-      entryConfidence: "high",
+      entryConfidence: "medium",
     });
   });
 });

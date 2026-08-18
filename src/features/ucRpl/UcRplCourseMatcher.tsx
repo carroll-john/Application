@@ -348,6 +348,7 @@ function ResultsState({
   experienceSummary,
   experienceGuidance,
   filter,
+  hasReviewedQualifications,
   matches,
   onEdit,
   onFilter,
@@ -363,6 +364,7 @@ function ResultsState({
   experienceSummary: UcOscaExperienceSummary | null;
   experienceGuidance: string;
   filter: MatchFilter;
+  hasReviewedQualifications: boolean;
   matches: UcCourseMatch[];
   onEdit: () => void;
   onFilter: (filter: MatchFilter) => void;
@@ -394,7 +396,9 @@ function ResultsState({
           Courses matched to your experience
         </h1>
         <p className="mt-3 text-lg text-slate-600">
-          Based on the experience and qualifications you reviewed.
+          {hasReviewedQualifications
+            ? "Based on the experience and qualifications you reviewed."
+            : "Based on the experience you reviewed."}
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-500">
           This is a guide only. It is not an admission offer or credit decision.
@@ -847,6 +851,12 @@ export function UcRplCourseMatcher({
           experienceSummary={experienceSummary}
           experienceGuidance={experienceGuidance}
           filter={filter}
+          hasReviewedQualifications={Boolean(
+            draft &&
+              (draft.tertiaryQualifications.length > 0 ||
+                draft.secondaryQualifications.length > 0 ||
+                draft.professionalAccreditations.length > 0),
+          )}
           matches={matches}
           onEdit={() => onStageChange("review")}
           onFilter={setFilter}
