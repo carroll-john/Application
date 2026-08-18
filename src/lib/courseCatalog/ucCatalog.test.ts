@@ -86,4 +86,26 @@ describe("University of Canberra catalogue", () => {
       "up to 12 credit points",
     );
   });
+
+  it("preserves the published 2026 prices used by Maya's demo comparison", () => {
+    const mba = catalogue.find(
+      (course) => course.title === "Master of Business Administration",
+    );
+    const graduateBusiness = catalogue.find(
+      (course) => course.title === "Graduate Certificate in Business",
+    );
+    const digitalMarketing = catalogue.find(
+      (course) => course.title === "Graduate Certificate in Digital Marketing",
+    );
+
+    expect(mba?.tuitionFees).toBe(
+      "$4,062.50 per unit; $48,750 indicative total course tuition (2026 full fee)",
+    );
+    expect(graduateBusiness?.tuitionFees).toBe(
+      "$4,062.50 per unit; $16,250 indicative total course tuition (2026 full fee)",
+    );
+    expect(digitalMarketing?.tuitionFees).toBe(
+      "$2,174 per unit; $8,696 indicative total course student contribution (2026 CSP for eligible domestic students)",
+    );
+  });
 });

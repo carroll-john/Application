@@ -246,29 +246,45 @@ describe("UC shortlisted-course credit assessment", () => {
 
     expect(
       results.map((result) => ({
+        afterCost: result.afterCost,
         afterDurationMonths: result.afterDurationMonths,
         confidence: result.confidence,
+        costBasis: result.costBasis,
+        originalCost: result.originalCost,
         originalDurationMonths: result.originalDurationMonths,
         potentialCreditPoints: result.potentialCreditPoints,
+        potentialSavings: result.potentialSavings,
       })),
     ).toEqual([
       {
+        afterCost: 40625,
         afterDurationMonths: 20,
         confidence: "medium",
+        costBasis: "full_fee",
+        originalCost: 48750,
         originalDurationMonths: 24,
         potentialCreditPoints: 6,
+        potentialSavings: 8125,
       },
       {
+        afterCost: 6522,
         afterDurationMonths: 9,
         confidence: "medium",
+        costBasis: "csp",
+        originalCost: 8696,
         originalDurationMonths: 12,
         potentialCreditPoints: 3,
+        potentialSavings: 2174,
       },
       {
+        afterCost: 8125,
         afterDurationMonths: 4,
         confidence: "medium",
+        costBasis: "full_fee",
+        originalCost: 16250,
         originalDurationMonths: 8,
         potentialCreditPoints: 6,
+        potentialSavings: 8125,
       },
     ]);
     expect(results[0]?.evidenceSummary).toMatch(
@@ -280,8 +296,6 @@ describe("UC shortlisted-course credit assessment", () => {
     expect(results[2]?.evidenceSummary).toMatch(
       /Business Foundations and Organisational Behaviour/i,
     );
-    expect(results.every((result) => result.originalCost === null)).toBe(true);
-    expect(results.every((result) => result.afterCost === null)).toBe(true);
   });
 
   it("keeps graduate certificates on formal review when no approved credit arrangement is published", () => {

@@ -103,7 +103,13 @@ export function UcCreditAssessmentComparison({
             <p className="mt-1 text-xs leading-5 text-green-900/70">
               UC will confirm any tuition impact during faculty review.
             </p>
-          ) : null}
+          ) : (
+            <p className="mt-1 text-xs leading-5 text-green-900/70">
+              {result.costBasis === "csp"
+                ? "2026 indicative CSP student contribution for eligible domestic students. UC will confirm final fees."
+                : "2026 indicative tuition. UC will confirm final fees."}
+            </p>
+          )}
         </div>
       ) : null}
     </div>

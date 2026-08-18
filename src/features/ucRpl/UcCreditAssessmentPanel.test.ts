@@ -88,6 +88,7 @@ describe("UC credit assessment interface", () => {
           afterCost: 11825,
           afterDurationMonths: 8,
           confidence: "high",
+          costBasis: "full_fee",
           courseCode: "master-of-education-leadership",
           evidenceSummary: "Based on related prior study and experience.",
           originalCost: 23650,
@@ -105,7 +106,9 @@ describe("UC credit assessment interface", () => {
     expect(html).toContain("8 months");
     expect(html).toContain("$23,650");
     expect(html).toContain("$11,825");
-    expect(html).not.toContain("2026 indicative tuition only");
+    expect(html).toContain(
+      "2026 indicative tuition. UC will confirm final fees.",
+    );
   });
 
   it("shows a credit and time option without inventing tuition figures", () => {
@@ -115,6 +118,7 @@ describe("UC credit assessment interface", () => {
           afterCost: null,
           afterDurationMonths: 9,
           confidence: "medium",
+          costBasis: null,
           courseCode: "graduate-certificate-digital-marketing",
           evidenceSummary:
             "Completed transcript subjects including Digital Communication Strategy may align with this course.",
@@ -135,6 +139,32 @@ describe("UC credit assessment interface", () => {
     expect(html).not.toContain("Confirm with UC");
   });
 
+  it("labels a CSP price separately from full-fee tuition", () => {
+    const html = renderToStaticMarkup(
+      createElement(UcCreditAssessmentComparison, {
+        result: {
+          afterCost: 6522,
+          afterDurationMonths: 9,
+          confidence: "medium",
+          costBasis: "csp",
+          courseCode: "graduate-certificate-digital-marketing",
+          evidenceSummary:
+            "Completed transcript subjects including Digital Communication Strategy may align with this course.",
+          originalCost: 8696,
+          originalDurationMonths: 12,
+          potentialCreditPoints: 3,
+          potentialSavings: 2174,
+        },
+      }),
+    );
+
+    expect(html).toContain("$8,696");
+    expect(html).toContain("$6,522");
+    expect(html).toContain(
+      "2026 indicative CSP student contribution for eligible domestic students. UC will confirm final fees.",
+    );
+  });
+
   it("omits the redundant zero-credit summary while retaining faculty review status", () => {
     const html = renderToStaticMarkup(
       createElement(UcCreditAssessmentComparison, {
@@ -142,6 +172,7 @@ describe("UC credit assessment interface", () => {
           afterCost: 23650,
           afterDurationMonths: 16,
           confidence: "low",
+          costBasis: "full_fee",
           courseCode: "master-of-education-leadership",
           evidenceSummary:
             "Your transcript and CV will need faculty review for a formal credit decision.",
@@ -170,6 +201,7 @@ describe("UC credit assessment interface", () => {
             afterCost: 11825,
             afterDurationMonths: 8,
             confidence: "high",
+            costBasis: "full_fee",
             courseCode: match.course.code,
             evidenceSummary:
               "Based on related prior study in your transcript and relevant professional experience in your CV.",
