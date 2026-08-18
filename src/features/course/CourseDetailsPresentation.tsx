@@ -38,15 +38,32 @@ export function CourseDetailsPresentation({
               </p>
             </SurfaceCard>
 
-            {course.entryRequirements ? (
+            {course.entryRequirements || course.entryRequirementItems.length ? (
               <div ref={entryRequirementsRef}>
                 <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
                   <h3 className="text-2xl font-bold text-slate-950">
-                    Entry requirements
+                    Eligibility requirements
                   </h3>
-                  <p className="mt-4 text-base leading-7 text-slate-600">
-                    {course.entryRequirements}
-                  </p>
+                  {course.entryRequirementItems.length ? (
+                    <ul className="mt-5 space-y-3">
+                      {course.entryRequirementItems.map((requirement) => (
+                        <li
+                          key={requirement}
+                          className="flex gap-3 text-base leading-7 text-slate-700"
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="mt-[0.65rem] h-2 w-2 shrink-0 rounded-full bg-[var(--cta-tertiary-text)]"
+                          />
+                          <span>{requirement}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-4 text-base leading-7 text-slate-600">
+                      {course.entryRequirements}
+                    </p>
+                  )}
                 </SurfaceCard>
               </div>
             ) : null}

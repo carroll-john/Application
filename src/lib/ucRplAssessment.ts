@@ -118,6 +118,11 @@ const RELATED_TERMS: Record<string, string[]> = {
   executive: ["leadership", "management", "strategy"],
   health: ["public", "clinical", "care", "leadership"],
   laws: ["law", "legal"],
+  lead: ["leadership"],
+  leader: ["leadership"],
+  leaders: ["leadership"],
+  leading: ["leadership"],
+  leads: ["leadership"],
   llb: ["law", "legal", "juris"],
   manager: ["management", "leadership", "business", "strategy"],
   marketing: ["communication", "business", "digital", "strategy"],
@@ -165,14 +170,40 @@ const SPECIALIST_DOMAIN_GUARDS = [
   ["social"],
 ] as const;
 
+const SPECIALIST_COURSE_EVIDENCE = [
+  {
+    matches: (course: CourseCatalogEntry) => /\bstem\b/i.test(course.title),
+    terms: ["engineering", "mathematics", "maths", "science", "scientific", "stem"],
+  },
+  {
+    matches: (course: CourseCatalogEntry) =>
+      /^master of teaching\b/i.test(course.title),
+    terms: ["classroom", "curriculum", "pedagogy", "school", "teacher", "teaching"],
+  },
+  {
+    matches: (course: CourseCatalogEntry) =>
+      /\btesol\b/i.test(course.title) ||
+      /^teaching english as a second language\b/i.test(course.title),
+    terms: ["efl", "english", "esl", "language", "linguistics", "tesol"],
+  },
+] as const;
+
+const BEST_MATCH_LIMIT = 3;
+
 function normalizeKey(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+function directTokens(value: string) {
+  return new Set(
+    normalizeKey(value)
+      .split(/\s+/)
+      .filter((token) => token.length > 2 && !STOP_WORDS.has(token)),
+  );
+}
+
 function tokenize(value: string) {
-  const tokens = normalizeKey(value)
-    .split(/\s+/)
-    .filter((token) => token.length > 2 && !STOP_WORDS.has(token));
+  const tokens = directTokens(value);
   const expanded = new Set(tokens);
 
   tokens.forEach((token) => {
@@ -611,6 +642,20 @@ function experienceTokens(experiences: CvRecognitionExperience[]) {
   );
 }
 
+function directExperienceTokens(experiences: CvRecognitionExperience[]) {
+  return directTokens(
+    experiences
+      .map((experience) =>
+        [
+          experience.position,
+          experience.duties,
+          experience.oscaOccupationTitle,
+        ].join(" "),
+      )
+      .join(" "),
+  );
+}
+
 function mostRecentExperiences(experiences: CvRecognitionExperience[]) {
   const current = experiences.filter((experience) => experience.currentRole);
 
@@ -684,6 +729,7 @@ function buildCourseMatchProfile(draft: CvRecognitionDraft) {
     (experience) => experience.includeInAssessment,
   );
   const roleTokens = experienceTokens(includedExperiences);
+  const evidenceTokens = directExperienceTokens(includedExperiences);
   const directionTokens = experienceTokens(
     mostRecentExperiences(includedExperiences),
   );
@@ -702,6 +748,7 @@ function buildCourseMatchProfile(draft: CvRecognitionDraft) {
 
   return {
     directionTokens,
+    evidenceTokens,
     highestQualificationRank,
     profileTokens,
     qualificationTokens,
@@ -725,6 +772,7 @@ function courseRelevance(
   );
   const {
     directionTokens,
+    evidenceTokens,
     highestQualificationRank,
     profileTokens,
     qualificationTokens,
@@ -745,6 +793,11 @@ function courseRelevance(
     course,
     tertiaryQualifications,
   );
+  const lacksSpecialistEvidence = SPECIALIST_COURSE_EVIDENCE.some(
+    (guard) =>
+      guard.matches(course) &&
+      !guard.terms.some((term) => evidenceTokens.has(term)),
+  );
   const courseRank = awardRank(course.title) ?? 0;
   const progressionBonus =
     highestQualificationRank > 0 && courseRank >= highestQualificationRank
@@ -758,9 +811,10 @@ function courseRelevance(
     domainPenalty;
 
   return {
-    relevanceScore: repeatsCompletedQualification
-      ? 0
-      : Math.max(0, Math.min(100, score)),
+    relevanceScore:
+      repeatsCompletedQualification || lacksSpecialistEvidence
+        ? 0
+        : Math.max(0, Math.min(100, score)),
     repeatsCompletedQualification,
   };
 }
@@ -814,7 +868,7 @@ export function rankUcCourses(
       admission.skillLevel === 1 ||
       (admission.skillLevel === 2 && admission.experienceMonths >= 24);
     const category =
-      hasAdmissionBand && index < 6
+      hasAdmissionBand && index < BEST_MATCH_LIMIT
         ? "best_match"
         : hasAdmissionBand || relevanceScore > 0
           ? "needs_review"
