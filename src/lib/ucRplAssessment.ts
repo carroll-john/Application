@@ -197,6 +197,15 @@ const SPECIALIST_COURSE_EVIDENCE = [
   },
 ] as const;
 
+const POLICY_OR_GOVERNMENT_EVIDENCE_TERMS = [
+  "government",
+  "policy",
+  "regulatory",
+  "minister",
+  "department",
+  "council",
+] as const;
+
 const BEST_MATCH_LIMIT = 3;
 
 const EXPERIENCE_YEAR_WORDS: Record<string, number> = {
@@ -815,6 +824,13 @@ function courseRelevance(
       guard.matches(course) &&
       !guard.terms.some((term) => evidenceTokens.has(term)),
   );
+  const lacksPolicyOrGovernmentEvidence =
+    /\b(public policy|policy evaluation|gender policy|lgbtqia\+? policy)\b/i.test(
+      course.title,
+    ) &&
+    !POLICY_OR_GOVERNMENT_EVIDENCE_TERMS.some((term) =>
+      evidenceTokens.has(term),
+    );
   const courseRank = awardRank(course.title) ?? 0;
   const progressionBonus =
     highestQualificationRank > 0 && courseRank >= highestQualificationRank
@@ -829,7 +845,9 @@ function courseRelevance(
 
   return {
     relevanceScore:
-      repeatsCompletedQualification || lacksSpecialistEvidence
+      repeatsCompletedQualification ||
+      lacksSpecialistEvidence ||
+      lacksPolicyOrGovernmentEvidence
         ? 0
         : Math.max(0, Math.min(100, score)),
     repeatsCompletedQualification,
@@ -948,15 +966,11 @@ function hasCourseSpecificRoleEvidence(
     const directRoleTokens = directTokens(
       [role.position, role.duties, role.oscaOccupationTitle].join(" "),
     );
-    const policyEvidence = [
-      "government",
-      "policy",
-      "regulatory",
-      "minister",
-      "department",
-      "council",
-    ];
-    if (!policyEvidence.some((term) => directRoleTokens.has(term))) {
+    if (
+      !POLICY_OR_GOVERNMENT_EVIDENCE_TERMS.some((term) =>
+        directRoleTokens.has(term),
+      )
+    ) {
       return false;
     }
   }

@@ -5,12 +5,24 @@
       "provider_name": "University of Canberra",
       "subject_area": "Business and Management",
       "course_description": "Build contemporary leadership, strategy and management capability through flexible online study with the University of Canberra.",
+      "course_duration": "24 months part-time",
       "entry_requirements": "Applicants must hold an Australian bachelor degree or equivalent in a related field; or an Australian bachelor degree or equivalent in an unrelated field plus three years of relevant work experience; or an Australian Graduate Certificate at AQF level 8 in any field or higher. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
       "entry_requirement_items": [
         "Related-degree pathway — an Australian bachelor degree or equivalent in a related field.",
         "Experience pathway — an Australian bachelor degree or equivalent in an unrelated field, plus three years of relevant work experience.",
         "Postgraduate pathway — an Australian Graduate Certificate at AQF level 8 in any field, or a higher qualification.",
         "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "recognition_of_prior_learning": "UC lists a credit transfer arrangement from the Graduate Certificate in Business. Other previous study or work experience is considered under the course rules and UC policy.",
+      "core_subjects_modules": [
+        { "value": "Data-Driven Decision Making and Analytics" },
+        { "value": "Financial Management and Sustainable Finance" },
+        { "value": "Organisational Talent Management" },
+        { "value": "Marketing, Engagement and Behavioural Insights" },
+        { "value": "Managerial Economics and Policy Analysis" },
+        { "value": "Applied Industry Project" },
+        { "value": "Leading Modern Workforces" },
+        { "value": "Strategic Management and Innovation" }
       ],
       "officialCourseCode": "MGM104",
       "sourceUrl": "https://www.canberra.edu.au/course/MGM104/1/2026",
@@ -44,12 +56,14 @@
       "provider_name": "University of Canberra",
       "subject_area": "Business and Management",
       "course_description": "Build postgraduate business capability through flexible online study.",
+      "course_duration": "8 months part-time",
       "entry_requirements": "Applicants must hold an Australian bachelor degree or equivalent in any field, or have at least three years of relevant work experience. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
       "entry_requirement_items": [
         "Qualification pathway — an Australian bachelor degree or equivalent in any field.",
         "Experience pathway — at least three years of relevant work experience.",
         "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
       ],
+      "recognition_of_prior_learning": "There is no formal credit transfer arrangement for this course. Previous study or work experience may be considered as part of the application under the course rules and UC policy.",
       "officialCourseCode": "MGC103",
       "sourceUrl": "https://www.canberra.edu.au/course/MGC103/1/2026",
       "sourceVerifiedAt": "2026-08-18",
@@ -131,10 +145,18 @@
       "provider_name": "University of Canberra",
       "subject_area": "Business, Marketing and Digital Communication",
       "course_description": "Build practical digital marketing capability for changing audiences and channels.",
+      "course_duration": "12 months part-time",
       "entry_requirements": "Applicants must hold an undergraduate degree at AQF level 7 or equivalent. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
       "entry_requirement_items": [
         "Academic entry — an undergraduate degree at AQF level 7 or equivalent.",
         "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "recognition_of_prior_learning": "There is no formal credit transfer arrangement for this course. Previous study or work experience may be considered as part of the application under the course rules and UC policy.",
+      "core_subjects_modules": [
+        { "value": "Audiences, Data and Media Convergence" },
+        { "value": "Digital Advertising Practices" },
+        { "value": "Social Media Marketing" },
+        { "value": "Integrated Digital Marketing and Communication" }
       ],
       "officialCourseCode": "ARC701",
       "sourceUrl": "https://www.canberra.edu.au/course/ARC701/1/2026",

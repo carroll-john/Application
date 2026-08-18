@@ -23,6 +23,8 @@ export function UcCreditAssessmentComparison({
   const afterDuration = formatUcAssessmentDuration(result.afterDurationMonths);
   const originalCost = formatUcAssessmentCost(result.originalCost);
   const afterCost = formatUcAssessmentCost(result.afterCost);
+  const hasCostComparison =
+    result.originalCost !== null && result.afterCost !== null;
 
   return (
     <div className="border-t border-[var(--border)] bg-green-50/70 p-5 sm:p-6">
@@ -56,10 +58,15 @@ export function UcCreditAssessmentComparison({
             <Clock3 className="h-4 w-4 text-slate-500" aria-hidden="true" />
             {originalDuration}
           </p>
-          <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
-            <WalletCards className="h-4 w-4 text-slate-500" aria-hidden="true" />
-            {originalCost}
-          </p>
+          {hasCostComparison ? (
+            <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <WalletCards
+                className="h-4 w-4 text-slate-500"
+                aria-hidden="true"
+              />
+              {originalCost}
+            </p>
+          ) : null}
         </div>
 
         <span className="flex items-center justify-center text-[var(--cta-secondary)]">
@@ -75,17 +82,29 @@ export function UcCreditAssessmentComparison({
             <Clock3 className="h-4 w-4 text-green-700" aria-hidden="true" />
             {afterDuration}
           </p>
-          <p className="mt-2 flex items-center gap-2 text-sm font-bold text-green-950">
-            <WalletCards className="h-4 w-4 text-green-700" aria-hidden="true" />
-            {afterCost}
-          </p>
+          {hasCostComparison ? (
+            <p className="mt-2 flex items-center gap-2 text-sm font-bold text-green-950">
+              <WalletCards
+                className="h-4 w-4 text-green-700"
+                aria-hidden="true"
+              />
+              {afterCost}
+            </p>
+          ) : null}
         </div>
       </div>
 
       {result.potentialCreditPoints > 0 ? (
-        <p className="mt-4 text-sm font-semibold text-green-950">
-          Up to {result.potentialCreditPoints} credit points indicated
-        </p>
+        <div className="mt-4">
+          <p className="text-sm font-semibold text-green-950">
+            Up to {result.potentialCreditPoints} credit points indicated
+          </p>
+          {!hasCostComparison ? (
+            <p className="mt-1 text-xs leading-5 text-green-900/70">
+              UC will confirm any tuition impact during faculty review.
+            </p>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );

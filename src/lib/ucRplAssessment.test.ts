@@ -520,8 +520,8 @@ describe("UC course matching", () => {
     ]);
     expect(bestMatchTitles).toEqual([
       "Master of Business Administration",
-      "Graduate Certificate in Digital Marketing",
       "Graduate Certificate in Business",
+      "Graduate Certificate in Digital Marketing",
     ]);
     expect(bestMatchTitles).not.toContain(
       "Graduate Certificate in Business Administration (Government)",

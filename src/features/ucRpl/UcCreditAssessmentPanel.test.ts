@@ -9,17 +9,19 @@ import { UcCreditAssessmentPanel } from "./UcCreditAssessmentPanel";
 import { UcRplMatchCard } from "./UcRplCourseMatcher";
 
 function shortlist() {
-  return getCourseCatalogFor("uc").slice(0, 3).map((course) => ({
-    admissionDetail: "Admissions review required.",
-    category: "best_match",
-    course,
-    creditConfidence: "high",
-    creditDetail: "Potential credit.",
-    entryConfidence: "high",
-    entryPathway: "skilled_work",
-    entryStatus: "may_meet",
-    relevanceScore: 30,
-  })) satisfies UcCourseMatch[];
+  return getCourseCatalogFor("uc")
+    .slice(0, 3)
+    .map((course) => ({
+      admissionDetail: "Admissions review required.",
+      category: "best_match",
+      course,
+      creditConfidence: "high",
+      creditDetail: "Potential credit.",
+      entryConfidence: "high",
+      entryPathway: "skilled_work",
+      entryStatus: "may_meet",
+      relevanceScore: 30,
+    })) satisfies UcCourseMatch[];
 }
 
 const baseProps = {
@@ -104,6 +106,33 @@ describe("UC credit assessment interface", () => {
     expect(html).toContain("$23,650");
     expect(html).toContain("$11,825");
     expect(html).not.toContain("2026 indicative tuition only");
+  });
+
+  it("shows a credit and time option without inventing tuition figures", () => {
+    const html = renderToStaticMarkup(
+      createElement(UcCreditAssessmentComparison, {
+        result: {
+          afterCost: null,
+          afterDurationMonths: 9,
+          confidence: "medium",
+          courseCode: "graduate-certificate-digital-marketing",
+          evidenceSummary:
+            "Completed transcript subjects including Digital Communication Strategy may align with this course.",
+          originalCost: null,
+          originalDurationMonths: 12,
+          potentialCreditPoints: 3,
+          potentialSavings: null,
+        },
+      }),
+    );
+
+    expect(html).toContain("Up to 3 credit points indicated");
+    expect(html).toContain("1 year");
+    expect(html).toContain("9 months");
+    expect(html).toContain(
+      "UC will confirm any tuition impact during faculty review.",
+    );
+    expect(html).not.toContain("Confirm with UC");
   });
 
   it("omits the redundant zero-credit summary while retaining faculty review status", () => {

@@ -4,6 +4,51 @@ import type { UcCourseMatch, UcGuidanceConfidence } from "./ucRplAssessment";
 const CREDIT_POINTS_PER_UNIT = 3;
 const MONTHS_PER_ACCELERATED_UNIT = 2;
 const DEFAULT_POSTGRADUATE_CREDIT_CAP = 12;
+const UC_DEMO_COURSE_CREDIT_PROFILES: Record<
+  string,
+  {
+    reviewCreditCap: number;
+    subjectEvidenceTerms: string[];
+    totalCourseCreditPoints: number;
+  }
+> = {
+  ARC701: {
+    reviewCreditCap: 3,
+    subjectEvidenceTerms: [
+      "advertising",
+      "communication",
+      "digital",
+      "marketing",
+      "media",
+    ],
+    totalCourseCreditPoints: 12,
+  },
+  MGC103: {
+    reviewCreditCap: 6,
+    subjectEvidenceTerms: [
+      "analytics",
+      "business",
+      "financial",
+      "management",
+      "organisation",
+      "project",
+    ],
+    totalCourseCreditPoints: 12,
+  },
+  MGM104: {
+    reviewCreditCap: 6,
+    subjectEvidenceTerms: [
+      "analytics",
+      "business",
+      "financial",
+      "leadership",
+      "management",
+      "organisation",
+      "project",
+    ],
+    totalCourseCreditPoints: 36,
+  },
+};
 const TOKEN_ALIASES: Record<string, string> = {
   educational: "education",
   governmental: "government",
@@ -45,13 +90,16 @@ function normalizeTokens(value: string) {
   );
 }
 
-function getFieldValue(field: { normalizedValue?: string; originalValue?: string } | undefined) {
+function getFieldValue(
+  field: { normalizedValue?: string; originalValue?: string } | undefined,
+) {
   return field?.normalizedValue?.trim() || field?.originalValue?.trim() || "";
 }
 
 function getTranscriptTokens(assessment: TranscriptEligibilityAssessment) {
   const studyDetails = assessment.extractedData.studyDetails;
-  const unitResults = assessment.extractedData.academicPerformance?.unitResults ?? [];
+  const unitResults =
+    assessment.extractedData.academicPerformance?.unitResults ?? [];
   const evidenceText = [
     getFieldValue(studyDetails?.programName),
     getFieldValue(studyDetails?.highestEducationLevel),
@@ -61,6 +109,16 @@ function getTranscriptTokens(assessment: TranscriptEligibilityAssessment) {
   ].join(" ");
 
   return normalizeTokens(evidenceText);
+}
+
+function getCountedTranscriptUnitTitles(
+  assessment: TranscriptEligibilityAssessment,
+) {
+  return (
+    assessment.extractedData.academicPerformance?.unitResults
+      ?.filter((unit) => unit.counted !== false && unit.title?.trim())
+      .map((unit) => unit.title?.trim() ?? "") ?? []
+  );
 }
 
 function getCourseTokens(match: UcCourseMatch) {
@@ -76,6 +134,20 @@ function getCourseTokens(match: UcCourseMatch) {
 
 function countOverlap(left: Set<string>, right: Set<string>) {
   return Array.from(left).filter((token) => right.has(token)).length;
+}
+
+function getMatchedTranscriptSubjects(
+  match: UcCourseMatch,
+  assessment: TranscriptEligibilityAssessment,
+) {
+  const courseProfile = getCourseCreditProfile(match);
+  const courseTokens = courseProfile
+    ? new Set(courseProfile.subjectEvidenceTerms)
+    : getCourseTokens(match);
+
+  return getCountedTranscriptUnitTitles(assessment).filter(
+    (title) => countOverlap(normalizeTokens(title), courseTokens) > 0,
+  );
 }
 
 function parseMoney(value: string | undefined, pattern: RegExp) {
@@ -115,7 +187,9 @@ function getCourseCostProfile(match: UcCourseMatch) {
 function parseDurationMonths(duration: string | undefined) {
   if (!duration) return null;
 
-  const range = duration.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*years?/i);
+  const range = duration.match(
+    /(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*years?/i,
+  );
   if (range?.[1]) return Math.round(Number.parseFloat(range[1]) * 12);
 
   const years = duration.match(/(\d+(?:\.\d+)?)\s*years?/i);
@@ -127,12 +201,24 @@ function parseDurationMonths(duration: string | undefined) {
   return null;
 }
 
+function getCourseCreditProfile(match: UcCourseMatch) {
+  const officialCode = match.course.officialCourseCode?.toUpperCase();
+  return officialCode
+    ? UC_DEMO_COURSE_CREDIT_PROFILES[officialCode]
+    : undefined;
+}
+
 function getCreditCap(match: UcCourseMatch) {
   const publishedCap = match.course.recognitionOfPriorLearning?.match(
     /up to\s+(\d+(?:\.\d+)?)\s+credit points?/i,
   );
   if (publishedCap?.[1]) {
     return Number.parseFloat(publishedCap[1]);
+  }
+
+  const demoProfile = getCourseCreditProfile(match);
+  if (demoProfile) {
+    return demoProfile.reviewCreditCap;
   }
 
   if (/graduate certificate/i.test(match.course.title)) {
@@ -144,13 +230,27 @@ function getCreditCap(match: UcCourseMatch) {
 
 function getEvidenceSummary(options: {
   formalStudyScore: number;
+  matchedTranscriptSubjects: string[];
   potentialCreditPoints: number;
   workScore: number;
 }) {
-  const { formalStudyScore, potentialCreditPoints, workScore } = options;
+  const {
+    formalStudyScore,
+    matchedTranscriptSubjects,
+    potentialCreditPoints,
+    workScore,
+  } = options;
 
   if (potentialCreditPoints === 0) {
     return "No course-specific credit could be estimated automatically after comparing your transcript and CV.";
+  }
+  if (matchedTranscriptSubjects.length > 0) {
+    const displayedSubjects = matchedTranscriptSubjects.slice(0, 2);
+    const subjectList =
+      displayedSubjects.length === 1
+        ? displayedSubjects[0]
+        : `${displayedSubjects[0]} and ${displayedSubjects[1]}`;
+    return `Completed transcript subjects including ${subjectList} may align with this course. UC will confirm the unit alignment and any credit awarded.`;
   }
   if (formalStudyScore > 0 && workScore > 0) {
     return "Based on related prior study in your transcript and relevant professional experience in your CV.";
@@ -165,7 +265,22 @@ export function assessUcShortlistedCourseCredit(
   const transcriptTokens = getTranscriptTokens(transcriptAssessment);
   const courseTokens = getCourseTokens(match);
   const overlap = countOverlap(transcriptTokens, courseTokens);
-  const formalStudyScore = overlap >= 2 ? 6 : overlap === 1 ? 3 : 0;
+  const matchedTranscriptSubjects = getMatchedTranscriptSubjects(
+    match,
+    transcriptAssessment,
+  );
+  const courseCreditProfile = getCourseCreditProfile(match);
+  const formalStudyScore = courseCreditProfile
+    ? matchedTranscriptSubjects.length >= 2
+      ? 6
+      : matchedTranscriptSubjects.length === 1
+        ? 3
+        : 0
+    : overlap >= 2
+      ? 6
+      : overlap === 1
+        ? 3
+        : 0;
   const workScore =
     match.creditConfidence === "high"
       ? 6
@@ -184,9 +299,6 @@ export function assessUcShortlistedCourseCredit(
     parseDurationMonths(match.course.duration) ??
     (costProfile ? costProfile.units * MONTHS_PER_ACCELERATED_UNIT : null);
   const creditedUnits = potentialCreditPoints / CREDIT_POINTS_PER_UNIT;
-  const afterUnits = costProfile
-    ? Math.max(0, costProfile.units - creditedUnits)
-    : null;
   const potentialSavings = costProfile
     ? Math.min(costProfile.totalCost, costProfile.unitCost * creditedUnits)
     : null;
@@ -194,19 +306,30 @@ export function assessUcShortlistedCourseCredit(
     costProfile && potentialSavings !== null
       ? Math.max(0, costProfile.totalCost - potentialSavings)
       : null;
+  const totalCourseCreditPoints =
+    courseCreditProfile?.totalCourseCreditPoints ??
+    (costProfile ? costProfile.units * CREDIT_POINTS_PER_UNIT : null);
   const afterDurationMonths =
-    originalDurationMonths !== null && costProfile && afterUnits !== null
+    originalDurationMonths !== null &&
+    totalCourseCreditPoints !== null &&
+    totalCourseCreditPoints > 0
       ? Math.max(
           0,
-          Math.round((originalDurationMonths * afterUnits) / costProfile.units),
+          Math.round(
+            (originalDurationMonths *
+              (totalCourseCreditPoints - potentialCreditPoints)) /
+              totalCourseCreditPoints,
+          ),
         )
       : originalDurationMonths;
   const confidence: UcGuidanceConfidence =
-    potentialCreditPoints >= 9 && formalStudyScore > 0
-      ? "high"
-      : potentialCreditPoints > 0
-        ? "medium"
-        : "low";
+    courseCreditProfile && potentialCreditPoints > 0
+      ? "medium"
+      : potentialCreditPoints >= 9 && formalStudyScore > 0
+        ? "high"
+        : potentialCreditPoints > 0
+          ? "medium"
+          : "low";
 
   return {
     afterCost,
@@ -215,6 +338,7 @@ export function assessUcShortlistedCourseCredit(
     courseCode: match.course.code,
     evidenceSummary: getEvidenceSummary({
       formalStudyScore,
+      matchedTranscriptSubjects,
       potentialCreditPoints,
       workScore,
     }),
@@ -242,7 +366,7 @@ export function hasUcTranscriptStudyEvidence(
 
   return Boolean(
     getFieldValue(studyDetails?.programName) ||
-      (academicPerformance?.unitResults?.length ?? 0) > 0,
+    (academicPerformance?.unitResults?.length ?? 0) > 0,
   );
 }
 
