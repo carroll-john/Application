@@ -4,6 +4,8 @@ import type { UcCourseMatch, UcGuidanceConfidence } from "./ucRplAssessment";
 const CREDIT_POINTS_PER_UNIT = 3;
 const MONTHS_PER_ACCELERATED_UNIT = 2;
 const DEFAULT_POSTGRADUATE_CREDIT_CAP = 12;
+const POSITIVE_EVIDENCE_SUMMARY =
+  "We used your work experience and previous study to calculate this indicative credit assessment. UC will confirm any credit awarded.";
 const UC_DEMO_COURSE_CREDIT_PROFILES: Record<
   string,
   {
@@ -238,34 +240,11 @@ function getCreditCap(match: UcCourseMatch) {
   return DEFAULT_POSTGRADUATE_CREDIT_CAP;
 }
 
-function getEvidenceSummary(options: {
-  formalStudyScore: number;
-  matchedTranscriptSubjects: string[];
-  potentialCreditPoints: number;
-  workScore: number;
-}) {
-  const {
-    formalStudyScore,
-    matchedTranscriptSubjects,
-    potentialCreditPoints,
-    workScore,
-  } = options;
-
+function getEvidenceSummary(potentialCreditPoints: number) {
   if (potentialCreditPoints === 0) {
     return "No course-specific credit could be estimated automatically after comparing your transcript and CV.";
   }
-  if (matchedTranscriptSubjects.length > 0) {
-    const displayedSubjects = matchedTranscriptSubjects.slice(0, 2);
-    const subjectList =
-      displayedSubjects.length === 1
-        ? displayedSubjects[0]
-        : `${displayedSubjects[0]} and ${displayedSubjects[1]}`;
-    return `Completed transcript subjects including ${subjectList} may align with this course. UC will confirm the unit alignment and any credit awarded.`;
-  }
-  if (formalStudyScore > 0 && workScore > 0) {
-    return "Based on related prior study in your transcript and relevant professional experience in your CV.";
-  }
-  return "Based on related prior study in your transcript, considered alongside the experience in your CV.";
+  return POSITIVE_EVIDENCE_SUMMARY;
 }
 
 export function assessUcShortlistedCourseCredit(
@@ -347,12 +326,7 @@ export function assessUcShortlistedCourseCredit(
     confidence,
     costBasis: costProfile?.costBasis ?? null,
     courseCode: match.course.code,
-    evidenceSummary: getEvidenceSummary({
-      formalStudyScore,
-      matchedTranscriptSubjects,
-      potentialCreditPoints,
-      workScore,
-    }),
+    evidenceSummary: getEvidenceSummary(potentialCreditPoints),
     originalCost: costProfile?.totalCost ?? null,
     originalDurationMonths,
     potentialCreditPoints,

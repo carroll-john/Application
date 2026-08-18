@@ -191,8 +191,8 @@ describe("UC shortlisted-course credit assessment", () => {
       potentialCreditPoints: 12,
       potentialSavings: 11825,
     });
-    expect(result.evidenceSummary).toMatch(
-      /Educational Leadership and Change.*UC will confirm/i,
+    expect(result.evidenceSummary).toBe(
+      "We used your work experience and previous study to calculate this indicative credit assessment. UC will confirm any credit awarded.",
     );
   });
 
@@ -211,8 +211,8 @@ describe("UC shortlisted-course credit assessment", () => {
       potentialCreditPoints: 12,
       potentialSavings: 11825,
     });
-    expect(result.evidenceSummary).toMatch(
-      /Educational Leadership and Change.*UC will confirm/i,
+    expect(result.evidenceSummary).toBe(
+      "We used your work experience and previous study to calculate this indicative credit assessment. UC will confirm any credit awarded.",
     );
   });
 
@@ -287,14 +287,13 @@ describe("UC shortlisted-course credit assessment", () => {
         potentialSavings: 8125,
       },
     ]);
-    expect(results[0]?.evidenceSummary).toMatch(
-      /Business Foundations and Organisational Behaviour/i,
-    );
-    expect(results[1]?.evidenceSummary).toMatch(
-      /Digital Communication Strategy/i,
-    );
-    expect(results[2]?.evidenceSummary).toMatch(
-      /Business Foundations and Organisational Behaviour/i,
+    expect(results.map((result) => result.evidenceSummary)).toEqual([
+      "We used your work experience and previous study to calculate this indicative credit assessment. UC will confirm any credit awarded.",
+      "We used your work experience and previous study to calculate this indicative credit assessment. UC will confirm any credit awarded.",
+      "We used your work experience and previous study to calculate this indicative credit assessment. UC will confirm any credit awarded.",
+    ]);
+    expect(results.map((result) => result.evidenceSummary).join(" ")).not.toMatch(
+      /Business Foundations|Organisational Behaviour|Digital Communication Strategy|unit alignment/i,
     );
   });
 
