@@ -15,8 +15,6 @@ import {
   formatUcExperienceDuration,
   getUcExperienceGroupLabel,
   getUcExperienceReviewSummary,
-  getUcWorkEntryGuidance,
-  getUcWorkEntryGuidanceDetail,
   summarizeUcExperienceByOscaLevel,
   type CvRecognitionDraft,
   type UcOscaExperienceSummary,
@@ -204,7 +202,7 @@ function ExperienceSummaryRow({
 
   return (
     <article className="border-b border-[var(--border)] last:border-b-0">
-      <div className="grid lg:grid-cols-[minmax(0,1.25fr)_minmax(10rem,0.55fr)_minmax(0,1.1fr)_auto] lg:items-stretch">
+      <div className="grid lg:grid-cols-[minmax(0,1.2fr)_minmax(12rem,0.55fr)_auto] lg:items-stretch">
         <div className="flex gap-4 p-5 sm:p-6">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-slate-50 text-[var(--cta-secondary)]">
             <BriefcaseBusiness className="h-6 w-6" aria-hidden="true" />
@@ -221,20 +219,6 @@ function ExperienceSummaryRow({
             Experience counted
           </p>
           <p className="mt-1 text-xl font-semibold text-slate-950">{duration}</p>
-        </div>
-        <div className="border-t border-[var(--border)] bg-slate-50 px-5 py-4 sm:px-6 lg:border-l lg:border-t-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Entry guidance
-          </p>
-          <p className="mt-1 font-semibold leading-6 text-[var(--cta-secondary)]">
-            {getUcWorkEntryGuidance(summary.skillLevel, summary.experienceMonths)}
-          </p>
-          <p className="mt-1 text-sm leading-5 text-slate-600">
-            {getUcWorkEntryGuidanceDetail(
-              summary.skillLevel,
-              summary.experienceMonths,
-            )}
-          </p>
         </div>
         <div className="flex items-center border-t border-[var(--border)] p-5 sm:p-6 lg:border-l lg:border-t-0">
           <Button
