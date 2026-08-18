@@ -85,6 +85,9 @@ export function createCourseTransformer(baseCodeCounts: Record<string, number>) 
       description: description || undefined,
       subjectArea: subjectArea || undefined,
       entryRequirements: sanitizeText(course.entry_requirements) || undefined,
+      entryRequirementItems: (course.entry_requirement_items ?? [])
+        .map((item) => sanitizeText(item))
+        .filter(Boolean),
       recognitionOfPriorLearning:
         sanitizeText(course.recognition_of_prior_learning) || undefined,
       coreSubjects: toValueList(course.core_subjects_modules),

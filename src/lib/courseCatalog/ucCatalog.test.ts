@@ -13,11 +13,46 @@ describe("University of Canberra catalogue", () => {
   it("keeps provider, provenance, delivery and eligibility safety explicit", () => {
     for (const course of catalogue) {
       expect(course.provider).toBe("University of Canberra");
-      expect(course.sourceUrl).toMatch(/^https:\/\//);
-      expect(course.sourceVerifiedAt).toMatch(/^2026-07-(21|23)$/);
+      expect(course.sourceUrl).toMatch(
+        /^https:\/\/(?:www\.|studyonline\.)canberra\.edu\.au\//,
+      );
+      expect(course.sourceVerifiedAt).toBe("2026-08-18");
       expect(["online", "online_plus"]).toContain(course.deliveryMode);
       expect(["assess", "manual_review"]).toContain(course.eligibilityPolicy);
     }
+  });
+
+  it("publishes sourced eligibility requirements instead of placeholder copy", () => {
+    for (const course of catalogue) {
+      expect(course.entryRequirements?.length).toBeGreaterThan(40);
+      expect(course.entryRequirementItems.length).toBeGreaterThan(1);
+      expect(course.entryRequirements).not.toMatch(
+        /reviewed (?:manually )?against the current University of Canberra course rules/i,
+      );
+    }
+  });
+
+  it("preserves alternate, professional and placement pathways where UC publishes them", () => {
+    const graduateBusiness = catalogue.find(
+      (course) => course.title === "Graduate Certificate in Business",
+    );
+    const educationLeadership = catalogue.find(
+      (course) => course.title === "Master of Education (Leadership)",
+    );
+    const masterOfTeaching = catalogue.find(
+      (course) => course.title === "Master of Teaching (Primary or Secondary)",
+    );
+
+    expect(graduateBusiness?.entryRequirementItems.join(" ")).toContain(
+      "three years of relevant work experience",
+    );
+    expect(educationLeadership?.entryRequirementItems.join(" ")).toContain(
+      "current teacher registration",
+    );
+    expect(masterOfTeaching?.entryRequirementItems.join(" ")).toContain("CASPI");
+    expect(masterOfTeaching?.entryRequirementItems.join(" ")).toContain(
+      "60 days of supervised school placement",
+    );
   });
 
   it("uses only the reviewed MBA Government rules for automated assessment", () => {
@@ -44,7 +79,7 @@ describe("University of Canberra catalogue", () => {
 
     expect(educationLeadership).toMatchObject({
       duration: "1.3 years part-time",
-      sourceVerifiedAt: "2026-07-23",
+      sourceVerifiedAt: "2026-08-18",
       tuitionFees: "$2,956.25 per unit; $23,650 total (2026 indicative fees)",
     });
     expect(educationLeadership?.recognitionOfPriorLearning).toContain(

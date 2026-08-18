@@ -10,6 +10,7 @@ export interface RawCourseEntry {
   course_description?: string | null;
   course_duration?: string | null;
   course_name: string;
+  entry_requirement_items?: string[] | null;
   entry_requirements?: string | null;
   fee_help_eligibility?: string | null;
   intake_start_dates?: RawValueItem[] | null;
@@ -45,6 +46,7 @@ export interface CourseCatalogEntry {
   description?: string;
   subjectArea?: string;
   entryRequirements?: string;
+  entryRequirementItems: string[];
   recognitionOfPriorLearning?: string;
   coreSubjects: string[];
   intakeDates: string[];

@@ -499,6 +499,15 @@ describe("UC course matching", () => {
     const educationLeadership = matches.find(
       (match) => match.course.title === "Master of Education (Leadership)",
     );
+    const bestMatchTitles = matches
+      .filter((match) => match.category === "best_match")
+      .map((match) => match.course.title);
+    const unsupportedSpecialistTitles = [
+      "Graduate Certificate in STEM Education",
+      "Master of Education (STEM)",
+      "Master of Teaching (Primary or Secondary)",
+      "Teaching English as a Second Language (TESOL)",
+    ];
 
     expect(admission).toMatchObject({
       equivalentGpa: 5,
@@ -511,8 +520,63 @@ describe("UC course matching", () => {
       "level-2",
       "level-4",
     ]);
-    expect(matches[0].course.title).toBe("Master of Education (Leadership)");
+    expect(bestMatchTitles).toEqual([
+      "Master of Education (Leadership)",
+      "Master of Business Administration",
+      "Graduate Certificate in Educational Leadership",
+    ]);
     expect(educationLeadership).toMatchObject({
+      category: "best_match",
+      creditConfidence: "high",
+      entryConfidence: "high",
+    });
+    expect(
+      matches
+        .filter((match) => unsupportedSpecialistTitles.includes(match.course.title))
+        .map((match) => ({
+          category: match.category,
+          relevanceScore: match.relevanceScore,
+          title: match.course.title,
+        })),
+    ).toEqual(
+      expect.arrayContaining(
+        unsupportedSpecialistTitles.map((title) => ({
+          category: "needs_review",
+          relevanceScore: 0,
+          title,
+        })),
+      ),
+    );
+  });
+
+  it("keeps STEM education courses relevant when the CV contains direct STEM evidence", () => {
+    const experiences = [
+      {
+        ...role({
+          endYear: "",
+          id: "stem-learning-lead",
+          level: 1,
+          occupation: "Education Adviser",
+          startYear: "2023",
+        }),
+        currentRole: true,
+        duties:
+          "Leads STEM education programs and designs science, engineering and mathematics curriculum for teachers.",
+        endMonth: "",
+        oscaOccupationCode: "222499",
+        position: "STEM Learning Lead",
+      },
+    ];
+    const recognition = draft(experiences);
+    const matches = rankUcCourses(
+      getCourseCatalogFor("uc"),
+      recognition,
+      assessUcAdmission(experiences, new Date("2026-08-01T00:00:00Z")),
+    );
+
+    expect(
+      matches.find((match) => match.course.title === "Master of Education (STEM)"),
+    ).toMatchObject({
       category: "best_match",
       creditConfidence: "high",
       entryConfidence: "high",

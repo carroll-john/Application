@@ -5,9 +5,16 @@
       "provider_name": "University of Canberra",
       "subject_area": "Business and Management",
       "course_description": "Build contemporary leadership, strategy and management capability through flexible online study with the University of Canberra.",
-      "entry_requirements": "Admission requirements are reviewed against the current University of Canberra course rules.",
-      "sourceUrl": "https://www.canberra.edu.au/future-students/study-at-uc/online-courses",
-      "sourceVerifiedAt": "2026-07-21",
+      "entry_requirements": "Applicants must hold an Australian bachelor degree or equivalent in a related field; or an Australian bachelor degree or equivalent in an unrelated field plus three years of relevant work experience; or an Australian Graduate Certificate at AQF level 8 in any field or higher. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Related-degree pathway — an Australian bachelor degree or equivalent in a related field.",
+        "Experience pathway — an Australian bachelor degree or equivalent in an unrelated field, plus three years of relevant work experience.",
+        "Postgraduate pathway — an Australian Graduate Certificate at AQF level 8 in any field, or a higher qualification.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "MGM104",
+      "sourceUrl": "https://www.canberra.edu.au/course/MGM104/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
       "deliveryMode": "online",
       "eligibilityPolicy": "manual_review"
     },
@@ -18,44 +25,579 @@
       "course_description": "Develop the strategic leadership, governance and policy capability to lead in public-purpose organisations. The course is delivered online in focused seven-week units for working professionals.",
       "course_duration": "24 months part-time",
       "entry_requirements": "Applicants must hold an Australian bachelor degree or equivalent in a related field; or an Australian bachelor degree or equivalent in an unrelated field plus three years of relevant work experience; or an Australian Graduate Certificate at AQF level 8 in any field or higher. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Related-degree pathway — an Australian bachelor degree or equivalent in a related field.",
+        "Experience pathway — an Australian bachelor degree or equivalent in an unrelated field, plus three years of relevant work experience.",
+        "Postgraduate pathway — an Australian Graduate Certificate at AQF level 8 in any field, or a higher qualification.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
       "recognition_of_prior_learning": "Recognition of prior learning may be available for up to four units (12 credit points), subject to assessment.",
       "intake_start_dates": [{"value": "January"}, {"value": "March"}, {"value": "May"}, {"value": "July"}, {"value": "September"}, {"value": "October"}],
       "tuition_fees": "$4,062.50 per unit (2026 indicative fee)",
       "sourceUrl": "https://studyonline.canberra.edu.au/online-courses/master-business-administration-government",
-      "sourceVerifiedAt": "2026-07-21",
+      "sourceVerifiedAt": "2026-08-18",
       "deliveryMode": "online",
       "eligibilityPolicy": "assess"
     },
-    {"course_name":"Graduate Certificate in Business","provider_name":"University of Canberra","subject_area":"Business and Management","course_description":"Build postgraduate business capability through flexible online study.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Business Administration (Government)","provider_name":"University of Canberra","subject_area":"Business, Government and Public Administration","course_description":"Develop practical administration and leadership capability for government and public-purpose settings.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Master of Communication","provider_name":"University of Canberra","subject_area":"Communication and Media","course_description":"Advance strategic communication practice through flexible online study.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Diploma in Communication","provider_name":"University of Canberra","subject_area":"Communication and Media","course_description":"Deepen contemporary communication knowledge and professional practice online.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Communication","provider_name":"University of Canberra","subject_area":"Communication and Media","course_description":"Build contemporary communication skills in a focused postgraduate qualification.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Digital Marketing","provider_name":"University of Canberra","subject_area":"Business, Marketing and Digital Communication","course_description":"Build practical digital marketing capability for changing audiences and channels.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Building and Construction Information Management","provider_name":"University of Canberra","subject_area":"Built Environment and Technology","course_description":"Develop digital information-management capability for the building and construction sector.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Counselling","provider_name":"University of Canberra","subject_area":"Health and Counselling","course_description":"Build foundational counselling knowledge and evidence-informed helping skills online.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Diploma in Counselling","provider_name":"University of Canberra","subject_area":"Health and Counselling","course_description":"Extend counselling knowledge and practice through flexible postgraduate study.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Master of Counselling","provider_name":"University of Canberra","subject_area":"Health and Counselling","course_description":"Develop advanced, evidence-informed counselling knowledge and professional capability.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Master of Social Work (Qualifying)","provider_name":"University of Canberra","subject_area":"Health, Human Services and Social Work","course_description":"Prepare for professional social work through online learning with required placement or accreditation experiences.","entry_requirements":"Admission and placement requirements are reviewed manually against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online_plus","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Law","provider_name":"University of Canberra","subject_area":"Law","course_description":"Build focused postgraduate legal knowledge through flexible online study.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Diploma in Law","provider_name":"University of Canberra","subject_area":"Law","course_description":"Extend legal knowledge and analytical capability through online postgraduate study.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Juris Doctor","provider_name":"University of Canberra","subject_area":"Law","course_description":"Develop advanced legal knowledge and professional reasoning in a graduate-entry law qualification.","entry_requirements":"Admission and professional requirements are reviewed manually against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Public Policy","provider_name":"University of Canberra","subject_area":"Government, Politics and Public Policy","course_description":"Build practical public-policy analysis and development capability online.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Policy Evaluation","provider_name":"University of Canberra","subject_area":"Government, Politics and Public Policy","course_description":"Develop evidence-led policy evaluation capability for public-purpose work.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Gender Policy","provider_name":"University of Canberra","subject_area":"Government, Politics and Public Policy","course_description":"Apply gender analysis to policy design, implementation and evaluation.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in LGBTQIA+ Policy","provider_name":"University of Canberra","subject_area":"Government, Politics and Public Policy","course_description":"Build specialist policy capability for inclusive public institutions and communities.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Diploma in Public Policy","provider_name":"University of Canberra","subject_area":"Government, Politics and Public Policy","course_description":"Deepen public-policy design, analysis and evaluation capability online.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Master of Public Policy","provider_name":"University of Canberra","subject_area":"Government, Politics and Public Policy","course_description":"Develop advanced policy leadership, analysis and implementation capability.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Cyber Security","provider_name":"University of Canberra","subject_area":"Technology, Cyber Security and Information Technology","course_description":"Build practical cyber-security knowledge for contemporary organisations.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Data Science","provider_name":"University of Canberra","subject_area":"Technology, Data and Analytics","course_description":"Develop practical data-science and analytical capability through flexible online study.","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Education","provider_name":"University of Canberra","subject_area":"Education","course_description":"Extend contemporary education knowledge and professional practice online.","course_duration":"8 months part-time","tuition_fees":"$2,956.25 per unit; $11,825 total (2026 indicative fees)","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://studyonline.canberra.edu.au/online-courses/master-of-education","sourceVerifiedAt":"2026-07-23","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in STEM Education","provider_name":"University of Canberra","subject_area":"Education, STEM and Technology","course_description":"Strengthen STEM teaching, curriculum and learning-design capability.","course_duration":"8 months part-time","tuition_fees":"$2,956.25 per unit; $11,825 total (2026 indicative fees)","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://studyonline.canberra.edu.au/online-courses/master-of-education","sourceVerifiedAt":"2026-07-23","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Graduate Certificate in Educational Leadership","provider_name":"University of Canberra","subject_area":"Education and Leadership","course_description":"Build practical leadership capability for changing education settings.","course_duration":"8 months part-time","tuition_fees":"$2,956.25 per unit; $11,825 total (2026 indicative fees)","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","sourceUrl":"https://studyonline.canberra.edu.au/online-courses/graduate-certificate-education-leadership","sourceVerifiedAt":"2026-07-23","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Master of Teaching (Primary or Secondary)","provider_name":"University of Canberra","subject_area":"Education and Teaching","course_description":"Prepare for professional teaching through online learning with required school-placement and accreditation experiences.","entry_requirements":"Admission, teaching-area and placement requirements are reviewed manually against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online_plus","eligibilityPolicy":"manual_review"},
-    {"course_name":"Master of Education","provider_name":"University of Canberra","subject_area":"Education","course_description":"Advance education knowledge, inquiry and professional practice online.","course_duration":"16 months part-time","tuition_fees":"$2,956.25 per unit; $23,650 total (2026 indicative fees)","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","recognition_of_prior_learning":"Recognition of prior learning may be available for up to 12 credit points, subject to previous postgraduate study, course rules and Program Director assessment.","sourceUrl":"https://studyonline.canberra.edu.au/online-courses/master-of-education","sourceVerifiedAt":"2026-07-23","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Master of Education (STEM)","provider_name":"University of Canberra","subject_area":"Education, STEM and Technology","course_description":"Develop advanced STEM education, curriculum and leadership capability.","course_duration":"16 months part-time","tuition_fees":"$2,956.25 per unit; $23,650 total (2026 indicative fees)","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","recognition_of_prior_learning":"Recognition of prior learning may be available for up to 12 credit points, subject to previous postgraduate study, course rules and Program Director assessment.","sourceUrl":"https://studyonline.canberra.edu.au/online-courses/master-of-education","sourceVerifiedAt":"2026-07-23","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Master of Education (Leadership)","provider_name":"University of Canberra","subject_area":"Education and Leadership","course_description":"Advance strategic leadership and change capability in education settings.","course_duration":"16 months part-time","tuition_fees":"$2,956.25 per unit; $23,650 total (2026 indicative fees)","entry_requirements":"Admission requirements are reviewed against the current University of Canberra course rules.","recognition_of_prior_learning":"Recognition of prior learning may be available for up to 12 credit points, subject to previous postgraduate study, course rules and Program Director assessment.","sourceUrl":"https://studyonline.canberra.edu.au/online-courses/master-education-leadership","sourceVerifiedAt":"2026-07-23","deliveryMode":"online","eligibilityPolicy":"manual_review"},
-    {"course_name":"Teaching English as a Second Language (TESOL)","provider_name":"University of Canberra","subject_area":"Education, Languages and Teaching","course_description":"Build language-teaching knowledge with online learning and practical work-integrated experiences.","entry_requirements":"The available TESOL award and any practical experience requirements are confirmed through manual admissions review.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/about-our-courses/tesol","sourceVerifiedAt":"2026-07-21","deliveryMode":"online_plus","eligibilityPolicy":"manual_review"},
-    {"course_name":"Master of Professional Psychology","provider_name":"University of Canberra","subject_area":"Health and Psychology","course_description":"Develop advanced professional psychology capability with required supervised and accreditation-related experiences.","entry_requirements":"Admission, registration and placement requirements are reviewed manually against the current University of Canberra course rules.","sourceUrl":"https://www.canberra.edu.au/future-students/study-at-uc/online-courses","sourceVerifiedAt":"2026-07-21","deliveryMode":"online_plus","eligibilityPolicy":"manual_review"}
+    {
+      "course_name": "Graduate Certificate in Business",
+      "provider_name": "University of Canberra",
+      "subject_area": "Business and Management",
+      "course_description": "Build postgraduate business capability through flexible online study.",
+      "entry_requirements": "Applicants must hold an Australian bachelor degree or equivalent in any field, or have at least three years of relevant work experience. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Qualification pathway — an Australian bachelor degree or equivalent in any field.",
+        "Experience pathway — at least three years of relevant work experience.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "MGC103",
+      "sourceUrl": "https://www.canberra.edu.au/course/MGC103/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Business Administration (Government)",
+      "provider_name": "University of Canberra",
+      "subject_area": "Business, Government and Public Administration",
+      "course_description": "Develop practical administration and leadership capability for government and public-purpose settings.",
+      "entry_requirements": "Applicants must hold an Australian bachelor degree or equivalent in any field, or have at least three years of relevant work experience. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Qualification pathway — an Australian bachelor degree or equivalent in any field.",
+        "Experience pathway — at least three years of relevant work experience.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "MGC102",
+      "sourceUrl": "https://www.canberra.edu.au/course/MGC102/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Master of Communication",
+      "provider_name": "University of Canberra",
+      "subject_area": "Communication and Media",
+      "course_description": "Advance strategic communication practice through flexible online study.",
+      "entry_requirements": "Applicants must hold an undergraduate degree at AQF level 7 or equivalent. The Graduate Certificate in Academic Foundations is an accepted pathway. Selection may consider English proficiency, academic record and employment experience. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Academic entry — an undergraduate degree at AQF level 7 or equivalent.",
+        "Alternative pathway — completion of UC's Graduate Certificate in Academic Foundations.",
+        "Selection — UC may consider English proficiency, your academic record and employment experience.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "ARM201",
+      "sourceUrl": "https://www.canberra.edu.au/course/ARM201/3/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Diploma in Communication",
+      "provider_name": "University of Canberra",
+      "subject_area": "Communication and Media",
+      "course_description": "Deepen contemporary communication knowledge and professional practice online.",
+      "entry_requirements": "Applicants must hold an undergraduate degree at AQF level 7 or equivalent. Selection may consider English proficiency, academic record and employment experience. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Academic entry — an undergraduate degree at AQF level 7 or equivalent.",
+        "Selection — UC may consider English proficiency, your academic record and employment experience.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "ARG201",
+      "sourceUrl": "https://www.canberra.edu.au/course/ARG201/2/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Communication",
+      "provider_name": "University of Canberra",
+      "subject_area": "Communication and Media",
+      "course_description": "Build contemporary communication skills in a focused postgraduate qualification.",
+      "entry_requirements": "Applicants must hold an undergraduate degree at AQF level 7 or equivalent. An IAP2 Certificate in Engagement plus relevant work experience may provide an alternate entry pathway. Selection may consider English proficiency, academic record and employment experience.",
+      "entry_requirement_items": [
+        "Academic entry — an undergraduate degree at AQF level 7 or equivalent.",
+        "Professional pathway — an IAP2 Certificate in Engagement plus relevant work experience may be considered.",
+        "Selection — UC may consider English proficiency, your academic record and employment experience.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "ARC201",
+      "sourceUrl": "https://www.canberra.edu.au/course/ARC201/2/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Digital Marketing",
+      "provider_name": "University of Canberra",
+      "subject_area": "Business, Marketing and Digital Communication",
+      "course_description": "Build practical digital marketing capability for changing audiences and channels.",
+      "entry_requirements": "Applicants must hold an undergraduate degree at AQF level 7 or equivalent. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Academic entry — an undergraduate degree at AQF level 7 or equivalent.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "ARC701",
+      "sourceUrl": "https://www.canberra.edu.au/course/ARC701/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Building and Construction Information Management",
+      "provider_name": "University of Canberra",
+      "subject_area": "Built Environment and Technology",
+      "course_description": "Develop digital information-management capability for the building and construction sector.",
+      "entry_requirements": "Applicants must have completed a bachelor degree or equivalent. Applicants without a bachelor degree may be considered for recognition of prior learning based on related work experience, from four years with an advanced diploma up to ten years with Year 12. Online applicants need a computer able to run building information modelling software. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Academic entry — a completed bachelor degree or equivalent.",
+        "Experience pathway — applicants without a bachelor degree may be assessed for prior learning based on related qualifications and work experience; UC requires supporting evidence.",
+        "Technology — online students need access to a computer capable of running building information modelling software.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "ABC101",
+      "sourceUrl": "https://www.canberra.edu.au/course/ABC101/2/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Counselling",
+      "provider_name": "University of Canberra",
+      "subject_area": "Health and Counselling",
+      "course_description": "Build foundational counselling knowledge and evidence-informed helping skills online.",
+      "entry_requirements": "Entry is competitive. Applicants must hold an undergraduate or postgraduate degree in any discipline; or an AQF Diploma or Advanced Diploma in counselling or a related subject plus four years of full-time counselling or related experience. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent. No recognition of prior learning is offered for course units.",
+      "entry_requirement_items": [
+        "Entry is competitive and places are assessed on academic merit and availability.",
+        "Degree pathway — an undergraduate or postgraduate degree in any discipline.",
+        "Vocational pathway — an AQF Diploma or Advanced Diploma in counselling or a related subject, plus four years of full-time counselling or related experience.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent.",
+        "No recognition of prior learning is offered for units in this course."
+      ],
+      "officialCourseCode": "SCC401",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCC401/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Diploma in Counselling",
+      "provider_name": "University of Canberra",
+      "subject_area": "Health and Counselling",
+      "course_description": "Extend counselling knowledge and practice through flexible postgraduate study.",
+      "entry_requirements": "Entry is competitive. Applicants must hold an undergraduate or postgraduate degree in any discipline. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent. No recognition of prior learning is offered for course units. Students progressing from the Graduate Certificate in Counselling are advised to complete all four certificate units first.",
+      "entry_requirement_items": [
+        "Entry is competitive and assessed on academic merit, work experience and available places.",
+        "Academic entry — an undergraduate or postgraduate degree in any discipline.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent.",
+        "Progression — students coming from UC's Graduate Certificate in Counselling should complete all four certificate units first.",
+        "No recognition of prior learning is offered for units in this course."
+      ],
+      "officialCourseCode": "SCG401",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCG401/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online_plus",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Master of Counselling",
+      "provider_name": "University of Canberra",
+      "subject_area": "Health and Counselling",
+      "course_description": "Develop advanced, evidence-informed counselling knowledge and professional capability.",
+      "entry_requirements": "Entry is competitive. Applicants must hold an undergraduate or postgraduate degree in any discipline. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent. No recognition of prior learning is offered. The course includes a 200-hour placement and a five-day in-person intensive; police and relevant state checks are required for placement units.",
+      "entry_requirement_items": [
+        "Entry is competitive and assessed on academic merit, work experience and available places.",
+        "Academic entry — an undergraduate or postgraduate degree in any discipline.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent.",
+        "Attendance — the course includes a compulsory 200-hour placement and a five-day in-person intensive.",
+        "Checks — placement agencies require a National Police Check and relevant state checks, such as Working with Vulnerable People or Working with Children.",
+        "No recognition of prior learning is offered for units in this course."
+      ],
+      "officialCourseCode": "SCM401",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCM401/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online_plus",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Master of Social Work (Qualifying)",
+      "provider_name": "University of Canberra",
+      "subject_area": "Health, Human Services and Social Work",
+      "course_description": "Prepare for professional social work through online learning with required placement or accreditation experiences.",
+      "entry_requirements": "Applicants must hold an Australian bachelor degree or equivalent in a related field that includes at least one year of full-time study in social sciences and human behaviour. English: IELTS Academic 7.0 in every band, or recognised equivalent. Professional placements and placement checks are compulsory.",
+      "entry_requirement_items": [
+        "Academic entry — an Australian bachelor degree or equivalent in a related field, including at least one year of full-time study in social sciences and human behaviour.",
+        "English — IELTS Academic 7.0 in every band, or a recognised equivalent.",
+        "Placement — professional placements are compulsory and may require police, Working with Vulnerable People or Working with Children checks.",
+        "Prior learning — limited credit may be considered case by case for eligible social welfare or community services study."
+      ],
+      "officialCourseCode": "SCM501",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCM501/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online_plus",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Law",
+      "provider_name": "University of Canberra",
+      "subject_area": "Law",
+      "course_description": "Build focused postgraduate legal knowledge through flexible online study.",
+      "entry_requirements": "Applicants must hold an undergraduate degree or equivalent in a discipline other than law with a minimum GPA of 5.0 on a 7.0 scale. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Academic entry — an undergraduate degree or equivalent in a discipline other than law.",
+        "Academic result — a minimum GPA of 5.0 on a 7.0 scale.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "SCC003",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCC003/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Diploma in Law",
+      "provider_name": "University of Canberra",
+      "subject_area": "Law",
+      "course_description": "Extend legal knowledge and analytical capability through online postgraduate study.",
+      "entry_requirements": "Applicants must hold an undergraduate degree or equivalent in a discipline other than law with a minimum GPA of 5.0 on a 7.0 scale. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Academic entry — an undergraduate degree or equivalent in a discipline other than law.",
+        "Academic result — a minimum GPA of 5.0 on a 7.0 scale.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "SCG003",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCG003/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Juris Doctor",
+      "provider_name": "University of Canberra",
+      "subject_area": "Law",
+      "course_description": "Develop advanced legal knowledge and professional reasoning in a graduate-entry law qualification.",
+      "entry_requirements": "Applicants must hold an undergraduate degree or equivalent in a discipline other than law with a minimum GPA of 5.0 on a 7.0 scale. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent. Professional legal practice requires further practical legal training after graduation.",
+      "entry_requirement_items": [
+        "Academic entry — an undergraduate degree or equivalent in a discipline other than law.",
+        "Academic result — a minimum GPA of 5.0 on a 7.0 scale.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent.",
+        "Professional admission — graduates must also complete approved practical legal training to practise law."
+      ],
+      "officialCourseCode": "SCM002",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCM002/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Public Policy",
+      "provider_name": "University of Canberra",
+      "subject_area": "Government, Politics and Public Policy",
+      "course_description": "Build practical public-policy analysis and development capability online.",
+      "entry_requirements": "Applicants must hold a bachelor degree or equivalent in any field, or have at least three years of relevant work experience. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Qualification pathway — a bachelor degree or equivalent in any field.",
+        "Experience pathway — at least three years of relevant work experience.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "SCC101",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCC101/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Policy Evaluation",
+      "provider_name": "University of Canberra",
+      "subject_area": "Government, Politics and Public Policy",
+      "course_description": "Develop evidence-led policy evaluation capability for public-purpose work.",
+      "entry_requirements": "Applicants must hold a bachelor degree or equivalent in any field, or have at least three years of relevant work experience. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Qualification pathway — a bachelor degree or equivalent in any field.",
+        "Experience pathway — at least three years of relevant work experience.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "SCC102",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCC102/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Gender Policy",
+      "provider_name": "University of Canberra",
+      "subject_area": "Government, Politics and Public Policy",
+      "course_description": "Apply gender analysis to policy design, implementation and evaluation.",
+      "entry_requirements": "Applicants must have completed a bachelor degree or equivalent or higher, or have at least three years of relevant work experience. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent. No recognition of prior learning is offered.",
+      "entry_requirement_items": [
+        "Qualification pathway — a completed bachelor degree or equivalent, or a higher qualification.",
+        "Experience pathway — at least three years of relevant work experience.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent; no recognition of prior learning is offered."
+      ],
+      "officialCourseCode": "SCC103",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCC103/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in LGBTQIA+ Policy",
+      "provider_name": "University of Canberra",
+      "subject_area": "Government, Politics and Public Policy",
+      "course_description": "Build specialist policy capability for inclusive public institutions and communities.",
+      "entry_requirements": "Applicants must have completed a bachelor degree or equivalent or higher, or have at least three years of relevant work experience. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent. No recognition of prior learning is offered.",
+      "entry_requirement_items": [
+        "Qualification pathway — a completed bachelor degree or equivalent, or a higher qualification.",
+        "Experience pathway — at least three years of relevant work experience.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent; no recognition of prior learning is offered."
+      ],
+      "officialCourseCode": "SCC104",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCC104/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Diploma in Public Policy",
+      "provider_name": "University of Canberra",
+      "subject_area": "Government, Politics and Public Policy",
+      "course_description": "Deepen public-policy design, analysis and evaluation capability online.",
+      "entry_requirements": "Applicants must have completed a bachelor degree or equivalent, or UC's Graduate Certificate in Public Policy or Graduate Certificate in Policy Evaluation. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Degree pathway — a completed bachelor degree or equivalent.",
+        "UC pathway — completion of the Graduate Certificate in Public Policy or Graduate Certificate in Policy Evaluation.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "SCG101",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCG101/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Master of Public Policy",
+      "provider_name": "University of Canberra",
+      "subject_area": "Government, Politics and Public Policy",
+      "course_description": "Develop advanced policy leadership, analysis and implementation capability.",
+      "entry_requirements": "Applicants must have completed a bachelor degree or equivalent, or UC's Graduate Diploma in Public Policy, Graduate Certificate in Public Policy or Graduate Certificate in Policy Evaluation. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Degree pathway — a completed bachelor degree or equivalent.",
+        "UC pathway — completion of the Graduate Diploma in Public Policy, Graduate Certificate in Public Policy or Graduate Certificate in Policy Evaluation.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "SCM101",
+      "sourceUrl": "https://www.canberra.edu.au/course/SCM101/2/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Cyber Security",
+      "provider_name": "University of Canberra",
+      "subject_area": "Technology, Cyber Security and Information Technology",
+      "course_description": "Build practical cyber-security knowledge for contemporary organisations.",
+      "entry_requirements": "Applicants must hold an Australian bachelor degree or equivalent in any field. Professional Pathway Entry may be available. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Academic entry — an Australian bachelor degree or equivalent in any field.",
+        "Alternative entry — UC's Professional Pathway Entry may be available for eligible applicants.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "ITC103",
+      "sourceUrl": "https://www.canberra.edu.au/course/ITC103/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Data Science",
+      "provider_name": "University of Canberra",
+      "subject_area": "Technology, Data and Analytics",
+      "course_description": "Develop practical data-science and analytical capability through flexible online study.",
+      "entry_requirements": "Applicants must hold an Australian bachelor degree or equivalent in any field. Professional Pathway Entry may be available. Year 12 mathematics and functional computer literacy are assumed. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Academic entry — an Australian bachelor degree or equivalent in any field.",
+        "Alternative entry — UC's Professional Pathway Entry may be available for eligible applicants.",
+        "Assumed knowledge — Year 12 mathematics and functional computer literacy.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "ITC102",
+      "sourceUrl": "https://www.canberra.edu.au/course/ITC102/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Education",
+      "provider_name": "University of Canberra",
+      "subject_area": "Education",
+      "course_description": "Extend contemporary education knowledge and professional practice online.",
+      "course_duration": "8 months part-time",
+      "tuition_fees": "$2,956.25 per unit; $11,825 total (2026 indicative fees)",
+      "entry_requirements": "Applicants must hold current teacher registration at proficient level or higher; or a three-year undergraduate degree in education or a relevant field plus at least three years of full-time-equivalent professional education experience; or an approved graduate or postgraduate education qualification. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Registration pathway — current teacher registration at proficient level or higher with an Australian registration authority.",
+        "Degree and experience pathway — a three-year undergraduate degree in education or a relevant field, plus at least three years of full-time-equivalent professional education experience.",
+        "Postgraduate pathway — an approved graduate or postgraduate education qualification.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "EDC103",
+      "sourceUrl": "https://www.canberra.edu.au/course/EDC103/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in STEM Education",
+      "provider_name": "University of Canberra",
+      "subject_area": "Education, STEM and Technology",
+      "course_description": "Strengthen STEM teaching, curriculum and learning-design capability.",
+      "course_duration": "8 months part-time",
+      "tuition_fees": "$2,956.25 per unit; $11,825 total (2026 indicative fees)",
+      "entry_requirements": "Applicants must hold current teacher registration at proficient level or higher; or a three-year undergraduate degree in education or a relevant field plus at least three years of full-time-equivalent professional education experience; or an approved graduate or postgraduate education qualification. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Registration pathway — current teacher registration at proficient level or higher with an Australian registration authority.",
+        "Degree and experience pathway — a three-year undergraduate degree in education or a relevant field, plus at least three years of full-time-equivalent professional education experience.",
+        "Postgraduate pathway — an approved graduate or postgraduate education qualification.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "EDC101",
+      "sourceUrl": "https://www.canberra.edu.au/course/EDC101/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Graduate Certificate in Educational Leadership",
+      "provider_name": "University of Canberra",
+      "subject_area": "Education and Leadership",
+      "course_description": "Build practical leadership capability for changing education settings.",
+      "course_duration": "8 months part-time",
+      "tuition_fees": "$2,956.25 per unit; $11,825 total (2026 indicative fees)",
+      "entry_requirements": "Applicants must hold current teacher registration at proficient level or higher; or a three-year undergraduate degree in education or a relevant field plus at least three years of full-time-equivalent professional education experience; or an approved graduate or postgraduate education qualification. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Registration pathway — current teacher registration at proficient level or higher with an Australian registration authority.",
+        "Degree and experience pathway — a three-year undergraduate degree in education or a relevant field, plus at least three years of full-time-equivalent professional education experience.",
+        "Postgraduate pathway — an approved graduate or postgraduate education qualification.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "officialCourseCode": "EDC102",
+      "sourceUrl": "https://www.canberra.edu.au/course/EDC102/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Master of Teaching (Primary or Secondary)",
+      "provider_name": "University of Canberra",
+      "subject_area": "Education and Teaching",
+      "course_description": "Prepare for professional teaching through online learning with required school-placement and accreditation experiences.",
+      "entry_requirements": "Applicants need a discipline-specific bachelor degree or equivalent relevant to the Australian Curriculum. Primary applicants need at least one year of full-time-equivalent study relevant to a primary learning area; secondary applicants need a major in one teaching area and preferably a minor in a second. A CASPI suitability interview, professional placements and teacher-registration English requirements apply.",
+      "entry_requirement_items": [
+        "Academic entry — a discipline-specific bachelor degree or equivalent relevant to the Australian Curriculum or another recognised school learning area.",
+        "Teaching-area study — primary applicants need at least one year of study relevant to a primary learning area; secondary applicants need a major in one teaching area and preferably a minor in a second.",
+        "Interview — all applicants must complete UC's Course Advice and Suitability for the Profession Interview (CASPI).",
+        "English — teacher-registration requirements are IELTS Academic 7.5 overall, at least 8.0 in speaking and listening, and at least 7.0 in reading and writing, unless the approved prior-study pathway is met.",
+        "Placement — the course includes 60 days of supervised school placement; a Working with Vulnerable People check is required before the first placement."
+      ],
+      "sourceUrl": "https://www.canberra.edu.au/future-students/study-at-uc/about-our-courses/master-of-teaching",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online_plus",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Master of Education",
+      "provider_name": "University of Canberra",
+      "subject_area": "Education",
+      "course_description": "Advance education knowledge, inquiry and professional practice online.",
+      "course_duration": "16 months part-time",
+      "tuition_fees": "$2,956.25 per unit; $23,650 total (2026 indicative fees)",
+      "entry_requirements": "Applicants must hold current teacher registration at proficient level or higher; or a three-year undergraduate degree in education or a relevant field plus at least three years of full-time-equivalent professional education experience; or an approved graduate or postgraduate education qualification. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Registration pathway — current teacher registration at proficient level or higher with an Australian registration authority.",
+        "Degree and experience pathway — a three-year undergraduate degree in education or a relevant field, plus at least three years of full-time-equivalent professional education experience.",
+        "Postgraduate pathway — an approved graduate or postgraduate education qualification.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "recognition_of_prior_learning": "Recognition of prior learning may be available for up to 12 credit points, subject to previous postgraduate study, course rules and Program Director assessment.",
+      "officialCourseCode": "EDM102",
+      "sourceUrl": "https://www.canberra.edu.au/course/EDM102/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Master of Education (STEM)",
+      "provider_name": "University of Canberra",
+      "subject_area": "Education, STEM and Technology",
+      "course_description": "Develop advanced STEM education, curriculum and leadership capability.",
+      "course_duration": "16 months part-time",
+      "tuition_fees": "$2,956.25 per unit; $23,650 total (2026 indicative fees)",
+      "entry_requirements": "Applicants must hold current teacher registration at proficient level or higher; or a three-year undergraduate degree in education or a relevant field plus at least three years of full-time-equivalent professional education experience; or an approved graduate or postgraduate education qualification. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Registration pathway — current teacher registration at proficient level or higher with an Australian registration authority.",
+        "Degree and experience pathway — a three-year undergraduate degree in education or a relevant field, plus at least three years of full-time-equivalent professional education experience.",
+        "Postgraduate pathway — an approved graduate or postgraduate education qualification.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "recognition_of_prior_learning": "Recognition of prior learning may be available for up to 12 credit points, subject to previous postgraduate study, course rules and Program Director assessment.",
+      "officialCourseCode": "EDM102",
+      "sourceUrl": "https://www.canberra.edu.au/course/EDM102/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Master of Education (Leadership)",
+      "provider_name": "University of Canberra",
+      "subject_area": "Education and Leadership",
+      "course_description": "Advance strategic leadership and change capability in education settings.",
+      "course_duration": "16 months part-time",
+      "tuition_fees": "$2,956.25 per unit; $23,650 total (2026 indicative fees)",
+      "entry_requirements": "Applicants must hold current teacher registration at proficient level or higher; or a three-year undergraduate degree in education or a relevant field plus at least three years of full-time-equivalent professional education experience; or an approved graduate or postgraduate education qualification. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent.",
+      "entry_requirement_items": [
+        "Registration pathway — current teacher registration at proficient level or higher with an Australian registration authority.",
+        "Degree and experience pathway — a three-year undergraduate degree in education or a relevant field, plus at least three years of full-time-equivalent professional education experience.",
+        "Postgraduate pathway — an approved graduate or postgraduate education qualification.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent."
+      ],
+      "recognition_of_prior_learning": "Recognition of prior learning may be available for up to 12 credit points, subject to previous postgraduate study, course rules and Program Director assessment.",
+      "officialCourseCode": "EDM102",
+      "sourceUrl": "https://studyonline.canberra.edu.au/online-courses/master-education-leadership",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Teaching English as a Second Language (TESOL)",
+      "provider_name": "University of Canberra",
+      "subject_area": "Education, Languages and Teaching",
+      "course_description": "Build language-teaching knowledge with practical work-integrated experiences.",
+      "entry_requirements": "Applicants to the Master of TESOL and Foreign Language Teaching must hold an undergraduate degree or equivalent approved by UC. Previous teaching experience is not required. English: IELTS Academic overall 6.5 with no band below 6.0, or recognised equivalent. The course includes at least 60 hours of work-integrated learning.",
+      "entry_requirement_items": [
+        "Academic entry — an undergraduate degree or equivalent approved by UC.",
+        "Experience — previous teaching experience is not required.",
+        "English — IELTS Academic 6.5 overall with no band below 6.0, or a recognised equivalent.",
+        "Practical learning — the course includes at least 60 hours of work-integrated learning."
+      ],
+      "officialCourseCode": "EDM301",
+      "sourceUrl": "https://www.canberra.edu.au/course/EDM301/1/2026",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online_plus",
+      "eligibilityPolicy": "manual_review"
+    },
+    {
+      "course_name": "Master of Professional Psychology",
+      "provider_name": "University of Canberra",
+      "subject_area": "Health and Psychology",
+      "course_description": "Develop advanced professional psychology capability with required supervised and accreditation-related experiences.",
+      "entry_requirements": "The current UC online course directory lists the Master of Professional Psychology but does not publish course-specific admission, registration or placement criteria. Applicants must confirm the current eligibility requirements directly with UC before applying.",
+      "entry_requirement_items": [
+        "Published status — UC currently lists this course in its online course directory but does not publish course-specific entry criteria on that page.",
+        "UC confirmation required — confirm the current academic, registration, English and placement requirements directly with UC before applying."
+      ],
+      "sourceUrl": "https://www.canberra.edu.au/future-students/study-at-uc/online-courses",
+      "sourceVerifiedAt": "2026-08-18",
+      "deliveryMode": "online_plus",
+      "eligibilityPolicy": "manual_review"
+    }
   ]
 }
