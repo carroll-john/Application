@@ -357,33 +357,6 @@ export function getUcWorkEntryGuidance(
   return "UC will review this experience";
 }
 
-export function getUcWorkEntryGuidanceDetail(
-  skillLevel: OscaSkillLevel | null,
-  experienceMonths: number,
-) {
-  const experienceAmount = formatUcExperienceAmount(experienceMonths);
-
-  if (skillLevel === 1) {
-    return "Senior or highly specialised experience can support UC’s work-experience pathway.";
-  }
-
-  if (skillLevel === 2) {
-    if (experienceMonths <= 0) {
-      return "Check the role dates before continuing.";
-    }
-
-    return experienceMonths >= 24
-      ? `${experienceAmount} meets UC’s two-year experience guide.`
-      : `${experienceAmount} is below UC’s two-year experience guide.`;
-  }
-
-  if (skillLevel === null) {
-    return "Check the matched occupation and dates before continuing.";
-  }
-
-  return "UC Admissions will consider these roles alongside the course requirements.";
-}
-
 function formatUcExperienceAmount(months: number) {
   return formatUcExperienceDuration(months).replace(/ experience$/, "");
 }

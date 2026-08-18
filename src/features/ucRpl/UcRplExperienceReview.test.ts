@@ -102,8 +102,11 @@ describe("UcRplExperienceReview qualifications", () => {
     expect(html).toContain("Indicative guidance");
     expect(html).toContain("Your experience may support direct entry");
     expect(html).toContain("Experience counted");
-    expect(html).toContain("Entry guidance");
     expect(html).toContain("Review roles");
+    expect(html).not.toContain("Entry guidance");
+    expect(html).not.toContain(
+      "Senior or highly specialised experience can support UC’s work-experience pathway.",
+    );
     expect(html).not.toContain(
       "Given your experience in senior and highly specialised roles",
     );

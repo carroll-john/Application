@@ -11,7 +11,6 @@ import {
   getUcExperienceReviewSummary,
   getUcIndicativeCreditPoints,
   getUcWorkEntryGuidance,
-  getUcWorkEntryGuidanceDetail,
   rankUcCourses,
   summarizeUcExperienceByOscaLevel,
   type CvRecognitionDraft,
@@ -213,12 +212,6 @@ describe("UC OSCA experience review summaries", () => {
     );
     expect(getUcWorkEntryGuidance(null, 120)).toBe("More details needed");
 
-    expect(getUcWorkEntryGuidanceDetail(2, 24)).toBe(
-      "2 years meets UC’s two-year experience guide.",
-    );
-    expect(getUcWorkEntryGuidanceDetail(2, 0)).toBe(
-      "Check the role dates before continuing.",
-    );
   });
 
   it("turns the experience assessment into a scannable review summary", () => {
