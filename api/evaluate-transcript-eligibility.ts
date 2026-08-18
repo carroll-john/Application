@@ -38,6 +38,7 @@ const DEFAULT_MODEL = "gpt-4.1-mini";
 const INITIAL_MAX_OUTPUT_TOKENS = 3_000;
 const RETRY_MAX_OUTPUT_TOKENS = 7_000;
 const ELIGIBILITY_SERVICE_MAX_ATTEMPTS = 2;
+export const ELIGIBILITY_SERVICE_REQUEST_TIMEOUT_MS = 45_000;
 const TRANSIENT_ELIGIBILITY_SERVICE_STATUSES = new Set([502, 503, 504]);
 
 function getSafeFileExtension(fileName: string) {
@@ -221,51 +222,148 @@ async function evaluateWithLocalModel(
   };
 }
 
+async function evaluateWithLocalModelResponse(
+  file: ParsedUploadFile,
+  fileBuffer: ArrayBuffer,
+  mimeType: string,
+  context: TranscriptEligibilityRequestContext,
+  options: {
+    document: ReturnType<typeof buildTranscriptDocumentMetadata>;
+    startedAt: number;
+  },
+) {
+  const localAssessment = await evaluateWithLocalModel(
+    file,
+    fileBuffer,
+    mimeType,
+    context,
+  );
+
+  if (!localAssessment) {
+    return null;
+  }
+
+  await captureTranscriptAiGeneration({
+    context: context as Record<string, unknown>,
+    document: options.document,
+    evaluationSource: "local_openai",
+    latencyMs: Date.now() - options.startedAt,
+    model: localAssessment.model,
+    output: localAssessment.assessment,
+    provider: "openai",
+    tokenUsage: localAssessment.tokenUsage,
+  });
+
+  return jsonResponse(localAssessment.assessment, 200);
+}
+
+async function evaluateWithStaticFallback(
+  context: TranscriptEligibilityRequestContext,
+  options: {
+    document: ReturnType<typeof buildTranscriptDocumentMetadata>;
+    startedAt: number;
+  },
+) {
+  const fallbackAssessment = buildFallbackResponse(context);
+  await captureTranscriptAiGeneration({
+    context: context as Record<string, unknown>,
+    document: options.document,
+    evaluationSource: "fallback_response",
+    latencyMs: Date.now() - options.startedAt,
+    model: "fallback",
+    output: fallbackAssessment as Record<string, unknown>,
+    provider: "none",
+  });
+
+  return jsonResponse(fallbackAssessment, 200);
+}
+
+async function evaluateWithLocalFallback(
+  file: ParsedUploadFile,
+  fileBuffer: ArrayBuffer,
+  mimeType: string,
+  context: TranscriptEligibilityRequestContext,
+  options: {
+    document: ReturnType<typeof buildTranscriptDocumentMetadata>;
+    startedAt: number;
+  },
+) {
+  const localResponse = await evaluateWithLocalModelResponse(
+    file,
+    fileBuffer,
+    mimeType,
+    context,
+    options,
+  );
+
+  return localResponse ?? evaluateWithStaticFallback(context, options);
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+async function fetchEligibilityService(
+  serviceUrl: string,
+  payload: FormData,
+  headers: Headers,
+) {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    ELIGIBILITY_SERVICE_REQUEST_TIMEOUT_MS,
+  );
+
+  try {
+    return await fetch(serviceUrl, {
+      body: payload,
+      headers,
+      method: "POST",
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function forwardToEligibilityService(
   file: ParsedUploadFile,
   fileBuffer: ArrayBuffer,
   mimeType: string,
   context: TranscriptEligibilityRequestContext,
+  options: { preferLocalModel?: boolean } = {},
 ) {
   const serviceUrl = process.env.ELIGIBILITY_SERVICE_URL?.trim();
   const startedAt = Date.now();
   const document = buildTranscriptDocumentMetadata(file, mimeType);
+  const localOptions = { document, startedAt };
 
-  if (!serviceUrl) {
-    const localAssessment = await evaluateWithLocalModel(
+  if (options.preferLocalModel) {
+    const localResponse = await evaluateWithLocalModelResponse(
       file,
       fileBuffer,
       mimeType,
       context,
+      localOptions,
     );
 
-    if (localAssessment) {
-      await captureTranscriptAiGeneration({
-        context: context as Record<string, unknown>,
-        document,
-        evaluationSource: "local_openai",
-        latencyMs: Date.now() - startedAt,
-        model: localAssessment.model,
-        output: localAssessment.assessment,
-        provider: "openai",
-        tokenUsage: localAssessment.tokenUsage,
-      });
+    if (localResponse) {
+      return localResponse;
+    }
+  }
 
-      return jsonResponse(localAssessment.assessment, 200);
+  if (!serviceUrl) {
+    if (options.preferLocalModel) {
+      return evaluateWithStaticFallback(context, localOptions);
     }
 
-    const fallbackAssessment = buildFallbackResponse(context);
-    await captureTranscriptAiGeneration({
-      context: context as Record<string, unknown>,
-      document,
-      evaluationSource: "fallback_response",
-      latencyMs: Date.now() - startedAt,
-      model: "fallback",
-      output: fallbackAssessment as Record<string, unknown>,
-      provider: "none",
-    });
-
-    return jsonResponse(fallbackAssessment, 200);
+    return evaluateWithLocalFallback(
+      file,
+      fileBuffer,
+      mimeType,
+      context,
+      localOptions,
+    );
   }
 
   const headers = new Headers();
@@ -285,11 +383,7 @@ async function forwardToEligibilityService(
     forwardPayload.append("context", JSON.stringify(context));
 
     try {
-      upstream = await fetch(serviceUrl, {
-        body: forwardPayload,
-        headers,
-        method: "POST",
-      });
+      upstream = await fetchEligibilityService(serviceUrl, forwardPayload, headers);
       lastRequestError = undefined;
 
       if (
@@ -300,14 +394,32 @@ async function forwardToEligibilityService(
       }
     } catch (error) {
       lastRequestError = error;
+      if (isAbortError(error)) {
+        break;
+      }
       if (attempt === ELIGIBILITY_SERVICE_MAX_ATTEMPTS) {
-        throw error;
+        break;
       }
     }
   }
 
   if (!upstream) {
-    throw lastRequestError ?? new Error("Eligibility service request failed.");
+    console.warn(
+      "[eligibility] Eligibility service unavailable; using the local fallback.",
+      { timedOut: isAbortError(lastRequestError) },
+    );
+
+    if (options.preferLocalModel) {
+      return evaluateWithStaticFallback(context, localOptions);
+    }
+
+    return evaluateWithLocalFallback(
+      file,
+      fileBuffer,
+      mimeType,
+      context,
+      localOptions,
+    );
   }
 
   let payload: unknown;
@@ -408,7 +520,9 @@ async function handleEligibilityRequest(request: Request) {
 
   const context = parseContext(formData.get("context"));
 
-  return forwardToEligibilityService(file, fileBuffer, mimeType, context);
+  return forwardToEligibilityService(file, fileBuffer, mimeType, context, {
+    preferLocalModel: isUcCreditAssessmentRequest(request),
+  });
 }
 
 export default {
