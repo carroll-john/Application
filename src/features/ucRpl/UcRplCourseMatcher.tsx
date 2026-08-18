@@ -37,6 +37,7 @@ import {
   evaluateTranscriptEligibility,
   TranscriptEligibilityRequestError,
 } from "../../lib/eligibility/client";
+import type { TranscriptEligibilityAssessment } from "../../lib/eligibility/types";
 import type { CourseCatalogEntry } from "../../lib/courseCatalog";
 import {
   assessUcShortlistCredit,
@@ -577,6 +578,8 @@ export function UcRplCourseMatcher({
   const [assessmentStatus, setAssessmentStatus] =
     useState<UcCreditAssessmentStatus>("ready");
   const [transcriptFile, setTranscriptFile] = useState<File | null>(null);
+  const [transcriptAssessment, setTranscriptAssessment] =
+    useState<TranscriptEligibilityAssessment | null>(null);
   const [assessmentError, setAssessmentError] = useState<string | null>(null);
   const [assessmentResults, setAssessmentResults] = useState(
     new Map<string, UcCreditAssessmentResult>(),
@@ -623,6 +626,7 @@ export function UcRplCourseMatcher({
     setAssessmentError(null);
     setAssessmentResults(new Map());
     setAssessmentStatus("ready");
+    setTranscriptAssessment(null);
     setShortlistedCourseCodes([]);
     setTranscriptFile(null);
     setSelectedFile(file);
@@ -667,6 +671,7 @@ export function UcRplCourseMatcher({
     setAssessmentStatus("ready");
     setAssessmentError(null);
     setAssessmentResults(new Map());
+    setTranscriptAssessment(null);
     setTranscriptFile(null);
 
     if (next.length === 3 && shortlistedCourseCodes.length !== 3) {
@@ -732,6 +737,7 @@ export function UcRplCourseMatcher({
       }
 
       const results = assessUcShortlistCredit(shortlist, transcriptAssessment);
+      setTranscriptAssessment(transcriptAssessment);
       setAssessmentResults(
         new Map(results.map((result) => [result.courseCode, result])),
       );
@@ -785,6 +791,8 @@ export function UcRplCourseMatcher({
           cvFile: selectedFile,
           startFresh: true,
           ucCvPrefill: draft,
+          ucTranscriptFile: transcriptFile ?? undefined,
+          ucTranscriptPrefill: transcriptAssessment ?? undefined,
         },
       );
       navigate("/overview");
@@ -801,6 +809,8 @@ export function UcRplCourseMatcher({
     navigate,
     selectedFile,
     startingCourseCode,
+    transcriptAssessment,
+    transcriptFile,
     userEmail,
   ]);
 
@@ -853,6 +863,7 @@ export function UcRplCourseMatcher({
             setShortlistedCourseCodes([]);
             setAssessmentResults(new Map());
             setAssessmentStatus("ready");
+            setTranscriptAssessment(null);
             setTranscriptFile(null);
             onStageChange("intro");
           }}
@@ -871,10 +882,12 @@ export function UcRplCourseMatcher({
               onAssess={() => void runCreditAssessment()}
               onClearTranscript={() => {
                 setAssessmentError(null);
+                setTranscriptAssessment(null);
                 setTranscriptFile(null);
               }}
               onFileSelect={(file) => {
                 setAssessmentError(null);
+                setTranscriptAssessment(null);
                 setTranscriptFile(file);
               }}
               onRequestAssessment={requestCreditAssessment}

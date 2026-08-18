@@ -115,6 +115,22 @@ describe("mapExtractedDataToQualification", () => {
     expect(draft.endYear).toBe("2025");
   });
 
+  it("does not treat the normalized not_completed value as completed", () => {
+    const draft = mapExtractedDataToQualification({
+      studyDetails: {
+        completionStatus: {
+          confidence: 0.99,
+          normalizedValue: "not_completed",
+        },
+        studyEndDate: { confidence: 0.9, normalizedValue: "November 2023" },
+      },
+    });
+
+    expect(draft.completed).toBe(false);
+    expect(draft.endMonth).toBe("November");
+    expect(draft.endYear).toBe("2023");
+  });
+
   it("uses the status date as the end date for excluded qualifications", () => {
     const draft = mapExtractedDataToQualification({
       studyDetails: {

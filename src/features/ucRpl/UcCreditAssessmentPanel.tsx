@@ -122,7 +122,7 @@ export function UcCreditAssessmentPanel({
           {showUpload ? (
             <div>
               <DocumentUploadField
-                attachedDescription="This transcript is ready for this assessment only."
+                attachedDescription="This transcript is ready for assessment and will be added if you start an application."
                 attachedStatus="Transcript ready to assess"
                 description="Upload the transcript you want assessed against your three shortlisted courses."
                 label="Academic transcript"
@@ -153,9 +153,11 @@ export function UcCreditAssessmentPanel({
                 {isProcessing ? "Assessing your credit…" : "Assess my credit"}
               </Button>
               <p className="mt-4 text-xs leading-5 text-slate-500">
-                The transcript is processed for this comparison and is not saved to
-                an application. UC will confirm any formal credit after reviewing
-                supporting evidence and unit learning outcomes.
+                The transcript is processed for this comparison without creating an
+                application. If you start an application, it will be securely added to
+                your qualification so you do not need to upload it again. UC will confirm
+                any formal credit after reviewing supporting evidence and unit learning
+                outcomes.
               </p>
             </div>
           ) : null}

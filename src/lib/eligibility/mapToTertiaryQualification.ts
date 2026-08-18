@@ -136,7 +136,7 @@ function parseMonthYear(value: string) {
 type CompletionState = "completed" | "in_progress" | "terminal_incomplete";
 
 function classifyCompletionStatus(completionStatus: string): CompletionState | undefined {
-  const normalized = completionStatus.toLowerCase();
+  const normalized = completionStatus.toLowerCase().replace(/[_-]+/g, " ");
   if (!normalized) {
     return undefined;
   }
