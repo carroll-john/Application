@@ -71,21 +71,21 @@ interface UcRplCourseMatcherProps {
   stage: UcRplAssessmentStage;
 }
 
-const CONFIDENCE_BADGE: Record<
-  UcCourseMatch["entryConfidence"],
+const ENTRY_STATUS_BADGE: Record<
+  UcCourseMatch["entryStatus"],
   { label: string; tone: "neutral" | "success" | "warning" }
 > = {
-  high: { label: "High confidence", tone: "success" },
-  medium: { label: "Medium confidence", tone: "warning" },
-  low: { label: "Low confidence", tone: "neutral" },
+  may_meet: { label: "May meet work-entry pathway", tone: "success" },
+  needs_review: { label: "UC review needed", tone: "warning" },
+  not_demonstrated: { label: "Not demonstrated from CV", tone: "neutral" },
 };
 
-function ConfidenceBadge({
-  confidence,
+function EntryStatusBadge({
+  status,
 }: {
-  confidence: UcCourseMatch["entryConfidence"];
+  status: UcCourseMatch["entryStatus"];
 }) {
-  const badge = CONFIDENCE_BADGE[confidence];
+  const badge = ENTRY_STATUS_BADGE[status];
 
   return (
     <StatusPill className="px-2.5 py-1 text-xs" tone={badge.tone}>
@@ -272,9 +272,9 @@ export function UcRplMatchCard({
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                     <SearchCheck className="h-4 w-4 text-green-700" aria-hidden="true" />
-                    Entry guidance
+                    Entry pathway
                   </p>
-                  <ConfidenceBadge confidence={match.entryConfidence} />
+                  <EntryStatusBadge status={match.entryStatus} />
                 </div>
                 <p className="mt-2 text-sm leading-6 text-slate-600">
                   {match.admissionDetail}
@@ -288,9 +288,11 @@ export function UcRplMatchCard({
                         className="h-4 w-4 text-[var(--cta-secondary)]"
                         aria-hidden="true"
                       />
-                      Credit potential
+                      Credit assessment
                     </p>
-                    <ConfidenceBadge confidence={match.creditConfidence} />
+                    <StatusPill className="px-2.5 py-1 text-xs" tone="neutral">
+                      Assessed separately
+                    </StatusPill>
                   </div>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
                     {match.creditDetail}

@@ -9,7 +9,6 @@ import {
   getUcExperienceGroupLabel,
   getUcExperienceReviewGuidance,
   getUcExperienceReviewSummary,
-  getUcIndicativeCreditPoints,
   getUcWorkEntryGuidance,
   rankUcCourses,
   summarizeUcExperienceByOscaLevel,
@@ -71,33 +70,32 @@ function draft(experiences: CvRecognitionExperience[]): CvRecognitionDraft {
   };
 }
 
-describe("UC OSCA admission prototype matrix", () => {
+describe("UC OSCA skilled-work guidance", () => {
   const now = new Date("2026-07-01T00:00:00Z");
 
   it.each([
-    [1, "2025", "2026", 4],
-    [1, "2023", "2026", 5],
-    [2, "2024", "2026", 4],
-    [2, "2021", "2026", 5],
+    [1, "2025", "2026"],
+    [1, "2023", "2026"],
+    [2, "2024", "2026"],
+    [2, "2021", "2026"],
   ] as const)(
-    "maps Skill Level %s experience from %s to %s to GPA %s",
-    (level, startYear, endYear, equivalentGpa) => {
+    "recognises Skill Level %s experience from %s to %s",
+    (level, startYear, endYear) => {
       const result = assessUcAdmission(
         [role({ endYear, level, startYear })],
         now,
       );
-      expect(result.equivalentGpa).toBe(equivalentGpa);
       expect(result.status).toBe("may_meet");
+      expect(result.rationale).not.toMatch(/GPA|prototype matrix/i);
     },
   );
 
-  it("keeps Skill Level 2 below two years on the faculty review path", () => {
+  it("keeps Skill Level 2 below two years on the review path", () => {
     const result = assessUcAdmission(
       [role({ endYear: "2026", level: 2, startYear: "2025" })],
       now,
     );
-    expect(result.equivalentGpa).toBeNull();
-    expect(result.status).toBe("faculty_review");
+    expect(result.status).toBe("needs_review");
   });
 
   it("does not double-count overlapping roles in the same occupation", () => {
@@ -109,7 +107,7 @@ describe("UC OSCA admission prototype matrix", () => {
       now,
     );
     expect(result.experienceMonths).toBe(24);
-    expect(result.equivalentGpa).toBe(4);
+    expect(result.status).toBe("may_meet");
   });
 });
 
@@ -204,7 +202,7 @@ describe("UC OSCA experience review summaries", () => {
     expect(getUcExperienceGroupLabel(2)).toBe("Technical or supervisory roles");
     expect(getUcExperienceGroupLabel(null)).toBe("Roles needing more information");
 
-    expect(getUcWorkEntryGuidance(1, 0)).toBe("May be eligible for direct entry");
+    expect(getUcWorkEntryGuidance(1, 0)).toBe("More experience may be needed");
     expect(getUcWorkEntryGuidance(2, 23)).toBe("More experience may be needed");
     expect(getUcWorkEntryGuidance(2, 24)).toBe("May be eligible for direct entry");
     expect(getUcWorkEntryGuidance(4, 120)).toBe(
@@ -284,7 +282,7 @@ describe("UC OSCA experience review summaries", () => {
 });
 
 describe("UC course matching", () => {
-  it("ranks every UC course with confidence and indicative credit guidance", () => {
+  it("ranks every UC course while keeping entry and credit decisions separate", () => {
     const experiences = [
       role({ endYear: "2026", level: 1, startYear: "2020" }),
     ];
@@ -302,10 +300,10 @@ describe("UC course matching", () => {
     );
 
     expect(matches).toHaveLength(33);
-    expect(firstBestMatch?.admissionDetail).toBe(
-      "Your CV may support this course’s published work-experience entry pathway. UC Admissions will confirm relevance and the remaining requirements.",
+    expect(firstBestMatch?.admissionDetail).toMatch(
+      /published.*entry pathway|published.*work-based entry pathway/i,
     );
-    expect(firstBestMatch?.admissionDetail).not.toMatch(/equivalent GPA|relevant experience/i);
+    expect(firstBestMatch?.admissionDetail).not.toMatch(/equivalent GPA/i);
     expect(matches.every((match) => ["high", "medium", "low"].includes(match.entryConfidence))).toBe(
       true,
     );
@@ -315,9 +313,9 @@ describe("UC course matching", () => {
     expect(
       matches.every((match) =>
         match.entryConfidence ===
-        (match.category === "best_match"
+        (match.entryStatus === "may_meet"
           ? "high"
-          : match.category === "needs_review"
+          : match.entryStatus === "needs_review"
             ? "medium"
             : "low"),
       ),
@@ -332,27 +330,17 @@ describe("UC course matching", () => {
             : "low"),
       ),
     ).toBe(true);
-    expect(matches.find((match) => match.relevanceScore >= 17)?.creditDetail).toMatch(
-      /You may be eligible for up to (6|12|18) credit points\./,
+    expect(
+      matches.every((match) =>
+        match.creditDetail.includes("Credit is assessed separately from admission"),
+      ),
+    ).toBe(true);
+    expect(matches.map((match) => match.creditDetail).join(" ")).not.toMatch(
+      /up to (6|12|18) credit points/i,
     );
   });
 
-  it("scales indicative credit points with course length", () => {
-    const catalogue = getCourseCatalogFor("uc");
-    const graduateCertificate = catalogue.find((course) =>
-      course.title.startsWith("Graduate Certificate"),
-    );
-    const graduateDiploma = catalogue.find((course) =>
-      course.title.startsWith("Graduate Diploma"),
-    );
-    const masters = catalogue.find((course) => course.title.startsWith("Master"));
-
-    expect(graduateCertificate && getUcIndicativeCreditPoints(graduateCertificate)).toBe(6);
-    expect(graduateDiploma && getUcIndicativeCreditPoints(graduateDiploma)).toBe(12);
-    expect(masters && getUcIndicativeCreditPoints(masters)).toBe(12);
-  });
-
-  it("uses Bill Shorten's current education role and completed MBA to avoid redundant matches", () => {
+  it("does not recommend a completed qualification as a redundant course match", () => {
     const experiences = [
       {
         ...role({
@@ -384,8 +372,8 @@ describe("UC course matching", () => {
     const recognition = draft(experiences);
     recognition.profile = {
       ...recognition.profile,
-      firstName: "Bill",
-      lastName: "Shorten",
+      firstName: "Alex",
+      lastName: "Jordan",
     };
     recognition.tertiaryQualifications = [
       {
@@ -414,24 +402,24 @@ describe("UC course matching", () => {
     const mba = matches.find(
       (match) => match.course.title === "Master of Business Administration",
     );
-    const publicPolicyIndex = matches.findIndex(
-      (match) => match.course.title === "Master of Public Policy",
-    );
-    const educationLeadershipIndex = matches.findIndex(
-      (match) => match.course.title === "Master of Education (Leadership)",
-    );
-
     expect(matches[0].course.title).toBe("Master of Education (Leadership)");
-    expect(bestMatches.every((match) => /Education|Teaching/i.test(match.course.title))).toBe(
+    expect(bestMatches.every((match) => match.entryStatus === "may_meet")).toBe(
       true,
     );
-    expect(educationLeadershipIndex).toBeLessThan(publicPolicyIndex);
     expect(mba?.category).not.toBe("best_match");
     expect(mba?.relevanceScore).toBe(0);
     expect(mba?.creditConfidence).toBe("low");
+    expect(
+      matches.find(
+        (match) => match.course.title === "Master of Education (Leadership)",
+      ),
+    ).toMatchObject({
+      category: "needs_review",
+      entryStatus: "needs_review",
+    });
   });
 
-  it("only recommends courses with a published experience-only pathway for Maya", () => {
+  it("only recommends courses where Maya demonstrates a published work-entry route", () => {
     const experiences = [
       {
         ...role({
@@ -497,12 +485,18 @@ describe("UC course matching", () => {
       getCourseCatalogFor("uc"),
       recognition,
       admission,
+      new Date("2026-08-01T00:00:00Z"),
     );
     const educationLeadership = matches.find(
       (match) => match.course.title === "Master of Education (Leadership)",
     );
     const mba = matches.find(
       (match) => match.course.title === "Master of Business Administration",
+    );
+    const governmentBusiness = matches.find(
+      (match) =>
+        match.course.title ===
+        "Graduate Certificate in Business Administration (Government)",
     );
     const bestMatchTitles = matches
       .filter((match) => match.category === "best_match")
@@ -515,7 +509,6 @@ describe("UC course matching", () => {
     ];
 
     expect(admission).toMatchObject({
-      equivalentGpa: 5,
       occupationCode: "222431",
       skillLevel: 1,
       status: "may_meet",
@@ -526,21 +519,35 @@ describe("UC course matching", () => {
       "level-4",
     ]);
     expect(bestMatchTitles).toEqual([
+      "Master of Business Administration",
       "Graduate Certificate in Business",
-      "Graduate Certificate in Business Administration (Government)",
-      "Graduate Certificate in Public Policy",
+      "Graduate Certificate in Digital Marketing",
     ]);
+    expect(bestMatchTitles).not.toContain(
+      "Graduate Certificate in Business Administration (Government)",
+    );
+    expect(
+      matches
+        .filter((match) => match.category === "best_match")
+        .every((match) => match.entryStatus === "may_meet"),
+    ).toBe(true);
+    expect(governmentBusiness).toMatchObject({
+      category: "needs_review",
+      entryStatus: "not_demonstrated",
+    });
     expect(educationLeadership).toMatchObject({
       category: "needs_review",
       creditConfidence: "high",
       entryConfidence: "medium",
     });
     expect(educationLeadership?.admissionDetail).toContain(
-      "does not currently demonstrate a published entry pathway",
+      "does not yet demonstrate a published work-experience entry pathway",
     );
     expect(mba).toMatchObject({
-      category: "needs_review",
-      entryConfidence: "medium",
+      category: "best_match",
+      entryConfidence: "high",
+      entryPathway: "skilled_work",
+      entryStatus: "may_meet",
     });
     expect(
       matches
@@ -599,18 +606,25 @@ describe("UC course matching", () => {
       getCourseCatalogFor("uc"),
       recognition,
       assessUcAdmission(experiences, new Date("2026-08-01T00:00:00Z")),
+      new Date("2026-08-01T00:00:00Z"),
     );
 
     expect(
       matches.find(
         (match) => match.course.title === "Master of Business Administration",
-      )?.category,
-    ).toBe("needs_review");
+      ),
+    ).toMatchObject({
+      entryPathway: "skilled_work",
+      entryStatus: "may_meet",
+    });
     expect(
       matches.find(
         (match) => match.course.title === "Master of Education (Leadership)",
-      )?.category,
-    ).toBe("needs_review");
+      ),
+    ).toMatchObject({
+      category: "needs_review",
+      entryStatus: "needs_review",
+    });
   });
 
   it("keeps STEM education courses relevant when the CV contains direct STEM evidence", () => {

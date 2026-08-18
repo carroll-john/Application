@@ -9,7 +9,10 @@ import {
   hasUcTranscriptStudyEvidence,
 } from "./ucCreditAssessment";
 
-function matchFor(title: string, creditConfidence: UcCourseMatch["creditConfidence"] = "high") {
+function matchFor(
+  title: string,
+  creditConfidence: UcCourseMatch["creditConfidence"] = "high",
+) {
   const course = getCourseCatalogFor("uc").find((item) => item.title === title);
   if (!course) throw new Error(`Missing UC test course: ${title}`);
 
@@ -19,8 +22,9 @@ function matchFor(title: string, creditConfidence: UcCourseMatch["creditConfiden
     course,
     creditConfidence,
     creditDetail: "Potential credit.",
-    creditPoints: 18,
     entryConfidence: "high",
+    entryPathway: "skilled_work",
+    entryStatus: "may_meet",
     relevanceScore: 30,
   } satisfies UcCourseMatch;
 }
@@ -103,6 +107,74 @@ const incompleteRelatedTranscript = normalizeTranscriptEligibilityAssessment({
   },
 });
 
+const mayaTranscript = normalizeTranscriptEligibilityAssessment({
+  confidence: 0.98,
+  outcome: "eligible",
+  academicPerformance: {
+    unitResults: [
+      {
+        counted: true,
+        creditPoints: 6,
+        grade: "CR",
+        title: "Business Foundations",
+      },
+      {
+        counted: true,
+        creditPoints: 6,
+        grade: "CR",
+        title: "Organisational Behaviour",
+      },
+      {
+        counted: true,
+        creditPoints: 6,
+        grade: "D",
+        title: "Learning and Development at Work",
+      },
+      {
+        counted: true,
+        creditPoints: 6,
+        grade: "CR",
+        title: "Project Management Fundamentals",
+      },
+      {
+        counted: true,
+        creditPoints: 6,
+        grade: "D",
+        title: "Educational Leadership and Change",
+      },
+      {
+        counted: true,
+        creditPoints: 6,
+        grade: "CR",
+        title: "Business Analytics for Decision Making",
+      },
+      {
+        counted: true,
+        creditPoints: 6,
+        grade: "D",
+        title: "Digital Communication Strategy",
+      },
+      {
+        counted: false,
+        creditPoints: 0,
+        grade: "WD",
+        title: "Financial Decision Making",
+      },
+    ],
+  },
+  studyDetails: {
+    completionStatus: {
+      confidence: 0.99,
+      normalizedValue: "not_completed",
+      originalValue: "Course discontinued - no award conferred",
+    },
+    programName: {
+      confidence: 0.98,
+      normalizedValue: "Bachelor of Business (Management)",
+    },
+  },
+});
+
 describe("UC shortlisted-course credit assessment", () => {
   it("combines related transcript study and CV relevance into time and cost estimates", () => {
     const result = assessUcShortlistedCourseCredit(
@@ -119,7 +191,9 @@ describe("UC shortlisted-course credit assessment", () => {
       potentialCreditPoints: 12,
       potentialSavings: 11825,
     });
-    expect(result.evidenceSummary).toMatch(/prior study.*professional experience/i);
+    expect(result.evidenceSummary).toMatch(
+      /Educational Leadership and Change.*UC will confirm/i,
+    );
   });
 
   it("uses related completed units when the synthetic bachelor award is incomplete", () => {
@@ -137,7 +211,9 @@ describe("UC shortlisted-course credit assessment", () => {
       potentialCreditPoints: 12,
       potentialSavings: 11825,
     });
-    expect(result.evidenceSummary).toMatch(/prior study.*professional experience/i);
+    expect(result.evidenceSummary).toMatch(
+      /Educational Leadership and Change.*UC will confirm/i,
+    );
   });
 
   it("does not estimate credit from CV relevance without related transcript study", () => {
@@ -150,6 +226,62 @@ describe("UC shortlisted-course credit assessment", () => {
     expect(result.afterCost).toBe(result.originalCost);
     expect(result.afterDurationMonths).toBe(result.originalDurationMonths);
     expect(result.evidenceSummary).toMatch(/transcript and CV/i);
+  });
+
+  it("gives Maya distinct, transcript-backed demo credit options", () => {
+    const results = [
+      assessUcShortlistedCourseCredit(
+        matchFor("Master of Business Administration"),
+        mayaTranscript,
+      ),
+      assessUcShortlistedCourseCredit(
+        matchFor("Graduate Certificate in Digital Marketing"),
+        mayaTranscript,
+      ),
+      assessUcShortlistedCourseCredit(
+        matchFor("Graduate Certificate in Business"),
+        mayaTranscript,
+      ),
+    ];
+
+    expect(
+      results.map((result) => ({
+        afterDurationMonths: result.afterDurationMonths,
+        confidence: result.confidence,
+        originalDurationMonths: result.originalDurationMonths,
+        potentialCreditPoints: result.potentialCreditPoints,
+      })),
+    ).toEqual([
+      {
+        afterDurationMonths: 20,
+        confidence: "medium",
+        originalDurationMonths: 24,
+        potentialCreditPoints: 6,
+      },
+      {
+        afterDurationMonths: 9,
+        confidence: "medium",
+        originalDurationMonths: 12,
+        potentialCreditPoints: 3,
+      },
+      {
+        afterDurationMonths: 4,
+        confidence: "medium",
+        originalDurationMonths: 8,
+        potentialCreditPoints: 6,
+      },
+    ]);
+    expect(results[0]?.evidenceSummary).toMatch(
+      /Business Foundations and Organisational Behaviour/i,
+    );
+    expect(results[1]?.evidenceSummary).toMatch(
+      /Digital Communication Strategy/i,
+    );
+    expect(results[2]?.evidenceSummary).toMatch(
+      /Business Foundations and Organisational Behaviour/i,
+    );
+    expect(results.every((result) => result.originalCost === null)).toBe(true);
+    expect(results.every((result) => result.afterCost === null)).toBe(true);
   });
 
   it("keeps graduate certificates on formal review when no approved credit arrangement is published", () => {
@@ -188,7 +320,9 @@ describe("UC shortlisted-course credit assessment", () => {
     expect(hasUcTranscriptStudyEvidence(relatedTranscript)).toBe(true);
     expect(
       hasUcTranscriptStudyEvidence(
-        normalizeTranscriptEligibilityAssessment({ outcome: "insufficient_data" }),
+        normalizeTranscriptEligibilityAssessment({
+          outcome: "insufficient_data",
+        }),
       ),
     ).toBe(false);
   });
