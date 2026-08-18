@@ -18,7 +18,7 @@ function qualification(
     courseName: "Bachelor of Business (Management)",
     endMonth: "August",
     endYear: "2025",
-    institution: "Harbour City University",
+    institution: "RMIT University",
     level: "Bachelor Degree",
     startMonth: "February",
     startYear: "2024",
@@ -79,7 +79,7 @@ function renderReview(draft: CvRecognitionDraft) {
 describe("formatUcExtractedQualificationDetail", () => {
   it("does not describe an incomplete qualification as completed", () => {
     expect(formatUcExtractedQualificationDetail(qualification())).toBe(
-      "Bachelor Degree · Harbour City University · Incomplete (ended 2025)",
+      "Bachelor Degree · RMIT University · Incomplete (ended 2025)",
     );
   });
 
@@ -89,7 +89,7 @@ describe("formatUcExtractedQualificationDetail", () => {
         qualification({ completed: true }),
       ),
     ).toBe(
-      "Bachelor Degree · Harbour City University · Completed 2025",
+      "Bachelor Degree · RMIT University · Completed 2025",
     );
   });
 });

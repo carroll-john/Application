@@ -117,6 +117,11 @@ the extracted study fields may fill blank authenticated qualification data and
 the file is attached to that qualification through the ordinary shared document
 flow. The three-course credit-comparison result remains transient.
 
+The Maya Patel demo fixture uses an incomplete Bachelor of Business
+(Management) academic record from RMIT University. Keep the institution,
+Australian study country, incomplete status, and transcript-backed application
+prefill aligned across the uploadable PDF and executable fixtures.
+
 For this ephemeral demo comparison, the route uses the app's configured OpenAI
 extractor before the external eligibility service, avoiding an unnecessary service
 cold start while preserving the same evidence schema and app-owned assessment. If

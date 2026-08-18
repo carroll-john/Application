@@ -29,7 +29,7 @@ function transcriptAssessment(): TranscriptEligibilityAssessment {
     confidence: 0.94,
     extractedData: {
       applicantDetails: {
-        institutionName: { normalizedValue: "University of Canberra" },
+        institutionName: { normalizedValue: "RMIT University" },
       },
       studyDetails: {
         completionStatus: { normalizedValue: "not_completed" },
@@ -51,7 +51,7 @@ function qualification(
 ): TertiaryQualification {
   return {
     id: "qualification-business",
-    institution: "University of Canberra",
+    institution: "RMIT University",
     country: "Australia",
     level: "Bachelor",
     courseName: "Bachelor of Business (Management)",
