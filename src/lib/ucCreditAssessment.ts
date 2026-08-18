@@ -60,6 +60,7 @@ export interface UcCreditAssessmentResult {
   afterCost: number | null;
   afterDurationMonths: number | null;
   confidence: UcGuidanceConfidence;
+  costBasis: "csp" | "full_fee" | null;
   courseCode: string;
   evidenceSummary: string;
   originalCost: number | null;
@@ -178,7 +179,16 @@ function getCourseCostProfile(match: UcCourseMatch) {
 
   if (unitCost && totalCost) {
     const units = Math.round(totalCost / unitCost);
-    return units > 0 ? { totalCost, unitCost, units } : null;
+    return units > 0
+      ? {
+          costBasis: /\bCSP\b/i.test(feeText)
+            ? ("csp" as const)
+            : ("full_fee" as const),
+          totalCost,
+          unitCost,
+          units,
+        }
+      : null;
   }
 
   return null;
@@ -335,6 +345,7 @@ export function assessUcShortlistedCourseCredit(
     afterCost,
     afterDurationMonths,
     confidence,
+    costBasis: costProfile?.costBasis ?? null,
     courseCode: match.course.code,
     evidenceSummary: getEvidenceSummary({
       formalStudyScore,
