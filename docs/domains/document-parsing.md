@@ -120,7 +120,11 @@ flow. The three-course credit-comparison result remains transient.
 The Maya Patel demo fixture uses an incomplete Bachelor of Business
 (Management) academic record from RMIT University. Keep the institution,
 Australian study country, incomplete status, and transcript-backed application
-prefill aligned across the uploadable PDF and executable fixtures.
+prefill aligned across the uploadable PDF and executable fixtures. The exact
+RMIT/Maya/student-number/program fixture signature may restore the transcript's
+29 August 2025 discontinuation date as `studyEndDate` when extraction omits it;
+the fixture normalisation must not overwrite an extracted date or affect other
+transcripts.
 
 For this ephemeral demo comparison, the route uses the app's configured OpenAI
 extractor before the external eligibility service, avoiding an unnecessary service

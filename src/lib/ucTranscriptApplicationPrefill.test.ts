@@ -22,8 +22,8 @@ function transcriptAssessment(): TranscriptEligibilityAssessment {
         },
         highestEducationLevel: { normalizedValue: "Bachelor" },
         programName: { normalizedValue: "Bachelor of Business (Management)" },
-        startDate: { normalizedValue: "February 2021" },
-        studyEndDate: { normalizedValue: "November 2023" },
+        startDate: { normalizedValue: "26 February 2024" },
+        studyEndDate: { normalizedValue: "2025-08-29" },
       },
     },
     manualReviewRequired: false,
@@ -70,10 +70,10 @@ describe("applyUcTranscriptApplicationPrefill", () => {
         level: "Bachelor",
         courseName: "Bachelor of Business (Management)",
         startMonth: "February",
-        startYear: "2021",
+        startYear: "2024",
         completed: false,
-        endMonth: "November",
-        endYear: "2023",
+        endMonth: "August",
+        endYear: "2025",
         transcriptEligibility: assessment,
       }),
     ]);
@@ -94,10 +94,10 @@ describe("applyUcTranscriptApplicationPrefill", () => {
       id: "existing-qualification",
       institution: "Saved University",
       startMonth: "February",
-      startYear: "2021",
+      startYear: "2024",
       completed: false,
-      endMonth: "November",
-      endYear: "2023",
+      endMonth: "August",
+      endYear: "2025",
     });
   });
 
