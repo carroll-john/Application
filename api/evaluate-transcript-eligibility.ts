@@ -20,6 +20,7 @@ import {
   withContextDefaults,
 } from "./_eligibility/assessment.js";
 import { getUcCreditAssessmentAccessError } from "./_eligibility/creditAssessmentAccess.js";
+import { applyUcDemoTranscriptFixture } from "./_eligibility/ucDemoTranscriptFixtures.js";
 import {
   authenticateRequest,
   isDeployedEnvironment,
@@ -201,7 +202,9 @@ async function evaluateWithLocalModel(
     return null;
   }
 
-  const parsed = llmResult.parsed as Record<string, unknown>;
+  const parsed = applyUcDemoTranscriptFixture(
+    llmResult.parsed as Record<string, unknown>,
+  );
   foldNumericAcademicFields(parsed);
 
   // Stamp the exact (model, prompt, schema) tuple so every stored result and telemetry event can
@@ -444,7 +447,10 @@ async function forwardToEligibilityService(
 
   const assessment =
     payload && typeof payload === "object"
-      ? applyEligibilityResolution(payload as Record<string, unknown>, context)
+      ? applyEligibilityResolution(
+          applyUcDemoTranscriptFixture(payload as Record<string, unknown>),
+          context,
+        )
       : buildFallbackResponse(context);
 
   await captureTranscriptAiGeneration({

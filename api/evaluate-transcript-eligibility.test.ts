@@ -158,6 +158,62 @@ describe("evaluate-transcript-eligibility api route", () => {
     );
   });
 
+  it("restores Maya's discontinued study end date in a service response", async () => {
+    process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          applicantDetails: {
+            fullName: { normalizedValue: "Maya Patel" },
+            institutionName: { normalizedValue: "RMIT University" },
+            studentId: { normalizedValue: "2024-1173" },
+          },
+          confidence: 0.96,
+          studyDetails: {
+            completionStatus: {
+              normalizedValue: "withdrawn",
+              originalValue: "Discontinued - no award conferred",
+            },
+            programName: {
+              normalizedValue: "Bachelor of Business (Management)",
+            },
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
+
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new File(["fixture"], "Maya-Patel-Academic-Record.txt", {
+        type: "text/plain",
+      }),
+    );
+    formData.append(
+      "context",
+      JSON.stringify({ completed: false, courseCode: "MGM104" }),
+    );
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        body: formData,
+        method: "POST",
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+
+    expect(response.status).toBe(200);
+    expect(payload.studyDetails).toMatchObject({
+      studyEndDate: {
+        confidence: 1,
+        missingOrAmbiguous: false,
+        normalizedValue: "2025-08-29",
+        originalValue: "29 August 2025",
+      },
+    });
+  });
+
   it("redacts raw transcript filenames from PostHog AI observability input", async () => {
     process.env.ELIGIBILITY_SERVICE_URL = "https://eligibility.example.com/evaluate";
     process.env.POSTHOG_PROJECT_API_KEY = "ph-project-key";
