@@ -44,6 +44,8 @@ export interface ProgramEvidenceRow {
   heading: string;
   id: string;
   isBlocking: boolean;
+  /** This row identifies the entry route used to start the application. */
+  isEntryPathway?: boolean;
   kindLabel: string;
   /** This requirement already includes proof that the qualification was completed. */
   requiresCompletedQualification?: boolean;
@@ -482,7 +484,25 @@ const deterministicCheckKindLabels: Record<string, string> = {
 export function buildAssessmentCheckEvidenceRows(
   assessment: TranscriptEligibilityAssessment,
 ): ProgramEvidenceRow[] {
-  return assessment.requirementsChecked.map((check): ProgramEvidenceRow => {
+  const completionCheck = assessment.requirementsChecked.find(
+    (check) => check.id === "deterministic-completion",
+  );
+  const incompleteOrUnconfirmedQualification = Boolean(
+    completionCheck && completionCheck.status !== "pass",
+  );
+
+  return assessment.requirementsChecked.flatMap((check): ProgramEvidenceRow[] => {
+    // The legacy deterministic route emits qualification level and completion as separate checks.
+    // A bachelor-level label is not a completed bachelor pathway, so do not show the level as met
+    // when the paired completion check says the award is incomplete or cannot be confirmed.
+    if (
+      check.id === "deterministic-qualification-level" &&
+      check.status === "pass" &&
+      incompleteOrUnconfirmedQualification
+    ) {
+      return [];
+    }
+
     const base = {
       explanation: requirementCheckDisplayCopy(check),
       heading: check.requirement,
@@ -495,33 +515,33 @@ export function buildAssessmentCheckEvidenceRows(
     };
 
     if (check.status === "pass") {
-      return {
+      return [{
         ...base,
         isBlocking: false,
         status: "met",
         statusLabel: programEvidenceStatusCopy.met,
-      };
+      }];
     }
 
     // A service outage isn't something the applicant can fix by editing their qualification;
     // it falls through to the non-blocking manual-review row below.
     if (check.status === "unknown" && check.reasonCode !== "SERVICE_UNAVAILABLE") {
-      return {
+      return [{
         ...base,
         actionLabel: "Review qualification",
         actionPath: tertiaryPath,
         isBlocking: true,
         status: "needs_details",
         statusLabel: programEvidenceStatusCopy.needs_details,
-      };
+      }];
     }
 
-    return {
+    return [{
       ...base,
       isBlocking: false,
       status: "needs_review",
       statusLabel: programEvidenceStatusCopy.needs_review,
-    };
+    }];
   });
 }
 

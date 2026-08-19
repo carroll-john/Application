@@ -596,6 +596,42 @@ describe("buildAssessmentCheckEvidenceRows", () => {
     expect(buildTranscriptReviewSummary(rows).manualReviewNeeded).toBe(true);
   });
 
+  it("does not show qualification level as met when the paired qualification is incomplete", () => {
+    const rows = buildAssessmentCheckEvidenceRows(
+      assessmentWithChecks([
+        {
+          id: "deterministic-qualification-level",
+          requirement: "Minimum qualification level (Bachelor degree)",
+          status: "pass",
+          reasonCode: "QUALIFICATION_LEVEL_MET",
+          explanation: "The transcript shows bachelor-level study.",
+        },
+        {
+          id: "deterministic-english-proficiency",
+          requirement: "English language proficiency",
+          status: "pass",
+          reasonCode: "ENGLISH_OK_COUNTRY",
+          details: { observed: "Australia" },
+          explanation: "English satisfied by Australian study.",
+        },
+        {
+          id: "deterministic-completion",
+          requirement: "Completed qualification requirement",
+          status: "fail",
+          reasonCode: "QUALIFICATION_INCOMPLETE",
+          explanation: "Qualification appears incomplete.",
+        },
+      ]),
+    );
+
+    expect(rows.map((row) => row.heading)).toEqual([
+      "English language proficiency",
+      "Completed qualification requirement",
+    ]);
+    expect(rows[0]).toMatchObject({ status: "met", statusLabel: "Met" });
+    expect(rows[1]).toMatchObject({ status: "needs_review", statusLabel: "Needs review" });
+  });
+
   it("labels the deterministic WAM/GPA check as an academic threshold kind", () => {
     const rows = buildAssessmentCheckEvidenceRows(
       assessmentWithChecks([

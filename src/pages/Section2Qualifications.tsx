@@ -30,10 +30,12 @@ import { useReviewReturn } from "../hooks/useReviewReturn";
 import { getCourseByCode } from "../lib/courseCatalog";
 import { deleteStoredDocument } from "../lib/documentStorage";
 import {
+  buildAssessmentCheckEvidenceRows,
   buildProgramEvidenceRows,
   dedupeProgramEvidenceRowsByHeading,
   groupTranscriptVerifiableEvidenceRows,
 } from "../lib/eligibility/programEvidence";
+import { buildUcDemoWorkEntryEvidenceRow } from "../lib/eligibility/ucDemoApplicationFixtures";
 import { orderEmploymentExperiencesByMostRecent } from "../lib/employmentExperienceOrder";
 import { getSection2EditPath, getSection2Step } from "../lib/section2Steps";
 import { getEmploymentExperienceSubmissionMissingFields } from "../lib/validation/rules/section2";
@@ -78,8 +80,19 @@ export default function Section2Qualifications() {
     course: selectedCourseEntry,
     transcriptAssessment: latestTranscriptAssessment,
   });
+  const assessmentEvidenceRows =
+    programEvidenceRows.length === 0 && latestTranscriptAssessment
+      ? buildAssessmentCheckEvidenceRows(latestTranscriptAssessment)
+      : programEvidenceRows;
+  const workEntryEvidenceRow = buildUcDemoWorkEntryEvidenceRow({
+    applicationData: data,
+    course: selectedCourseEntry,
+  });
+  const applicationEvidenceRows = workEntryEvidenceRow
+    ? [workEntryEvidenceRow, ...assessmentEvidenceRows]
+    : assessmentEvidenceRows;
   const displayProgramEvidenceRows = dedupeProgramEvidenceRowsByHeading(
-    groupTranscriptVerifiableEvidenceRows(programEvidenceRows),
+    groupTranscriptVerifiableEvidenceRows(applicationEvidenceRows),
   );
   const {
     evidencePlan,
@@ -182,7 +195,7 @@ export default function Section2Qualifications() {
         onUnskipPrompt={handleUnskipSection}
         plan={evidencePlan}
         showParsedTranscriptIntro={showParsedTranscriptIntro}
-        ungroupedRows={programEvidenceRows}
+        ungroupedRows={applicationEvidenceRows}
       />
 
       <EmployerConfirmationNudge

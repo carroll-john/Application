@@ -172,6 +172,53 @@ describe("buildSection2EvidencePlan in requirements mode", () => {
     expect(plan.remainingPromptCount).toBe(0);
   });
 
+  it("does not prompt for English evidence after a legacy assessment marks English met", () => {
+    const plan = buildSection2EvidencePlan({
+      data: application({
+        cvUploaded: true,
+        employmentExperiences: [employmentExperience()],
+        tertiaryQualifications: [tertiaryQualification({ completed: false })],
+      }),
+      groupedRows: [
+        evidenceRow({
+          actionLabel: undefined,
+          actionPath: undefined,
+          heading: "Work experience entry pathway",
+          id: "work-entry",
+          isBlocking: false,
+          kindLabel: "Work experience",
+          status: "provisionally_met",
+          statusLabel: "Appears to meet",
+        }),
+        evidenceRow({
+          actionLabel: undefined,
+          actionPath: undefined,
+          heading: "English language proficiency",
+          id: "english",
+          isBlocking: false,
+          kindLabel: "English language proficiency",
+          status: "met",
+          statusLabel: "Met",
+        }),
+        evidenceRow({
+          actionLabel: undefined,
+          actionPath: undefined,
+          heading: "Completed qualification requirement",
+          id: "completion",
+          isBlocking: false,
+          status: "needs_review",
+          statusLabel: "Needs review",
+        }),
+      ],
+      hasPublishedRequirements: false,
+      skippedSections: noSkips,
+    });
+
+    expect(plan.mode).toBe("generic");
+    expect(plan.nextPrompt).toBeNull();
+    expect(plan.remainingPromptCount).toBe(0);
+  });
+
   it("keeps evidence not-ready when all prompts are skipped", () => {
     const plan = buildSection2EvidencePlan({
       data: application(),
