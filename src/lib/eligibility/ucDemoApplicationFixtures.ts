@@ -13,7 +13,7 @@ function isMayaUcDemoApplication(
   applicationData: ApplicationData,
   course: CourseCatalogEntry | null | undefined,
 ) {
-  if (course?.code !== MAYA_MBA_COURSE_CODE || !applicationData.cvUploaded) {
+  if (course?.officialCourseCode !== MAYA_MBA_COURSE_CODE || !applicationData.cvUploaded) {
     return false;
   }
 
