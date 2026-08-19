@@ -44,7 +44,8 @@ function mayaApplication(overrides: Partial<ApplicationData> = {}): ApplicationD
 }
 
 const mba = {
-  code: "MGM104",
+  code: "master-of-business-administration",
+  officialCourseCode: "MGM104",
   title: "Master of Business Administration",
 } as CourseCatalogEntry;
 
@@ -74,7 +75,7 @@ describe("UC demo application evidence fixtures", () => {
     expect(
       buildUcDemoWorkEntryEvidenceRow({
         applicationData: mayaApplication(),
-        course: { ...mba, code: "MGC103" },
+        course: { ...mba, officialCourseCode: "MGC103" },
       }),
     ).toBeNull();
   });
