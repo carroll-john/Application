@@ -1,5 +1,6 @@
 import type { ApplicationData } from "../../lib/applicationData";
 import type { ProgramEvidenceRow } from "../../lib/eligibility/programEvidence";
+import { requirementKindLabel } from "../../lib/eligibility/requirements";
 import {
   getSection2Step,
   getSection2StepByPath,
@@ -162,8 +163,17 @@ export function buildSection2EvidencePlan(options: {
       .filter((prompt): prompt is Section2EvidencePrompt => prompt !== null);
     isEvidenceReady = blockingRows.length === 0;
   } else {
+    const englishAlreadySatisfied = groupedRows.some(
+      (row) =>
+        row.kindLabel === requirementKindLabel("english_proficiency") &&
+        (row.status === "met" || row.status === "provisionally_met"),
+    );
     prompts = genericEvidenceSequence
-      .filter((entry) => !sectionHasData(data, entry.sectionKey))
+      .filter(
+        (entry) =>
+          !sectionHasData(data, entry.sectionKey) &&
+          !(entry.sectionKey === "languageTest" && englishAlreadySatisfied),
+      )
       .map((entry) => ({
         actionLabel: entry.actionLabel,
         actionPath: getSection2Step(entry.stepKey).addPath ?? "",

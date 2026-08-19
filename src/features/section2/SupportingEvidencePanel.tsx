@@ -273,6 +273,7 @@ export function SupportingEvidencePanel({
     ungroupedRows.length === 0 && assessment
       ? buildAssessmentCheckEvidenceRows(assessment)
       : ungroupedRows;
+  const usesWorkExperienceEntry = sourceRows.some((row) => row.isEntryPathway);
   const dedupedRows = dedupeProgramEvidenceRowsByHeading(sourceRows);
   const metRows = dedupedRows.filter(
     (row) => row.status === "met" || row.status === "provisionally_met",
@@ -347,8 +348,9 @@ export function SupportingEvidencePanel({
       </div>
       {showParsedTranscriptIntro ? (
         <p className="mt-2 text-xs text-gray-700 sm:text-sm">
-          Based on your uploaded transcript, we&apos;ve reviewed your eligibility
-          {courseTitle ? ` for ${courseTitle}` : ""}.
+          {usesWorkExperienceEntry
+            ? `Your application is being considered through UC's work-experience entry pathway. We've reviewed your CV, employment history and transcript${courseTitle ? ` for ${courseTitle}` : ""}.`
+            : `Based on your uploaded transcript, we've reviewed your eligibility${courseTitle ? ` for ${courseTitle}` : ""}.`}
         </p>
       ) : null}
       {programEvidenceAdvisoryCopy.map((paragraph) => (

@@ -143,6 +143,55 @@ describe("SupportingEvidencePanel", () => {
     expect(html).not.toContain('aria-label="Evidence needing review"');
   });
 
+  it("explains when the application is using the work-experience entry pathway", () => {
+    const workEntryRow: ProgramEvidenceRow = {
+      explanation:
+        "Your reviewed CV shows senior experience that may support entry. UC Admissions will confirm.",
+      heading: "Work experience entry pathway",
+      id: "work-entry",
+      isBlocking: false,
+      isEntryPathway: true,
+      kindLabel: "Work experience",
+      requirementId: "work-entry",
+      sourceText: "UC work-experience entry pathway",
+      status: "provisionally_met",
+      statusLabel: "Appears to meet",
+    };
+    const readyPlan: Section2EvidencePlan = {
+      ...plan,
+      isEvidenceReady: true,
+      nextPrompt: null,
+      remainingPromptCount: 0,
+    };
+
+    const html = renderToStaticMarkup(
+      createElement(SupportingEvidencePanel, {
+        assessment: normalizeTranscriptEligibilityAssessment({
+          checkedAt: "2026-08-19T00:00:00Z",
+          outcome: "insufficient_data",
+          requirementsChecked: [],
+        }),
+        courseTitle: "Master of Business Administration",
+        ensureApplicationRow: async () => "application-id",
+        isHero: false,
+        isProcessing: false,
+        onNavigate: () => undefined,
+        onSaveFeedback: async () => undefined,
+        onSkipPrompt: () => undefined,
+        onUnskipPrompt: () => undefined,
+        plan: readyPlan,
+        showParsedTranscriptIntro: true,
+        ungroupedRows: [workEntryRow],
+      }),
+    );
+
+    expect(html).toContain("UC&#x27;s work-experience entry pathway");
+    expect(html).toContain("reviewed your CV, employment history and transcript");
+    expect(html).toContain("Work experience entry pathway");
+    expect(html).toContain("Appears to meet");
+    expect(html).not.toContain("Based on your uploaded transcript");
+  });
+
   it("shows a review outcome and the failed academic check instead of evidence ready", () => {
     const assessment = normalizeTranscriptEligibilityAssessment({
       checkedAt: "2026-07-15T00:00:00Z",
