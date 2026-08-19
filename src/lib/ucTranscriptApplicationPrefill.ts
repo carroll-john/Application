@@ -10,11 +10,35 @@ import {
   type TertiaryQualificationFieldDraft,
 } from "./eligibility/mapToTertiaryQualification";
 import type { TranscriptEligibilityAssessment } from "./eligibility/types";
+import { applyUcDemoTranscriptFixture } from "./eligibility/ucDemoTranscriptFixtures";
 
 export interface UcTranscriptApplicationPrefillOptions {
   createId?: () => string;
   /** CV-derived qualification suggestions to replace when transcript evidence identifies one. */
   cvQualificationsToReplace?: readonly TertiaryQualification[];
+}
+
+/**
+ * Re-applies stored transcript evidence to blank qualification fields when an
+ * applicant opens the Edit screen. This repairs older drafts created before a
+ * newly extracted field was available without overwriting anything the user
+ * has already entered.
+ */
+export function prefillStoredUcTranscriptQualification(
+  qualification: TertiaryQualification,
+): TertiaryQualification {
+  if (!qualification.transcriptEligibility) {
+    return qualification;
+  }
+
+  const repairedAssessment = applyUcDemoTranscriptFixture(
+    qualification.transcriptEligibility as unknown as Record<string, unknown>,
+  ) as unknown as TranscriptEligibilityAssessment;
+  const draft = mapExtractedDataToQualification(
+    repairedAssessment.extractedData,
+  );
+
+  return mergeQualificationDraft(qualification, draft);
 }
 
 function normalizeIdentity(value: string) {
