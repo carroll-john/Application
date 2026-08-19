@@ -20,7 +20,7 @@ import {
   withContextDefaults,
 } from "./_eligibility/assessment.js";
 import { getUcCreditAssessmentAccessError } from "./_eligibility/creditAssessmentAccess.js";
-import { applyUcDemoTranscriptFixture } from "./_eligibility/ucDemoTranscriptFixtures.js";
+import { applyUcDemoTranscriptFixture } from "../src/lib/eligibility/ucDemoTranscriptFixtures.js";
 import {
   authenticateRequest,
   isDeployedEnvironment,

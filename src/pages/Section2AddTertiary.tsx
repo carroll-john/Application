@@ -21,6 +21,7 @@ import { useEditableRecord, useSyncRecordOnHydrate } from "../hooks/useEditableR
 import type { TertiaryQualification } from "../lib/applicationData";
 import { isQualificationCoreEmpty } from "../lib/eligibility/mapToTertiaryQualification";
 import { isMonthYearRangeOutOfOrder } from "../lib/monthYearValidation";
+import { prefillStoredUcTranscriptQualification } from "../lib/ucTranscriptApplicationPrefill";
 
 function validateTertiaryRecord(record: TertiaryQualification) {
   const missingRequiredFields = [
@@ -68,8 +69,13 @@ export default function Section2AddTertiary() {
     }),
     [],
   );
+  const editableQualifications = useMemo(
+    () =>
+      data.tertiaryQualifications.map(prefillStoredUcTranscriptQualification),
+    [data.tertiaryQualifications],
+  );
   const { existing, id, isEditing, initialRecord } = useEditableRecord(
-    data.tertiaryQualifications,
+    editableQualifications,
     createDefaultRecord,
   );
   const originalTranscriptDocument = existing?.transcriptDocument;

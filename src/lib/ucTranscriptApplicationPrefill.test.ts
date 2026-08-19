@@ -4,7 +4,10 @@ import {
   type TertiaryQualification,
 } from "./applicationData";
 import type { TranscriptEligibilityAssessment } from "./eligibility/types";
-import { applyUcTranscriptApplicationPrefill } from "./ucTranscriptApplicationPrefill";
+import {
+  applyUcTranscriptApplicationPrefill,
+  prefillStoredUcTranscriptQualification,
+} from "./ucTranscriptApplicationPrefill";
 
 function transcriptAssessment(): TranscriptEligibilityAssessment {
   return {
@@ -13,7 +16,9 @@ function transcriptAssessment(): TranscriptEligibilityAssessment {
     extractedData: {
       applicantDetails: {
         countryOfInstitution: { normalizedValue: "Australia" },
+        fullName: { normalizedValue: "Maya Patel" },
         institutionName: { normalizedValue: "RMIT University" },
+        studentId: { normalizedValue: "2024-1173" },
       },
       studyDetails: {
         completionStatus: {
@@ -137,5 +142,47 @@ describe("applyUcTranscriptApplicationPrefill", () => {
     expect(
       applyUcTranscriptApplicationPrefill(initialApplicationData, assessment),
     ).toBe(initialApplicationData);
+  });
+});
+
+describe("prefillStoredUcTranscriptQualification", () => {
+  it("repairs Maya's blank end date in an existing transcript-backed draft", () => {
+    const assessment = transcriptAssessment();
+    const result = prefillStoredUcTranscriptQualification(
+      existingQualification({
+        institution: "RMIT University",
+        transcriptEligibility: {
+          ...assessment,
+          extractedData: {
+            ...assessment.extractedData,
+            studyDetails: {
+              ...assessment.extractedData.studyDetails,
+              studyEndDate: undefined,
+            },
+          },
+        },
+      }),
+    );
+
+    expect(result).toMatchObject({
+      completed: false,
+      endMonth: "August",
+      endYear: "2025",
+      startMonth: "February",
+      startYear: "2024",
+    });
+  });
+
+  it("does not replace an end date already saved by the applicant", () => {
+    const result = prefillStoredUcTranscriptQualification(
+      existingQualification({
+        endMonth: "July",
+        endYear: "2025",
+        transcriptEligibility: transcriptAssessment(),
+      }),
+    );
+
+    expect(result.endMonth).toBe("July");
+    expect(result.endYear).toBe("2025");
   });
 });
