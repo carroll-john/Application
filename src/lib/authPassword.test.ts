@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   AUTH_LEAKED_PASSWORD_MESSAGE,
   AUTH_MIN_PASSWORD_LENGTH,
+  changePassword,
   formatAuthConnectivityError,
   requestPasswordReset,
   signInWithPassword,
@@ -251,6 +252,70 @@ describe("authPassword", () => {
       updatePasswordAfterRecovery(auth, "secret123"),
     ).resolves.toEqual({ error: null });
     expect(auth.updateUser).toHaveBeenCalledWith({ password: "secret123" });
+  });
+
+  it("changes a signed-in user's password with their current password", async () => {
+    const auth = createAuthMock();
+
+    await expect(
+      changePassword(auth, "old-password", "secret123"),
+    ).resolves.toEqual({ error: null });
+    expect(auth.updateUser).toHaveBeenCalledWith({
+      password: "secret123",
+      current_password: "old-password",
+    });
+  });
+
+  it("requires the current password before changing a signed-in user's password", async () => {
+    const auth = createAuthMock();
+
+    await expect(changePassword(auth, "", "secret123")).resolves.toEqual({
+      error: "Enter your current password.",
+    });
+    expect(auth.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("blocks a leaked profile password before calling Supabase", async () => {
+    const auth = createAuthMock();
+    const checkLeakedPassword = vi.fn().mockResolvedValue(true);
+
+    await expect(
+      changePassword(auth, "old-password", "secret123", {
+        checkLeakedPassword,
+      }),
+    ).resolves.toEqual({ error: AUTH_LEAKED_PASSWORD_MESSAGE });
+    expect(auth.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("maps an incorrect current password to a clear profile error", async () => {
+    const auth = createAuthMock();
+    auth.updateUser.mockResolvedValue({
+      error: {
+        code: "current_password_mismatch",
+        message: "Current password doesn't match",
+      },
+    });
+
+    await expect(
+      changePassword(auth, "wrong-password", "secret123"),
+    ).resolves.toEqual({ error: "Current password is incorrect." });
+  });
+
+  it("maps a reused current password to a clear profile error", async () => {
+    const auth = createAuthMock();
+    auth.updateUser.mockResolvedValue({
+      error: {
+        code: "same_password",
+        message: "New password should be different from the old password.",
+      },
+    });
+
+    await expect(
+      changePassword(auth, "secret123", "secret123"),
+    ).resolves.toEqual({
+      error:
+        "Choose a new password that is different from your current password.",
+    });
   });
 
   it("returns a helpful message when auth cannot reach Supabase", async () => {
