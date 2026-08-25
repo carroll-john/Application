@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import type { ApplicationData, TertiaryQualification } from "../../lib/applicationData";
 import { loadStoredDocumentFile } from "../../lib/documentStorage";
 import {
@@ -47,6 +48,7 @@ export function usePendingTranscriptEligibility({
   setStatusMessage,
   updateTertiaryQualification,
 }: UsePendingTranscriptEligibilityOptions) {
+  const { session } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [eligibilityProgress, setEligibilityProgress] = useState<{
@@ -122,11 +124,15 @@ export function usePendingTranscriptEligibility({
           }
 
           try {
-            parseResult = await parseTranscriptForQualification(transcriptFile, {
-              applicationData,
-              formData: qualification,
-              selectedTranscriptFile: transcriptFile,
-            });
+            parseResult = await parseTranscriptForQualification(
+              transcriptFile,
+              {
+                applicationData,
+                formData: qualification,
+                selectedTranscriptFile: transcriptFile,
+              },
+              session?.access_token ?? "",
+            );
           } catch (error) {
             parseError = error;
             trackTertiaryTranscriptParserDraftFailed({
@@ -199,6 +205,7 @@ export function usePendingTranscriptEligibility({
     [
       applicationData,
       hasParsedTranscriptFile,
+      session?.access_token,
       setStatusMessage,
       updateTertiaryQualification,
     ],

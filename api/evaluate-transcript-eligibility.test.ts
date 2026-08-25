@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import eligibilityRoute, {
   ELIGIBILITY_SERVICE_REQUEST_TIMEOUT_MS,
+  TRANSCRIPT_ELIGIBILITY_RATE_LIMIT_MAX,
 } from "./evaluate-transcript-eligibility";
 import { RULES_VERSION } from "../src/lib/eligibility/version";
 
@@ -95,6 +96,54 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("rejects ordinary unauthenticated transcript evaluation before reading the file", async () => {
+    process.env.VITE_SUPABASE_URL = "https://project.supabase.co";
+    process.env.VITE_SUPABASE_ANON_KEY = "anon-key";
+    process.env.VERCEL_ENV = "preview";
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new File(["private transcript"], "transcript.txt", {
+        type: "text/plain",
+      }),
+    );
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        body: formData,
+        method: "POST",
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+
+    expect(response.status).toBe(401);
+    expect(payload.code).toBe("ELIGIBILITY_UNAUTHORIZED");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("fails closed in preview when transcript auth is not configured", async () => {
+    process.env.VERCEL_ENV = "preview";
+    const formData = new FormData();
+    formData.append(
+      "file",
+      new File(["private transcript"], "transcript.txt", {
+        type: "text/plain",
+      }),
+    );
+
+    const response = await eligibilityRoute.fetch(
+      new Request("https://example.test/api/evaluate-transcript-eligibility", {
+        body: formData,
+        method: "POST",
+      }),
+    );
+    const payload = await parseJsonResponse(response);
+
+    expect(response.status).toBe(503);
+    expect(payload.code).toBe("ELIGIBILITY_NOT_CONFIGURED");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("rejects an unauthenticated UC credit assessment before reading the transcript", async () => {
     process.env.VITE_SUPABASE_URL = "https://project.supabase.co";
     process.env.VITE_SUPABASE_ANON_KEY = "anon-key";
@@ -118,6 +167,75 @@ describe("evaluate-transcript-eligibility api route", () => {
     expect(response.status).toBe(401);
     expect(payload.code).toBe("UC_CREDIT_ASSESSMENT_UNAUTHORIZED");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("rate-limits an authenticated applicant before additional transcript work", async () => {
+    process.env.VITE_SUPABASE_URL = "https://project.supabase.co";
+    process.env.VITE_SUPABASE_ANON_KEY = "anon-key";
+    process.env.VERCEL_ENV = "preview";
+    fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.href
+            : input.url;
+
+      if (url.includes("/auth/v1/user")) {
+        return new Response(
+          JSON.stringify({
+            app_metadata: { provider: "email", providers: ["email"] },
+            aud: "authenticated",
+            created_at: "2026-08-25T00:00:00.000Z",
+            email: "rate-limit@example.test",
+            id: "rate-limit-user",
+            role: "authenticated",
+            user_metadata: {},
+          }),
+          { headers: { "content-type": "application/json" }, status: 200 },
+        );
+      }
+
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+
+    const requestEvaluation = () => {
+      const formData = new FormData();
+      formData.append(
+        "file",
+        new File(["fixture"], "transcript.txt", { type: "text/plain" }),
+      );
+      formData.append("context", JSON.stringify({ courseCode: "MBA101" }));
+
+      return eligibilityRoute.fetch(
+        new Request("https://example.test/api/evaluate-transcript-eligibility", {
+          body: formData,
+          headers: {
+            authorization: "Bearer valid-session-token",
+            "x-forwarded-for": "198.51.100.24",
+          },
+          method: "POST",
+        }),
+      );
+    };
+
+    for (
+      let requestIndex = 0;
+      requestIndex < TRANSCRIPT_ELIGIBILITY_RATE_LIMIT_MAX;
+      requestIndex += 1
+    ) {
+      const response = await requestEvaluation();
+      expect(response.status).toBe(200);
+    }
+
+    const limitedResponse = await requestEvaluation();
+    const payload = await parseJsonResponse(limitedResponse);
+
+    expect(limitedResponse.status).toBe(429);
+    expect(payload.code).toBe("ELIGIBILITY_RATE_LIMITED");
+    expect(fetchMock).toHaveBeenCalledTimes(
+      TRANSCRIPT_ELIGIBILITY_RATE_LIMIT_MAX + 1,
+    );
   });
 
   it("forwards requests to configured eligibility service with auth token", async () => {
