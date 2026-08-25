@@ -101,6 +101,7 @@ export type Database = {
         Row: {
           applicant_profile_id: string | null
           application_number: string | null
+          catalog_id: string
           contact_details: Json
           course_code: string
           course_title: string
@@ -124,6 +125,7 @@ export type Database = {
         Insert: {
           applicant_profile_id?: string | null
           application_number?: string | null
+          catalog_id?: string
           contact_details?: Json
           course_code: string
           course_title: string
@@ -147,6 +149,7 @@ export type Database = {
         Update: {
           applicant_profile_id?: string | null
           application_number?: string | null
+          catalog_id?: string
           contact_details?: Json
           course_code?: string
           course_title?: string
@@ -190,6 +193,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      course_submission_policies: {
+        Row: {
+          catalog_id: string
+          course_code: string
+          course_title: string
+          english_proficiency_policy: Json
+          requires_english_proficiency: boolean
+          section2_submission_policy: Json
+        }
+        Insert: {
+          catalog_id: string
+          course_code: string
+          course_title: string
+          english_proficiency_policy: Json
+          requires_english_proficiency: boolean
+          section2_submission_policy: Json
+        }
+        Update: {
+          catalog_id?: string
+          course_code?: string
+          course_title?: string
+          english_proficiency_policy?: Json
+          requires_english_proficiency?: boolean
+          section2_submission_policy?: Json
+        }
+        Relationships: []
       }
       business_users: {
         Row: {

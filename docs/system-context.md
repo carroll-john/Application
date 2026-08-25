@@ -44,7 +44,7 @@ maintain a separate current-phase list.
 | Auth | Browser → Supabase Auth | `AuthContext` is the single browser session owner; route gates consume it. |
 | Application data | Browser → `ApplicationStorageAdapter` → Supabase Postgres | Applications require authentication. Supabase and the submit RPC are authoritative. |
 | Documents | Browser → shared document layer → Supabase Storage/Postgres | Product flows require authentication. A legacy IndexedDB implementation still exists pending Phase 2 removal. |
-| Submission | Browser validation → remote store → `submit_application` RPC | The server is final authority; browser checks are a UX mirror. |
+| Submission | Browser validation → remote store → `submit_application` RPC | The server is final authority. A database-owned course-policy snapshot is applied to drafts, and submitted records/evidence are immutable to applicants. Browser checks are a UX mirror. |
 | CV parsing | Browser → `/api/parse-cv` → OpenAI | The app API owns CV extraction orchestration. Ordinary application parsing requires authentication. The UC pre-application assessment may parse anonymously without persistence; authentication is required before starting or saving an application. |
 | Transcript evidence | Browser → `/api/evaluate-transcript-eligibility` → `eligibility-service` → OpenAI | The service extracts evidence; the Applications proxy owns program decisions. Ordinary application evidence is persisted through the application flow. The authenticated UC demo credit comparison may process one transcript ephemerally without creating a draft. After the applicant explicitly starts an application, the file is attached to the matching qualification through the shared authenticated document layer, extracted study fields may prefill blank qualification data, and Applications rematches that evidence to the selected course on the qualifications hub. A local app OpenAI fallback still exists pending Phase 3 removal. |
 | Suggestions | Browser → `/api/suggest/*` → `suggest-service` | The service owns institution/address suggestions. Local lists remain as a legacy fallback pending Phase 3 removal. |
@@ -73,7 +73,7 @@ recorded here. Verify those through the commands in
 | Browser auth/session | `src/context/AuthContext.tsx` and shared route gates | Pages and features through `useAuth` | Page-local session listeners or auth gates. |
 | Application shape | `src/lib/applicationData.ts` | Context, validation, persistence mappers | Parallel page-specific application models. |
 | Application persistence | `src/lib/applicationStorageAdapter.ts` | Application context/hooks | Pages importing remote stores or branching storage modes. |
-| Submission permission | Supabase `submit_application` and `application_submission_missing_fields` | Client validation as a UX mirror | Treating client readiness as final authority. |
+| Submission permission | Supabase `submit_application`, `application_submission_missing_fields`, and `course_submission_policies` | Client validation as a UX mirror | Treating client readiness or caller-provided policy JSON as final authority. |
 | Document save/delivery | `src/lib/documentStorage.ts`, `src/lib/storage/*`, `/api/document-delivery` | Shared upload fields and Section 2 save orchestration | Page-local upload, storage, or delivery implementations. |
 | Parser orchestration | `api/_documentParser/*` and registered client policies | Kind-specific parsers | Copying upload/save orchestration per document kind. |
 | Transcript exception | `useSection2TertiarySaveWithParse` and eligibility proxy | Tertiary flow only | Duplicating shared upload, attachment, or persistence logic. |
@@ -90,6 +90,7 @@ generated or protected by an executable contract check.
 | Mirror | Authority | Reason | Enforcement |
 | --- | --- | --- | --- |
 | Client submission feedback vs server submit gate | Server RPC | Immediate UX plus hard server enforcement | Validation and submission integration tests. |
+| Course-derived submission policy in TypeScript and SQL | Supabase `course_submission_policies` snapshot generated from the reviewed catalogs | The SQL submit gate cannot import the TypeScript catalogs at runtime | `courseSubmissionPolicyContract.test.ts`. |
 | English-country and AHPRA constants in TypeScript and SQL | Eligibility rules package | SQL cannot import TypeScript directly | `submitPolicyContract.test.ts`. |
 | Client upload limits vs database/storage limits | Supabase constraints | Friendly preflight plus hard backend limits | Upload-limit and storage-integrity tests. |
 | Consumer service-contract snapshot | Provider-published contract | Compatibility testing at the caller | Contract tests; provider publication/pinning completes in Phase 3. |

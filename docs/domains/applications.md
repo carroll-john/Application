@@ -107,7 +107,10 @@ server `submit_application` RPC enforces the same conditions (see Submission).
 
 ## Submission
 
-- Server-backed submit via `submit_application` RPC (`0002_server_submit.sql`, `0004_submission_rpc_grants.sql`).
+- Server-backed submit via `submit_application`. Migration
+  `20260825090000_server_authoritative_submission.sql` makes the RPC a pinned-path
+  `SECURITY DEFINER` boundary, revokes direct application-number generation, and
+  makes submitted application/evidence rows read-only to applicants.
 - Do not move application-number generation back to client-only code.
 - `application_submission_missing_fields` enforces the conditional requirements
   above (migrations `20260620120000_conditional_submission_requirements.sql` and
@@ -115,15 +118,18 @@ server `submit_application` RPC enforces the same conditions (see Submission).
   `applications.requires_english_proficiency`,
   `applications.english_proficiency_policy`,
   `applications.section2_submission_policy`, language-test scores/documents, and
-  `tertiary_qualifications.transcript_confirms_completion`; the app writes the
-  course-derived signals at save time in `src/lib/storage/remoteMappers.ts` /
-  `remoteStore.ts`.
+  `tertiary_qualifications.transcript_confirms_completion`. A database trigger
+  derives the three application policy fields from the database-owned
+  `course_submission_policies` snapshot using `(catalog_id, course_code)`; browser
+  payloads do not write those policy fields.
+  `courseSubmissionPolicyContract.test.ts` fails when the reviewed TypeScript
+  catalogs and the SQL snapshot diverge.
   The AHPRA regex and English-medium-country list are intentional SQL mirrors of
   the eligibility-rules package and are protected by
   `submitPolicyContract.test.ts`.
 - **Gotcha — editing the submit RPC:** rebuild `application_submission_missing_fields`
   from its *current* definition (`pg_get_functiondef` or the latest migration that
-  touched it: `20260522120000_storage_quota_and_document_integrity.sql`), never from
+  touched it: `20260707120000_section2_submission_policy.sql`), never from
   `0002`. Later migrations dropped the `is_allowed_company_user()` guard and switched
   every document check to `application_document_is_ready()`; rebuilding from `0002`
   silently reverts both (a prod-breaking regression caught in PR #129).
@@ -228,6 +234,8 @@ server `submit_application` RPC enforces the same conditions (see Submission).
 ## Intentional mirrors
 
 - Client submission validation mirrors the authoritative server submit gate for UX.
+- The SQL course-policy snapshot intentionally mirrors the reviewed TypeScript
+  catalogs; `courseSubmissionPolicyContract.test.ts` protects the complete mapping.
 - SQL copies of English-country/AHPRA values mirror the package because SQL cannot
   import TypeScript; `submitPolicyContract.test.ts` checks them.
 - Generated course requirements mirror reviewed catalog source text and are
@@ -238,7 +246,8 @@ server `submit_application` RPC enforces the same conditions (see Submission).
 - Application persistence: `applicationStorageAdapter.test.ts`,
   `applicationRecords.test.ts`, and `applicationRemoteStore.test.ts`.
 - Validation/submission: validation integration tests,
-  `section2Requirements.test.ts`, and `submitPolicyContract.test.ts`.
+  `section2Requirements.test.ts`, `submitPolicyContract.test.ts`, and
+  `courseSubmissionPolicyContract.test.ts`.
 - Eligibility rules/context: eligibility unit tests, `contextSchema.test.ts`,
   `npm run eligibility:eval`, and `npm run eligibility:parse-eval` as applicable.
 - Coordinate Supabase migrations and `api/*` changes through the relevant runbook

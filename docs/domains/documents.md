@@ -66,6 +66,9 @@ Defaults (override via env):
 Enforced in client and DB:
 - `supabase/migrations/0005_document_upload_limits.sql` — `application_documents` row limits
 - `supabase/migrations/20260522120000_storage_quota_and_document_integrity.sql` — `storage.objects` limits (closes direct-storage bypass), metadata rows must reference a real object, submission requires backed documents
+- `supabase/migrations/20260825090000_server_authoritative_submission.sql` —
+  applicant writes to document metadata and private objects require a draft
+  parent; submitted evidence remains readable but immutable
 
 ## Delivery
 
@@ -122,6 +125,8 @@ Optional parse layer on top: [document-parsing.md](document-parsing.md).
 - Document metadata and private storage objects are two parts of one logical
   document. Cleanup is deliberately asynchronous because browser code cannot make
   Storage and Postgres transactional.
+- Applicant-facing evidence becomes immutable with its submitted application;
+  service-role cleanup remains an explicit operational exception.
 
 ## Required checks
 
