@@ -18,6 +18,7 @@ import { capturePostHogEvent } from "../../lib/posthog";
 import { AuthPanelHeader } from "./screens/AuthPanelHeader";
 import { ConfirmEmailSent } from "./screens/ConfirmEmailSent";
 import { ForgotPasswordForm } from "./screens/ForgotPasswordForm";
+import { MfaChallengeForm } from "./screens/MfaChallengeForm";
 import { ResetEmailSent } from "./screens/ResetEmailSent";
 import { SetNewPasswordForm } from "./screens/SetNewPasswordForm";
 import { SignInForm } from "./screens/SignInForm";
@@ -49,10 +50,14 @@ export function AuthPanel({
     isAuthenticated,
     isConfigured,
     isPasswordRecovery,
+    mfaError,
     requestPasswordReset,
+    requiresMfa,
+    signOut,
     signInWithPassword,
     signUpWithPassword,
     updatePasswordAfterRecovery,
+    verifyMfa,
   } = useAuth();
   const [activeTab, setActiveTab] = useState<AuthTab>("sign-in");
   const [screen, setScreen] = useState<AuthScreen>("sign-in");
@@ -60,12 +65,18 @@ export function AuthPanel({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const hasNotifiedAuthenticatedRef = useRef(false);
+  const signInPendingRef = useRef<{ emailDomain: string } | null>(null);
   const signUpInFlightRef = useRef(false);
   const normalizedEmail = normalizeAuthEmail(email);
-  const currentScreen: AuthScreen = isPasswordRecovery ? "new-password" : screen;
+  const currentScreen: AuthScreen = isPasswordRecovery
+    ? "new-password"
+    : requiresMfa
+      ? "mfa-challenge"
+      : screen;
 
   useEffect(() => {
     const authError = parseAuthErrorFromUrl();
@@ -84,9 +95,18 @@ export function AuthPanel({
       return;
     }
 
+    const pendingSignIn = signInPendingRef.current;
+    if (pendingSignIn) {
+      capturePostHogEvent("auth_sign_in_succeeded", {
+        auth_context: context,
+        email_domain: pendingSignIn.emailDomain,
+      });
+      signInPendingRef.current = null;
+    }
+
     hasNotifiedAuthenticatedRef.current = true;
     onAuthenticated?.();
-  }, [isAuthenticated, isPasswordRecovery, onAuthenticated]);
+  }, [context, isAuthenticated, isPasswordRecovery, onAuthenticated]);
 
   function clearFieldErrors() {
     setError(null);
@@ -95,6 +115,7 @@ export function AuthPanel({
   function resetTransientState() {
     setPassword("");
     setConfirmPassword("");
+    setMfaCode("");
     setError(null);
     setSentEmail(null);
     setScreen(activeTab);
@@ -131,6 +152,9 @@ export function AuthPanel({
       auth_context: context,
       email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
     });
+    signInPendingRef.current = {
+      emailDomain: getEmailDomain(normalizedEmail) ?? "unknown",
+    };
     const { error: signInError } = await signInWithPassword(
       normalizedEmail,
       password,
@@ -138,6 +162,7 @@ export function AuthPanel({
     setIsSubmitting(false);
 
     if (signInError) {
+      signInPendingRef.current = null;
       capturePostHogEvent("auth_sign_in_failed", {
         auth_context: context,
         email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
@@ -145,13 +170,32 @@ export function AuthPanel({
       setError(signInError);
       return;
     }
+  }
 
-    capturePostHogEvent("auth_sign_in_succeeded", {
-      auth_context: context,
-      email_domain: getEmailDomain(normalizedEmail) ?? "unknown",
-    });
-    hasNotifiedAuthenticatedRef.current = true;
-    onAuthenticated?.();
+  async function handleMfaChallenge(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+    const { error: verifyError } = await verifyMfa(mfaCode);
+    setIsSubmitting(false);
+
+    if (verifyError) {
+      setError(verifyError);
+      return;
+    }
+
+    setMfaCode("");
+  }
+
+  async function handleUseAnotherAccount() {
+    signInPendingRef.current = null;
+    hasNotifiedAuthenticatedRef.current = false;
+    setError(null);
+    setMfaCode("");
+    setPassword("");
+    await signOut();
+    setActiveTab("sign-in");
+    setScreen("sign-in");
   }
 
   async function handleSignUp(event: React.FormEvent<HTMLFormElement>) {
@@ -264,12 +308,24 @@ export function AuthPanel({
     capturePostHogEvent("auth_password_reset_completed", {
       auth_context: context,
     });
-    hasNotifiedAuthenticatedRef.current = true;
-    onAuthenticated?.();
   }
 
   function renderScreen() {
     switch (currentScreen) {
+      case "mfa-challenge":
+        return (
+          <MfaChallengeForm
+            code={mfaCode}
+            error={error ?? mfaError}
+            isSubmitting={isSubmitting}
+            onCodeChange={(value) => {
+              setMfaCode(value);
+              clearFieldErrors();
+            }}
+            onSubmit={handleMfaChallenge}
+            onUseAnotherAccount={() => void handleUseAnotherAccount()}
+          />
+        );
       case "confirm-email-sent":
         return (
           <ConfirmEmailSent

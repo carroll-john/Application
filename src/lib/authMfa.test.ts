@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 import {
   confirmTotpEnrollment,
   disableTotp,
+  getMfaSessionStatus,
   getTotpStatus,
   startTotpEnrollment,
+  verifyTotpChallenge,
   type MfaClient,
 } from "./authMfa";
 
@@ -12,6 +14,7 @@ function createMfaMock() {
     listFactors: vi.fn(),
     enroll: vi.fn(),
     challengeAndVerify: vi.fn(),
+    getAuthenticatorAssuranceLevel: vi.fn(),
     unenroll: vi.fn(),
   };
 }
@@ -62,6 +65,121 @@ describe("getTotpStatus", () => {
     const result = await getTotpStatus(asClient(mfa));
     expect(result.status).toBeNull();
     expect(result.error).toBe("boom");
+  });
+});
+
+describe("getMfaSessionStatus", () => {
+  it("requires a challenge when an enrolled factor can raise AAL1 to AAL2", async () => {
+    const mfa = createMfaMock();
+    mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({
+      data: {
+        currentLevel: "aal1",
+        nextLevel: "aal2",
+        currentAuthenticationMethods: ["password"],
+      },
+      error: null,
+    });
+
+    await expect(getMfaSessionStatus(asClient(mfa))).resolves.toEqual({
+      status: { requiresChallenge: true },
+      error: null,
+    });
+  });
+
+  it.each([
+    ["aal1", "aal1"],
+    ["aal2", "aal2"],
+    ["aal2", "aal1"],
+  ])("accepts a current %s session with next level %s", async (currentLevel, nextLevel) => {
+    const mfa = createMfaMock();
+    mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({
+      data: {
+        currentLevel,
+        nextLevel,
+        currentAuthenticationMethods: [],
+      },
+      error: null,
+    });
+
+    await expect(getMfaSessionStatus(asClient(mfa))).resolves.toEqual({
+      status: { requiresChallenge: false },
+      error: null,
+    });
+  });
+
+  it("fails closed when assurance cannot be determined", async () => {
+    const mfa = createMfaMock();
+    mfa.getAuthenticatorAssuranceLevel.mockResolvedValue({
+      data: null,
+      error: { message: "assurance unavailable" },
+    });
+
+    await expect(getMfaSessionStatus(asClient(mfa))).resolves.toEqual({
+      status: null,
+      error: "assurance unavailable",
+    });
+  });
+});
+
+describe("verifyTotpChallenge", () => {
+  it("rejects malformed codes before listing factors", async () => {
+    const mfa = createMfaMock();
+
+    await expect(
+      verifyTotpChallenge(asClient(mfa), "12ab"),
+    ).resolves.toEqual({
+      error: "Enter the 6-digit code from your authenticator app.",
+    });
+    expect(mfa.listFactors).not.toHaveBeenCalled();
+  });
+
+  it("uses a verified TOTP factor and normalizes spacing", async () => {
+    const mfa = createMfaMock();
+    mfa.listFactors.mockResolvedValue({
+      data: { totp: [{ id: "factor-2", status: "verified" }] },
+      error: null,
+    });
+    mfa.challengeAndVerify.mockResolvedValue({ data: {}, error: null });
+
+    await expect(
+      verifyTotpChallenge(asClient(mfa), "123 456"),
+    ).resolves.toEqual({ error: null });
+    expect(mfa.challengeAndVerify).toHaveBeenCalledWith({
+      factorId: "factor-2",
+      code: "123456",
+    });
+  });
+
+  it("does not verify when no TOTP factor remains", async () => {
+    const mfa = createMfaMock();
+    mfa.listFactors.mockResolvedValue({
+      data: { totp: [] },
+      error: null,
+    });
+
+    const result = await verifyTotpChallenge(asClient(mfa), "123456");
+
+    expect(result.error).toMatch(/no authenticator app/i);
+    expect(mfa.challengeAndVerify).not.toHaveBeenCalled();
+  });
+
+  it("maps an invalid challenge code to the existing friendly error", async () => {
+    const mfa = createMfaMock();
+    mfa.listFactors.mockResolvedValue({
+      data: { totp: [{ id: "factor-2", status: "verified" }] },
+      error: null,
+    });
+    mfa.challengeAndVerify.mockResolvedValue({
+      data: null,
+      error: { message: "Invalid TOTP code entered" },
+    });
+
+    await expect(
+      verifyTotpChallenge(asClient(mfa), "000000"),
+    ).resolves.toEqual({
+      error:
+        "That code didn't match. Check your authenticator app and try again.",
+    });
   });
 });
 
