@@ -191,6 +191,7 @@ export function reviewExtractedTranscriptForSelectedCourse(options: {
 export async function parseTranscriptForQualification(
   file: File,
   context: TertiaryTranscriptParseContext,
+  accessToken: string,
 ): Promise<TertiaryTranscriptParseResult> {
   const shouldApplyDraft = shouldAutoFillQualificationFromTranscript(context);
   const eligibilityContext = buildTranscriptEligibilityContext(
@@ -201,7 +202,9 @@ export async function parseTranscriptForQualification(
   let assessment: TranscriptEligibilityAssessment;
 
   try {
-    assessment = await evaluateTranscriptEligibility(file, eligibilityContext);
+    assessment = await evaluateTranscriptEligibility(file, eligibilityContext, {
+      accessToken,
+    });
   } catch (error) {
     const fallbackReason =
       error instanceof TranscriptEligibilityRequestError

@@ -31,18 +31,25 @@ describe("evaluateTranscriptEligibility", () => {
     );
 
     const file = new File(["transcript"], "transcript.txt", { type: "text/plain" });
-    const result = await evaluateTranscriptEligibility(file, {
-      completed: true,
-      courseCode: "MDA900",
-      institution: "The University of Sydney",
-      level: "Masters degree",
-    });
+    const result = await evaluateTranscriptEligibility(
+      file,
+      {
+        completed: true,
+        courseCode: "MDA900",
+        institution: "The University of Sydney",
+        level: "Masters degree",
+      },
+      { accessToken: "session-token" },
+    );
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe("/api/evaluate-transcript-eligibility");
     expect(init.method).toBe("POST");
     expect(init.body).toBeInstanceOf(FormData);
+    expect(init.headers).toEqual({
+      authorization: "Bearer session-token",
+    });
     expect(result.outcome).toBe("eligible");
   });
 
@@ -85,6 +92,7 @@ describe("evaluateTranscriptEligibility", () => {
       evaluateTranscriptEligibility(
         new File(["transcript"], "transcript.txt", { type: "text/plain" }),
         {},
+        { accessToken: "session-token" },
       ),
     ).rejects.toMatchObject({
       name: "TranscriptEligibilityRequestError",
@@ -101,11 +109,27 @@ describe("evaluateTranscriptEligibility", () => {
       evaluateTranscriptEligibility(
         new File(["transcript"], "transcript.txt", { type: "text/plain" }),
         {},
+        { accessToken: "session-token" },
       ),
     ).rejects.toMatchObject({
       name: "TranscriptEligibilityRequestError",
       status: 500,
       message: "Unable to evaluate transcript eligibility right now.",
     });
+  });
+
+  it("fails before upload when no approved session token is available", async () => {
+    await expect(
+      evaluateTranscriptEligibility(
+        new File(["transcript"], "transcript.txt", { type: "text/plain" }),
+        {},
+        { accessToken: "  " },
+      ),
+    ).rejects.toMatchObject({
+      code: "ELIGIBILITY_UNAUTHORIZED",
+      status: 401,
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

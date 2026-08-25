@@ -19,13 +19,14 @@ import {
   buildFallbackResponse,
   withContextDefaults,
 } from "./_eligibility/assessment.js";
-import { getUcCreditAssessmentAccessError } from "./_eligibility/creditAssessmentAccess.js";
+import { getTranscriptEligibilityAccessError } from "./_eligibility/transcriptEligibilityAccess.js";
 import {
   authenticateRequest,
+  getClientIp,
   isDeployedEnvironment,
 } from "./_documentParser/auth.js";
 import { captureTranscriptAiGeneration } from "./_shared/posthogAiObservability.js";
-import { isUcCreditAssessmentRequest } from "../src/lib/ucCreditAssessmentContract.js";
+import { createRateLimiter } from "./_shared/rateLimiter.js";
 // Importing initializes Sentry as a side effect, which also activates the
 // Sentry.startSpan tracing inside _ai/callLlm.ts on this route.
 import {
@@ -39,7 +40,14 @@ const INITIAL_MAX_OUTPUT_TOKENS = 3_000;
 const RETRY_MAX_OUTPUT_TOKENS = 7_000;
 const ELIGIBILITY_SERVICE_MAX_ATTEMPTS = 2;
 export const ELIGIBILITY_SERVICE_REQUEST_TIMEOUT_MS = 45_000;
+export const TRANSCRIPT_ELIGIBILITY_RATE_LIMIT_MAX = 10;
+export const TRANSCRIPT_ELIGIBILITY_RATE_LIMIT_WINDOW_MS = 60_000;
 const TRANSIENT_ELIGIBILITY_SERVICE_STATUSES = new Set([502, 503, 504]);
+
+const transcriptEligibilityRateLimiter = createRateLimiter({
+  max: TRANSCRIPT_ELIGIBILITY_RATE_LIMIT_MAX,
+  windowMs: TRANSCRIPT_ELIGIBILITY_RATE_LIMIT_WINDOW_MS,
+});
 
 function getSafeFileExtension(fileName: string) {
   const match = /\.([a-z0-9]{1,12})$/i.exec(fileName.trim());
@@ -423,19 +431,35 @@ async function handleEligibilityRequest(request: Request) {
     return errorResponse("Method not allowed.", "ELIGIBILITY_METHOD_NOT_ALLOWED", 405);
   }
 
-  if (isUcCreditAssessmentRequest(request)) {
-    const authResult = await authenticateRequest(request);
-    const accessError = getUcCreditAssessmentAccessError(
-      authResult.kind,
-      request,
-      isDeployedEnvironment(),
-    );
+  const authResult = await authenticateRequest(request);
+  const accessError = getTranscriptEligibilityAccessError(
+    authResult.kind,
+    request,
+    isDeployedEnvironment(),
+  );
 
-    if (accessError) {
+  if (accessError) {
+    return errorResponse(
+      accessError.message,
+      accessError.code,
+      accessError.status,
+    );
+  }
+
+  if (authResult.kind === "authenticated") {
+    const clientIp = getClientIp(request);
+    const isUserLimited = transcriptEligibilityRateLimiter.isLimited(
+      `user:${authResult.userId}`,
+    );
+    const isIpLimited = clientIp
+      ? transcriptEligibilityRateLimiter.isLimited(`ip:${clientIp}`)
+      : false;
+
+    if (isUserLimited || isIpLimited) {
       return errorResponse(
-        accessError.message,
-        accessError.code,
-        accessError.status,
+        "Too many transcript evaluation requests. Please wait a moment.",
+        "ELIGIBILITY_RATE_LIMITED",
+        429,
       );
     }
   }

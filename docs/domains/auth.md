@@ -45,7 +45,10 @@ and password-recovery state. Shared route gates own access enforcement.
   application draft.
 - After three UC courses are shortlisted, authentication is required before the
   credit-assessment transcript upload is shown. The marked transcript endpoint
-  independently verifies the bearer session before reading the file. The
+  independently verifies the bearer session before reading the file. Ordinary
+  Section 2 transcript review uses the same route boundary and sends only the
+  assurance-approved `AuthContext` session. Both paths are rate-limited before
+  multipart parsing. The
   transcript and comparison remain in memory and do not create a hidden draft.
 - Once an authenticated applicant explicitly starts an application, extracted
   study fields from that comparison may enter the normal application state to

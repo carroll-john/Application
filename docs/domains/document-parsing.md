@@ -92,6 +92,15 @@ Reuses `/api/evaluate-transcript-eligibility` as a single LLM call for field ext
 
 Gating: new transcript selected **and** qualification core fields empty → auto-fill; new transcript always runs evidence review. Upload failure is **blocking**; parse/review failure is **warning** (save succeeds, `insufficient_data` fallback).
 
+Every deployed transcript-evaluation request, including the ordinary Section 2
+flow and the UC comparison, must present the assurance-approved bearer session
+from `AuthContext`. The route validates it and applies a 10-request-per-minute
+user/IP limit before reading the multipart file or calling either model path.
+The in-memory limit is defense-in-depth per warm serverless instance rather than
+a hard global quota; authentication remains the primary cost and privacy
+boundary. A deployed route without Supabase Auth configuration fails closed.
+Open mode is limited to non-deployed local development.
+
 The Applications proxy retries one transient eligibility-service response (`502`, `503`, or
 `504`) before returning a typed upstream error. A request that does not return within the
 proxy's 45-second service budget is aborted and routed through the existing local OpenAI
@@ -104,8 +113,9 @@ contain no draftable transcript fields.
 
 After an applicant shortlists three UC demo courses, the browser may call
 `/api/evaluate-transcript-eligibility?flow=uc-credit-assessment` once with the
-three-course context. This flow is authenticated at both the UI and route; the
-route rejects an invalid bearer session before reading the multipart file.
+three-course context. This flow uses the route-wide transcript authentication
+and rate-limit boundary; the route rejects an invalid bearer session before
+reading the multipart file.
 
 The eligibility route extracts transcript study evidence once. Applications then
 combines that evidence with the existing CV course-match signal and current

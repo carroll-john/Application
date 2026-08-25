@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { useAuth } from "../../context/AuthContext";
 import type { ApplicationData, TertiaryQualification } from "../../lib/applicationData";
 import {
   getTertiaryTranscriptParserErrorCode,
@@ -29,6 +30,7 @@ export function useTertiaryTranscriptAutoFill({
   formData,
   setFormData,
 }: UseTertiaryTranscriptAutoFillOptions) {
+  const { session } = useAuth();
   const [isParsingTranscript, setIsParsingTranscript] = useState(false);
   const [parseProgress, setParseProgress] = useState<{
     detail: string;
@@ -80,7 +82,11 @@ export function useTertiaryTranscriptAutoFill({
       const parseStartedAt = Date.now();
 
       try {
-        const parseResult = await parseTranscriptForQualification(file, parseContext);
+        const parseResult = await parseTranscriptForQualification(
+          file,
+          parseContext,
+          session?.access_token ?? "",
+        );
 
         if (parseRequestIdRef.current !== requestId) {
           return;
@@ -138,7 +144,7 @@ export function useTertiaryTranscriptAutoFill({
         }
       }
     },
-    [applicationData, formData, setFormData],
+    [applicationData, formData, session?.access_token, setFormData],
   );
 
   const markTranscriptParsed = useCallback((file: File | null) => {

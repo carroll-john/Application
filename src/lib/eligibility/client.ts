@@ -43,10 +43,20 @@ export async function evaluateTranscriptEligibility(
   file: File,
   context: TranscriptEligibilityRequestContext,
   options: {
-    accessToken?: string;
+    accessToken: string;
     ucCreditAssessment?: boolean;
-  } = {},
+  },
 ): Promise<TranscriptEligibilityAssessment> {
+  const accessToken = options.accessToken.trim();
+
+  if (!accessToken) {
+    throw new TranscriptEligibilityRequestError(
+      "Sign in before reviewing transcript evidence.",
+      401,
+      "ELIGIBILITY_UNAUTHORIZED",
+    );
+  }
+
   const formData = new FormData();
   formData.append("file", file);
   formData.append("context", serializeTranscriptEligibilityContext(context));
@@ -54,11 +64,9 @@ export async function evaluateTranscriptEligibility(
   const url = options.ucCreditAssessment
     ? addUcCreditAssessmentFlow("/api/evaluate-transcript-eligibility")
     : "/api/evaluate-transcript-eligibility";
-  const headers: HeadersInit = {};
-
-  if (options.accessToken) {
-    headers.authorization = `Bearer ${options.accessToken}`;
-  }
+  const headers: HeadersInit = {
+    authorization: `Bearer ${accessToken}`,
+  };
 
   const response = await fetch(url, {
     body: formData,

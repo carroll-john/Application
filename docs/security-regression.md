@@ -79,10 +79,30 @@ With one applicant who has no verified factor and one who has enrolled TOTP:
 5. Remove the verified factor and refresh the session. Confirm ordinary AAL1
    access returns; MFA enrollment remains opt-in rather than mandatory.
 
+## Transcript evaluation access and cost boundary
+
+Against a deployed or preview environment with transcript evaluation enabled:
+
+1. POST to `/api/evaluate-transcript-eligibility` without `Authorization` for
+   both the ordinary and `flow=uc-credit-assessment` variants. Confirm each
+   returns 401 before any eligibility-service/OpenAI request begins.
+2. Repeat with an invalid bearer token and confirm the multipart transcript is
+   not processed.
+3. Sign in normally and confirm ordinary Section 2 transcript drafting and the
+   UC comparison both send the session and still complete.
+4. Send more than 10 authenticated requests in one minute from one user/IP.
+   Confirm subsequent requests return 429 `ELIGIBILITY_RATE_LIMITED` before the
+   file is parsed.
+5. Remove the deployed Supabase Auth configuration in an isolated preview and
+   confirm the route fails closed with 503 rather than entering local open mode.
+
 ## Automated tests
 
 ```bash
 npm run lint && npm test && npm run build
+npm test -- api/_eligibility/transcriptEligibilityAccess.test.ts \
+  api/evaluate-transcript-eligibility.test.ts \
+  src/lib/eligibility/client.test.ts
 docker exec -i supabase_db_Applications psql -v ON_ERROR_STOP=1 \
   -U postgres -d postgres < supabase/tests/enrolled_mfa_aal2.sql
 ```
