@@ -20,6 +20,7 @@ import {
   withoutRecoveryTokenHashParams,
 } from "../lib/authCallback";
 import {
+  changePassword as changePasswordRequest,
   normalizeAuthEmail,
   requestPasswordReset as requestPasswordResetRequest,
   signInWithPassword as signInWithPasswordRequest,
@@ -72,7 +73,10 @@ interface AuthContextType {
   updatePasswordAfterRecovery: (
     password: string,
   ) => Promise<{ error: string | null }>;
-  changePassword: (password: string) => Promise<{ error: string | null }>;
+  changePassword: (
+    currentPassword: string,
+    password: string,
+  ) => Promise<{ error: string | null }>;
   verifyMfa: (code: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
@@ -375,14 +379,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         return { error };
       },
-      changePassword: async (password) => {
+      changePassword: async (currentPassword, password) => {
         if (!supabase) {
           return {
             error: "Authentication is not configured on this deployment.",
           };
         }
 
-        return updatePasswordAfterRecoveryRequest(supabase.auth, password, {
+        return changePasswordRequest(supabase.auth, currentPassword, password, {
           supabaseUrl: configuredSupabaseUrl,
           checkLeakedPassword: isPasswordLeaked,
         });
