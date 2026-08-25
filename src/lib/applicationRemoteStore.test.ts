@@ -105,6 +105,10 @@ vi.mock("./supabase", () => ({
   supabase: mockClient,
 }));
 
+vi.mock("./brand", () => ({
+  activeBrand: { catalogId: "default" },
+}));
+
 vi.mock("./courseCatalog", () => ({
   getDefaultCourse: () => ({
     code: "DEFAULT-101",
@@ -312,16 +316,13 @@ describe("saveRemoteApplication", () => {
 
     const query = mockClient.fromCalls[0]?.query;
     const insertCall = query?.calls.find((call) => call.method === "insert");
-    expect(insertCall?.args[0]).toMatchObject({
-      section2_submission_policy: {
-        educationEvidenceLabel: "a bachelor degree or higher qualification",
-        minimumEducation: "Bachelor degree",
-        minimumEducationRank: 3,
-        schemaVersion: 1,
-        supportsExperienceAlternative: false,
-        supportsSecondaryQualification: false,
-      },
-    });
+    expect(insertCall?.args[0]).toMatchObject({ catalog_id: "default" });
+    expect(insertCall?.args[0]).not.toHaveProperty("application_number");
+    expect(insertCall?.args[0]).not.toHaveProperty("english_proficiency_policy");
+    expect(insertCall?.args[0]).not.toHaveProperty("requires_english_proficiency");
+    expect(insertCall?.args[0]).not.toHaveProperty("section2_submission_policy");
+    expect(insertCall?.args[0]).not.toHaveProperty("status");
+    expect(insertCall?.args[0]).not.toHaveProperty("submitted_at");
     expect(query?.calls).toEqual(
       expect.arrayContaining([expect.objectContaining({ method: "insert", args: [expect.any(Object)] })]),
     );

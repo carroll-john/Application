@@ -44,6 +44,24 @@ The submit RPC enforces two conditional requirements (see
    `application_document_is_ready()`. End-to-end check: the `overseas-english` (language
    test) and `ahpra-nurse` (AHPRA registration) bot personas must both reach `/submitted`.
 
+## Submitted-record immutability
+
+As an authenticated applicant with one draft and one submitted application:
+
+1. Confirm draft application autosave, child-row writes, document upload,
+   replacement, and deletion still succeed.
+2. Attempt direct `applications` updates that set `status`, `submitted_at`, or
+   `application_number`; confirm they are rejected and
+   `generate_application_number()` cannot be executed.
+3. Submit through `submit_application`; confirm it assigns all three server-owned
+   fields and a repeated call returns the same result.
+4. Attempt to update/delete the submitted application, mutate each child table,
+   delete `application_documents`, and delete its `storage.objects` row; confirm
+   all applicant operations are rejected while reads still succeed.
+5. Set draft policy JSON to weaker values through a direct request; confirm the
+   application trigger restores the snapshot for its `(catalog_id, course_code)`
+   and submission still enforces the trusted policy.
+
 ## Automated tests
 
 ```bash

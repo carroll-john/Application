@@ -1,20 +1,16 @@
 import type { Session } from "@supabase/supabase-js";
-import { getCourseByCode, getDefaultCourse } from "../courseCatalog";
+import { activeBrand } from "../brand";
+import { getDefaultCourse } from "../courseCatalog";
 import {
   mergeStoredApplicationData,
   type ApplicationData,
 } from "../applicationData";
-import {
-  courseRequiresEnglishProficiency,
-  getEnglishProficiencyRequirements,
-} from "../eligibility/englishProficiencyEvidence";
 import {
   summarizeApplication,
   type ApplicationSummary,
 } from "../applicationRecords";
 import { isSubmissionReadyDocument } from "../documentAttachment";
 import type { UploadedDocument } from "../documentStorage";
-import { buildSection2SubmissionPolicy } from "../section2Requirements";
 import type { Tables, TablesInsert } from "../supabase.types";
 import { supabase } from "../supabase";
 import {
@@ -320,11 +316,10 @@ function buildApplicationPayload(
 ): TablesInsert<"applications"> {
   const defaultCourse = getDefaultCourse();
   const selectedCourse = data.applicationMeta.selectedCourse;
-  const selectedCourseEntry = getCourseByCode(selectedCourse?.code ?? null);
 
   return {
     applicant_profile_id: ids.remoteApplicantProfileId,
-    application_number: data.applicationMeta.applicationNumber ?? null,
+    catalog_id: activeBrand.catalogId,
     contact_details: toJsonValue(data.contactDetails),
     course_code: selectedCourse?.code ?? defaultCourse.code,
     course_title: selectedCourse?.title ?? defaultCourse.title,
@@ -333,18 +328,6 @@ function buildApplicationPayload(
     id: ids.remoteApplicationId ?? undefined,
     intake_label: selectedCourse?.intake ?? defaultCourse.intakeLabel,
     personal_details: toJsonValue(data.personalDetails),
-    // Persist whether the selected course requires English proficiency so the
-    // submit RPC can enforce the conditional requirement (the catalog the client
-    // derives this from is not available server-side).
-    english_proficiency_policy: toJsonValue(
-      getEnglishProficiencyRequirements(selectedCourseEntry),
-    ),
-    requires_english_proficiency: courseRequiresEnglishProficiency(selectedCourseEntry),
-    section2_submission_policy: toJsonValue(
-      buildSection2SubmissionPolicy(selectedCourseEntry),
-    ),
-    status: data.applicationMeta.submittedAt ? "submitted" : "draft",
-    submitted_at: data.applicationMeta.submittedAt ?? null,
     user_id: session.user.id,
     work_experience_assessments: toJsonValue(data.workExperienceAssessments),
   };

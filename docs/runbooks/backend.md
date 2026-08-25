@@ -250,11 +250,17 @@ Then run [supabase/migrations/0003_business_users_and_applicant_profiles.sql](..
 
 Then run [supabase/migrations/0004_submission_rpc_grants.sql](../../supabase/migrations/0004_submission_rpc_grants.sql) to add:
 - authenticated execute grants for `submit_application` and supporting RPC functions
-- authenticated sequence permissions for server-generated application numbers
+- historical sequence permissions for server-generated application numbers
+  (later revoked by the server-authoritative submission migration)
 
 Then run [supabase/migrations/0005_document_upload_limits.sql](../../supabase/migrations/0005_document_upload_limits.sql) to add:
 - explicit application-document upload quotas and rate limits
 - indexes for user/rate-limit document checks
+
+Apply every later migration in filename order, including
+`20260825090000_server_authoritative_submission.sql`. It installs the current
+course-policy snapshot, draft-only applicant write policies, submitted-evidence
+immutability, and the sole application-number/submission transition boundary.
 
 Then run the applicant auth migration to remove the old company-domain RLS dependency:
 - use the latest `*_applicant_email_otp_auth.sql` migration (filename is historical; policy changes are auth-method agnostic)
