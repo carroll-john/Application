@@ -26,8 +26,14 @@ and password-recovery state. Shared route gates own access enforcement.
   Pro-only leaked-password protection (DIS-119). k-anonymity: only the 5-char
   SHA-1 prefix leaves the browser. **Fails open** — never blocks on error.
 - Logged-in users can enable TOTP two-factor auth on `/profile` via
-  `ProfileMfaSection` (`src/lib/authMfa.ts`) (DIS-123). Requires the TOTP factor
-  enabled on the Supabase project; the section self-describes when it isn't.
+  `ProfileMfaSection` (`src/lib/authMfa.ts`) (DIS-123). After enrollment, every
+  AAL1 session is held at the shared sign-in panel until the authenticator code
+  upgrades it to AAL2. Applicants without a verified factor keep the ordinary
+  password flow.
+- `AuthContext` does not expose an AAL1 session to `ApplicationContext` when an
+  enrolled factor can raise it to AAL2. The same opt-in requirement is enforced
+  by restrictive RLS on applicant tables and Storage and inside the privileged
+  `submit_application` RPC.
 - Configured by `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 - Local dev: `supabase start` + Mailpit at http://127.0.0.1:54324 (confirmation emails do not go to real inboxes).
 - Applications and applicant data require authentication. Signed-out visitors
@@ -86,6 +92,7 @@ and password-recovery state. Shared route gates own access enforcement.
 | `confirm-email-sent` | `features/auth/screens/ConfirmEmailSent.tsx` | Post sign-up “check your email” copy |
 | `reset-email-sent` | `features/auth/screens/ResetEmailSent.tsx` | Post reset-request “check your email” copy |
 | `new-password` | `features/auth/screens/SetNewPasswordForm.tsx` | Choose-new-password after reset link |
+| `mfa-challenge` | `features/auth/screens/MfaChallengeForm.tsx` | Enrolled-factor challenge before protected access |
 
 Shared field UI: `features/auth/components/AuthEmailField.tsx`, `AuthPasswordPair.tsx`.
 
@@ -101,6 +108,7 @@ Shared field UI: `features/auth/components/AuthEmailField.tsx`, `AuthPasswordPai
 | `src/features/profile/ProfilePasswordSection.tsx` | Logged-in password change |
 | `src/lib/leakedPassword.ts` | Pwned Passwords check (client) + `api/check-leaked-password.ts` proxy |
 | `src/lib/authMfa.ts` | TOTP MFA wrappers; UI in `src/features/profile/ProfileMfaSection.tsx` |
+| `src/features/auth/screens/MfaChallengeForm.tsx` | Shared route/modal TOTP challenge UI |
 | `src/pages/SignIn.tsx` | Full-page sign-in route |
 | `src/pages/AuthCallback.tsx` | Email confirmation callback handler |
 
@@ -110,6 +118,8 @@ Shared field UI: `features/auth/components/AuthEmailField.tsx`, `AuthPasswordPai
 - `AuthContext` session listener (`getSession` + `onAuthStateChange`) — single session owner.
 - Page-local `getSession`/`onAuthStateChange` ownership or recovery-token checks.
 - Anonymous application, profile, eligibility, or document persistence.
+- Exposing `supabase.auth.getSession()` directly to application persistence;
+  consume the assurance-approved `AuthContext.session` instead.
 - Supabase RLS migrations without coordination through the backend runbook.
 
 ## Required checks
@@ -118,6 +128,8 @@ Shared field UI: `features/auth/components/AuthEmailField.tsx`, `AuthPasswordPai
 npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
   src/lib/leakedPassword.test.ts src/lib/authMfa.test.ts \
   api/check-leaked-password.test.ts
+docker exec -i supabase_db_Applications psql -v ON_ERROR_STOP=1 \
+  -U postgres -d postgres < supabase/tests/enrolled_mfa_aal2.sql
 ```
 
 ## Supabase Dashboard
@@ -128,12 +140,15 @@ npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
 - Production sender (Resend): `Applications <noreply@carroll.consulting>` — see [auth-password.md](../runbooks/auth-password.md) and `npm run verify-resend`.
 - Site URL: `https://application-prototype.vercel.app`
 - Redirect URLs: production `/**`, localhost `http://localhost:5173/**`
-- Enable **leaked password protection** and **TOTP MFA** (Pro plan) — see [backend.md](../runbooks/backend.md) "Auth security hardening (DIS-119, DIS-123)".
+- Enable **leaked password protection** where the plan permits it and keep
+  **TOTP MFA** enrollment and verification enabled — see
+  [backend.md](../runbooks/backend.md) "Auth security hardening (DIS-119, DIS-123)".
 
 ## Applicant data access
 
-- `ApplicationContext` passes the current session to
-  `createApplicationStorageAdapter`.
+- `ApplicationContext` passes only the assurance-approved `AuthContext.session`
+  to `createApplicationStorageAdapter`. An enrolled user's AAL1 session stays
+  internal to Supabase Auth while the challenge is pending.
 - An authenticated session produces the remote Supabase adapter; no session
   produces a no-write guest adapter.
 - There is no anonymous application draft or draft-import contract.
@@ -157,6 +172,8 @@ npm test -- src/lib/authPassword.test.ts src/lib/authCallback.test.ts \
 
 - Supabase RLS is defense-in-depth for authenticated routes; it does not replace
   shared browser route gates.
+- Browser MFA gating mirrors restrictive table/Storage policies and the submit
+  RPC. Verified-factor state plus the signed JWT `aal` claim are authoritative.
 - Password policy is shown in UI and enforced by auth actions. Shared helpers and
   auth tests protect the mirror.
 

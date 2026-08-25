@@ -8,7 +8,11 @@ import type { Database } from "./supabase.types";
 // plain mock satisfies it in tests and the real client satisfies it at runtime.
 export type MfaClient = Pick<
   SupabaseClient<Database>["auth"]["mfa"],
-  "listFactors" | "enroll" | "challengeAndVerify" | "unenroll"
+  | "listFactors"
+  | "enroll"
+  | "challengeAndVerify"
+  | "getAuthenticatorAssuranceLevel"
+  | "unenroll"
 >;
 
 export type TotpEnrollment = {
@@ -21,6 +25,10 @@ export type TotpEnrollment = {
 export type TotpStatus = {
   enabled: boolean;
   verifiedFactorId: string | null;
+};
+
+export type MfaSessionStatus = {
+  requiresChallenge: boolean;
 };
 
 const MFA_GENERIC_ERROR =
@@ -78,6 +86,83 @@ function getVerifyErrorMessage(error: unknown): string {
   }
 
   return message ?? MFA_GENERIC_ERROR;
+}
+
+function normalizeTotpCode(code: string): string | null {
+  const normalizedCode = code.replace(/\s+/g, "");
+  return /^\d{6}$/.test(normalizedCode) ? normalizedCode : null;
+}
+
+/**
+ * Determines whether the current Supabase session must complete an enrolled
+ * factor before the application may expose it to persistence or protected UI.
+ */
+export async function getMfaSessionStatus(
+  mfa: MfaClient,
+): Promise<{ status: MfaSessionStatus | null; error: string | null }> {
+  try {
+    const { data, error } = await mfa.getAuthenticatorAssuranceLevel();
+
+    if (error || !data) {
+      return {
+        status: null,
+        error: getMessage(error) ?? MFA_GENERIC_ERROR,
+      };
+    }
+
+    return {
+      status: {
+        requiresChallenge:
+          data.nextLevel === "aal2" && data.currentLevel !== "aal2",
+      },
+      error: null,
+    };
+  } catch (error) {
+    return { status: null, error: getMessage(error) ?? MFA_GENERIC_ERROR };
+  }
+}
+
+/**
+ * Verifies the first available TOTP factor. The product currently enrolls only
+ * authenticator-app factors; listFactors returns verified factors in `totp`.
+ */
+export async function verifyTotpChallenge(
+  mfa: MfaClient,
+  code: string,
+): Promise<{ error: string | null }> {
+  const normalizedCode = normalizeTotpCode(code);
+
+  if (!normalizedCode) {
+    return { error: "Enter the 6-digit code from your authenticator app." };
+  }
+
+  try {
+    const { data: factors, error: factorsError } = await mfa.listFactors();
+
+    if (factorsError) {
+      return {
+        error: getMessage(factorsError) ?? MFA_GENERIC_ERROR,
+      };
+    }
+
+    const factorId = factors?.totp?.[0]?.id;
+
+    if (!factorId) {
+      return {
+        error:
+          "No authenticator app is available for this account. Sign out and try again.",
+      };
+    }
+
+    const { error } = await mfa.challengeAndVerify({
+      factorId,
+      code: normalizedCode,
+    });
+
+    return { error: error ? getVerifyErrorMessage(error) : null };
+  } catch (error) {
+    return { error: getVerifyErrorMessage(error) };
+  }
 }
 
 export async function getTotpStatus(
@@ -139,9 +224,9 @@ export async function confirmTotpEnrollment(
   factorId: string,
   code: string,
 ): Promise<{ error: string | null }> {
-  const normalizedCode = code.replace(/\s+/g, "");
+  const normalizedCode = normalizeTotpCode(code);
 
-  if (!/^\d{6}$/.test(normalizedCode)) {
+  if (!normalizedCode) {
     return { error: "Enter the 6-digit code from your authenticator app." };
   }
 

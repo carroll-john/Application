@@ -6,6 +6,7 @@ export type AuthScreen =
   | "forgot-password"
   | "confirm-email-sent"
   | "reset-email-sent"
-  | "new-password";
+  | "new-password"
+  | "mfa-challenge";
 
 export type AuthPanelContext = "apply" | "eligibility" | "header" | "route";

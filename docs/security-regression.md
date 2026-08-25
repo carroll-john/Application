@@ -62,8 +62,27 @@ As an authenticated applicant with one draft and one submitted application:
    application trigger restores the snapshot for its `(catalog_id, course_code)`
    and submission still enforces the trusted policy.
 
+## Enrolled MFA enforcement
+
+With one applicant who has no verified factor and one who has enrolled TOTP:
+
+1. Confirm the no-factor applicant can sign in with a password and access owned
+   applicant rows and document objects at AAL1.
+2. Sign in to the enrolled account with only the password. Confirm the shared
+   authenticator-code screen appears before the intended route or modal action
+   resumes and no application hydration begins.
+3. Using that AAL1 token directly, confirm applicant-table and Storage reads and
+   writes return no rows or RLS errors, and `submit_application` raises
+   `MFA_CHALLENGE_REQUIRED`.
+4. Enter a valid TOTP code. Confirm the session becomes AAL2, the intended route
+   resumes, and the same database, Storage, and submission operations proceed.
+5. Remove the verified factor and refresh the session. Confirm ordinary AAL1
+   access returns; MFA enrollment remains opt-in rather than mandatory.
+
 ## Automated tests
 
 ```bash
 npm run lint && npm test && npm run build
+docker exec -i supabase_db_Applications psql -v ON_ERROR_STOP=1 \
+  -U postgres -d postgres < supabase/tests/enrolled_mfa_aal2.sql
 ```

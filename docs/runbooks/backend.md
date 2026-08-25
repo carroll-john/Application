@@ -12,7 +12,9 @@
 - No company-domain allowlist is used in the frontend, RLS policies, storage policies, or submit RPC.
 - Signed-in users use Supabase-backed profile, application, and document storage.
   Anonymous users can browse courses but cannot own drafts or applicant documents.
-- RLS protects applicant data with `auth.uid()` ownership checks.
+- RLS protects applicant data with `auth.uid()` ownership checks. Applicants
+  who enroll MFA must also present an AAL2 JWT; applicants without a verified
+  factor may continue at AAL1.
 
 ## Auth security hardening (DIS-119, DIS-123)
 
@@ -20,16 +22,17 @@ The Supabase Security Advisor flags two hosted Auth settings for project
 **Application** (`weyxnhykyyetquqprfnu`). Both are project-level Auth
 configuration, not application code — they cannot be set from a migration or
 the app, and they take effect only on the hosted project. Local dev intent is
-captured in `supabase/config.toml`; the hosted project must be changed in the
-dashboard (or via the Management API) by someone with project access. Both
-features require the **Pro plan or above**.
+captured in `supabase/config.toml`; hosted settings must be verified in the
+dashboard (or via the Management API) by someone with project access. Native
+leaked-password protection is plan-dependent; TOTP enrollment and verification
+are available independently and must remain enabled for the app's opt-in flow.
 
 > The project is currently on the **free tier**, so `supabase config push`
 > fails before reaching these settings — the custom email templates already in
 > `config.toml` are rejected by the default email provider ("Email template
 > modification is not available for free tier projects"). Until the project is
-> upgraded (and/or a custom SMTP provider is configured), apply both settings
-> in the **dashboard** rather than via `config push`.
+> upgraded (and/or a custom SMTP provider is configured), apply hosted Auth
+> settings in the **dashboard** rather than assuming `config push` completed.
 
 ### Leaked password protection (DIS-119)
 
@@ -79,6 +82,14 @@ well:
   the TOTP factor is enabled (local dev via `config.toml` now; the hosted
   project once the toggle above is on) and degrades gracefully with a clear
   message where the project hasn't enabled TOTP yet.
+- **Challenge/enforcement now ships.** An enrolled user's password session is
+  held at `/sign-in` (or the shared auth modal) until a valid 6-digit code
+  upgrades the JWT from AAL1 to AAL2. Migration
+  `20260825091000_enforce_enrolled_totp_aal2.sql` adds restrictive opt-in MFA
+  policies to every applicant table and `storage.objects`, and repeats the gate
+  inside `submit_application` because that RPC is `SECURITY DEFINER`.
+- Apply that migration before promoting the matching frontend. Verify AAL1
+  denial and AAL2 access with `supabase/tests/enrolled_mfa_aal2.sql`.
 
 After enabling either setting, re-run the Security Advisor (or
 `get_advisors`) to confirm the `auth_leaked_password_protection` and
@@ -258,9 +269,11 @@ Then run [supabase/migrations/0005_document_upload_limits.sql](../../supabase/mi
 - indexes for user/rate-limit document checks
 
 Apply every later migration in filename order, including
-`20260825090000_server_authoritative_submission.sql`. It installs the current
+`20260825090000_server_authoritative_submission.sql` and
+`20260825091000_enforce_enrolled_totp_aal2.sql`. They install the current
 course-policy snapshot, draft-only applicant write policies, submitted-evidence
-immutability, and the sole application-number/submission transition boundary.
+immutability, the sole application-number/submission transition boundary, and
+opt-in AAL2 enforcement for applicants with a verified factor.
 
 Then run the applicant auth migration to remove the old company-domain RLS dependency:
 - use the latest `*_applicant_email_otp_auth.sql` migration (filename is historical; policy changes are auth-method agnostic)

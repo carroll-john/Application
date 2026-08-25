@@ -1,8 +1,10 @@
 import {
+  useCallback,
   createContext,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -34,6 +36,17 @@ import { isPasswordLeaked } from "../lib/leakedPassword";
 import { getEmailDomain } from "../lib/emailDomain";
 import { syncPostHogUser } from "../lib/posthog";
 import { syncSentryUser } from "../lib/sentry";
+import {
+  getMfaSessionStatus,
+  verifyTotpChallenge,
+} from "../lib/authMfa";
+
+type SessionAssessmentOutcome =
+  | "authenticated"
+  | "mfa_required"
+  | "signed_out"
+  | "error"
+  | "stale";
 
 interface AuthContextType {
   user: User | null;
@@ -41,6 +54,8 @@ interface AuthContextType {
   isLoading: boolean;
   isConfigured: boolean;
   isAuthenticated: boolean;
+  requiresMfa: boolean;
+  mfaError: string | null;
   isPasswordRecovery: boolean;
   userEmail: string | null;
   userDisplayName: string;
@@ -58,6 +73,7 @@ interface AuthContextType {
     password: string,
   ) => Promise<{ error: string | null }>;
   changePassword: (password: string) => Promise<{ error: string | null }>;
+  verifyMfa: (code: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -83,26 +99,95 @@ function formatUserDisplayName(email: string | null) {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [requiresMfa, setRequiresMfa] = useState(false);
+  const [mfaError, setMfaError] = useState<string | null>(null);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(() =>
     hasPasswordRecoveryTokenInUrl(),
   );
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(supabase));
+  const approvedSessionRef = useRef<Session | null>(null);
+  const assessmentGenerationRef = useRef(0);
+  const isActiveRef = useRef(true);
+
+  const assessSession = useCallback(
+    async (nextSession: Session | null): Promise<SessionAssessmentOutcome> => {
+      const generation = ++assessmentGenerationRef.current;
+
+      if (!nextSession) {
+        approvedSessionRef.current = null;
+        if (isActiveRef.current) {
+          setSession(null);
+          setRequiresMfa(false);
+          setMfaError(null);
+          setIsLoading(false);
+        }
+        return "signed_out";
+      }
+
+      if (!supabase) {
+        return "error";
+      }
+
+      if (isActiveRef.current) {
+        if (approvedSessionRef.current?.user.id !== nextSession.user.id) {
+          approvedSessionRef.current = null;
+          setSession(null);
+        }
+      }
+
+      const { status, error } = await getMfaSessionStatus(supabase.auth.mfa);
+
+      if (
+        !isActiveRef.current ||
+        generation !== assessmentGenerationRef.current
+      ) {
+        return "stale";
+      }
+
+      if (error || !status) {
+        approvedSessionRef.current = null;
+        setSession(null);
+        setRequiresMfa(true);
+        setMfaError(
+          error ??
+            "Two-factor authentication is unavailable right now. Try again.",
+        );
+        setIsLoading(false);
+        return "error";
+      }
+
+      if (status.requiresChallenge) {
+        approvedSessionRef.current = null;
+        setSession(null);
+        setRequiresMfa(true);
+        setMfaError(null);
+        setIsLoading(false);
+        return "mfa_required";
+      }
+
+      approvedSessionRef.current = nextSession;
+      setSession(nextSession);
+      setRequiresMfa(false);
+      setMfaError(null);
+      setIsLoading(false);
+      return "authenticated";
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!supabase) {
       return;
     }
 
-    let isActive = true;
+    isActiveRef.current = true;
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      if (!isActive) {
+      if (!isActiveRef.current) {
         return;
       }
-
-      setSession(nextSession);
 
       if (event === "PASSWORD_RECOVERY") {
         setIsPasswordRecovery(true);
@@ -112,39 +197,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsPasswordRecovery(true);
       }
 
-      setIsLoading(false);
+      void assessSession(nextSession);
     });
 
     void (async () => {
       try {
         await supabase.auth.initialize();
-        if (!isActive) {
+        if (!isActiveRef.current) {
           return;
         }
 
         const { data } = await supabase.auth.getSession();
-        if (!isActive) {
+        if (!isActiveRef.current) {
           return;
         }
 
-        setSession(data.session);
         if (shouldTreatSessionAsPasswordRecovery(data.session)) {
           setIsPasswordRecovery(true);
         }
+
+        await assessSession(data.session);
       } catch {
-        // initialize/getSession failures fall through to signed-out UI.
-      } finally {
-        if (isActive) {
+        if (isActiveRef.current) {
+          approvedSessionRef.current = null;
+          setSession(null);
+          setRequiresMfa(false);
+          setMfaError(null);
           setIsLoading(false);
         }
       }
     })();
 
     return () => {
-      isActive = false;
+      isActiveRef.current = false;
+      assessmentGenerationRef.current += 1;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [assessSession]);
 
   const userEmail = normalizeAuthEmail(session?.user?.email ?? "") || null;
   const isAuthenticated = Boolean(session?.user);
@@ -178,6 +267,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       isConfigured: isSupabaseConfigured,
       isAuthenticated,
+      requiresMfa,
+      mfaError,
       isPasswordRecovery,
       userEmail,
       userDisplayName: formatUserDisplayName(userEmail),
@@ -296,7 +387,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           checkLeakedPassword: isPasswordLeaked,
         });
       },
+      verifyMfa: async (code) => {
+        if (!supabase) {
+          return {
+            error: "Authentication is not configured on this deployment.",
+          };
+        }
+
+        const result = await verifyTotpChallenge(supabase.auth.mfa, code);
+
+        if (result.error) {
+          return result;
+        }
+
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error || !data.session) {
+          return {
+            error:
+              error?.message ??
+              "Two-factor authentication is unavailable right now. Try again.",
+          };
+        }
+
+        const outcome = await assessSession(data.session);
+
+        return outcome === "authenticated"
+          ? { error: null }
+          : {
+              error:
+                "Two-factor authentication could not be confirmed. Try again.",
+            };
+      },
       signOut: async () => {
+        assessmentGenerationRef.current += 1;
+        approvedSessionRef.current = null;
+        setSession(null);
+        setRequiresMfa(false);
+        setMfaError(null);
+        setIsLoading(false);
+
         if (supabase) {
           await supabase.auth.signOut();
         }
@@ -305,7 +435,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         syncSentryUser(null);
       },
     }),
-    [isAuthenticated, isLoading, isPasswordRecovery, session, userEmail],
+    [
+      assessSession,
+      isAuthenticated,
+      isLoading,
+      isPasswordRecovery,
+      mfaError,
+      requiresMfa,
+      session,
+      userEmail,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

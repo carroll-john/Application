@@ -2,7 +2,7 @@
 schema_version: 1
 document_type: system_context
 status: active
-last_verified: 2026-07-15
+last_verified: 2026-08-25
 authoritative_for:
   - runtime_topology
   - repository_and_module_ownership
@@ -41,8 +41,8 @@ maintain a separate current-phase list.
 
 | Flow | Runtime path | Boundary |
 | --- | --- | --- |
-| Auth | Browser → Supabase Auth | `AuthContext` is the single browser session owner; route gates consume it. |
-| Application data | Browser → `ApplicationStorageAdapter` → Supabase Postgres | Applications require authentication. Supabase and the submit RPC are authoritative. |
+| Auth | Browser → Supabase Auth | `AuthContext` is the single browser session owner; route gates consume only sessions that satisfy any enrolled MFA factor. |
+| Application data | Browser → `ApplicationStorageAdapter` → Supabase Postgres | Applications require authentication. Opted-in MFA users require AAL2 in both the browser and restrictive RLS. Supabase and the submit RPC are authoritative. |
 | Documents | Browser → shared document layer → Supabase Storage/Postgres | Product flows require authentication. A legacy IndexedDB implementation still exists pending Phase 2 removal. |
 | Submission | Browser validation → remote store → `submit_application` RPC | The server is final authority. A database-owned course-policy snapshot is applied to drafts, and submitted records/evidence are immutable to applicants. Browser checks are a UX mirror. |
 | CV parsing | Browser → `/api/parse-cv` → OpenAI | The app API owns CV extraction orchestration. Ordinary application parsing requires authentication. The UC pre-application assessment may parse anonymously without persistence; authentication is required before starting or saving an application. |
@@ -70,7 +70,7 @@ recorded here. Verify those through the commands in
 
 | Concern | Authoritative owner | Approved consumers | Forbidden shortcut |
 | --- | --- | --- | --- |
-| Browser auth/session | `src/context/AuthContext.tsx` and shared route gates | Pages and features through `useAuth` | Page-local session listeners or auth gates. |
+| Browser auth/session | `src/context/AuthContext.tsx` and shared route gates | Pages and features through `useAuth` | Page-local session listeners, raw AAL1 application sessions, or auth gates. |
 | Application shape | `src/lib/applicationData.ts` | Context, validation, persistence mappers | Parallel page-specific application models. |
 | Application persistence | `src/lib/applicationStorageAdapter.ts` | Application context/hooks | Pages importing remote stores or branching storage modes. |
 | Submission permission | Supabase `submit_application`, `application_submission_missing_fields`, and `course_submission_policies` | Client validation as a UX mirror | Treating client readiness or caller-provided policy JSON as final authority. |
@@ -93,6 +93,7 @@ generated or protected by an executable contract check.
 | Course-derived submission policy in TypeScript and SQL | Supabase `course_submission_policies` snapshot generated from the reviewed catalogs | The SQL submit gate cannot import the TypeScript catalogs at runtime | `courseSubmissionPolicyContract.test.ts`. |
 | English-country and AHPRA constants in TypeScript and SQL | Eligibility rules package | SQL cannot import TypeScript directly | `submitPolicyContract.test.ts`. |
 | Client upload limits vs database/storage limits | Supabase constraints | Friendly preflight plus hard backend limits | Upload-limit and storage-integrity tests. |
+| Browser MFA challenge vs database/Storage AAL enforcement | Supabase verified-factor state and the signed JWT `aal` claim | `AuthContext`, restrictive RLS, and the submit RPC | `authMfa.test.ts` and `supabase/tests/enrolled_mfa_aal2.sql`. |
 | Consumer service-contract snapshot | Provider-published contract | Compatibility testing at the caller | Contract tests; provider publication/pinning completes in Phase 3. |
 
 No other business-rule duplication is implicitly permitted.

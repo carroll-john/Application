@@ -13,6 +13,8 @@ interface AuthPanelHeaderProps {
 
 function getHeading(screen: AuthScreen) {
   switch (screen) {
+    case "mfa-challenge":
+      return "Enter your authenticator code";
     case "new-password":
       return "Choose a new password";
     case "reset-email-sent":
@@ -28,6 +30,8 @@ function getHeading(screen: AuthScreen) {
 
 function getDescription(screen: AuthScreen, sentEmail: string | null) {
   switch (screen) {
+    case "mfa-challenge":
+      return "Two-factor authentication is on for this account. Enter the 6-digit code from your authenticator app to continue.";
     case "new-password":
       return "Your reset link worked. Choose a new password to finish signing in.";
     case "reset-email-sent":
