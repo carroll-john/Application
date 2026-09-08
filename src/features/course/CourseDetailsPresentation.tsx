@@ -23,28 +23,28 @@ export function CourseDetailsPresentation({
 
       <section
         ref={courseDetailsSectionRef}
-        className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16"
+        className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10"
       >
         <div>
-          <h2 className="text-3xl font-bold text-[var(--cta-secondary)]">Course details</h2>
+          <h2 className="text-2xl font-bold text-[var(--cta-secondary)] sm:text-3xl">Course details</h2>
         </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-6">
-            <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
-              <h3 className="text-2xl font-bold text-slate-950">Course overview</h3>
-              <p className="mt-4 text-base leading-7 text-slate-600">
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-5">
+            <SurfaceCard className="rounded-[32px] p-5 sm:p-6">
+              <h3 className="text-xl font-bold text-slate-950 sm:text-2xl">Course overview</h3>
+              <p className="mt-3 text-base leading-7 text-slate-600">
                 {course.description || course.summary}
               </p>
             </SurfaceCard>
 
             {course.entryRequirements ? (
               <div ref={entryRequirementsRef}>
-                <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
-                  <h3 className="text-2xl font-bold text-slate-950">
+                <SurfaceCard className="rounded-[32px] p-5 sm:p-6">
+                  <h3 className="text-xl font-bold text-slate-950 sm:text-2xl">
                     Entry requirements
                   </h3>
-                  <p className="mt-4 text-base leading-7 text-slate-600">
+                  <p className="mt-3 text-base leading-7 text-slate-600">
                     {course.entryRequirements}
                   </p>
                 </SurfaceCard>
@@ -52,41 +52,41 @@ export function CourseDetailsPresentation({
             ) : null}
 
             {course.recognitionOfPriorLearning ? (
-              <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
-                <h3 className="text-2xl font-bold text-slate-950">
+              <SurfaceCard className="rounded-[32px] p-5 sm:p-6">
+                <h3 className="text-xl font-bold text-slate-950 sm:text-2xl">
                   Recognition of prior learning
                 </h3>
-                <p className="mt-4 text-base leading-7 text-slate-600">
+                <p className="mt-3 text-base leading-7 text-slate-600">
                   {course.recognitionOfPriorLearning}
                 </p>
               </SurfaceCard>
             ) : null}
           </div>
 
-          <div className="space-y-6">
-            <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
-              <h3 className="text-2xl font-bold text-slate-950">Core subjects</h3>
+          <div className="space-y-5">
+            <SurfaceCard className="rounded-[32px] p-5 sm:p-6">
+              <h3 className="text-xl font-bold text-slate-950 sm:text-2xl">Core subjects</h3>
               {course.coreSubjects.length ? (
-                <ul className="mt-4 space-y-3">
+                <ul className="mt-3 space-y-2.5">
                   {course.coreSubjects.map((subject) => (
                     <li
                       key={subject}
-                      className="content-block-compact rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700"
+                      className="content-block-compact rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm leading-6 text-slate-700"
                     >
                       {subject}
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="mt-4 text-sm text-slate-600">
+                <p className="mt-3 text-sm text-slate-600">
                   Subject list available on request.
                 </p>
               )}
             </SurfaceCard>
 
-            <SurfaceCard className="rounded-[32px] p-6 sm:p-8">
-              <h3 className="text-2xl font-bold text-slate-950">Course facts</h3>
-              <dl className="mt-4 space-y-4 text-sm text-slate-700">
+            <SurfaceCard className="rounded-[32px] p-5 sm:p-6">
+              <h3 className="text-xl font-bold text-slate-950 sm:text-2xl">Course facts</h3>
+              <dl className="mt-3 space-y-3 text-sm text-slate-700">
                 {course.subjectArea ? (
                   <div>
                     <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">

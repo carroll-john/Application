@@ -153,21 +153,21 @@ function IntroState({
       className="content-block bg-white"
     >
       <div className="grid lg:grid-cols-[1.35fr_0.9fr]">
-        <div className="border-b border-[var(--border)] py-6 sm:py-9 lg:border-b-0 lg:border-r lg:py-12 lg:pr-12">
+        <div className="border-b border-[var(--border)] py-5 sm:py-6 lg:border-b-0 lg:border-r lg:py-8 lg:pr-8">
           <h1
             id="uc-rpl-heading"
-            className="max-w-3xl text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl"
+            className="max-w-3xl text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl"
           >
             Find courses that recognise your experience
           </h1>
-          <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
+          <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
             Upload your CV to see which courses may match your work experience
             and qualifications.
           </p>
 
           <button
             type="button"
-            className="content-block mt-7 flex w-full items-center gap-5 border border-dashed border-slate-400 bg-slate-50 px-5 py-6 text-left transition hover:border-[var(--cta-secondary)] hover:bg-blue-50/40 focus:outline-none focus:ring-4 focus:ring-[var(--cta-secondary)]/15"
+            className="content-block mt-5 flex w-full items-center gap-4 border border-dashed border-slate-400 bg-slate-50 px-4 py-4 text-left transition hover:border-[var(--cta-secondary)] hover:bg-blue-50/40 focus:outline-none focus:ring-4 focus:ring-[var(--cta-secondary)]/15 sm:gap-5 sm:px-5"
             onClick={() => fileInputRef.current?.click()}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => {
@@ -175,8 +175,8 @@ function IntroState({
               onChooseFile(event.dataTransfer.files?.[0] ?? null);
             }}
           >
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center border border-[var(--border)] bg-white text-[var(--cta-secondary)]">
-              <FileText className="h-7 w-7" aria-hidden="true" />
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center border border-[var(--border)] bg-white text-[var(--cta-secondary)]">
+              <FileText className="h-6 w-6" aria-hidden="true" />
             </span>
             <span>
               <span className="block font-semibold text-slate-950">
@@ -198,20 +198,20 @@ function IntroState({
             }}
           />
 
-          <div className="mt-5">
+          <div className="mt-4">
             <Button onClick={() => fileInputRef.current?.click()}>
               <Upload className="h-4 w-4" aria-hidden="true" />
               Upload your CV
             </Button>
           </div>
 
-          <p className="mt-6 flex items-start gap-2 text-sm leading-6 text-slate-600">
+          <p className="mt-4 flex items-start gap-2 text-sm leading-6 text-slate-600">
             <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             This is a guide only, not an admission offer or credit decision.
           </p>
         </div>
 
-        <ol className="divide-y divide-[var(--border)] py-6 sm:py-9 lg:grid lg:grid-rows-3 lg:py-10 lg:pl-10">
+        <ol className="divide-y divide-[var(--border)] py-5 sm:py-6 lg:grid lg:grid-rows-3 lg:py-6 lg:pl-8">
           {[
             {
               icon: Upload,
@@ -231,20 +231,20 @@ function IntroState({
           ].map((step, index) => (
             <li
               key={step.label}
-              className="flex gap-5 py-6 first:pt-0 last:pb-0 lg:items-center lg:gap-6 lg:py-8 lg:first:pt-8 lg:last:pb-8"
+              className="flex gap-4 py-4 first:pt-0 last:pb-0 lg:items-center lg:gap-5 lg:py-5 lg:first:pt-5 lg:last:pb-5"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-[var(--cta-secondary)] lg:h-11 lg:w-11 lg:text-base">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-[var(--cta-secondary)] lg:h-10 lg:w-10">
                 {index + 1}
               </span>
               <step.icon
-                className="mt-1 h-6 w-6 shrink-0 text-[var(--cta-secondary)] lg:mt-0 lg:h-7 lg:w-7"
+                className="mt-1 h-5 w-5 shrink-0 text-[var(--cta-secondary)] lg:mt-0 lg:h-6 lg:w-6"
                 aria-hidden="true"
               />
               <div>
-                <h2 className="text-xl font-semibold text-slate-950 lg:text-2xl">
+                <h2 className="text-lg font-semibold text-slate-950 lg:text-xl">
                   {step.label}
                 </h2>
-                <p className="mt-1.5 text-sm leading-6 text-slate-600 lg:mt-2 lg:text-base lg:leading-7">
+                <p className="mt-1 text-sm leading-6 text-slate-600 lg:mt-1.5">
                   {step.copy}
                 </p>
               </div>
@@ -258,17 +258,17 @@ function IntroState({
 
 function ParsingState() {
   return (
-    <section className="content-block border border-[var(--border)] bg-white px-6 py-16 text-center sm:px-10">
+    <section className="content-block border border-[var(--border)] bg-white px-6 py-10 text-center sm:px-10">
       <LoaderCircle
         className="mx-auto h-10 w-10 animate-spin text-[var(--cta-secondary)]"
         aria-hidden="true"
       />
-      <h1 className="mt-6 text-3xl font-bold text-slate-950">Reviewing your CV</h1>
-      <p className="mx-auto mt-3 max-w-xl leading-7 text-slate-600">
+      <h1 className="mt-4 text-2xl font-bold text-slate-950 sm:text-3xl">Reviewing your CV</h1>
+      <p className="mx-auto mt-2 max-w-xl leading-7 text-slate-600">
         We’re finding your work experience and qualifications. You’ll be able to
         check what we find before seeing your course matches.
       </p>
-      <p className="mt-5 text-sm text-slate-500">This usually takes less than a minute.</p>
+      <p className="mt-4 text-sm text-slate-500">This usually takes less than a minute.</p>
     </section>
   );
 }
@@ -313,7 +313,7 @@ export function UcCourseMatchSummaryRail({
   return (
     <div
       aria-label="Experience summary"
-      className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_1.35fr_auto]"
+      className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-[repeat(3,minmax(0,1fr))_1.35fr_auto]"
     >
       {items.map((item) => {
         const isProminent = item.emphasis === "info";
@@ -435,9 +435,9 @@ export function UcRplMatchCard({
       variantIndex={(variantIndex % 2) + 2}
       footer={(
         <div className="flex flex-1 flex-col border-t border-slate-100 bg-white">
-          <div className="flex-1 p-5 pt-0 sm:p-6 sm:pt-0">
+          <div className="flex-1 p-4 pt-0 sm:p-5 sm:pt-0">
             <div className="space-y-3">
-              <div className="rounded-[20px] bg-[var(--success-bg)]/75 p-4">
+              <div className="rounded-[20px] bg-[var(--success-bg)]/75 p-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="flex items-center gap-2 text-sm font-semibold text-slate-900">
                     <SearchCheck className="h-4 w-4 text-green-700" aria-hidden="true" />
@@ -473,7 +473,7 @@ export function UcRplMatchCard({
             <UcCreditAssessmentComparison result={assessmentResult} />
           ) : null}
 
-          <div className="grid gap-2 px-5 pb-5 sm:grid-cols-2 sm:px-6 sm:pb-6">
+          <div className="grid gap-2 px-4 pb-4 sm:grid-cols-2 sm:px-5 sm:pb-5">
             <Button
               aria-pressed={!assessmentResult ? isShortlisted : undefined}
               disabled={assessmentResult ? isStarting : shortlistDisabled}
@@ -553,22 +553,22 @@ function ResultsState({
   const isShortlistFull = shortlistedCourseCodes.length === 3;
 
   return (
-    <section aria-labelledby="course-matches-heading" className="space-y-6">
-      <div className="content-block relative overflow-hidden border border-slate-200 bg-white p-6 shadow-[0_18px_48px_rgba(31,42,58,0.08)] sm:p-9">
+    <section aria-labelledby="course-matches-heading" className="space-y-5">
+      <div className="content-block relative overflow-hidden border border-slate-200 bg-white p-5 shadow-[0_18px_48px_rgba(31,42,58,0.08)] sm:p-6">
         <span
           aria-hidden="true"
           className="absolute inset-x-0 top-0 h-1.5 bg-[var(--sn-mint)]"
         />
         <h1
           id="course-matches-heading"
-          className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl"
+          className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl"
         >
           Courses matched to your experience
         </h1>
-        <p className="mt-3 text-lg text-slate-600">
+        <p className="mt-2 text-base text-slate-600 sm:text-lg">
           Based on the experience and qualifications you reviewed.
         </p>
-        <p className="mt-2 text-sm leading-6 text-slate-500">
+        <p className="mt-1.5 text-sm leading-6 text-slate-500">
           This is a guide only. It is not an admission offer or credit decision.
         </p>
 
@@ -612,7 +612,7 @@ function ResultsState({
       </div>
 
       {visibleMatches.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {visibleMatches.map((match, index) => (
             <UcRplMatchCard
               key={match.course.code}

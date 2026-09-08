@@ -22,8 +22,8 @@ export function CourseBrowseFilters({
   showSearch = true,
 }: CourseBrowseFiltersProps) {
   return (
-    <div className="mt-8 border-y border-slate-200 bg-white py-5">
-      <div className="flex flex-col gap-4">
+    <div className="mt-5 border-y border-slate-200 bg-white py-3">
+      <div className="flex flex-col gap-3">
         {showSearch ? (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <Input

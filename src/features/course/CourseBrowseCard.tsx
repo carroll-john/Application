@@ -74,7 +74,7 @@ export function StudyNextCourseBrowseCard({
       data-studynext-course-card-appearance={appearance}
     >
       {showMedia ? (
-        <div className="aspect-[4/3] overflow-hidden bg-slate-100">
+        <div className="aspect-[16/10] overflow-hidden bg-slate-100">
           <img
             alt={media.alt}
             className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.025]"
@@ -85,18 +85,18 @@ export function StudyNextCourseBrowseCard({
         </div>
       ) : null}
 
-      <div className="flex min-w-0 flex-1 flex-col p-5 sm:p-6">
+      <div className="flex min-w-0 flex-1 flex-col p-4 sm:p-5">
         <p className="break-words text-sm font-medium text-slate-400">
           {course.provider}
         </p>
-        <div className="mt-2 flex items-start gap-4">
-          <h2 className="min-w-0 flex-1 break-words text-xl font-bold leading-[1.28] tracking-[-0.02em] text-slate-950 sm:text-[1.35rem]">
+        <div className="mt-1.5 flex items-start gap-3">
+          <h2 className="min-w-0 flex-1 break-words text-lg font-bold leading-[1.28] tracking-[-0.02em] text-slate-950 sm:text-xl">
             {course.title}
           </h2>
           {onViewCourse ? (
             <button
               aria-label={`View ${course.title}`}
-              className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[var(--sn-mint)] transition hover:bg-[var(--sn-mint)]/10 hover:text-[var(--sn-navy)]"
+              className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--sn-mint)] transition hover:bg-[var(--sn-mint)]/10 hover:text-[var(--sn-navy)]"
               type="button"
               onClick={onViewCourse}
             >
@@ -106,16 +106,16 @@ export function StudyNextCourseBrowseCard({
         </div>
 
         {showSummary && course.summary ? (
-          <p className="mt-3 line-clamp-2 text-sm leading-6 text-slate-500">
+          <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
             {course.summary}
           </p>
         ) : null}
 
-        <ul className="mt-auto flex flex-wrap gap-2 pt-5" aria-label="Course details">
+        <ul className="mt-auto flex flex-wrap gap-2 pt-4" aria-label="Course details">
           {facts.map((fact) => (
             <li
               key={fact}
-              className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-600"
+              className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600"
             >
               {fact}
             </li>

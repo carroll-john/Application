@@ -44,12 +44,12 @@ export function OverviewPage({
     <div className="min-h-screen bg-[var(--background)] pb-28 sm:pb-10">
       <AppBrandHeader maxWidthClassName="max-w-5xl" />
 
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
         <SurfaceCard className="p-5 sm:p-6">
-          <div className="flex flex-col gap-5 sm:flex-row">
+          <div className="flex flex-col gap-4 sm:flex-row">
             <div
               aria-hidden="true"
-              className="brand-hero content-block-compact h-32 w-full rounded-[28px] sm:w-48"
+              className="brand-hero content-block-compact h-28 w-full rounded-[28px] sm:w-44"
             />
             <div className="flex-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
@@ -58,7 +58,7 @@ export function OverviewPage({
               <h2 className="mt-1.5 text-xl font-bold text-slate-900">
                 {course.title}
               </h2>
-              <div className="content-block-compact mt-4 max-w-xs rounded-2xl border border-slate-300 px-4 py-3 text-sm text-slate-700">
+              <div className="content-block-compact mt-3 max-w-xs rounded-2xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700">
                 Desired course intake: {course.intakeLabel}
               </div>
             </div>
@@ -66,17 +66,17 @@ export function OverviewPage({
         </SurfaceCard>
 
         {prefilledFrom ? (
-          <CopiedApplicationNotice className="mt-5" prefilledFrom={prefilledFrom} />
+          <CopiedApplicationNotice className="mt-4" prefilledFrom={prefilledFrom} />
         ) : null}
 
-        <section className="mt-8" aria-labelledby="application-overview-heading">
+        <section className="mt-6" aria-labelledby="application-overview-heading">
           <h1
-            className="text-3xl font-bold text-slate-900"
+            className="text-2xl font-bold text-slate-900 sm:text-3xl"
             id="application-overview-heading"
           >
             Application overview
           </h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
+          <p className="mt-2 max-w-3xl text-base leading-7 text-slate-600">
             Be prepared by having your documents ready up front. A typical
             application process can take 30 to 60 minutes to complete. You can
             save your progress at any stage and come back later.
@@ -85,7 +85,7 @@ export function OverviewPage({
 
         <OverviewContinuePanel nextAction={nextAction} onContinue={onContinue} />
 
-        <div className="mt-8 grid gap-5 md:grid-cols-3">
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
           {overviewSections.map((section) => (
             <OverviewSectionCard key={section.title} section={section} />
           ))}

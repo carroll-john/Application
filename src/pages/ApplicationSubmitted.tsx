@@ -61,35 +61,35 @@ export default function ApplicationSubmitted() {
           <div className="absolute right-10 top-10 h-64 w-64 rounded-full bg-[var(--sn-yellow)] blur-3xl" />
           <div className="absolute bottom-10 left-10 h-48 w-48 rounded-full bg-[var(--sn-mint)] blur-3xl" />
         </div>
-        <div className="relative mx-auto max-w-4xl px-4 py-14 text-center sm:px-6 lg:px-8 lg:py-20">
-          <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-green-500 shadow-[0_18px_40px_rgba(34,197,94,0.35)]">
-            <CheckCircle2 className="h-12 w-12" />
+        <div className="relative mx-auto max-w-4xl px-4 py-10 text-center sm:px-6 lg:px-8 lg:py-12">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-green-500 shadow-[0_18px_40px_rgba(34,197,94,0.35)]">
+            <CheckCircle2 className="h-10 w-10" />
           </div>
-          <h1 className="mt-6 text-4xl font-bold sm:text-5xl">
+          <h1 className="mt-4 text-3xl font-bold sm:text-4xl">
             Application Successfully Submitted!
           </h1>
-          <div className="content-block-compact mt-6 inline-block rounded-2xl border border-white/20 bg-white/10 px-6 py-3 backdrop-blur">
+          <div className="content-block-compact mt-4 inline-block rounded-2xl border border-white/20 bg-white/10 px-5 py-2.5 backdrop-blur">
             <p className="text-sm text-white/75">Your application number</p>
-            <p className="text-3xl font-bold text-[var(--sn-yellow)]">{applicationNumber}</p>
+            <p className="text-2xl font-bold text-[var(--sn-yellow)]">{applicationNumber}</p>
           </div>
-          <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-100">
+          <p className="mx-auto mt-4 max-w-2xl text-base text-slate-100 sm:text-lg">
             Your application has been received and is now being reviewed by our
             admissions team.
           </p>
           {submittedDate ? (
-            <p className="mt-3 text-sm text-slate-200">
+            <p className="mt-2 text-sm text-slate-200">
               Submitted {submittedDate}
             </p>
           ) : null}
         </div>
       </section>
 
-      <section className="bg-white py-12 sm:py-16">
+      <section className="bg-white py-8 sm:py-10">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center text-3xl font-bold text-slate-900">
+          <h2 className="text-center text-2xl font-bold text-slate-900 sm:text-3xl">
             What happens next
           </h2>
-          <div className="mt-10 space-y-8">
+          <div className="mt-6 space-y-5">
             <TimelineStep
               description="We've received your application and sent a confirmation email to your registered address."
               icon={<CheckCircle2 className="h-6 w-6 text-white" />}
@@ -115,7 +115,7 @@ export default function ApplicationSubmitted() {
             />
           </div>
 
-          <div className="mt-12 text-center">
+          <div className="mt-8 text-center">
             <Button
               className="rounded-2xl px-8 py-6 text-base shadow-none"
               onClick={() => navigate("/dashboard")}
@@ -128,16 +128,16 @@ export default function ApplicationSubmitted() {
         </div>
       </section>
 
-      <section className="border-t border-slate-200 bg-[var(--background)] py-12 sm:py-16">
+      <section className="border-t border-slate-200 bg-[var(--background)] py-8 sm:py-10">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-slate-900">Need help?</h2>
-            <p className="mt-3 text-base text-slate-600">
+            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Need help?</h2>
+            <p className="mt-2 text-base text-slate-600">
               Our support team is here to assist you with any questions about
               your application.
             </p>
           </div>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
+          <div className="mt-6 grid gap-5 md:grid-cols-3">
             <SupportCard
               action={activeBrand.support.email}
               iconTone="brandSoft"
