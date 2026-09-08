@@ -1,4 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
+import { activeBrand } from "../brand";
 import { getCourseByCode, getDefaultCourse } from "../courseCatalog";
 import {
   mergeStoredApplicationData,
@@ -325,6 +326,10 @@ function buildApplicationPayload(
   return {
     applicant_profile_id: ids.remoteApplicantProfileId,
     application_number: data.applicationMeta.applicationNumber ?? null,
+    // The database resolves the trusted course submission policy from
+    // (catalog_id, course_code). Omitting catalog_id falls back to the default
+    // catalog and rejects UC-only course codes (APPLICATION_COURSE_POLICY_NOT_FOUND).
+    catalog_id: activeBrand.catalogId,
     contact_details: toJsonValue(data.contactDetails),
     course_code: selectedCourse?.code ?? defaultCourse.code,
     course_title: selectedCourse?.title ?? defaultCourse.title,

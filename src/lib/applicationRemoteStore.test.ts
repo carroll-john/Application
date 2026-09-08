@@ -105,6 +105,10 @@ vi.mock("./supabase", () => ({
   supabase: mockClient,
 }));
 
+vi.mock("./brand", () => ({
+  activeBrand: { catalogId: "uc" },
+}));
+
 vi.mock("./courseCatalog", () => ({
   getDefaultCourse: () => ({
     code: "DEFAULT-101",
@@ -312,6 +316,7 @@ describe("saveRemoteApplication", () => {
 
     const query = mockClient.fromCalls[0]?.query;
     const insertCall = query?.calls.find((call) => call.method === "insert");
+    expect(insertCall?.args[0]).toMatchObject({ catalog_id: "uc" });
     expect(insertCall?.args[0]).toMatchObject({
       section2_submission_policy: {
         educationEvidenceLabel: "a bachelor degree or higher qualification",
