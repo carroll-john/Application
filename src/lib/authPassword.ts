@@ -127,14 +127,25 @@ function getErrorMessage(error: unknown) {
   return String(error);
 }
 
+function getErrorCode(error: unknown) {
+  if (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    typeof error.code === "string"
+  ) {
+    return error.code;
+  }
+
+  return null;
+}
+
 function isFetchFailure(message: string) {
   return /failed to fetch|fetch failed|networkerror/i.test(message);
 }
 
-function formatAuthPasswordError(
-  error: unknown,
-  supabaseUrl?: string | null,
-) {
+function formatAuthPasswordError(error: unknown, supabaseUrl?: string | null) {
+  const code = getErrorCode(error);
   const message = getErrorMessage(error);
 
   if (!message) {
@@ -143,6 +154,27 @@ function formatAuthPasswordError(
 
   if (isFetchFailure(message)) {
     return formatAuthConnectivityError(supabaseUrl);
+  }
+
+  if (
+    code === "current_password_required" ||
+    /current password.*required/i.test(message)
+  ) {
+    return "Enter your current password.";
+  }
+
+  if (
+    code === "current_password_mismatch" ||
+    /current password.*(incorrect|invalid|mismatch)/i.test(message)
+  ) {
+    return "Current password is incorrect.";
+  }
+
+  if (
+    code === "same_password" ||
+    /new password.*(different|same)|same password/i.test(message)
+  ) {
+    return "Choose a new password that is different from your current password.";
   }
 
   if (/email not confirmed|confirm your email/i.test(message)) {
@@ -329,6 +361,50 @@ export async function updatePasswordAfterRecovery(
 
   try {
     const { error } = await auth.updateUser({ password });
+
+    return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
+  } catch (error) {
+    return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
+  }
+}
+
+export async function changePassword(
+  auth: AuthClient,
+  currentPassword: string,
+  password: string,
+  options?: {
+    supabaseUrl?: string | null;
+    checkLeakedPassword?: LeakedPasswordChecker;
+  },
+): Promise<{ error: string | null }> {
+  if (!currentPassword) {
+    return { error: "Enter your current password." };
+  }
+
+  if (!password) {
+    return { error: "Enter a new password." };
+  }
+
+  if (!isValidPassword(password)) {
+    return {
+      error: `Password must be at least ${AUTH_MIN_PASSWORD_LENGTH} characters.`,
+    };
+  }
+
+  const leakedPasswordError = await findLeakedPasswordError(
+    password,
+    options?.checkLeakedPassword,
+  );
+
+  if (leakedPasswordError) {
+    return { error: leakedPasswordError };
+  }
+
+  try {
+    const { error } = await auth.updateUser({
+      password,
+      current_password: currentPassword,
+    });
 
     return { error: formatAuthPasswordError(error, options?.supabaseUrl) };
   } catch (error) {

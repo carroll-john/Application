@@ -20,6 +20,11 @@ and password-recovery state. Shared route gates own access enforcement.
 - New accounts require email confirmation before first sign-in.
 - Forgot password sends a reset link; user sets a new password on `/sign-in` while `isPasswordRecovery` is true.
 - Logged-in users change password on `/profile` via `ProfilePasswordSection`.
+  They must supply their current password in the same Supabase `updateUser`
+  request as the new password. The hosted project must keep **Require current
+  password when updating** enabled so direct API calls receive the same check.
+  Password-recovery sessions remain token-authorized and do not use this
+  current-password path.
 - New passwords (sign-up, reset, profile change) are checked against the Pwned
   Passwords data set via `isPasswordLeaked` (`src/lib/leakedPassword.ts`) →
   `api/check-leaked-password.ts`. App-level, free-tier equivalent of Supabase's
@@ -138,6 +143,10 @@ docker exec -i supabase_db_Applications psql -v ON_ERROR_STOP=1 \
 ## Supabase Dashboard
 
 - Enable **Confirm email** under Authentication → Providers → Email.
+- Enable **Require current password when updating** under Authentication →
+  Providers → Email → Password security. This is the server-side enforcement
+  for logged-in profile password changes; it is not currently represented in
+  `supabase/config.toml`.
 - Confirm signup email template must include `{{ .ConfirmationURL }}`.
 - Configure **custom SMTP** for reliable hosted confirmation email delivery.
 - Production sender (Resend): `Applications <noreply@carroll.consulting>` — see [auth-password.md](../runbooks/auth-password.md) and `npm run verify-resend`.

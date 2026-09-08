@@ -34,6 +34,27 @@ are available independently and must remain enabled for the app's opt-in flow.
 > upgraded (and/or a custom SMTP provider is configured), apply hosted Auth
 > settings in the **dashboard** rather than assuming `config push` completed.
 
+### Current-password verification for profile changes
+
+Logged-in `/profile` password changes send `current_password` and the new
+`password` together through Supabase Auth. The hosted Auth service must verify
+that credential too; a UI-only field does not prevent a signed-in client from
+calling `updateUser` directly.
+
+- **Dashboard:** Authentication → Providers → Email → *Password security* →
+  enable **Require current password when updating**, then save.
+- This switch is distinct from **Secure password change**, which uses a recent
+  session or emailed nonce. The application uses explicit current-password
+  verification for ordinary profile changes.
+- The setting is not currently exposed in the local Supabase `config.toml`
+  schema, so it must be checked separately on every hosted project before the
+  matching frontend is promoted.
+- Recovery-token sessions remain able to set a new password without the old
+  password; the application keeps recovery and signed-in profile actions on
+  separate helpers.
+- Verify the behavior with the **Profile password change verification** section
+  in [security-regression.md](../security-regression.md).
+
 ### Leaked password protection (DIS-119)
 
 Supabase Auth can reject known-compromised passwords by checking new passwords

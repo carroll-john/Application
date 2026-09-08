@@ -79,6 +79,22 @@ With one applicant who has no verified factor and one who has enrolled TOTP:
 5. Remove the verified factor and refresh the session. Confirm ordinary AAL1
    access returns; MFA enrollment remains opt-in rather than mandatory.
 
+## Profile password change verification
+
+Against a project with **Require current password when updating** enabled:
+
+1. Sign in normally, open `/profile`, and confirm the password section asks for
+   the current password plus the new-password pair.
+2. Enter an incorrect current password and confirm the update is rejected with
+   `Current password is incorrect.`
+3. Enter the correct current password and a valid new password; confirm the
+   update succeeds and all three password fields clear.
+4. Call Supabase `updateUser` directly with only a new password from the same
+   ordinary session and confirm Auth rejects it with
+   `current_password_required`.
+5. Follow a valid password-reset link and confirm the recovery-token flow can
+   still set a new password without asking for the old password.
+
 ## Transcript evaluation access and cost boundary
 
 Against a deployed or preview environment with transcript evaluation enabled:
