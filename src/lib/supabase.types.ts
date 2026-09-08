@@ -101,6 +101,7 @@ export type Database = {
         Row: {
           applicant_profile_id: string | null
           application_number: string | null
+          catalog_id: string
           contact_details: Json
           course_code: string
           course_title: string
@@ -124,6 +125,7 @@ export type Database = {
         Insert: {
           applicant_profile_id?: string | null
           application_number?: string | null
+          catalog_id?: string
           contact_details?: Json
           course_code: string
           course_title: string
@@ -147,6 +149,7 @@ export type Database = {
         Update: {
           applicant_profile_id?: string | null
           application_number?: string | null
+          catalog_id?: string
           contact_details?: Json
           course_code?: string
           course_title?: string
