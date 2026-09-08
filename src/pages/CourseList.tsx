@@ -89,7 +89,7 @@ export default function CourseList() {
         />
       ) : null}
 
-      <main className="mx-auto max-w-[1536px] px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+      <main className="mx-auto max-w-[1536px] px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
         {isUcBrand ? (
           <div id="experience-assessment">
             <UcRplCourseMatcher
@@ -103,13 +103,13 @@ export default function CourseList() {
         {showCourseCatalogue ? (
           <div
             id="course-catalogue"
-            className={isUcBrand ? "scroll-mt-6 pt-16" : "scroll-mt-6"}
+            className={isUcBrand ? "scroll-mt-6 pt-6" : "scroll-mt-6"}
           >
             <div className="max-w-3xl">
-              <h2 className="text-4xl font-extrabold tracking-[-0.03em] text-slate-950 sm:text-5xl">
+              <h2 className="text-3xl font-extrabold tracking-[-0.03em] text-slate-950 sm:text-4xl">
                 All courses
               </h2>
-              <p className="mt-4 text-lg leading-8 text-slate-600">
+              <p className="mt-2 text-base leading-7 text-slate-600 sm:mt-3 sm:text-lg sm:leading-8">
                 {isUcBrand
                   ? "Explore 33 online postgraduate courses and choose the next step that fits your goals."
                   : "Explore courses from leading Australian institutions and choose the next step that fits your goals."}
@@ -127,7 +127,7 @@ export default function CourseList() {
               onClearFilters={clearFilters}
             />
 
-            <div className="mt-7 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {filteredCourses.map((course, index) => (
                 <CourseBrowseCard
                   key={course.code}

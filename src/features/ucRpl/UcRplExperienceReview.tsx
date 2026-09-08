@@ -351,20 +351,20 @@ export function UcRplExperienceReview({
   const displayFileName = fileName.startsWith("synthetic-") ? "Sample CV" : fileName;
 
   return (
-    <section aria-labelledby="review-experience-heading" className="space-y-6">
-      <div className="content-block border border-[var(--border)] bg-white p-6 sm:p-9">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <section aria-labelledby="review-experience-heading" className="space-y-5">
+      <div className="content-block border border-[var(--border)] bg-white p-5 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-[var(--cta-secondary)]">
               {displayFileName}
             </p>
             <h1
               id="review-experience-heading"
-              className="mt-2 text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl"
+              className="mt-1.5 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl"
             >
               Review your experience
             </h1>
-            <p className="mt-3 max-w-3xl text-lg leading-8 text-slate-600">
+            <p className="mt-2 max-w-3xl text-base leading-7 text-slate-600">
               We found the roles and qualifications below in your CV. Check they
               look right before we show you courses that may match your experience.
             </p>

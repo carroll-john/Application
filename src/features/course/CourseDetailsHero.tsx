@@ -16,25 +16,25 @@ export function CourseDetailsHero({
 }: CourseDetailsHeroProps) {
   return (
     <section className="brand-hero text-white">
-      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-16">
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.2fr_0.8fr] lg:gap-8 lg:px-8 lg:py-10">
         <div className="max-w-2xl">
-          <div className="flex flex-wrap gap-3">
-            <span className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold tracking-wide text-white/90">
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold tracking-wide text-white/90">
               {course.delivery}
             </span>
             {course.categories.map((category) => (
               <span
                 key={category}
-                className="inline-flex rounded-full bg-white/10 px-4 py-2 text-sm font-semibold tracking-wide text-white/90"
+                className="inline-flex rounded-full bg-white/10 px-3 py-1.5 text-sm font-semibold tracking-wide text-white/90"
               >
                 {category}
               </span>
             ))}
           </div>
-          <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
+          <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl">
             {course.title}
           </h1>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <CourseHeroFact label="Provider" value={course.provider} />
             <CourseHeroFact
               label="Duration"
@@ -44,8 +44,8 @@ export function CourseDetailsHero({
           </div>
         </div>
 
-        <SurfaceCard className="rounded-[36px] border-0 bg-[var(--background-soft-blue)] p-6 text-slate-900 shadow-[0_32px_60px_rgba(31,42,58,0.25)] sm:p-8">
-          <AccentIconBadge className="mb-6" size="lg" tone="brandSoft">
+        <SurfaceCard className="rounded-[36px] border-0 bg-[var(--background-soft-blue)] p-5 text-slate-900 shadow-[0_32px_60px_rgba(31,42,58,0.25)] sm:p-6">
+          <AccentIconBadge className="mb-4" size="lg" tone="brandSoft">
             <svg
               aria-hidden="true"
               className="h-8 w-8"
@@ -81,9 +81,9 @@ export function CourseDetailsHero({
               "Save and resume applications across courses",
             ]}
           />
-          <div className="content-block-compact mt-6 rounded-[28px] border border-slate-200 bg-white px-5 py-4 text-sm text-slate-700">
+          <div className="content-block-compact mt-5 rounded-[28px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
             <p className="font-semibold text-slate-900">At a glance</p>
-            <dl className="mt-3 space-y-3">
+            <dl className="mt-2 space-y-2.5">
               <div>
                 <dt className="text-xs uppercase tracking-[0.16em] text-slate-500">
                   Study level
@@ -115,7 +115,7 @@ export function CourseDetailsHero({
             </dl>
           </div>
           <Button
-            className="mt-8 w-full"
+            className="mt-5 w-full"
             onClick={() => {
               capturePostHogEvent("eligibility_check_opened", {
                 ...getCourseAnalyticsProperties(course),
@@ -133,9 +133,9 @@ export function CourseDetailsHero({
 
 function CourseHeroFact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="content-block-compact rounded-[28px] border border-white/10 bg-white/8 p-4 backdrop-blur">
+    <div className="content-block-compact rounded-[28px] border border-white/10 bg-white/8 px-3.5 py-3 backdrop-blur">
       <p className="text-xs uppercase tracking-[0.16em] text-white/70">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+      <p className="mt-1 text-sm font-semibold text-white">{value}</p>
     </div>
   );
 }

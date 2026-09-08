@@ -91,19 +91,19 @@ export function AppBrandHeader({
         data-studynext-marketing-header
       >
         <div
-          className={`mx-auto flex min-h-[88px] items-center justify-between gap-8 px-5 sm:px-6 lg:px-8 ${maxWidthClassName}`}
+          className={`mx-auto flex min-h-[64px] items-center justify-between gap-6 px-5 sm:min-h-[72px] sm:px-6 lg:px-8 ${maxWidthClassName}`}
         >
           <NavLink
             aria-label="StudyNext – go to course discovery"
             className="inline-flex shrink-0 items-center transition hover:opacity-90"
             to="/"
           >
-            <StudyNextWordmark size={30} />
+            <StudyNextWordmark size={26} />
           </NavLink>
 
           <nav
             aria-label="StudyNext course discovery"
-            className="hidden items-center gap-10 text-sm font-semibold md:flex"
+            className="hidden items-center gap-8 text-sm font-semibold md:flex"
           >
             {[
               { href: "#course-catalogue", label: "Courses" },
