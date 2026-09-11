@@ -185,9 +185,9 @@ These are the reasons this is an extend-and-harden job rather than a rewrite.
 | 1 | **No admissions staff portal.** `business_users` is a bare table with no UI, no roles, no queues, no decision recording. | Applications can be submitted but never assessed. |
 | 2 | **No offer or enrolment lifecycle.** Application status is `draft` / `submitted` only. | No conditional offers, acceptance, deferral or withdrawal. |
 | 3 | **No student system integration.** No connector to Callista, TechnologyOne, Ellucian Banner, or Salesforce Education Cloud. | Submitted applications are a dead end for the institution. |
-| 4 | **No end-to-end test suite.** Playwright is installed but used only for console and brand smoke checks; the two component tests use `renderToStaticMarkup`, so no interaction is exercised anywhere. | A ~40-screen multi-step form flow has no end-to-end verification. |
+| 4 | **No gating end-to-end suite.** A 1,176-line Playwright synthetic-funnel bot does drive a real authenticated journey through review and submission, but it is `workflow_dispatch`-only against a deployed preview and contains 110 `.catch(() => {})` swallows and zero assertions, so it gates nothing and verifies nothing. Eleven component tests use `renderToStaticMarkup`, so no interaction is exercised in CI. | A ~40-screen multi-step form flow has no verification that can fail a build. The bot is reusable scaffolding, not coverage. |
 | 5 | **No accessibility work.** ~99 ARIA attributes across the entire app, no axe integration, no screen-reader testing, no WCAG audit. | Direct Disability Discrimination Act 1992 exposure for an Australian education provider. |
-| 6 | **AI quality gate switched off.** The LLM regression job has been paused in CI since July 2026. No PII minimisation before OpenAI, no confidence thresholds routing to human review, no model fallback, no cost ceiling, no audit trail of AI-influenced decisions. | Unmeasured drift on extraction that feeds admissions outcomes. |
+| 6 | **AI quality gate is narrow, not standing.** The temporary pause in `ci.yml` expired on 2026-07-24 and the job now runs automatically — but only when the `OPENAI_API_KEY` secret is present *and* CV or transcript paths change, so there is no standing accuracy measurement. `docs/workflows/ci.md` still describes the job as paused. Separately: no PII minimisation before OpenAI, no confidence thresholds routing to human review, no model fallback, no cost ceiling, no audit trail of AI-influenced decisions. | Drift on extraction that feeds admissions outcomes is caught only when someone happens to touch those paths. |
 | 7 | **Course catalogue is a committed snapshot.** 67 courses of LLM-generated, hand-reviewed entry requirements in JSON files compiled into the bundle. | Incorrect entry requirements produce incorrect admissions decisions; updating one course requires a deployment. |
 | 8 | **Demonstration fixtures on production code paths.** A deterministic credit result keyed to a named public figure's normalised identity ships in the UC flow. | Must be removed or hard-gated before any real applicant traffic. |
 | 9 | **No payments.** No application fee, deposit, refund or reconciliation. | Blocks most fee-charging admissions models. |
@@ -222,7 +222,7 @@ review and their own testing.
 | Workstream | Low | High |
 | --- | --- | --- |
 | Team onboarding and knowledge transfer from the sole author | 3 | 5 |
-| Automated test foundation — Playwright E2E over the full journey, a real component-test layer (jsdom/RTL), coverage gates, flake control | 10 | 14 |
+| Automated test foundation — convert the non-asserting synthetic-funnel bot into a gating Playwright suite over the full journey, add a real component-test layer (jsdom/RTL), coverage gates, flake control. The existing bot is reusable scaffolding, which is why this is not higher | 10 | 14 |
 | Accessibility to WCAG 2.2 AA — audit, remediation across every form, assistive-technology passes, VPAT | 6 | 9 |
 | Security and privacy hardening — threat model, external penetration test and remediation, audit logging, retention and deletion, DSR tooling, privacy impact assessment | 8 | 11 |
 | AI governance — eval harness gating merges, PII minimisation before OpenAI, confidence thresholds with a human-review path, model fallback, cost budgets, decision audit trail | 8 | 11 |
@@ -317,10 +317,10 @@ At roughly 25,000 applications per year, excluding people:
 | Sentry | $1,200 – $6,000 |
 | PostHog | $0 – $9,000 |
 | Transactional email (Resend) | $300 – $2,500 |
-| OpenAI — 3–6 structured calls per application at roughly $0.05–$0.25 each | $1,500 – $7,500 |
+| OpenAI — 3–6 structured `gpt-4.1-mini` calls per application, roughly $0.05–$0.25 per application in total | $1,250 – $6,250 |
 | Google Places via `suggest-service` | $500 – $3,000 |
 | Annual penetration test | $15,000 – $35,000 |
-| **Total infrastructure and services** | **$20k – $85k** |
+| **Total infrastructure and services** | **$20k – $84k** |
 
 Ongoing engineering to run and evolve the platform: 2–3 FTE, roughly
 $400k – $700k per year.
@@ -329,10 +329,11 @@ $400k – $700k per year.
 
 ## 7. Recommended sequence
 
-1. **Weeks 1–5 — De-risk before committing.** Onboard two engineers, restore the
-   paused LLM regression gate and measure current extraction accuracy, remove the
-   demonstration fixtures, and commission an external penetration test and
-   accessibility audit. This costs roughly 8–12 engineer-weeks and materially
+1. **Weeks 1–5 — De-risk before committing.** Onboard two engineers, widen the
+   LLM regression job from path-triggered to a standing scheduled accuracy
+   measurement (and correct `docs/workflows/ci.md`, which still calls it paused),
+   remove the demonstration fixtures, and commission an external penetration test
+   and accessibility audit. This costs roughly 8–12 engineer-weeks and materially
    tightens every figure above.
 2. **Decide the product question before Track B.** Whether this is one
    institution's application portal or a multi-institution platform changes the
