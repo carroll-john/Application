@@ -19,16 +19,16 @@ standard.** Multi-step application capture, authentication with enforced MFA,
 server-authoritative submission, private document handling, 832 test cases and a
 documented architecture with contract-tested boundaries.
 
-**The decision layer is not built, though it looks like it is.** Occupation
+**The decision layer only looks built.** Occupation
 classification has no reference dataset and asks a language model to recall
 codes from memory. Admission and credit decisions execute in the applicant's
 browser and are never recorded. There is no canonical evidence model, no credit
 precedent concept, and entry requirements are LLM-generated JSON compiled into
-the bundle. This is the part of the product that differentiates it, and it is
-closer to a working demonstration than to a system that can issue outcomes.
+the bundle. This is the part that differentiates the product. It works as a
+demonstration; it cannot yet issue an outcome anyone could rely on.
 
-The institution-facing half — assessment, decisions, offers, student-system
-integration — does not exist at all.
+The institution-facing half (assessment, decisions, offers, student-system
+integration) does not exist at all.
 
 | Half of the product | State |
 | --- | --- |
@@ -37,7 +37,7 @@ integration — does not exist at all.
 | Institution experience (assess → decide → offer → enrol) | Absent |
 
 This remains a **harden and extend** estimate. Nothing found argues for starting
-again — the foundations, the rule format and the domain modelling are sound.
+again. The foundations, the rule format and the domain modelling are sound.
 
 ### Effort and cost
 
@@ -54,7 +54,7 @@ rates.
 > **Track A grew from an earlier figure of 53–77.** That earlier number treated
 > the intelligence layer as existing and needing governance wrapped around it.
 > On inspection, occupation grounding, server-side decisions and credit
-> precedent are builds, not hardening jobs. Section 7 reconciles the change line
+> precedent all have to be built. Section 7 reconciles the change line
 > by line. The applicant-facing application API, sized separately at 8–12 weeks
 > during the review, is excluded because it has since been built.
 
@@ -83,25 +83,25 @@ Roughly 695 files: ~38,500 lines of production TypeScript/TSX in `src`, ~8,400 i
 
 ### 2.2 Applicant-facing features
 
-1. **Course discovery** — browse, filters, results, cards, detail with hero and
+1. **Course discovery.** Browse, filters, results, cards, detail with hero and
    checklist. Two committed catalogues: 34 StudyNext and 33 UC courses.
-2. **Pre-application eligibility check** — modal, result modal, per-course
+2. **Pre-application eligibility check.** Modal, result modal, per-course
    evidence display.
-3. **Authentication** — sign up, sign in, email confirmation, forgot and reset
+3. **Authentication.** Sign up, sign in, email confirmation, forgot and reset
    password, TOTP MFA enrolment and challenge enforced to AAL2, password change
    with re-authentication, leaked-password check.
 4. **Applicant profile** and a multi-application dashboard.
-5. **Section 1 (personal), six steps** — basic info, contact, personal contact,
+5. **Section 1 (personal), six steps.** Basic info, contact, personal contact,
    address with Places autocomplete, cultural background, family support and
    disability.
-6. **Section 2 (qualifications), hub plus six record types** — secondary and
+6. **Section 2 (qualifications), hub plus six record types.** Secondary and
    tertiary (with transcript), CV, employment, language test, accreditation;
    supporting-evidence panel, evidence plan, next-step panel, dispute form.
-7. **Review and submit** — section summaries, validation panel, declaration,
+7. **Review and submit.** Section summaries, validation panel, declaration,
    server-authoritative submit with a database-owned policy snapshot.
-8. **UC credit / RPL demonstration** — course matcher, experience review, credit
+8. **UC credit / RPL demonstration.** Course matcher, experience review, credit
    comparison panel.
-9. **Shared UI kit** — form primitives, three autocompletes, date controls, modal
+9. **Shared UI kit.** Form primitives, three autocompletes, date controls, modal
    shell, upload fields, brand chrome, loading and error states.
 
 ### 2.3 Serverless API surface
@@ -124,7 +124,7 @@ Sentry and PostHog.
 
 ### 2.4 Data layer
 
-- **11 tables** — `applications`, `application_documents`, `applicant_profiles`,
+- **11 tables.** `applications`, `application_documents`, `applicant_profiles`,
   `business_users`, `tertiary_qualifications`, `secondary_qualifications`,
   `employment_experiences`, `language_tests`, `professional_accreditations`,
   `course_submission_policies`, `allowed_email_domains`.
@@ -164,12 +164,12 @@ These are why this is an extend-and-harden job rather than a rewrite.
 - **Server-authoritative submission.** The client is explicitly a UX mirror; the
   RPC and a database-owned policy snapshot are final authority; submitted
   records are immutable to applicants.
-- **Security posture well beyond prototype level.** Enforced CSP with reporting,
+- **Security posture.** Enforced CSP with reporting,
   HSTS, TOTP MFA enforced in both browser and RLS via the JWT `aal` claim,
   per-route rate limiting, database and storage upload quotas, anon-role grants
   revoked, pg_graphql exposure disabled.
-- **A well-designed rule format.** See section 4.3 — this is the single most
-  valuable artefact in the repository and it needs promoting, not redesigning.
+- **A well-designed rule format.** See section 4.3. It should be promoted into a
+  governed store.
 
 ### 3.2 What is weaker than it appears
 
@@ -177,10 +177,10 @@ These are why this is an extend-and-harden job rather than a rewrite.
   bot does drive a real authenticated journey through review and submission, but
   it is `workflow_dispatch`-only against a deployed preview and contains 110
   `.catch(() => {})` swallows with zero assertions. Eleven component tests use
-  `renderToStaticMarkup`, so no interaction is exercised in CI. Useful
-  scaffolding; nothing that can fail a build.
-- **The AI quality gate is narrow, not standing.** The temporary pause in
-  `ci.yml` expired on 2026-07-24 and the job runs automatically again — but only
+  `renderToStaticMarkup`, so no interaction is exercised in CI. It is useful
+  scaffolding, but it cannot fail a build.
+- **The AI quality gate fires only on some changes.** The temporary pause in
+  `ci.yml` expired on 2026-07-24 and the job runs automatically again, but only
   when the OpenAI secret is present *and* CV or transcript paths change, so
   accuracy is never measured on a standing basis. `docs/workflows/ci.md` still
   describes it as paused.
@@ -190,7 +190,7 @@ These are why this is an extend-and-harden job rather than a rewrite.
 ### 3.3 Delivery risks
 
 - **Bus factor of one.** Fifty-nine of sixty commits are by a single author
-  working with AI assistance. Onboarding is budgeted explicitly in Track A.
+  working with AI assistance. Onboarding is budgeted in Track A.
 - **Cross-repo contract drift.** Two runtime dependencies deploy independently;
   contract tests exist on the caller side only.
 - **Rules correctness is unvalidated against real policy.** The engine is well
@@ -202,9 +202,9 @@ These are why this is an extend-and-harden job rather than a rewrite.
 
 ### 4.1 One pipeline, two document kinds
 
-Every capability in scope — eligibility, CV auto-fill, occupation mapping, course
-matching, credit and RPL — is a composition of three operations with opposite
-engineering characteristics:
+Every capability in scope (eligibility, CV auto-fill, occupation mapping, course
+matching, credit and RPL) combines three operations with opposite engineering
+characteristics:
 
 | Operation | Speed | Nature | On failure | Wants |
 | --- | --- | --- | --- | --- |
@@ -212,16 +212,16 @@ engineering characteristics:
 | **Classify** — free text to controlled vocabulary | Sub-second | Grounded in a dataset | Return candidates, not a guess | Reference data, eval sets |
 | **Decide** — facts plus rules to an outcome | Milliseconds | Deterministic | Never silently; refer to a human | Recording, replay, reason codes |
 
-The load-bearing property: **language-model calls happen twice — once per
-document, once per role — and never again.** Everything downstream is
-deterministic evaluation over structured data. That is what makes "which of
-several hundred programs is this person eligible for" a millisecond sweep rather
-than a fan-out of hundreds of model calls, and it is the practical reason the
-three operations must be separate services rather than one fused route.
+**Language-model calls happen twice: once per document, once per role, and never
+again.** That is the load-bearing property. Everything downstream is
+deterministic evaluation over structured data, which is what makes "which of
+several hundred programs is this person eligible for" a millisecond sweep
+instead of a fan-out of hundreds of model calls. It is also the practical reason
+the three operations belong in separate services.
 
 CVs and transcripts run the same pipeline, parameterised by document kind.
 
-### 4.2 Evidence is the spine, and trust tiers are not optional
+### 4.2 Evidence is the spine
 
 Extraction and decision currently hand data to each other as ad-hoc shapes inside
 a single request, which is why a decision cannot be made without re-uploading a
@@ -243,10 +243,11 @@ applicant, read by every decision service:
 master's degree is not the same fact as a transcript showing it. Requirements
 must be able to declare the minimum trust tier that satisfies them: CV-derived
 facts pre-fill forms and rank courses, but generally cannot satisfy an admission
-requirement alone. The codebase already learned this empirically — the
+requirement alone. The codebase already learned this empirically. The
 applications domain contract requires transcript evidence for a positive credit
-estimate and permits CV relevance only alongside it — but encodes it as a special
-case inside the UC flow. As a property of the data model it applies everywhere.
+estimate and permits CV relevance only alongside it, but encodes that as a
+special case inside the UC flow. As a property of the data model it applies
+everywhere.
 
 **Pre-fill is not evidence.** Pre-fill proposes values for form fields. Evidence
 is what decisions read. Fused, an applicant editing a field silently changes an
@@ -263,7 +264,7 @@ admission decision with no record of what the document said.
 
 ### 4.4 The rule format is already right
 
-`requirements.generated.json` contains a genuinely well-designed schema:
+`requirements.generated.json` contains a well-designed schema:
 
 ```
 version: 2
@@ -277,7 +278,7 @@ pathways[]      alternative routes (OR)
 ```
 
 Four non-obvious calls, all correct: pathways-as-alternatives matches how
-admission rules genuinely work; `global` separates universal from route-specific
+admission rules work; `global` separates universal from route-specific
 conditions; `kind` is drawn from a closed vocabulary with a typed evaluator each;
 `sourceText` keeps published wording attached, which is what makes a rule
 reviewable by an admissions officer and citable in an appeal.
@@ -285,30 +286,30 @@ reviewable by an admissions officer and citable in an appeal.
 **Resist generalising this into an expression language** when institutions two
 and three arrive. A closed vocabulary is worth defending: an admissions officer
 can review a typed requirement and cannot review an expression tree; each kind
-gets a real evaluator with real tests; and an expression evaluator fed by scraped
+gets an evaluator with tests; and an expression evaluator fed by scraped
 content is a code-execution surface. When a rule does not fit, add a fifteenth
 kind.
 
 What the format needs that it does not have: institution scoping, version and
 effective dates, approval state and approver, diff review on re-ingestion, and
 credit rules alongside entry rules. Store each rule set as one validated JSON
-document per row — the document is the unit that gets versioned, approved and
+document per row. The document is the unit that gets versioned, approved and
 cited by a decision.
 
 ---
 
 ## 5. Gaps that block production
 
-Ranked. The first four are new findings from the architecture review and are the
-reason Track A grew.
+Ranked, with the first four new findings from the architecture review. They are
+the reason Track A grew.
 
 | # | Gap | Impact |
 | --- | --- | --- |
 | 1 | **No occupation reference dataset.** The CV prompt asks the model to return an OSCA code, title and skill level from memory. No occupation list, index or lookup exists. Every six-digit code in the repository comes from a demo fixture, a test placeholder or a sentinel. | Skill level flows into `assessUcAdmission`, which converts it to an equivalent GPA band. Wrong codes are plausible, well-formatted and unverifiable. |
-| 2 | **Admission and credit decisions execute in the browser.** `assessUcAdmission`, `rankUcCourses`, `getUcIndicativeCreditPoints` and `assessUcShortlistCredit` are all called from `UcRplCourseMatcher.tsx` — roughly 1,300 lines client-side. `applyEligibilityResolution` runs both in the API proxy and in the browser. | No decision is recorded, so none can be replayed for an appeal or a rule change; nothing is auditable; the logic is modifiable by anyone with developer tools. |
+| 2 | **Admission and credit decisions execute in the browser.** `assessUcAdmission`, `rankUcCourses`, `getUcIndicativeCreditPoints` and `assessUcShortlistCredit` are all called from `UcRplCourseMatcher.tsx`, roughly 1,300 lines client-side. `applyEligibilityResolution` runs both in the API proxy and in the browser. | No decision is recorded, so none can be replayed for an appeal or a rule change; nothing is auditable; the logic is modifiable by anyone with developer tools. |
 | 3 | **No evidence model.** Extraction and decision exchange ad-hoc shapes within one request. | A decision cannot be made, tested or replayed without re-uploading a file. |
 | 4 | **No credit precedent concept.** Zero references in the codebase. | Credit assessment restarts from the model on every application instead of getting more consistent over time. |
-| 5 | **No admissions staff portal.** `business_users` is a bare table — no UI, roles, queues or decision recording. | Applications can be submitted but never assessed. |
+| 5 | **No admissions staff portal.** `business_users` is a bare table with no UI, roles, queues or decision recording. | Applications can be submitted but never assessed. |
 | 6 | **No offer or enrolment lifecycle.** Status is `draft` / `submitted` only. | No conditional offers, acceptance, deferral or withdrawal. |
 | 7 | **No student system integration.** No connector to Callista, TechnologyOne, Ellucian Banner or Salesforce Education Cloud. | Submitted applications are a dead end for the institution. |
 | 8 | **No gating end-to-end suite.** See 3.2. | A ~40-screen flow has no verification that can fail a build. |
@@ -416,14 +417,14 @@ architecture review.
 | **Revised Track A** | **97** | **144** |
 
 The applicant-facing application API, sized at 8–12 weeks during the API review,
-is excluded — it has since been built.
+is excluded because it has since been built.
 
-The increase is not scope creep. The first estimate treated the intelligence
-layer as existing and needing governance wrapped around it. Inspection showed
-that occupation grounding, server-side decisions, the evidence model and credit
-precedent are builds. The three fat API routes and the client-side decision
-functions are working demonstrations of the right ideas, not production
-implementations of them.
+The first estimate treated the intelligence layer as existing and needing
+governance wrapped around it. Inspection showed that occupation grounding,
+server-side decisions, the evidence model and credit precedent all have to be
+built. The three fat API routes and the client-side decision functions
+demonstrate the right ideas without implementing them for production. That is a
+correction to the earlier reading, not added scope.
 
 ---
 
@@ -442,7 +443,7 @@ implementations of them.
 | Integration engineer (SIS / CRM) | — | 1.0 | Callista, TechnologyOne, Ellucian Banner or Salesforce Education Cloud; SOAP, REST, SFTP, batch reconciliation |
 | Product designer | 0.5 | +0.5 | Extending the design system to staff-facing assessment workflows |
 | Product manager / BA, admissions domain | 1.0 | +0.0 | Entry requirements, credit and RPL policy, offer rules, TEQSA / ESOS / CRICOS |
-| Admissions domain SME (institution-supplied) | 0.5 | +0.5 | Labelling ground truth and signing off that a matched occupation code is correct — materially more time than a pure hardening track would need |
+| Admissions domain SME (institution-supplied) | 0.5 | +0.5 | Labelling ground truth and signing off that a matched occupation code is correct; more time than a pure hardening track needs |
 | Privacy / compliance advisor (fractional) | 0.2 | +0.2 | Privacy Act and APPs, automated decision-making disclosure, data residency |
 
 Track C additionally needs a platform engineer experienced in multi-tenant data
@@ -450,7 +451,7 @@ isolation, and a localisation lead.
 
 **The three hardest roles to fill** for this system: an AI engineer who can build
 evaluation harnesses for extraction feeding regulated decisions; a Postgres
-engineer genuinely fluent in RLS and `security definer` boundaries; and an
+engineer fluent in RLS and `security definer` boundaries; and an
 integration engineer with real Australian student-system experience.
 
 ---
@@ -490,7 +491,7 @@ $400k – $700k per year.
 
 ## 10. Recommended sequence
 
-1. **Evidence spine first — two to three weeks.** Every service reads it, and
+1. **Evidence spine first, two to three weeks.** Every service reads it, and
    retrofitting provenance and trust tiers once four services depend on them is
    expensive. Getting the CV-versus-transcript distinction into the schema now is
    what makes every later claim about the system defensible.
@@ -498,8 +499,8 @@ $400k – $700k per year.
    into a versioned, effective-dated, approved table with institution scoping.
    This is also the gate on a second institution, so it is the commercial
    unblocker. Steps 1 and 2 together are roughly six to nine engineer-weeks, and
-   both are pure engineering — no model-accuracy risk, no labelling dependency —
-   so they are the right work to do while reference data is sourced in parallel.
+   both are pure engineering: no model-accuracy risk, no labelling dependency.
+   They are the right work to do while reference data is sourced in parallel.
 3. **The OSCA vocabulary and matcher, with its eval set.** Upstream of three
    capabilities and currently the least trustworthy step. Its real accuracy
    ceiling determines what work-experience matching can honestly promise. Find
@@ -507,22 +508,22 @@ $400k – $700k per year.
 4. **Move existing decisions server-side unchanged.** Recorded and replayable,
    matching today's behaviour exactly. That baseline is what every later
    improvement is measured against.
-5. **In parallel from week one: commission the external penetration test and
-   accessibility audit,** widen the LLM regression job from path-triggered to a
+5. **In parallel from week one.** Commission the external penetration test and
+   accessibility audit, widen the LLM regression job from path-triggered to a
    standing scheduled measurement (and correct `docs/workflows/ci.md`, which
    still calls it paused), and remove the demonstration fixtures.
 6. **Decide the tenancy question before Track B.** Whether this is one
    institution's portal or a multi-institution platform changes the tenancy
-   model, and retrofitting after Track B costs materially more.
+   model, and retrofitting after Track B is far more expensive.
 7. **Secure a named student-system integration target early.** Longest lead time
    in Track B, least under the delivery team's control.
 8. **Credit precedent last.** It needs recorded decisions to exist and assessors
    in the system to set them.
 
 **Before committing the full budget**, steps 1–3 plus the audits in step 5 cost
-roughly 16–24 engineer-weeks and would tighten every figure in this document
-materially — particularly the occupation-matching accuracy ceiling, which is the
-largest single unknown.
+roughly 16–24 engineer-weeks and would tighten every figure in this document,
+particularly the occupation-matching accuracy ceiling, which is the largest
+single unknown.
 
 ---
 
@@ -531,12 +532,12 @@ largest single unknown.
 Three companion analyses were produced alongside this document and remain the
 detailed reference for their areas:
 
-- **API surface decomposition** — audit of the ten existing routes, which three
+- **API surface decomposition.** Audit of the ten existing routes, which three
   need splitting and why, and the target endpoint surface.
-- **Decision services specification** — the extract/classify/decide endpoint set,
+- **Decision services specification.** The extract/classify/decide endpoint set,
   and the capabilities missing from an initial scoping.
-- **Pipeline and stores** — the shared CV/transcript pipeline, the four stores,
+- **Pipeline and stores.** The shared CV/transcript pipeline, the four stores,
   and rule-set governance.
 
-Where they disagree with this document, this document is current: it reconciles
+Where they disagree with this document, this document is current. It reconciles
 figures that moved as the review progressed.
