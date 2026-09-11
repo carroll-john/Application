@@ -22,10 +22,11 @@ documented architecture with contract-tested boundaries.
 **The decision layer only looks built.** Occupation
 classification has no reference dataset and asks a language model to recall
 codes from memory. Admission and credit decisions execute in the applicant's
-browser and are never recorded. There is no canonical evidence model, no credit
-precedent concept, and entry requirements are LLM-generated JSON compiled into
-the bundle. This is the part that differentiates the product. It works as a
-demonstration; it cannot yet issue an outcome anyone could rely on.
+browser and are never recorded. There is no canonical evidence model and no
+credit precedent concept. Most decisively, the rules themselves barely exist: of
+67 catalogue courses, one has human-reviewed entry requirements. This is the part
+that differentiates the product. It works as a demonstration on a single course;
+it cannot yet issue an outcome anyone could rely on.
 
 The institution-facing half (assessment, decisions, offers, student-system
 integration) does not exist at all.
@@ -43,9 +44,9 @@ again. The foundations, the rule format and the domain modelling are sound.
 
 | Track | Scope | Engineer-weeks | All-in cost (AUD ex GST, contract basis) | Calendar |
 | --- | --- | --- | --- | --- |
-| **A** | Production-grade decision layer, plus hardening the applicant journey | 97–144 | $820k – $1.66m | 6–9 months, team of 5–6 |
-| **A + B** | Add admissions staff portal, offer lifecycle, SIS integration, payments | 150–221 | $1.27m – $2.54m | 12–16 months, team of 7–8 |
-| **A + B + C** | Multi-institution platform, agent portal, international cohort | 184–270 | $1.55m – $3.11m | 18–24 months, team of 8–10 |
+| **A** | Production-grade decision layer, plus hardening the applicant journey | 99–147 | $840k – $1.69m | 6–9 months, team of 5–6 |
+| **A + B** | Add admissions staff portal, offer lifecycle, SIS integration, payments | 152–224 | $1.28m – $2.58m | 12–16 months, team of 7–8 |
+| **A + B + C** | Multi-institution platform, agent portal, international cohort | 186–273 | $1.57m – $3.14m | 18–24 months, team of 8–10 |
 
 All-in figures apply a 30% loading for non-engineering delivery and 18%
 contingency. Section 8 prices the same effort against in-house and consultancy
@@ -53,6 +54,7 @@ rates.
 
 > **Track A grew from an earlier figure of 53–77.** That earlier number treated
 > the intelligence layer as existing and needing governance wrapped around it.
+> It also assumed the rule content existed. It largely does not.
 > On inspection, occupation grounding, server-side decisions and credit
 > precedent all have to be built. Section 7 reconciles the change line
 > by line. The applicant-facing application API, sized separately at 8–12 weeks
@@ -193,8 +195,11 @@ These are why this is an extend-and-harden job rather than a rewrite.
   working with AI assistance. Onboarding is budgeted in Track A.
 - **Cross-repo contract drift.** Two runtime dependencies deploy independently;
   contract tests exist on the caller side only.
-- **Rules correctness is unvalidated against real policy.** The engine is well
-  tested against its own fixtures. No admissions authority has signed it off.
+- **Rules correctness cannot be validated by the current eval.** All fifteen
+  `.expected.json` golden fixtures are byte-identical to the generated output
+  they are compared against, keyed by a hash of the input text. The eval detects
+  parser drift, which is useful, but by construction it cannot tell you whether a
+  rule is right. No admissions authority has signed any of them off.
 
 ---
 
@@ -292,15 +297,21 @@ kind.
 
 What the format needs that it does not have: institution scoping, version and
 effective dates, approval state and approver, diff review on re-ingestion, and
-credit rules alongside entry rules. Store each rule set as one validated JSON
-document per row. The document is the unit that gets versioned, approved and
-cited by a decision.
+credit rules alongside entry rules. There is currently no field anywhere in
+either file recording that a human checked a rule. Store each rule set as one
+validated JSON document per row. The document is the unit that gets versioned,
+approved and cited by a decision.
+
+The format being right is worth little while it is nearly empty. See gap 5 and
+section 6.1: the schema is a good container for content that has not been
+written yet, and writing it is a content operation rather than an engineering
+one.
 
 ---
 
 ## 5. Gaps that block production
 
-Ranked, with the first four new findings from the architecture review. They are
+Ranked, with the first five new findings from the architecture review. They are
 the reason Track A grew.
 
 | # | Gap | Impact |
@@ -309,12 +320,12 @@ the reason Track A grew.
 | 2 | **Admission and credit decisions execute in the browser.** `assessUcAdmission`, `rankUcCourses`, `getUcIndicativeCreditPoints` and `assessUcShortlistCredit` are all called from `UcRplCourseMatcher.tsx`, roughly 1,300 lines client-side. `applyEligibilityResolution` runs both in the API proxy and in the browser. | No decision is recorded, so none can be replayed for an appeal or a rule change; nothing is auditable; the logic is modifiable by anyone with developer tools. |
 | 3 | **No evidence model.** Extraction and decision exchange ad-hoc shapes within one request. | A decision cannot be made, tested or replayed without re-uploading a file. |
 | 4 | **No credit precedent concept.** Zero references in the codebase. | Credit assessment restarts from the model on every application instead of getting more consistent over time. |
-| 5 | **No admissions staff portal.** `business_users` is a bare table with no UI, roles, queues or decision recording. | Applications can be submitted but never assessed. |
-| 6 | **No offer or enrolment lifecycle.** Status is `draft` / `submitted` only. | No conditional offers, acceptance, deferral or withdrawal. |
-| 7 | **No student system integration.** No connector to Callista, TechnologyOne, Ellucian Banner or Salesforce Education Cloud. | Submitted applications are a dead end for the institution. |
-| 8 | **No gating end-to-end suite.** See 3.2. | A ~40-screen flow has no verification that can fail a build. |
-| 9 | **No accessibility work.** ~99 ARIA attributes app-wide, no axe integration, no assistive-technology testing, no audit. | Direct Disability Discrimination Act 1992 exposure on a product that is almost entirely forms. |
-| 10 | **Course catalogue is a committed snapshot.** 67 courses of LLM-generated, hand-reviewed requirements compiled into the bundle. | Wrong requirements produce wrong decisions; changing one course needs a deployment. |
+| 5 | **The rules barely exist.** Of 67 catalogue courses, **one** has human-reviewed entry requirements (`master-of-business-administration-government`; the UC file's `model` field reads `human-reviewed`). Thirty-three carry unreviewed `gpt-4.1-mini` output generated on 2026-07-08, one of them with zero requirements. The remaining thirty-two UC courses have no encoded rules at all and are marked `eligibilityPolicy: manual_review`. | Everything in section 4 is only as good as this content. The demonstrated automated capability covers one course. Routing the other 32 to manual review is the correct safe behaviour and to the codebase's credit, but it is not an automated admissions product. |
+| 6 | **No admissions staff portal.** `business_users` is a bare table with no UI, roles, queues or decision recording. | Applications can be submitted but never assessed. |
+| 7 | **No offer or enrolment lifecycle.** Status is `draft` / `submitted` only. | No conditional offers, acceptance, deferral or withdrawal. |
+| 8 | **No student system integration.** No connector to Callista, TechnologyOne, Ellucian Banner or Salesforce Education Cloud. | Submitted applications are a dead end for the institution. |
+| 9 | **No gating end-to-end suite.** See 3.2. | A ~40-screen flow has no verification that can fail a build. |
+| 10 | **No accessibility work.** ~99 ARIA attributes app-wide, no axe integration, no assistive-technology testing, no audit. | Direct Disability Discrimination Act 1992 exposure on a product that is almost entirely forms. |
 | 11 | **Demonstration fixtures on production paths.** A deterministic credit result keyed to a named public figure's normalised identity ships in the UC flow. | Must be removed or hard-gated before real traffic. |
 | 12 | **Privacy and records compliance unaddressed.** No retention or deletion policy, DSR tooling, consent records, privacy impact assessment or data-residency position; OpenAI processing is offshore. The analytics identity salt is documented as bundled and reversible. | Australian Privacy Act and APP exposure; TEQSA and ESOS record-keeping unmet. |
 | 13 | **No payments.** No application fee, deposit, refund or reconciliation. | Blocks most fee-charging admissions models. |
@@ -345,9 +356,9 @@ review and their own testing.
 | Credit and RPL assessment, de-branded from UC and moved server-side | 5 | 8 |
 | Course matching and discovery from evidence | 4 | 6 |
 | Credit precedent — model, similarity, capture, governance | 6 | 9 |
-| Rule sets as a governed store — institution scoping, versioning, effective dating, ingestion and approval workflow | 6 | 9 |
+| Rule sets as a governed store — institution scoping, versioning, effective dating, ingestion, authoring and approval tooling | 8 | 12 |
 | Eval harness, confidence thresholds, review routing, reason codes, cost budgets | 8 | 11 |
-| **A1 subtotal** | **58** | **87** |
+| **A1 subtotal** | **60** | **90** |
 
 **A2 — Hardening the applicant journey**
 
@@ -364,7 +375,31 @@ review and their own testing.
 
 | | Low | High |
 | --- | --- | --- |
-| **Track A total** | **97** | **144** |
+| **Track A total** | **99** | **147** |
+
+### 6.1 Rule authoring is a content operation
+
+The engineering above builds the store and the tooling. It does not write the
+rules, and the rules are what the product actually sells. That work is measured
+in SME hours per course, not engineer-weeks, and it recurs.
+
+| | Estimate |
+| --- | --- |
+| Encode one course's published requirements into the 14 kinds and verify against policy | 2–6 SME-hours |
+| The current 67-course catalogue | 130–400 hours, roughly 3–10 SME-weeks |
+| Staying current, assuming 20–30% of courses revise requirements each year | 1–3 SME-weeks per year per 67 courses |
+
+At platform scale this becomes the binding constraint. Five institutions at two
+hundred courses each is a thousand courses: 2,000–6,000 hours, or 50–150
+SME-weeks of authoring and approval before the platform can assess anything for
+them. That is a hiring and process problem. It does not compress by adding
+engineers, and it is the reason Track C's tenancy line is the cheaper half of
+going multi-institution.
+
+Two things reduce it rather than eliminate it: ingestion that drafts a rule set
+from the published page so the SME reviews rather than authors, and diff review
+on re-ingestion so annual churn costs minutes per course instead of a fresh
+read. Both are in the A1 store line above.
 
 ### Track B — Make it a real admissions system
 
@@ -393,13 +428,15 @@ inherits that work rather than repeating it.
 
 | Track | Engineer-weeks | Realistic calendar | Team |
 | --- | --- | --- | --- |
-| A | 97 – 144 | 6 – 9 months | 5 – 6 |
-| A + B | 150 – 221 | 12 – 16 months | 7 – 8 |
-| A + B + C | 184 – 270 | 18 – 24 months | 8 – 10 |
+| A | 99 – 147 | 6 – 9 months | 5 – 6 |
+| A + B | 152 – 224 | 12 – 16 months | 7 – 8 |
+| A + B + C | 186 – 273 | 18 – 24 months | 8 – 10 |
 
-Calendar exceeds effort divided by team size because student-system integration,
-penetration testing, accessibility certification, reference-data sourcing and
-admissions-policy sign-off all depend on third parties.
+Engineer-weeks exclude the SME authoring in 6.1, which runs alongside rather
+than inside the engineering. Calendar exceeds effort divided by team size because
+student-system integration, penetration testing, accessibility certification,
+reference-data sourcing and admissions-policy sign-off all depend on third
+parties.
 
 ---
 
@@ -413,8 +450,8 @@ architecture review.
 | Track A as first estimated | 53 | 77 |
 | Less: AI-governance line, superseded by the eval harness in A1 | −8 | −11 |
 | Less: course-requirements-management line, superseded by the rule store in A1 | −6 | −9 |
-| Plus: decision services (A1) | +58 | +87 |
-| **Revised Track A** | **97** | **144** |
+| Plus: decision services (A1) | +60 | +90 |
+| **Revised Track A** | **99** | **147** |
 
 The applicant-facing application API, sized at 8–12 weeks during the API review,
 is excluded because it has since been built.
@@ -422,9 +459,10 @@ is excluded because it has since been built.
 The first estimate treated the intelligence layer as existing and needing
 governance wrapped around it. Inspection showed that occupation grounding,
 server-side decisions, the evidence model and credit precedent all have to be
-built. The three fat API routes and the client-side decision functions
-demonstrate the right ideas without implementing them for production. That is a
-correction to the earlier reading, not added scope.
+built, and that the rule content behind all of them covers one course. The three
+fat API routes and the client-side decision functions demonstrate the right ideas
+without implementing them for production. That is a correction to the earlier
+reading, not added scope.
 
 ---
 
@@ -443,7 +481,7 @@ correction to the earlier reading, not added scope.
 | Integration engineer (SIS / CRM) | — | 1.0 | Callista, TechnologyOne, Ellucian Banner or Salesforce Education Cloud; SOAP, REST, SFTP, batch reconciliation |
 | Product designer | 0.5 | +0.5 | Extending the design system to staff-facing assessment workflows |
 | Product manager / BA, admissions domain | 1.0 | +0.0 | Entry requirements, credit and RPL policy, offer rules, TEQSA / ESOS / CRICOS |
-| Admissions domain SME (institution-supplied) | 0.5 | +0.5 | Labelling ground truth and signing off that a matched occupation code is correct; more time than a pure hardening track needs |
+| Admissions domain SME (institution-supplied) | 0.5 | +0.5 | Authoring and approving rule sets (see 6.1), labelling ground truth, and signing off that a matched occupation code is correct. The largest non-engineering dependency in the plan |
 | Privacy / compliance advisor (fractional) | 0.2 | +0.2 | Privacy Act and APPs, automated decision-making disclosure, data residency |
 
 Track C additionally needs a platform engineer experienced in multi-tenant data
@@ -463,9 +501,9 @@ loading for non-engineering delivery and 18% contingency.
 
 | Rate basis | Per eng-week | Track A | A + B | A + B + C |
 | --- | --- | --- | --- | --- |
-| In-house permanent team, loaded | $4.0k – $5.5k | $600k – $1.22m | $920k – $1.87m | $1.13m – $2.28m |
-| Local contract engineers | $5.5k – $7.5k | $820k – $1.66m | $1.27m – $2.54m | $1.55m – $3.11m |
-| Consultancy / delivery partner | $8.0k – $11.0k | $1.19m – $2.43m | $1.84m – $3.73m | $2.26m – $4.56m |
+| In-house permanent team, loaded | $4.0k – $5.5k | $610k – $1.24m | $930k – $1.89m | $1.14m – $2.30m |
+| Local contract engineers | $5.5k – $7.5k | $840k – $1.69m | $1.28m – $2.58m | $1.57m – $3.14m |
+| Consultancy / delivery partner | $8.0k – $11.0k | $1.22m – $2.48m | $1.87m – $3.78m | $2.28m – $4.61m |
 
 ### Annual running cost
 
@@ -485,7 +523,7 @@ At roughly 25,000 applications per year, excluding people.
 | **Total infrastructure and services** | **$20k – $84k** |
 
 Ongoing engineering to run and evolve the platform: 2–3 FTE, roughly
-$400k – $700k per year.
+$400k – $700k per year, plus the recurring SME authoring in 6.1.
 
 ---
 
@@ -498,9 +536,10 @@ $400k – $700k per year.
 2. **Rule sets as a governed store.** Lift the existing format out of the bundle
    into a versioned, effective-dated, approved table with institution scoping.
    This is also the gate on a second institution, so it is the commercial
-   unblocker. Steps 1 and 2 together are roughly six to nine engineer-weeks, and
-   both are pure engineering: no model-accuracy risk, no labelling dependency.
-   They are the right work to do while reference data is sourced in parallel.
+   unblocker. Steps 1 and 2 together are roughly ten to fifteen engineer-weeks,
+   and both are pure engineering: no model-accuracy risk, no labelling
+   dependency. They are the right work to do while reference data is sourced and
+   SME authoring capacity is lined up in parallel.
 3. **The OSCA vocabulary and matcher, with its eval set.** Upstream of three
    capabilities and currently the least trustworthy step. Its real accuracy
    ceiling determines what work-experience matching can honestly promise. Find
@@ -519,6 +558,9 @@ $400k – $700k per year.
    in Track B, least under the delivery team's control.
 8. **Credit precedent last.** It needs recorded decisions to exist and assessors
    in the system to set them.
+9. **Start rule authoring as soon as the store exists**, and treat coverage as a
+   tracked number. Until it is well above one course, every demonstration is a
+   demonstration of one course.
 
 **Before committing the full budget**, steps 1–3 plus the audits in step 5 cost
 roughly 16–24 engineer-weeks and would tighten every figure in this document,
