@@ -28,6 +28,7 @@ import {
   useApplicationStorageOrchestration,
   type BeginCourseApplicationOptions,
 } from "../features/application/hooks/useApplicationStorageOrchestration";
+import { useApplicationOperationScope } from "../features/application/hooks/useApplicationOperationScope";
 import { useAuth } from "./AuthContext";
 
 interface ApplicationContextType {
@@ -104,6 +105,7 @@ const ApplicationContext = createContext<ApplicationContextType | undefined>(
 
 export function ApplicationProvider({ children }: { children: ReactNode }) {
   const { session, userEmail } = useAuth();
+  const operationScope = useApplicationOperationScope(session?.user.id ?? null);
   const storageAdapter = useMemo(
     () => createApplicationStorageAdapter({ session }),
     [session],
@@ -119,6 +121,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   } = useApplicationProfile({
     userEmail,
     storageAdapter,
+    operationScope,
   });
 
   const {
@@ -136,6 +139,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
     refreshApplications,
     resetApplication,
   } = useApplicationStorageOrchestration({
+    operationScope,
     applicantProfileId,
     ensureApplicantProfile,
     setApplicantProfile,
@@ -146,6 +150,7 @@ export function ApplicationProvider({ children }: { children: ReactNode }) {
   });
 
   const dataActions = useApplicationData({
+    operationScope,
     data,
     persistApplication,
     trackApplicationDataEvent: analytics.trackApplicationDataEvent,

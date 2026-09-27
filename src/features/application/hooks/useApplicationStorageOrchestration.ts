@@ -6,6 +6,10 @@ import {
   type SelectedCourse,
 } from "../../../lib/applicationData";
 import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageAdapter";
+import {
+  assertCurrentApplicationOperation,
+  type ApplicationOperationScope,
+} from "./applicationOperationScope";
 import { captureSentryException } from "../../../lib/sentry";
 import { beginCourseApplication as runBeginCourseApplication } from "./beginCourseApplication";
 import type { BeginCourseApplicationOptions } from "./applicationOrchestrationTypes";
@@ -21,6 +25,7 @@ export type {
 
 interface UseApplicationStorageOrchestrationOptions {
   applicantProfileId: string | null;
+  operationScope: ApplicationOperationScope;
   ensureApplicantProfile: () => Promise<StoredApplicantProfile | null>;
   setApplicantProfile: (profile: StoredApplicantProfile | null) => void;
   storageAdapter: ApplicationStorageAdapter;
@@ -35,6 +40,7 @@ interface UseApplicationStorageOrchestrationOptions {
 
 export function useApplicationStorageOrchestration({
   applicantProfileId,
+  operationScope,
   ensureApplicantProfile,
   setApplicantProfile,
   storageAdapter,
@@ -48,19 +54,26 @@ export function useApplicationStorageOrchestration({
   );
   const [isHydrating, setIsHydrating] = useState(true);
   const [hydrationError, setHydrationError] = useState<string | null>(null);
-  const isMountedRef = useRef(true);
+  const activeIdRef = useRef(activeApplicationId);
+  activeIdRef.current = activeApplicationId;
+  const getActiveApplicationId = useCallback(() => activeIdRef.current, []);
   const { applications, setApplications, upsertSummary } = useApplicationSummaries();
 
-  useEffect(() => {
-    isMountedRef.current = true;
-
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
+  const [stateScope, setStateScope] = useState(operationScope);
+  if (stateScope !== operationScope) {
+    setStateScope(operationScope);
+    setData(initialApplicationData);
+    setActiveApplicationId(null);
+    setApplications([]);
+    setHydrationError(null);
+    setIsHydrating(true);
+    activeIdRef.current = null;
+  }
 
   const { ensureApplicationRow, ensureRemoteRecordId, persistApplication } = useApplicationPersistence({
     activeApplicationId,
+    operationScope,
+    getActiveApplicationId,
     applicantProfileId,
     data,
     setActiveApplicationId,
@@ -72,6 +85,9 @@ export function useApplicationStorageOrchestration({
   const { markApplicationSubmitted, openApplication, resetApplication } =
     useApplicationLifecycle({
       activeApplicationId,
+      operationScope,
+      getActiveApplicationId,
+      setIsHydrating,
       applications,
       data,
       setActiveApplicationId,
@@ -84,19 +100,21 @@ export function useApplicationStorageOrchestration({
     });
 
   const loadApplicationState = useCallback(async () => {
+    const isCurrent = operationScope.beginSelection();
+    if (!isCurrent()) return;
     setIsHydrating(true);
 
     try {
       await hydrateApplicationState({
         ensureApplicantProfile,
-        isMounted: () => isMountedRef.current,
+        isCurrent,
         setActiveApplicationId,
         setApplications,
         setData,
         storageAdapter,
       });
 
-      if (isMountedRef.current) {
+      if (isCurrent()) {
         setHydrationError(null);
       }
     } catch (error) {
@@ -104,17 +122,17 @@ export function useApplicationStorageOrchestration({
         tags: { flow: "application_hydration" },
       });
 
-      if (isMountedRef.current) {
+      if (isCurrent()) {
         setHydrationError(
           "We couldn't load your application data. Try refreshing the page.",
         );
       }
     } finally {
-      if (isMountedRef.current) {
+      if (isCurrent()) {
         setIsHydrating(false);
       }
     }
-  }, [ensureApplicantProfile, setApplications, storageAdapter]);
+  }, [operationScope, ensureApplicantProfile, setApplications, storageAdapter]);
 
   useEffect(() => {
     void loadApplicationState();
@@ -128,18 +146,29 @@ export function useApplicationStorageOrchestration({
     async (
       course: SelectedCourse,
       options?: BeginCourseApplicationOptions,
-    ) =>
-      runBeginCourseApplication(course, options, {
+    ) => {
+      const isCurrent = operationScope.beginSelection();
+      assertCurrentApplicationOperation(isCurrent);
+      setIsHydrating(false);
+      return runBeginCourseApplication(course, options, {
         applications,
         data,
         ensureApplicantProfile,
-        openApplication,
-        persistApplication,
+        openApplication: async (id) => {
+          assertCurrentApplicationOperation(isCurrent);
+          await openApplication(id);
+        },
+        persistApplication: async (nextData, saveOptions) => {
+          assertCurrentApplicationOperation(isCurrent);
+          return persistApplication(nextData, saveOptions);
+        },
         storageAdapter,
         trackDraftCreated,
         trackDraftResumed,
-      }),
+      });
+    },
     [
+      operationScope,
       applications,
       data,
       ensureApplicantProfile,

@@ -1,3 +1,7 @@
+import {
+  assertCurrentApplicationOperation,
+  type ApplicationOperationScope,
+} from "./applicationOperationScope";
 import { useCallback } from "react";
 import {
   saveLocalActiveApplicationId,
@@ -12,6 +16,9 @@ import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageA
 
 interface UseApplicationLifecycleOptions {
   activeApplicationId: string | null;
+  operationScope: ApplicationOperationScope;
+  getActiveApplicationId: () => string | null;
+  setIsHydrating: (value: boolean) => void;
   applications: ApplicationSummary[];
   data: ApplicationData;
   setActiveApplicationId: (applicationId: string | null) => void;
@@ -25,6 +32,9 @@ interface UseApplicationLifecycleOptions {
 
 export function useApplicationLifecycle({
   activeApplicationId,
+  operationScope,
+  getActiveApplicationId,
+  setIsHydrating,
   applications,
   data,
   setActiveApplicationId,
@@ -37,9 +47,12 @@ export function useApplicationLifecycle({
 }: UseApplicationLifecycleOptions) {
   const openApplication = useCallback(
     async (applicationId: string) => {
+      const isCurrent = operationScope.beginSelection();
+      assertCurrentApplicationOperation(isCurrent);
+      setIsHydrating(false);
       const application = await storageAdapter.loadApplicationById(applicationId);
 
-      if (!application) {
+      if (!isCurrent() || !application) {
         return;
       }
 
@@ -48,13 +61,22 @@ export function useApplicationLifecycle({
       saveLocalActiveApplicationId(applicationId);
       upsertSummary(application);
     },
-    [setActiveApplicationId, setData, storageAdapter, upsertSummary],
+    [operationScope, setIsHydrating, setActiveApplicationId, setData, storageAdapter, upsertSummary],
   );
 
   const markApplicationSubmitted = useCallback(async () => {
+    const isCurrentSession = operationScope.captureSession();
+    const isCurrentSelection = operationScope.captureSelection();
+    assertCurrentApplicationOperation(isCurrentSession);
+    assertCurrentApplicationOperation(
+      () => (data.applicationMeta.recordId ?? null) === getActiveApplicationId(),
+    );
     const submittedApplication = await storageAdapter.submitApplication(data);
 
+    assertCurrentApplicationOperation(isCurrentSession);
     upsertSummary(submittedApplication);
+    trackApplicationSubmitted(submittedApplication);
+    if (!isCurrentSelection()) return;
     setData(submittedApplication);
 
     const nextActiveId =
@@ -65,9 +87,10 @@ export function useApplicationLifecycle({
       saveLocalActiveApplicationId(nextActiveId);
     }
 
-    trackApplicationSubmitted(submittedApplication);
   }, [
     activeApplicationId,
+    operationScope,
+    getActiveApplicationId,
     data,
     setActiveApplicationId,
     setData,
@@ -77,18 +100,24 @@ export function useApplicationLifecycle({
   ]);
 
   const resetApplication = useCallback(async () => {
+    const isCurrent = operationScope.beginSelection();
+    assertCurrentApplicationOperation(isCurrent);
+    setIsHydrating(false);
     await Promise.all(
       applications.map((application) =>
         storageAdapter.deleteApplication(application.id),
       ),
     );
 
+    if (!isCurrent()) return;
     saveLocalActiveApplicationId(null);
     setApplications([]);
     setActiveApplicationId(null);
     setData(initialApplicationData);
     setApplicantProfile(null);
   }, [
+    operationScope,
+    setIsHydrating,
     applications,
     setActiveApplicationId,
     setApplicantProfile,

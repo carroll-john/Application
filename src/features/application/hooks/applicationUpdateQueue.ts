@@ -30,12 +30,43 @@ interface CreateApplicationUpdateQueueOptions<T> {
   getCommitted: () => T;
   /** Persist a full snapshot; resolves with the stored result. */
   persist: (next: T) => Promise<T>;
+  /** Partition pending writes when the user opens a different record. */
+  getScopeKey?: (value: T) => string;
+  /** Capture the owning persistence callback at enqueue time. */
+  getPersist?: () => (next: T) => Promise<T>;
 }
 
 export function createApplicationUpdateQueue<T>({
   getCommitted,
   persist,
+  getScopeKey,
+  getPersist,
 }: CreateApplicationUpdateQueueOptions<T>): ApplicationUpdateQueue<T> {
+  if (getScopeKey) {
+    const queues = new Map<string, ApplicationUpdateQueue<T>>();
+    return {
+      enqueue(updater) {
+        const committed = getCommitted();
+        const key = getScopeKey(committed);
+        let queue = queues.get(key);
+        if (!queue) {
+          let lastCommitted = committed;
+          queue = createApplicationUpdateQueue({
+            getCommitted: () => {
+              const current = getCommitted();
+              if (getScopeKey(current) === key) lastCommitted = current;
+              return lastCommitted;
+            },
+            persist,
+            getPersist,
+          });
+          queues.set(key, queue);
+        }
+        return queue.enqueue(updater);
+      },
+    };
+  }
+
   // `chain` serializes the async persists; `accumulator` is the synchronous, in-memory
   // running snapshot the next edit builds on; `inFlight` tracks how many writes are
   // queued so we know when the queue has drained and should re-seed.
@@ -79,7 +110,8 @@ export function createApplicationUpdateQueue<T>({
     const snapshot = accumulator;
     inFlight += 1;
 
-    const result = chain.then(() => persist(snapshot));
+    const persistSnapshot = getPersist?.() ?? persist;
+    const result = chain.then(() => persistSnapshot(snapshot));
     // Keep the chain alive (and ordered) even if a write rejects.
     chain = result.then(
       () => undefined,

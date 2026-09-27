@@ -21,10 +21,15 @@ import {
   getNextIncompleteStep,
   type StepCompletionLabel,
 } from "../../../lib/applicationValidationSchema";
+import {
+  assertCurrentApplicationOperation,
+  type ApplicationOperationScope,
+} from "./applicationOperationScope";
 import type { PersistApplicationOptions } from "./useApplicationStorageOrchestration";
 
 interface UseApplicationDataOptions {
   data: ApplicationData;
+  operationScope: ApplicationOperationScope;
   persistApplication: (
     nextData: ApplicationData,
     options?: PersistApplicationOptions,
@@ -50,6 +55,7 @@ function employmentEvidenceSignature(experiences: EmploymentExperience[]) {
 
 export function useApplicationData({
   data,
+  operationScope,
   persistApplication,
   trackApplicationDataEvent,
 }: UseApplicationDataOptions) {
@@ -71,33 +77,49 @@ export function useApplicationData({
   committedDataRef.current = data;
   const persistApplicationRef = useRef(persistApplication);
   persistApplicationRef.current = persistApplication;
-  const updateQueueRef = useRef<ApplicationUpdateQueue<ApplicationData> | null>(null);
-  if (!updateQueueRef.current) {
-    updateQueueRef.current = createApplicationUpdateQueue<ApplicationData>({
+  const updateQueue = useMemo<ApplicationUpdateQueue<ApplicationData>>(() =>
+    createApplicationUpdateQueue({
       getCommitted: () => committedDataRef.current,
+      getScopeKey: (application) => application.applicationMeta.recordId ?? "new",
       persist: (nextData) => persistApplicationRef.current(nextData),
-    });
-  }
+      getPersist: () => {
+        const isCurrentSession = operationScope.captureSession();
+        const persist = persistApplicationRef.current;
+        return (nextData) => {
+          assertCurrentApplicationOperation(isCurrentSession);
+          return persist(nextData);
+        };
+      },
+    }), [operationScope]);
+  const applicationKey = data.applicationMeta.recordId ?? "new";
+  const enqueueUpdate = useCallback(
+    (updater: (current: ApplicationData) => ApplicationData) => {
+      assertCurrentApplicationOperation(operationScope.captureSession());
+      return updateQueue.enqueue((current) => {
+        assertCurrentApplicationOperation(
+          () => (current.applicationMeta.recordId ?? "new") === applicationKey,
+        );
+        return updater(current);
+      });
+    }, [applicationKey, operationScope, updateQueue],
+  );
 
   const updateData = useCallback(
     async (updater: (current: ApplicationData) => ApplicationData) => {
-      await updateQueueRef.current!.enqueue(updater);
-    },
-    [],
+      await enqueueUpdate(updater);
+    }, [enqueueUpdate],
   );
 
   const updateDataWithEvent = useCallback(
     async (
       updater: (current: ApplicationData) => ApplicationData,
       eventName: ApplicationRecordEventName,
-      properties?:
-        | Record<string, unknown>
-        | ((application: ApplicationData) => Record<string, unknown>),
+      properties?: Record<string, unknown> | ((application: ApplicationData) => Record<string, unknown>),
     ) => {
-      const persisted = await updateQueueRef.current!.enqueue(updater);
-      trackApplicationDataEvent(eventName, persisted, properties);
-    },
-    [trackApplicationDataEvent],
+      const isCurrentSession = operationScope.captureSession();
+      const persisted = await enqueueUpdate(updater);
+      if (isCurrentSession()) trackApplicationDataEvent(eventName, persisted, properties);
+    }, [enqueueUpdate, operationScope, trackApplicationDataEvent],
   );
 
   const employmentMutators = useMemo(

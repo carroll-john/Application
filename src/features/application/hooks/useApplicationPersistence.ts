@@ -6,10 +6,16 @@ import {
   mergeStoredApplicationData,
 } from "../../../lib/applicationData";
 import type { ApplicationStorageAdapter } from "../../../lib/applicationStorageAdapter";
+import {
+  assertCurrentApplicationOperation,
+  type ApplicationOperationScope,
+} from "./applicationOperationScope";
 import type { PersistApplicationOptions } from "./applicationOrchestrationTypes";
 
 interface UseApplicationPersistenceOptions {
   activeApplicationId: string | null;
+  operationScope: ApplicationOperationScope;
+  getActiveApplicationId: () => string | null;
   applicantProfileId: string | null;
   data: ApplicationData;
   setActiveApplicationId: (applicationId: string | null) => void;
@@ -20,6 +26,8 @@ interface UseApplicationPersistenceOptions {
 
 export function useApplicationPersistence({
   activeApplicationId,
+  operationScope,
+  getActiveApplicationId,
   applicantProfileId,
   data,
   setActiveApplicationId,
@@ -29,6 +37,12 @@ export function useApplicationPersistence({
 }: UseApplicationPersistenceOptions) {
   const persistApplication = useCallback(
     async (nextData: ApplicationData, options?: PersistApplicationOptions) => {
+      const isCurrentSession = operationScope.captureSession();
+      const isCurrentSelection = operationScope.captureSelection();
+      assertCurrentApplicationOperation(isCurrentSession);
+      const targetId = nextData.applicationMeta.recordId ?? null;
+      const maySelect = targetId === getActiveApplicationId() ||
+        (options?.forceCreate && (!targetId || !isRemoteRecordId(targetId)));
       const mergedData = mergeStoredApplicationData(nextData);
       const resolvedApplicantProfileId =
         options?.applicantProfileId ??
@@ -42,7 +56,9 @@ export function useApplicationPersistence({
         shellOnly: options?.shellOnly,
       });
 
+      assertCurrentApplicationOperation(isCurrentSession);
       upsertSummary(persistedData);
+      if (!maySelect || !isCurrentSelection()) return persistedData;
       setData(persistedData);
 
       const nextActiveId =
@@ -55,7 +71,7 @@ export function useApplicationPersistence({
 
       return persistedData;
     },
-    [activeApplicationId, applicantProfileId, setActiveApplicationId, setData, storageAdapter, upsertSummary],
+    [activeApplicationId, operationScope, getActiveApplicationId, applicantProfileId, setActiveApplicationId, setData, storageAdapter, upsertSummary],
   );
 
   const ensureRemoteRecordId = useCallback(async () => {
