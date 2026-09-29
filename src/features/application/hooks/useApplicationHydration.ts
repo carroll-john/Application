@@ -12,7 +12,7 @@ import type { StoredApplicantProfile } from "../../../lib/applicantProfileStore"
 
 interface HydrateApplicationStateOptions {
   ensureApplicantProfile: () => Promise<StoredApplicantProfile | null>;
-  isMounted: () => boolean;
+  isCurrent: () => boolean;
   setActiveApplicationId: (applicationId: string | null) => void;
   setApplications: (applications: ApplicationSummary[]) => void;
   setData: (application: ApplicationData) => void;
@@ -21,7 +21,7 @@ interface HydrateApplicationStateOptions {
 
 export async function hydrateApplicationState({
   ensureApplicantProfile,
-  isMounted,
+  isCurrent,
   setActiveApplicationId,
   setApplications,
   setData,
@@ -29,13 +29,13 @@ export async function hydrateApplicationState({
 }: HydrateApplicationStateOptions) {
   await ensureApplicantProfile();
 
-  if (!isMounted()) {
+  if (!isCurrent()) {
     return;
   }
 
   const loadedApplications = await storageAdapter.listApplications();
 
-  if (!isMounted()) {
+  if (!isCurrent()) {
     return;
   }
 
@@ -57,6 +57,8 @@ export async function hydrateApplicationState({
   let resolvedPreferredId = preferredId;
   let application = await storageAdapter.loadApplicationById(resolvedPreferredId);
 
+  if (!isCurrent()) return;
+
   if (!application) {
     const fallbackId =
       loadedApplications.find(
@@ -71,6 +73,7 @@ export async function hydrateApplicationState({
 
     resolvedPreferredId = fallbackId;
     application = await storageAdapter.loadApplicationById(resolvedPreferredId);
+    if (!isCurrent()) return;
   }
 
   if (!application) {
@@ -79,7 +82,7 @@ export async function hydrateApplicationState({
     return;
   }
 
-  if (!isMounted()) {
+  if (!isCurrent()) {
     return;
   }
 

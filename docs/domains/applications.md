@@ -46,6 +46,13 @@ persistence boundary, and the server submit contract owns the final transition.
 - `ApplicationStorageAdapter` is the single persistence contract; pages must not
   import stores or branch storage modes.
 - Types and merge helpers: `src/lib/applicationData.ts`.
+- Application hooks scope queued edits to the originating account and application.
+  Completing a save may update that account's summary, but cannot replace a newer
+  active application selection. Account changes clear application/profile state
+  without remounting public assessment screens, invalidate pending results, and
+  reject queued writes that have not started. Hydration and application-opening
+  requests use latest-selection-wins semantics; token refresh keeps the same
+  account lifetime.
 
 ## Validation
 

@@ -10,6 +10,44 @@ interface Snapshot {
 const tick = (ms = 10) => new Promise((resolve) => setTimeout(resolve, ms));
 
 describe("createApplicationUpdateQueue", () => {
+  it("keeps a pending A save separate from edits made after opening B", async () => {
+    type Record = { id: string; name: string };
+    let committed: Record = { id: "A", name: "Alice" };
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const saved: Record[] = [];
+    const queue = createApplicationUpdateQueue({
+      getCommitted: () => committed,
+      getScopeKey: (record) => record.id,
+      persist: async (next) => {
+        if (next.id === "A") await gate;
+        saved.push(next);
+        return next;
+      },
+    });
+    const first = queue.enqueue((current) => ({ ...current, name: "Alice edited" }));
+    committed = { id: "B", name: "Bob" };
+    await queue.enqueue((current) => ({ ...current, name: "Bob edited" }));
+    expect(saved).toEqual([{ id: "B", name: "Bob edited" }]);
+    release();
+    await first;
+    expect(saved[1]).toEqual({ id: "A", name: "Alice edited" });
+  });
+
+  it("captures the owning persister before queued work starts", async () => {
+    const calls: string[] = [];
+    let persist = async (value: number) => { calls.push("account A"); return value; };
+    const queue = createApplicationUpdateQueue({
+      getCommitted: () => 0,
+      persist: (value) => persist(value),
+      getPersist: () => persist,
+    });
+    const pending = queue.enqueue(() => 1);
+    persist = async (value) => { calls.push("account B"); return value; };
+    await pending;
+    expect(calls).toEqual(["account A"]);
+  });
+
   it("accumulates rapid successive updates instead of clobbering earlier ones", async () => {
     let committed: Snapshot = { a: 0, b: 0, c: 0 };
     const persisted: Snapshot[] = [];
