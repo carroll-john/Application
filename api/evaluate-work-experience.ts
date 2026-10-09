@@ -14,10 +14,10 @@ import {
   isDeployedEnvironment,
 } from "./_documentParser/auth.js";
 import { createRateLimiter } from "./_shared/rateLimiter.js";
+import { parseWorkInput, readWorkBody } from "./_shared/workExperienceInput.js";
+import { reserveWorkExperienceQuota } from "./_shared/workExperienceQuota.js";
 
 const DEFAULT_MODEL = "gpt-4.1-mini";
-const MAX_ROLES = 30;
-const MAX_REQUIREMENTS = 12;
 const MAX_TEXT_LENGTH = 5_000;
 const PROMPT_VERSION = `${workExperienceAssessmentPromptV1.id}@v${workExperienceAssessmentPromptV1.version}`;
 
@@ -38,40 +38,6 @@ function errorResponse(code: string, error: string, status: number) {
 
 function cleanText(value: unknown) {
   return typeof value === "string" ? value.trim().slice(0, MAX_TEXT_LENGTH) : "";
-}
-
-function parseRole(value: unknown): WorkExperienceRoleInput | null {
-  if (!value || typeof value !== "object") return null;
-  const role = value as Record<string, unknown>;
-  const id = cleanText(role.id);
-  if (!id) return null;
-  return {
-    id,
-    position: cleanText(role.position),
-    duties: cleanText(role.duties),
-    startMonth: cleanText(role.startMonth),
-    startYear: cleanText(role.startYear),
-    endMonth: cleanText(role.endMonth),
-    endYear: cleanText(role.endYear),
-    currentRole: role.currentRole === true,
-  };
-}
-
-function parseRequirement(value: unknown): WorkRequirement | null {
-  if (!value || typeof value !== "object") return null;
-  const requirement = value as Record<string, unknown>;
-  const params = requirement.params;
-  if (
-    requirement.kind !== "work_experience" ||
-    typeof requirement.id !== "string" ||
-    typeof requirement.sourceText !== "string" ||
-    !params ||
-    typeof params !== "object" ||
-    typeof (params as Record<string, unknown>).minYears !== "number"
-  ) {
-    return null;
-  }
-  return requirement as unknown as WorkRequirement;
 }
 
 function fallbackAssessments(
@@ -178,33 +144,17 @@ async function handleRequest(request: Request) {
     );
   }
 
-  let body: unknown;
+  let input: ReturnType<typeof parseWorkInput>;
   try {
-    body = await request.json();
+    input = parseWorkInput(await readWorkBody(request));
   } catch {
     return errorResponse(
       "WORK_EXPERIENCE_REQUEST_INVALID",
-      "The assessment request was not valid JSON.",
+      "The assessment request is invalid or exceeds the assessment limits.",
       400,
     );
   }
-  const record = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
-  const requirements = (Array.isArray(record.requirements) ? record.requirements : [])
-    .slice(0, MAX_REQUIREMENTS)
-    .map(parseRequirement)
-    .filter((value): value is WorkRequirement => Boolean(value));
-  const roles = (Array.isArray(record.roles) ? record.roles : [])
-    .slice(0, MAX_ROLES)
-    .map(parseRole)
-    .filter((value): value is WorkExperienceRoleInput => Boolean(value));
-
-  if (requirements.length === 0) {
-    return errorResponse(
-      "WORK_EXPERIENCE_REQUIREMENT_REQUIRED",
-      "At least one work-experience requirement is required.",
-      400,
-    );
-  }
+  const { requirements, roles, modelText } = input;
 
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
@@ -214,14 +164,25 @@ async function handleRequest(request: Request) {
     });
   }
 
+  // A paid call always needs an authenticated principal, including local mode.
+  if (authResult.kind !== "authenticated") {
+    return errorResponse("WORK_EXPERIENCE_UNAUTHORIZED", "Sign in before assessing work experience.", 401);
+  }
+  const controller = new AbortController();
+  const deadline = setTimeout(() => controller.abort(), 45_000);
+  const quota = await reserveWorkExperienceQuota(authResult.userId, controller.signal);
+  if (quota !== "allowed") {
+    clearTimeout(deadline);
+    return errorResponse(
+      quota === "limited" ? "WORK_EXPERIENCE_RATE_LIMITED" : "WORK_EXPERIENCE_NOT_CONFIGURED",
+      quota === "limited" ? "Too many assessment requests. Please try again later." : "Automatic assessment is unavailable.",
+      quota === "limited" ? 429 : 503,
+    );
+  }
   const model =
     process.env.OPENAI_WORK_EXPERIENCE_MODEL?.trim() ||
     process.env.OPENAI_CV_PARSER_MODEL?.trim() ||
     DEFAULT_MODEL;
-  const modelInput = {
-    requirements: requirements.map(({ id, params, sourceText }) => ({ id, params, sourceText })),
-    roles: roles.map(({ id, position, duties }) => ({ id, position, duties })),
-  };
   let result: Awaited<ReturnType<typeof callLlm>>;
   try {
     result = await callLlm({
@@ -230,7 +191,8 @@ async function handleRequest(request: Request) {
       model,
       prompt: workExperienceAssessmentPromptV1,
       schema: workExperienceAssessmentSchemaV1,
-      attachments: [{ kind: "text", text: JSON.stringify(modelInput) }],
+      attachments: [{ kind: "text", text: modelText }],
+      signal: controller.signal,
       initialMaxOutputTokens: 2_000,
       retryMaxOutputTokens: 6_000,
       trace: {
@@ -245,6 +207,8 @@ async function handleRequest(request: Request) {
       assessments: fallbackAssessments(requirements, roles, "Automatic assessment could not be completed."),
       source: "fallback",
     });
+  } finally {
+    clearTimeout(deadline);
   }
 
   if (result.status !== "ok") {

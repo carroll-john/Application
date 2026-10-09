@@ -76,6 +76,29 @@ classifies relevance and, only when the course explicitly declares it, the exact
 and never prevents submission. Employer letters use the upload layer but are not parsed in
 this release.
 
+The work-assessment route rejects request bodies above 512 KiB, model input above
+256 KiB (UTF-8), more than 12 requirements or 30 roles, invalid/unknown nested fields,
+duplicate IDs, text above 5,000 characters, IDs above 256 characters, and experience
+thresholds outside 0–100 years. It preserves declared catalogue metadata used in
+assessment fingerprints. Oversized or invalid requests return 400 without a provider call.
+
+Before a paid assessment, the server reserves both possible provider attempts through
+`reserve_work_experience_quota`. Its atomic database counters allow 20 assessments per
+user per minute and 500 per project per 24 hours, with windows starting at the first
+reservation. The project ceiling is a bounded capacity budget, not a currency estimate;
+each reservation covers bounded input and at most 2,000 plus 6,000 output tokens.
+Failed/aborted attempts are not refunded. Only the server's service role can reserve or
+modify counters. Missing quota credentials or a failed quota RPC returns 503; exhaustion
+returns 429. Local unauthenticated mode may produce a no-model fallback but cannot spend
+provider capacity. One 45-second deadline covers quota reservation and both model
+attempts, including response bodies; a provider timeout retains the advisory fallback.
+
+Applying this candidate requires the `work_experience_resource_quota` migration and a
+server-only `SUPABASE_SERVICE_ROLE_KEY` for the same Supabase project used by authentication.
+Until both are configured, paid assessment fails closed. The isolated quota regression
+can be run with `WORK_QUOTA_TEST_CONTAINER=<local Postgres container> node --test
+scripts/workExperienceQuota.test.mjs`; it creates and removes its own test database.
+
 ## Tertiary transcript kind (parse + program evidence review)
 
 Reuses `/api/evaluate-transcript-eligibility` as a single LLM call for field extraction plus app-side program requirement review — not a separate `documentParserRegistry` entry. Keep applicant-facing copy framed as **program evidence review**, not a final eligibility decision.
