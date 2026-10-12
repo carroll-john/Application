@@ -42,10 +42,13 @@ async function executeOpenAiRequest(
   requestBody: Record<string, unknown>,
   meta: OpenAiRequestTraceMeta,
   tracingEnabled: boolean,
+  signal?: AbortSignal,
 ) {
   const issue = async (span?: Sentry.Span) => {
+    signal?.throwIfAborted();
     const response = await fetch(OPENAI_RESPONSES_URL, {
       method: "POST",
+      signal,
       headers: {
         authorization: `Bearer ${apiKey}`,
         "content-type": "application/json",
@@ -53,7 +56,11 @@ async function executeOpenAiRequest(
       body: JSON.stringify(requestBody),
     });
 
-    const payload = await response.json().catch(() => null);
+    const payload = await response.json().catch(() => {
+      signal?.throwIfAborted();
+      return null;
+    });
+    signal?.throwIfAborted();
 
     if (span) {
       Sentry.setHttpStatus(span, response.status);
@@ -152,6 +159,7 @@ async function callOpenAi(request: LlmRequest): Promise<LlmResult> {
       initialBody,
       { ...baseMeta, attempt: 1 },
       request.trace.enabled,
+      request.signal,
     );
 
     if (result.response.ok && isMaxTokensTruncation(result.payload)) {
@@ -162,6 +170,7 @@ async function callOpenAi(request: LlmRequest): Promise<LlmResult> {
         { ...initialBody, max_output_tokens: request.retryMaxOutputTokens },
         { ...baseMeta, attempt: 2 },
         request.trace.enabled,
+        request.signal,
       );
 
       if (!result.response.ok) {

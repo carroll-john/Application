@@ -36,6 +36,8 @@ export type LlmRequest = {
   retryMaxOutputTokens: number;
   enableCodeInterpreter?: boolean;
   trace: LlmTraceOptions;
+  /** One caller-owned deadline shared by every provider attempt and response body. */
+  signal?: AbortSignal;
 };
 
 export type LlmTokenUsage = {
