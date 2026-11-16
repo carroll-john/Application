@@ -21,6 +21,9 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          # This job pushes to Azure with the PAT in the remote URL. Checkout's
+          # persisted GitHub credentials must stay out of that local git config.
+          persist-credentials: false
 
       - name: Push all branches and tags to Azure Repos
         env:
