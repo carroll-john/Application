@@ -30,13 +30,18 @@ jobs:
         run: |
           git remote set-head origin -d
           git remote add azure "https://dev.azure.com/carrolljohn/Application/_git/${REPO_NAME}"
-          # Curl 8.23 removes credentials from the effective URL. Git 2.56 then
-          # treats the remote as redirected and drops the username and password
-          # that were embedded in the URL. A credential helper keeps the PAT
-          # out of that path.
+          if [ -z "$AZURE_PAT" ]; then
+            echo "AZURE_DEVOPS_PAT is empty." >&2
+            exit 1
+          fi
+          echo "Azure PAT is present (${#AZURE_PAT} characters)."
+          # Curl 8.23 strips credentials embedded in a remote URL, and Git 2.56
+          # then discards them. Send the PAT as a Basic Authorization header
+          # scoped to dev.azure.com instead.
+          basic="$(printf 'mirror:%s' "$AZURE_PAT" | base64 -w 0)"
           azure_auth=(
-            -c credential.helper=
-            -c 'credential.helper=!f() { test "$1" = get || exit 0; echo username=mirror; echo "password=$AZURE_PAT"; }; f'
+            -c http.emptyAuth=false
+            -c "http.https://dev.azure.com/.extraheader=AUTHORIZATION: Basic ${basic}"
           )
           git "${azure_auth[@]}" push azure 'refs/remotes/origin/*:refs/heads/*' --force
           git "${azure_auth[@]}" push azure --tags --force
