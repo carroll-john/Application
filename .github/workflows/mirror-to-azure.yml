@@ -18,9 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out full history
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Push all branches and tags to Azure Repos
         env:
@@ -28,6 +29,24 @@ jobs:
           REPO_NAME: ${{ github.event.repository.name }}
         run: |
           git remote set-head origin -d
-          git remote add azure "https://mirror:${AZURE_PAT}@dev.azure.com/carrolljohn/Application/_git/${REPO_NAME}"
+          git remote add azure "https://dev.azure.com/carrolljohn/Application/_git/${REPO_NAME}"
+          if [ -z "$AZURE_PAT" ]; then
+            echo "AZURE_DEVOPS_PAT is empty." >&2
+            exit 1
+          fi
+          # Curl 8.23 strips credentials embedded in a remote URL, and Git 2.56
+          # then discards them. Answer Git's credential prompt from askpass so
+          # the PAT is not placed in the URL.
+          askpass="${RUNNER_TEMP}/azure-askpass"
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'case "$1" in' \
+            '  *Username*) printf %s mirror ;;' \
+            '  *) printf %s "$AZURE_PAT" ;;' \
+            'esac' \
+            > "$askpass"
+          chmod 700 "$askpass"
+          export GIT_ASKPASS="$askpass"
+          export GIT_TERMINAL_PROMPT=1
           git push azure 'refs/remotes/origin/*:refs/heads/*' --force
           git push azure --tags --force
