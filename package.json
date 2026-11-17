@@ -46,7 +46,7 @@
     "@johncarroll/eligibility-rules": "file:./vendor/eligibility-rules",
     "@johncarroll/suggest-core": "^0.1.0",
     "@johncarroll/suggest-react": "^0.1.0",
-    "@sentry/node": "^10.78.0",
+    "@sentry/node": "^11.12.0",
     "@sentry/react": "^10.78.0",
     "@supabase/supabase-js": "^2.119.0",
     "date-fns": "^4.4.0",
