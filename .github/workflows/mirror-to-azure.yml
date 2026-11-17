@@ -34,14 +34,19 @@ jobs:
             echo "AZURE_DEVOPS_PAT is empty." >&2
             exit 1
           fi
-          echo "Azure PAT is present (${#AZURE_PAT} characters)."
           # Curl 8.23 strips credentials embedded in a remote URL, and Git 2.56
-          # then discards them. Send the PAT as a Basic Authorization header
-          # scoped to dev.azure.com instead.
-          basic="$(printf 'mirror:%s' "$AZURE_PAT" | base64 -w 0)"
-          azure_auth=(
-            -c http.emptyAuth=false
-            -c "http.https://dev.azure.com/.extraheader=AUTHORIZATION: Basic ${basic}"
-          )
-          git "${azure_auth[@]}" push azure 'refs/remotes/origin/*:refs/heads/*' --force
-          git "${azure_auth[@]}" push azure --tags --force
+          # then discards them. Answer Git's credential prompt from askpass so
+          # the PAT is not placed in the URL.
+          askpass="${RUNNER_TEMP}/azure-askpass"
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'case "$1" in' \
+            '  *Username*) printf %s mirror ;;' \
+            '  *) printf %s "$AZURE_PAT" ;;' \
+            'esac' \
+            > "$askpass"
+          chmod 700 "$askpass"
+          export GIT_ASKPASS="$askpass"
+          export GIT_TERMINAL_PROMPT=1
+          git push azure 'refs/remotes/origin/*:refs/heads/*' --force
+          git push azure --tags --force
