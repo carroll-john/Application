@@ -6,19 +6,23 @@ import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { Section1FormCard, Section1StepPage } from "../features/section1";
+import { useSection1DraftForm } from "../features/section1/useSection1DraftForm";
 import { getBirthDateOpenToDate } from "../lib/datePickerHelpers";
 
 export default function Section1PersonalContact() {
-  const { data, updatePersonalDetails } = useApplication();
+  const { data, isHydrating, updatePersonalDetails } = useApplication();
   const [birthDateOpenToDate] = useState(() =>
     getBirthDateOpenToDate(new Date()),
   );
-  const [formData, setFormData] = useState({
-    gender: data.personalDetails.gender,
-    dateOfBirth: data.personalDetails.dateOfBirth,
-    email: data.personalDetails.email,
-    phone: data.personalDetails.phone,
-  });
+  const [formData, setFormData] = useSection1DraftForm(
+    {
+      gender: data.personalDetails.gender,
+      dateOfBirth: data.personalDetails.dateOfBirth,
+      email: data.personalDetails.email,
+      phone: data.personalDetails.phone,
+    },
+    isHydrating,
+  );
 
   const persist = () => updatePersonalDetails(formData);
 

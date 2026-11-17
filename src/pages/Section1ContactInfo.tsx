@@ -1,18 +1,21 @@
 import { Globe2, Landmark } from "lucide-react";
-import { useState } from "react";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { Section1FormCard, Section1StepPage } from "../features/section1";
+import { useSection1DraftForm } from "../features/section1/useSection1DraftForm";
 import { countries } from "../lib/formOptions";
 
 export default function Section1ContactInfo() {
-  const { data, updateContactDetails } = useApplication();
-  const [formData, setFormData] = useState({
-    citizenCountry: data.contactDetails.citizenCountry,
-    birthCountry: data.contactDetails.birthCountry,
-    citizenshipStatus: data.contactDetails.citizenshipStatus,
-  });
+  const { data, isHydrating, updateContactDetails } = useApplication();
+  const [formData, setFormData] = useSection1DraftForm(
+    {
+      citizenCountry: data.contactDetails.citizenCountry,
+      birthCountry: data.contactDetails.birthCountry,
+      citizenshipStatus: data.contactDetails.citizenshipStatus,
+    },
+    isHydrating,
+  );
 
   const persist = () => updateContactDetails(formData);
 

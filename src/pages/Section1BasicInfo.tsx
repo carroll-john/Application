@@ -1,20 +1,23 @@
 import { Smile, User } from "lucide-react";
-import { useState } from "react";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { Section1FormCard, Section1StepPage } from "../features/section1";
+import { useSection1DraftForm } from "../features/section1/useSection1DraftForm";
 
 export default function Section1BasicInfo() {
-  const { data, updatePersonalDetails } = useApplication();
-  const [formData, setFormData] = useState({
-    title: data.personalDetails.title,
-    firstName: data.personalDetails.firstName,
-    middleName: data.personalDetails.middleName,
-    lastName: data.personalDetails.lastName,
-    preferredName: data.personalDetails.preferredName,
-  });
+  const { data, isHydrating, updatePersonalDetails } = useApplication();
+  const [formData, setFormData] = useSection1DraftForm(
+    {
+      title: data.personalDetails.title,
+      firstName: data.personalDetails.firstName,
+      middleName: data.personalDetails.middleName,
+      lastName: data.personalDetails.lastName,
+      preferredName: data.personalDetails.preferredName,
+    },
+    isHydrating,
+  );
 
   const persist = () => updatePersonalDetails(formData);
 

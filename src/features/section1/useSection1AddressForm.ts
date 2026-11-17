@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useSection1DraftForm } from "./useSection1DraftForm";
 import type { AddressSuggestion } from "../../components/ui/address-autocomplete";
 import type { ContactDetails } from "../../lib/applicationData";
 import {
@@ -10,12 +11,18 @@ import { createAppAddressLookup } from "../../lib/suggestClient";
 
 type AddressKey = "residentialAddress" | "postalAddress";
 
-export function useSection1AddressForm(contactDetails: ContactDetails) {
-  const [formData, setFormData] = useState({
-    residentialAddress: contactDetails.residentialAddress,
-    postalDifferent: contactDetails.postalDifferent,
-    postalAddress: contactDetails.postalAddress,
-  });
+export function useSection1AddressForm(
+  contactDetails: ContactDetails,
+  isHydrating: boolean,
+) {
+  const [formData, setFormData] = useSection1DraftForm(
+    {
+      residentialAddress: contactDetails.residentialAddress,
+      postalDifferent: contactDetails.postalDifferent,
+      postalAddress: contactDetails.postalAddress,
+    },
+    isHydrating,
+  );
   const residentialLookup = useMemo(() => createAppAddressLookup(["au"]), []);
   const postalLookup = useMemo(() => createAppAddressLookup(["au"]), []);
   const unavailableLookupMessage =

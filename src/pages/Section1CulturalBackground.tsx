@@ -1,18 +1,21 @@
 import { BookOpen, Languages, Users } from "lucide-react";
-import { useState } from "react";
 import { Label } from "../components/ui/label";
 import { NativeSelect } from "../components/ui/native-select";
 import { useApplication } from "../context/ApplicationContext";
 import { Section1FormCard, Section1StepPage } from "../features/section1";
+import { useSection1DraftForm } from "../features/section1/useSection1DraftForm";
 import { languages } from "../lib/formOptions";
 
 export default function Section1CulturalBackground() {
-  const { data, updateContactDetails } = useApplication();
-  const [formData, setFormData] = useState({
-    language: data.contactDetails.language,
-    aboriginal: data.contactDetails.aboriginal,
-    schoolLevel: data.contactDetails.schoolLevel,
-  });
+  const { data, isHydrating, updateContactDetails } = useApplication();
+  const [formData, setFormData] = useSection1DraftForm(
+    {
+      language: data.contactDetails.language,
+      aboriginal: data.contactDetails.aboriginal,
+      schoolLevel: data.contactDetails.schoolLevel,
+    },
+    isHydrating,
+  );
 
   const persist = () => updateContactDetails(formData);
 
