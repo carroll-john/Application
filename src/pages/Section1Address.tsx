@@ -7,7 +7,7 @@ import {
 } from "../features/section1";
 
 export default function Section1Address() {
-  const { data, updateContactDetails } = useApplication();
+  const { data, isHydrating, updateContactDetails } = useApplication();
   const {
     applyResolvedAddress,
     formData,
@@ -18,7 +18,7 @@ export default function Section1Address() {
     updateManualAddress,
     updateUnitNumber,
     useAddressSearch,
-  } = useSection1AddressForm(data.contactDetails);
+  } = useSection1AddressForm(data.contactDetails, isHydrating);
 
   const persist = () => updateContactDetails(formData);
 

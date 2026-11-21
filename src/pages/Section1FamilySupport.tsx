@@ -6,19 +6,23 @@ import {
   Section1StepPage,
   parentFields,
 } from "../features/section1";
+import { useSection1DraftForm } from "../features/section1/useSection1DraftForm";
 
 export default function Section1FamilySupport() {
-  const { data, updateContactDetails } = useApplication();
-  const [formData, setFormData] = useState({
-    parentsCount: data.contactDetails.parentsCount || "",
-    parent1Details: data.contactDetails.parent1Details || "",
-    parent2Details: data.contactDetails.parent2Details || "",
-    parent3Details: data.contactDetails.parent3Details || "",
-    parent4Details: data.contactDetails.parent4Details || "",
-    parent5Details: data.contactDetails.parent5Details || "",
-    hasDisability: data.contactDetails.hasDisability ?? null,
-    disabilityDetails: data.contactDetails.disabilityDetails || "",
-  });
+  const { data, isHydrating, updateContactDetails } = useApplication();
+  const [formData, setFormData] = useSection1DraftForm(
+    {
+      parentsCount: data.contactDetails.parentsCount || "",
+      parent1Details: data.contactDetails.parent1Details || "",
+      parent2Details: data.contactDetails.parent2Details || "",
+      parent3Details: data.contactDetails.parent3Details || "",
+      parent4Details: data.contactDetails.parent4Details || "",
+      parent5Details: data.contactDetails.parent5Details || "",
+      hasDisability: data.contactDetails.hasDisability ?? null,
+      disabilityDetails: data.contactDetails.disabilityDetails || "",
+    },
+    isHydrating,
+  );
   const [showValidation, setShowValidation] = useState(false);
 
   const parentCount = Number(formData.parentsCount || 0);
