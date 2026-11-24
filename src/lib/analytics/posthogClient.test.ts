@@ -127,4 +127,13 @@ describe("initPostHog", () => {
     });
     expect(config.autocapture.url_allowlist).toHaveLength(2);
   });
+
+  it("disables the PostHog Conversations support widget", async () => {
+    const { initPostHog } = await importPostHogClient();
+
+    initPostHog();
+
+    const [, config] = posthogMock.init.mock.calls[0];
+    expect(config.disable_conversations).toBe(true);
+  });
 });
