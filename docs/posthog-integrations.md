@@ -145,6 +145,12 @@ contact email to PostHog Support when a tester deliberately sends a ticket.
 
 ## 6. Support tickets for bug bash
 
+> **Currently disabled.** `initPostHog` sets `disable_conversations: true`, so
+> neither PostHog's native support widget nor the **Report issue** launcher
+> loads. The native widget overlapped the enrolment advisor chat panel. Remove
+> that option (and its test in `posthogClient.test.ts`) to restore the flow
+> below.
+
 The app now mounts a global **Report issue** launcher that uses
 `posthog.conversations.sendMessage(..., true)` to create a fresh PostHog
 Support ticket with the current page, course, and application context. It only

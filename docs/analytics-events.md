@@ -319,6 +319,10 @@ keys with the flags actually defined in the PostHog project.
 
 ## Support Tickets
 
+Currently disabled: `initPostHog` sets `disable_conversations: true`, so the
+launcher below does not appear and these events are not emitted. See
+`docs/posthog-integrations.md` §6.
+
 The prototype has a global `Report issue` launcher for bug bash sessions. It
 uses PostHog Support's conversations API to create tickets when the configured
 PostHog project has Support conversations enabled. These are PostHog-managed

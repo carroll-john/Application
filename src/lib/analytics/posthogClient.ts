@@ -269,6 +269,10 @@ export function initPostHog() {
     // opting out doesn't let previously-filtered crawlers (Lighthouse, prerender,
     // vercel-screenshot, …) through.
     opt_out_useragent_filter: true,
+    // PostHog's floating Conversations support widget overlapped the advisor
+    // chat panel, so the whole Conversations extension is off. This also hides
+    // PostHogSupportLauncher's "Report issue" button, which needs the same API.
+    disable_conversations: true,
     persistence: "localStorage+cookie",
     person_profiles: "identified_only",
     // Replay is default-disabled and started per route via syncReplayRoutePrivacy
