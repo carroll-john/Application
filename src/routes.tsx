@@ -25,7 +25,7 @@ import { lazyWithRetry } from "./lib/routeChunkRecovery";
 import { Section2QualificationsRouteFallback } from "./features/section2/Section2QualificationsRouteFallback";
 import { FormStepRouteFallback } from "./features/forms/FormStepRouteFallback";
 import { ReviewRouteFallback } from "./features/review/ReviewRouteFallback";
-import { PostHogSupportLauncher } from "./features/support";
+import { AdvisorChatLauncher, PostHogSupportLauncher } from "./features/support";
 import RouteErrorBoundary from "./pages/RouteErrorBoundary";
 import { isDemoMode } from "./lib/brand";
 
@@ -142,6 +142,7 @@ function Layout() {
     <>
       <ScrollToTop />
       {isDemoMode ? null : <PostHogSupportLauncher />}
+      {isDemoMode ? null : <AdvisorChatLauncher />}
       <Suspense fallback={<RouteLoadingScreen />}>
         <Outlet />
       </Suspense>
