@@ -49,6 +49,7 @@ maintain a separate current-phase list.
 | Transcript evidence | Browser → `/api/evaluate-transcript-eligibility` → `eligibility-service` → OpenAI | Every deployed call requires a valid applicant bearer session and is rate-limited before multipart parsing. The service extracts evidence; the Applications proxy owns program decisions. Ordinary application evidence is persisted through the application flow. The authenticated UC demo credit comparison may process one transcript ephemerally without creating a draft. After the applicant explicitly starts an application, the file is attached to the matching qualification through the shared authenticated document layer, extracted study fields may prefill blank qualification data, and Applications rematches that evidence to the selected course on the qualifications hub. A local app OpenAI fallback still exists pending Phase 3 removal. |
 | Suggestions | Browser → `/api/suggest/*` → `suggest-service` | The service owns institution/address suggestions. Local lists remain as a legacy fallback pending Phase 3 removal. |
 | Analytics | Browser/API → PostHog | Typed analytics wrappers own event shape and privacy controls. |
+| Enrolment advisor chat | Browser → `/api/advisor-chat-session` → ElevenLabs Agents (text-only WebSocket) | Pre-application guidance only; no session required and no applicant data is sent or persisted. The API holds `ELEVENLABS_API_KEY` and issues short-lived signed URLs for `ELEVENLABS_AGENT_ID`; agent behaviour is configured in ElevenLabs. |
 | Monitoring | Browser/API → Sentry | Monitoring is fail-open and must not own applicant-flow decisions. |
 
 ## External project classification
@@ -58,6 +59,7 @@ maintain a separate current-phase list.
 | Supabase | Runtime dependency | Auth, Postgres, private document storage, RLS, submission RPC. |
 | `eligibility-service` | Runtime dependency | Conservative transcript evidence extraction only. It does not own final program eligibility. |
 | `suggest-service` | Runtime dependency | Institution indexing, address suggestion, and Google Places integration. |
+| ElevenLabs Agents | Runtime dependency | Hosts the enrolment advisor agent for in-app text chat (and phone, once a number is linked). Reached only through server-issued signed URLs. |
 | OpenAI | Runtime dependency | Reached through server-side parsing/extraction routes only. |
 | Integration platform | Context only | Separate repository and release lifecycle; connects through versioned contracts, never shared tables. |
 | `aus-uni-intel` and legacy prototypes | Context only | Research or historical reference; no Applications runtime coupling. |

@@ -43,6 +43,8 @@
     "notion:publish-note": "node ./scripts/publish-stakeholder-note-to-notion.mjs"
   },
   "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.80.0",
+    "@elevenlabs/react": "^1.24.0",
     "@johncarroll/eligibility-rules": "file:./vendor/eligibility-rules",
     "@johncarroll/suggest-core": "^0.1.0",
     "@johncarroll/suggest-react": "^0.1.0",
