@@ -15,3 +15,16 @@ export async function requestAdvisorChatSignedUrl(
 
   return payload.signedUrl;
 }
+
+// Voice AudioWorklets are served from this origin by
+// scripts/viteElevenLabsAudioPlugin.ts so the CSP needs no blob:, data: or CDN
+// script sources.
+const AUDIO_BASE = "/elevenlabs-audio";
+
+export const ADVISOR_VOICE_AUDIO_CONFIG = {
+  workletPaths: {
+    rawAudioProcessor: `${AUDIO_BASE}/rawAudioProcessor.js`,
+    audioConcatProcessor: `${AUDIO_BASE}/audioConcatProcessor.js`,
+  },
+  libsampleratePath: `${AUDIO_BASE}/libsamplerate.worklet.js`,
+} as const;

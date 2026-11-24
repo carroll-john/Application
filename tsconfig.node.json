@@ -8,5 +8,5 @@
     "allowSyntheticDefaultImports": true,
     "outDir": "./node_modules/.cache/tsconfig-node"
   },
-  "include": ["vite.config.ts", "scripts/viteDevConsolePlugin.ts"]
+  "include": ["vite.config.ts", "scripts/viteDevConsolePlugin.ts", "scripts/viteElevenLabsAudioPlugin.ts"]
 }
