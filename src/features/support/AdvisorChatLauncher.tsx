@@ -56,16 +56,20 @@ function AdvisorChatPanel({ onClose }: { onClose: () => void }) {
     setMessages([]);
     setMode(nextMode);
     modeRef.current = nextMode;
+    let signedUrl: string;
     try {
-      const signedUrl = await requestAdvisorChatSignedUrl();
-      if (nextMode === "voice") {
-        setMuted(false);
-        startSession({ signedUrl, textOnly: false, ...ADVISOR_VOICE_AUDIO_CONFIG });
-      } else {
-        startSession({ signedUrl, textOnly: true });
-      }
+      signedUrl = await requestAdvisorChatSignedUrl();
     } catch {
       setError("We couldn't reach an advisor right now. Try again in a moment.");
+      return;
+    }
+    // Start outside the try so session errors surface via onError with the
+    // right message. Mute state needs no reset: the SDK clears it on
+    // disconnect, and setMuted throws before a session exists.
+    if (nextMode === "voice") {
+      startSession({ signedUrl, textOnly: false, ...ADVISOR_VOICE_AUDIO_CONFIG });
+    } else {
+      startSession({ signedUrl, textOnly: true });
     }
   }
 
