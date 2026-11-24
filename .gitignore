@@ -11,6 +11,8 @@ vite.config.js
 vite.config.d.ts
 scripts/viteDevConsolePlugin.js
 scripts/viteDevConsolePlugin.d.ts
+scripts/viteElevenLabsAudioPlugin.js
+scripts/viteElevenLabsAudioPlugin.d.ts
 supabase/.temp/
 supabase/.branches/
 .cursor/dev-console.log

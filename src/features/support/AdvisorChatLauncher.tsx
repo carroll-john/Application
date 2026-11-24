@@ -1,39 +1,49 @@
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
-import { MessageCircle, Send, X } from "lucide-react";
+import { MessageCircle, Mic, MicOff, PhoneOff, Send, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { StatusMessage } from "../../components/StatusMessage";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { requestAdvisorChatSignedUrl } from "./advisorChatClient";
+import { ADVISOR_VOICE_AUDIO_CONFIG, requestAdvisorChatSignedUrl } from "./advisorChatClient";
 
 type ChatMessage = { id: string; role: "user" | "agent"; text: string };
+type ChatMode = "text" | "voice";
 
 let messageSequence = 0;
 const nextMessageId = () => `advisor-msg-${(messageSequence += 1)}`;
+
+const VOICE_ERROR =
+  "We couldn't start the voice chat. Check your browser allowed the microphone, or use text chat.";
+const TEXT_ERROR = "The advisor chat dropped. Start a new chat to keep going.";
 
 function AdvisorChatPanel({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<ChatMode>("text");
+  const modeRef = useRef<ChatMode>("text");
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const conversation = useConversation({
-    textOnly: true,
     stripAudioTags: true,
     onMessage: ({ message, role }) => {
-      // The panel already shows what the user typed; only append agent replies.
-      if (role === "user" || !message.trim()) return;
+      if (!message.trim()) return;
+      // In text mode the panel already shows what the user typed. In voice mode
+      // the user's words only arrive as transcripts, so show both sides.
+      if (role === "user" && modeRef.current === "text") return;
       setMessages((current) => [
         ...current,
-        { id: nextMessageId(), role: "agent", text: message },
+        { id: nextMessageId(), role: role === "user" ? "user" : "agent", text: message },
       ]);
     },
-    onError: () => setError("The advisor chat dropped. Start a new chat to keep going."),
+    onError: () => setError(modeRef.current === "voice" ? VOICE_ERROR : TEXT_ERROR),
   });
 
-  const { status, startSession, endSession, sendUserMessage } = conversation;
+  const { status, startSession, endSession, sendUserMessage, isMuted, setMuted, isSpeaking } =
+    conversation;
   const isConnected = status === "connected";
   const isConnecting = status === "connecting";
+  const isVoiceLive = isConnected && mode === "voice";
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight });
@@ -41,12 +51,19 @@ function AdvisorChatPanel({ onClose }: { onClose: () => void }) {
 
   useEffect(() => () => endSession(), [endSession]);
 
-  async function startChat() {
+  async function start(nextMode: ChatMode) {
     setError(null);
     setMessages([]);
+    setMode(nextMode);
+    modeRef.current = nextMode;
     try {
       const signedUrl = await requestAdvisorChatSignedUrl();
-      startSession({ signedUrl, textOnly: true });
+      if (nextMode === "voice") {
+        setMuted(false);
+        startSession({ signedUrl, textOnly: false, ...ADVISOR_VOICE_AUDIO_CONFIG });
+      } else {
+        startSession({ signedUrl, textOnly: true });
+      }
     } catch {
       setError("We couldn't reach an advisor right now. Try again in a moment.");
     }
@@ -55,11 +72,23 @@ function AdvisorChatPanel({ onClose }: { onClose: () => void }) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = draft.trim();
-    if (!text || !isConnected) return;
+    if (!text || !isConnected || mode === "voice") return;
     setMessages((current) => [...current, { id: nextMessageId(), role: "user", text }]);
     sendUserMessage(text);
     setDraft("");
   }
+
+  const statusLine = isVoiceLive
+    ? isMuted
+      ? "Voice call · microphone muted"
+      : isSpeaking
+        ? "Voice call · advisor speaking"
+        : "Voice call · listening"
+    : isConnected
+      ? "Online now"
+      : isConnecting
+        ? "Connecting..."
+        : "Ask about courses and enrolment";
 
   return (
     <section
@@ -69,8 +98,8 @@ function AdvisorChatPanel({ onClose }: { onClose: () => void }) {
       <header className="flex items-center justify-between gap-3 bg-[var(--brand-header)] px-5 py-4 text-[var(--brand-header-text)]">
         <div>
           <p className="text-sm font-semibold">Enrolment advisor</p>
-          <p className="text-xs opacity-80">
-            {isConnected ? "Online now" : isConnecting ? "Connecting..." : "Ask about courses and enrolment"}
+          <p className="text-xs opacity-80" aria-live="polite">
+            {statusLine}
           </p>
         </div>
         <button
@@ -112,30 +141,60 @@ function AdvisorChatPanel({ onClose }: { onClose: () => void }) {
               Chat with our virtual advisor about courses, entry and next steps.
               Please don't share passwords or ID numbers.
             </p>
-            <Button type="button" onClick={startChat}>
-              {messages.length > 0 ? "Start a new chat" : "Start chat"}
-            </Button>
+            <div className="flex flex-col items-center gap-2">
+              <Button type="button" onClick={() => start("text")}>
+                <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                {messages.length > 0 ? "Start a new chat" : "Start chat"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => start("voice")}>
+                <Mic className="h-4 w-4" aria-hidden="true" />
+                Talk instead
+              </Button>
+            </div>
           </div>
         ) : null}
       </div>
 
-      <form className="flex gap-2 border-t border-[var(--border)] p-3" onSubmit={handleSubmit}>
-        <Input
-          aria-label="Message the advisor"
-          placeholder={isConnected ? "Type your message" : "Start a chat to send messages"}
-          value={draft}
-          disabled={!isConnected}
-          onChange={(event) => setDraft(event.target.value)}
-        />
-        <Button
-          type="submit"
-          variant="soft"
-          aria-label="Send message"
-          disabled={!isConnected || !draft.trim()}
-        >
-          <Send className="h-4 w-4" aria-hidden="true" />
-        </Button>
-      </form>
+      {isVoiceLive ? (
+        <div className="flex gap-2 border-t border-[var(--border)] p-3">
+          <Button
+            type="button"
+            variant="neutralOutline"
+            className="flex-1"
+            aria-pressed={isMuted}
+            onClick={() => setMuted(!isMuted)}
+          >
+            {isMuted ? (
+              <MicOff className="h-4 w-4" aria-hidden="true" />
+            ) : (
+              <Mic className="h-4 w-4" aria-hidden="true" />
+            )}
+            {isMuted ? "Unmute" : "Mute"}
+          </Button>
+          <Button type="button" variant="soft" className="flex-1" onClick={() => endSession()}>
+            <PhoneOff className="h-4 w-4" aria-hidden="true" />
+            End call
+          </Button>
+        </div>
+      ) : (
+        <form className="flex gap-2 border-t border-[var(--border)] p-3" onSubmit={handleSubmit}>
+          <Input
+            aria-label="Message the advisor"
+            placeholder={isConnected ? "Type your message" : "Start a chat to send messages"}
+            value={draft}
+            disabled={!isConnected}
+            onChange={(event) => setDraft(event.target.value)}
+          />
+          <Button
+            type="submit"
+            variant="soft"
+            aria-label="Send message"
+            disabled={!isConnected || !draft.trim()}
+          >
+            <Send className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </form>
+      )}
     </section>
   );
 }

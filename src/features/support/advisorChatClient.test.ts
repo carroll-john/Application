@@ -21,3 +21,15 @@ describe("requestAdvisorChatSignedUrl", () => {
     await expect(requestAdvisorChatSignedUrl(respond({ signedUrl: "http://bad" }))).rejects.toThrow();
   });
 });
+
+describe("ADVISOR_VOICE_AUDIO_CONFIG", () => {
+  it("loads every voice worklet from this origin", async () => {
+    const { ADVISOR_VOICE_AUDIO_CONFIG } = await import("./advisorChatClient");
+    const paths = [
+      ...Object.values(ADVISOR_VOICE_AUDIO_CONFIG.workletPaths),
+      ADVISOR_VOICE_AUDIO_CONFIG.libsampleratePath,
+    ];
+    expect(paths).toHaveLength(3);
+    for (const path of paths) expect(path).toMatch(/^\/elevenlabs-audio\/[\w.]+\.js$/);
+  });
+});

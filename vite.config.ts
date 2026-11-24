@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { loadEnv } from "vite";
 import { viteDevConsolePlugin } from "./scripts/viteDevConsolePlugin.js";
+import { viteElevenLabsAudioPlugin } from "./scripts/viteElevenLabsAudioPlugin.js";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
@@ -21,6 +22,7 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       viteDevConsolePlugin(),
+      viteElevenLabsAudioPlugin(),
       ...(enableSentryUpload
         ? [
             sentryVitePlugin({
