@@ -27,14 +27,10 @@ function AdvisorChatPanel({ onClose }: { onClose: () => void }) {
   const conversation = useConversation({
     stripAudioTags: true,
     onMessage: ({ message, role }) => {
-      if (!message.trim()) return;
-      // In text mode the panel already shows what the user typed. In voice mode
-      // the user's words only arrive as transcripts, so show both sides.
-      if (role === "user" && modeRef.current === "text") return;
-      setMessages((current) => [
-        ...current,
-        { id: nextMessageId(), role: role === "user" ? "user" : "agent", text: message },
-      ]);
+      // Voice calls show a call screen, not a transcript. In text mode the
+      // panel already shows what the user typed, so only add agent replies.
+      if (modeRef.current === "voice" || role === "user" || !message.trim()) return;
+      setMessages((current) => [...current, { id: nextMessageId(), role: "agent", text: message }]);
     },
     onError: () => setError(modeRef.current === "voice" ? VOICE_ERROR : TEXT_ERROR),
   });
@@ -44,6 +40,7 @@ function AdvisorChatPanel({ onClose }: { onClose: () => void }) {
   const isConnected = status === "connected";
   const isConnecting = status === "connecting";
   const isVoiceLive = isConnected && mode === "voice";
+  const isVoiceCall = mode === "voice" && (isConnected || isConnecting);
 
   useEffect(() => {
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight });
@@ -82,12 +79,16 @@ function AdvisorChatPanel({ onClose }: { onClose: () => void }) {
     setDraft("");
   }
 
-  const statusLine = isVoiceLive
-    ? isMuted
-      ? "Voice call · microphone muted"
+  const callState = isConnecting
+    ? "Connecting…"
+    : isMuted
+      ? "You're muted"
       : isSpeaking
-        ? "Voice call · advisor speaking"
-        : "Voice call · listening"
+        ? "Isla is speaking"
+        : "Listening…";
+
+  const statusLine = isVoiceCall
+    ? "Voice call"
     : isConnected
       ? "Online now"
       : isConnecting
@@ -127,7 +128,36 @@ function AdvisorChatPanel({ onClose }: { onClose: () => void }) {
         {error ? (
           <StatusMessage type="error" message={error} onDismiss={() => setError(null)} />
         ) : null}
-        {messages.map((message) => (
+        {isVoiceCall ? (
+          <div className="m-auto flex flex-col items-center gap-4 py-6 text-center">
+            <div className="relative flex h-24 w-24 items-center justify-center">
+              {isVoiceLive && isSpeaking ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 animate-ping rounded-full bg-[var(--brand-accent)] opacity-40"
+                />
+              ) : null}
+              <span
+                className={`relative flex h-24 w-24 items-center justify-center rounded-full ${
+                  isMuted ? "bg-slate-300 text-slate-600" : "bg-[var(--brand-header)] text-white"
+                }`}
+              >
+                {isMuted ? (
+                  <MicOff className="h-9 w-9" aria-hidden="true" />
+                ) : (
+                  <Mic className="h-9 w-9" aria-hidden="true" />
+                )}
+              </span>
+            </div>
+            <div>
+              <p className="text-base font-semibold text-slate-900">Isla, enrolment advisor</p>
+              <p className="text-sm text-slate-600" aria-live="polite">
+                {callState}
+              </p>
+            </div>
+          </div>
+        ) : null}
+        {!isVoiceCall && messages.map((message) => (
           <p
             key={message.id}
             className={
